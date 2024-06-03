@@ -1,0 +1,3 @@
+evk/=lib/euler-vault-kit/src
+evk-test/=lib/euler-vault-kit/test
+ethereum-vault-connector/=lib/euler-vault-kit/lib/ethereum-vault-connector/src/
