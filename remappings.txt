@@ -1,5 +1,5 @@
 openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/
-ethereum-vault-connector/=lib/ethereum-vault-connector/src/
+ethereum-vault-connector/=lib/euler-vault-kit/lib/ethereum-vault-connector/src/
 evk/=lib/euler-vault-kit/src
 evk-test/=lib/euler-vault-kit/test
 euler-price-oracle/=lib/euler-price-oracle/src/
