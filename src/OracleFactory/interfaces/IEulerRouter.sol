@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Oracle resolver interface.
 interface IEulerRouter {
+    function name() external view returns (string memory);
     function resolveOracle(uint256 inAmount, address base, address quote)
         external
         view
