@@ -7,3 +7,6 @@
 [submodule "lib/ethereum-vault-connector"]
 	path = lib/ethereum-vault-connector
 	url = https://github.com/euler-xyz/ethereum-vault-connector
+[submodule "lib/euler-price-oracle"]
+	path = lib/euler-price-oracle
+	url = https://github.com/euler-xyz/euler-price-oracle
