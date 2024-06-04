@@ -3,6 +3,7 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
+import {IPerspective} from "../../../../../src/Perspectives/interfaces/IPerspective.sol";
 import {WhitelistPerspective} from
     "../../../../../src/Perspectives/immutable/ungoverned/whitelist/WhitelistPerspective.sol";
 
@@ -27,5 +28,10 @@ contract WhitelistPerspectiveTest is Test {
             assertEq(verified[i], whitelist[i]);
         }
         assertEq(perspective.verifiedLength(), size);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(IPerspective.PerspectiveError.selector, address(perspective), address(1), 0)
+        );
+        perspective.perspectiveVerify(address(1), true);
     }
 }
