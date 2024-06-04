@@ -48,25 +48,6 @@ contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspect
         // cluster vaults must not be upgradeable
         testProperty(!config.upgradeable, vault, ERROR__UPGRADABILITY, failEarly);
 
-        // cluster vaults must point to an EulerRouter instance deployed by the factory
-        address oracle = IEVault(vault).oracle();
-        testProperty(routerFactory.isValidDeployment(oracle), vault, ERROR__ORACLE, failEarly);
-
-        // the router must contain a valid pricing configuration for the underlying asset
-        address unitOfAccount = IEVault(vault).unitOfAccount();
-        (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, IEVault(vault).asset(), unitOfAccount);
-        testProperty(
-            adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp), vault, ERROR__ORACLE_ASSET, failEarly
-        );
-
-        // Verify the unit of account is either USD or WETH
-        testProperty(
-            unitOfAccount == USD || unitOfAccount == ETH || unitOfAccount == WETH,
-            vault,
-            ERROR__UNIT_OF_ACCOUNT,
-            failEarly
-        );
-
         // verify vault configuration at the governance level
         // cluster vaults must not have a governor admin
         testProperty(IEVault(vault).governorAdmin() == address(0), vault, ERROR__GOVERNOR, failEarly);
@@ -100,6 +81,39 @@ contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspect
         // cluster vaults must have certain liquidation cool off time
         testProperty(IEVault(vault).liquidationCoolOffTime() == 1, vault, ERROR__LIQUIDATION_COOL_OFF_TIME, failEarly);
 
+        // cluster vaults must point to an ungoverned EulerRouter instance deployed by the factory
+        address oracle = IEVault(vault).oracle();
+        testProperty(routerFactory.isValidDeployment(oracle), vault, ERROR__ORACLE, failEarly);
+        testProperty(IEulerRouter(oracle).governor() == address(0), vault, ERROR__ORACLE, failEarly);
+
+        // Verify the unit of account is either USD or WETH
+        address unitOfAccount = IEVault(vault).unitOfAccount();
+        testProperty(
+            unitOfAccount == USD || unitOfAccount == ETH || unitOfAccount == WETH,
+            vault,
+            ERROR__UNIT_OF_ACCOUNT,
+            failEarly
+        );
+
+        // the router must contain a valid pricing configuration
+        address fallbackOracle = IEulerRouter(oracle).fallbackOracle();
+        {
+            testProperty(
+                fallbackOracle == address(0) || routerFactory.isValidDeployment(fallbackOracle),
+                vault,
+                ERROR__ORACLE,
+                failEarly
+            );
+            (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
+            testProperty(
+                (fallbackOracle != address(0) && resolvedOracle == fallbackOracle)
+                    || adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
+                vault,
+                ERROR__ORACLE_ASSET,
+                failEarly
+            );
+        }
+
         // cluster vaults must have collaterals set up
         address[] memory ltvList = IEVault(vault).LTVList();
         testProperty(ltvList.length > 0 && ltvList.length <= 10, vault, ERROR__LTV_LENGTH, failEarly);
@@ -107,6 +121,16 @@ contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspect
         // cluster vaults must have recognized collaterals with LTV set in range
         for (uint256 i = 0; i < ltvList.length; ++i) {
             address collateral = ltvList[i];
+            {
+                (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
+                testProperty(
+                    (fallbackOracle != address(0) && resolvedOracle == fallbackOracle)
+                        || adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
+                    vault,
+                    ERROR__ORACLE_COLLATERAL,
+                    failEarly
+                );
+            }
 
             // cluster vaults must have liquidation discount in a certain range
             uint16 maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
@@ -122,15 +146,6 @@ contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspect
             testProperty(borrowLTV != liquidationLTV, vault, ERROR__LTV_CONFIG, failEarly);
             testProperty(borrowLTV > 0 && borrowLTV <= 0.85e4, vault, ERROR__LTV_CONFIG, failEarly);
             testProperty(liquidationLTV > 0 && liquidationLTV <= 0.9e4, vault, ERROR__LTV_CONFIG, failEarly);
-
-            // the router must contain a valid pricing configuration for the collaterals
-            (,,, resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, collateral, unitOfAccount);
-            testProperty(
-                adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
-                vault,
-                ERROR__ORACLE_COLLATERAL,
-                failEarly
-            );
 
             // iterate over recognized collateral perspectives to check if the collateral is recognized
             bool recognized = false;
