@@ -12,8 +12,52 @@ import "evk/EVault/shared/types/AmountCap.sol";
 import "./LensTypes.sol";
 
 contract VaultLens is LensUtils {
-    function getVaultInfo(address vault) public view returns (VaultInfo memory) {
-        VaultInfo memory result;
+    function getVaultInfoSimple(address vault) public view returns (VaultInfoSimple memory) {
+        VaultInfoSimple memory result;
+
+        result.timestamp = block.timestamp;
+        result.blockNumber = block.number;
+
+        result.vault = vault;
+        result.vaultName = IEVault(vault).name();
+        result.vaultSymbol = IEVault(vault).symbol();
+        result.vaultDecimals = IEVault(vault).decimals();
+
+        result.asset = IEVault(vault).asset();
+        result.assetDecimals = getDecimals(result.asset);
+
+        result.unitOfAccount = IEVault(vault).unitOfAccount();
+        result.unitOfAccountDecimals = getDecimals(result.unitOfAccount);
+
+        result.totalShares = IEVault(vault).totalSupply();
+        result.totalCash = IEVault(vault).cash();
+        result.totalBorrowed = IEVault(vault).totalBorrows();
+        result.totalAssets = IEVault(vault).totalAssets();
+
+        result.oracle = IEVault(vault).oracle();
+        result.governorAdmin = IEVault(vault).governorAdmin();
+
+        uint256[] memory cash = new uint256[](1);
+        uint256[] memory borrows = new uint256[](1);
+        cash[0] = result.totalCash;
+        borrows[0] = result.totalBorrowed;
+        result.irmInfo = getVaultInterestRateModelInfo(vault, cash, borrows);
+
+        result.collateralLTVInfo = getRecognizedCollateralsLTVInfo(vault);
+
+        result.liabilityPriceInfo = getControllerAssetPriceInfo(vault, result.asset);
+
+        result.collateralPriceInfo = new AssetPriceInfo[](result.collateralLTVInfo.length);
+
+        for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
+            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
+        }
+
+        return result;
+    }
+
+    function getVaultInfoFull(address vault) public view returns (VaultInfoFull memory) {
+        VaultInfoFull memory result;
 
         result.timestamp = block.timestamp;
         result.blockNumber = block.number;
@@ -73,37 +117,11 @@ contract VaultLens is LensUtils {
         borrows[0] = result.totalBorrowed;
         result.irmInfo = getVaultInterestRateModelInfo(vault, cash, borrows);
 
-        address[] memory collaterals = IEVault(vault).LTVList();
-        LTVInfo[] memory collateralLTVInfo = new LTVInfo[](collaterals.length);
-        uint256 numberOfRecognizedCollaterals = 0;
-
-        for (uint256 i = 0; i < collaterals.length; ++i) {
-            collateralLTVInfo[i].collateral = collaterals[i];
-
-            (
-                collateralLTVInfo[i].borrowLTV,
-                collateralLTVInfo[i].liquidationLTV,
-                collateralLTVInfo[i].initialLiquidationLTV,
-                collateralLTVInfo[i].targetTimestamp,
-                collateralLTVInfo[i].rampDuration
-            ) = IEVault(vault).LTVFull(collaterals[i]);
-
-            if (collateralLTVInfo[i].targetTimestamp != 0) {
-                ++numberOfRecognizedCollaterals;
-            }
-        }
-
-        result.collateralLTVInfo = new LTVInfo[](numberOfRecognizedCollaterals);
-
-        for (uint256 i = 0; i < collaterals.length; ++i) {
-            if (collateralLTVInfo[i].targetTimestamp != 0) {
-                result.collateralLTVInfo[i] = collateralLTVInfo[i];
-            }
-        }
+        result.collateralLTVInfo = getRecognizedCollateralsLTVInfo(vault);
 
         result.liabilityPriceInfo = getControllerAssetPriceInfo(vault, result.asset);
 
-        result.collateralPriceInfo = new AssetPriceInfo[](numberOfRecognizedCollaterals);
+        result.collateralPriceInfo = new AssetPriceInfo[](result.collateralLTVInfo.length);
 
         for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
             result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
@@ -170,6 +188,38 @@ contract VaultLens is LensUtils {
         }
 
         return result;
+    }
+
+    function getRecognizedCollateralsLTVInfo(address vault) public view returns (LTVInfo[] memory) {
+        address[] memory collaterals = IEVault(vault).LTVList();
+        LTVInfo[] memory ltvInfo = new LTVInfo[](collaterals.length);
+        uint256 numberOfRecognizedCollaterals = 0;
+
+        for (uint256 i = 0; i < collaterals.length; ++i) {
+            ltvInfo[i].collateral = collaterals[i];
+
+            (
+                ltvInfo[i].borrowLTV,
+                ltvInfo[i].liquidationLTV,
+                ltvInfo[i].initialLiquidationLTV,
+                ltvInfo[i].targetTimestamp,
+                ltvInfo[i].rampDuration
+            ) = IEVault(vault).LTVFull(collaterals[i]);
+
+            if (ltvInfo[i].targetTimestamp != 0) {
+                ++numberOfRecognizedCollaterals;
+            }
+        }
+
+        LTVInfo[] memory collateralLTVInfo = new LTVInfo[](numberOfRecognizedCollaterals);
+
+        for (uint256 i = 0; i < collaterals.length; ++i) {
+            if (ltvInfo[i].targetTimestamp != 0) {
+                collateralLTVInfo[i] = ltvInfo[i];
+            }
+        }
+
+        return collateralLTVInfo;
     }
 
     function getVaultInterestRateModelInfo(address vault, uint256[] memory cash, uint256[] memory borrows)
