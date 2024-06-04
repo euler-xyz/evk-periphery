@@ -35,7 +35,7 @@ contract ClusterConservativeWithRecognizedCollateralsPerspectiveTest is ClusterS
                 IPerspective.PerspectiveError.selector,
                 address(clusterConservativeWithRecognizedCollateralsPerspective1),
                 vaultEscrow,
-                ERROR__ORACLE
+                ERROR__INTEREST_RATE_MODEL
             )
         );
         clusterConservativeWithRecognizedCollateralsPerspective1.perspectiveVerify(vaultEscrow, true);
