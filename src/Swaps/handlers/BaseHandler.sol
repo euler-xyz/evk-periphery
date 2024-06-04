@@ -3,9 +3,9 @@
 pragma solidity ^0.8.0;
 
 import "../ISwapper.sol";
-import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
-import {SafeERC20Lib} from "evk/EVault/shared/lib/SafeERC20Lib.sol";
-import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
+import {IEVault, IERC20} from "../../EVault/IEVault.sol";
+import {SafeERC20Lib} from "../../EVault/shared/lib/SafeERC20Lib.sol";
+import {RevertBytes} from "../../EVault/shared/lib/RevertBytes.sol";
 
 abstract contract BaseHandler is ISwapper {
     uint256 internal constant SWAPMODE_EXACT_IN = 0;
