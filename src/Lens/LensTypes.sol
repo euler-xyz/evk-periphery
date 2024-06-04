@@ -62,7 +62,30 @@ struct CollateralLiquidityInfo {
     uint256 collateralValue;
 }
 
-struct VaultInfo {
+struct VaultInfoSimple {
+    uint256 timestamp;
+    uint256 blockNumber;
+    address vault;
+    string vaultName;
+    string vaultSymbol;
+    uint256 vaultDecimals;
+    address asset;
+    uint256 assetDecimals;
+    address unitOfAccount;
+    uint256 unitOfAccountDecimals;
+    uint256 totalShares;
+    uint256 totalCash;
+    uint256 totalBorrowed;
+    uint256 totalAssets;
+    address oracle;
+    address governorAdmin;
+    VaultInterestRateModelInfo irmInfo;
+    LTVInfo[] collateralLTVInfo;
+    AssetPriceInfo liabilityPriceInfo;
+    AssetPriceInfo[] collateralPriceInfo;
+}
+
+struct VaultInfoFull {
     uint256 timestamp;
     uint256 blockNumber;
     address vault;
