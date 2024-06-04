@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import {IPriceOracle} from "evk/interfaces/IPriceOracle.sol";
-import {IEulerRouter} from "../OracleFactory/interfaces/IEulerRouter.sol";
+import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
+import "./LensTypes.sol";
 
 interface IOracle is IPriceOracle {
     function base() external view returns (address);
@@ -36,75 +36,6 @@ interface IOracle is IPriceOracle {
 }
 
 contract OracleLens {
-    struct OracleInfo {
-        string name;
-        bytes oracleInfo;
-    }
-
-    struct EulerRouterInfo {
-        address governor;
-        address fallbackOracle;
-        address[] resolvedOracles;
-        OracleInfo fallbackOracleInfo;
-        OracleInfo[] resolvedOraclesInfo;
-    }
-
-    struct ChainlinkOracleInfo {
-        address base;
-        address quote;
-        address feed;
-        uint256 maxStaleness;
-    }
-
-    struct ChronicleOracleInfo {
-        address base;
-        address quote;
-        address feed;
-        uint256 maxStaleness;
-    }
-
-    struct LidoOracleInfo {
-        address base;
-        address quote;
-    }
-
-    struct PythOracleInfo {
-        address pyth;
-        address base;
-        address quote;
-        bytes32 feedId;
-        uint256 maxStaleness;
-        uint256 maxConfWidth;
-    }
-
-    struct RedstoneCoreOracleInfo {
-        address base;
-        address quote;
-        bytes32 feedId;
-        uint8 feedDecimals;
-        uint256 maxStaleness;
-        uint208 cachePrice;
-        uint48 cachePriceTimestamp;
-    }
-
-    struct UniswapV3OracleInfo {
-        address tokenA;
-        address tokenB;
-        address pool;
-        uint24 fee;
-        uint32 twapWindow;
-    }
-
-    struct CrossAdapterInfo {
-        address base;
-        address cross;
-        address quote;
-        address oracleBaseCross;
-        address oracleCrossQuote;
-        OracleInfo oracleBaseCrossInfo;
-        OracleInfo oracleCrossQuoteInfo;
-    }
-
     function strEq(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(bytes(a)) == keccak256(bytes(b));
     }
@@ -112,10 +43,10 @@ contract OracleLens {
     function getOracleInfo(address oracleAddress, address[] calldata bases, address unitOfAccount)
         public
         view
-        returns (OracleInfo memory)
+        returns (OracleDetailedInfo memory)
     {
         if (oracleAddress == address(0)) {
-            return OracleInfo({name: "", oracleInfo: ""});
+            return OracleDetailedInfo({name: "", oracleInfo: ""});
         }
 
         IOracle oracle = IOracle(oracleAddress);
@@ -141,7 +72,7 @@ contract OracleLens {
                 })
             );
         } else if (strEq(name, "LidoOracle")) {
-            oracleInfo = abi.encode(LidoOracleInfo({base: oracle.STETH(), quote: oracle.WSTETH()}));
+            oracleInfo = abi.encode(LidoOracleInfo({base: oracle.WSTETH(), quote: oracle.STETH()}));
         } else if (strEq(name, "PythOracle")) {
             oracleInfo = abi.encode(
                 PythOracleInfo({
@@ -179,8 +110,8 @@ contract OracleLens {
         } else if (strEq(name, "CrossAdapter")) {
             address oracleBaseCross = oracle.oracleBaseCross();
             address oracleCrossQuote = oracle.oracleCrossQuote();
-            OracleInfo memory oracleBaseCrossInfo = getOracleInfo(oracleBaseCross, bases, unitOfAccount);
-            OracleInfo memory oracleCrossQuoteInfo = getOracleInfo(oracleCrossQuote, bases, unitOfAccount);
+            OracleDetailedInfo memory oracleBaseCrossInfo = getOracleInfo(oracleBaseCross, bases, unitOfAccount);
+            OracleDetailedInfo memory oracleCrossQuoteInfo = getOracleInfo(oracleCrossQuote, bases, unitOfAccount);
             oracleInfo = abi.encode(
                 CrossAdapterInfo({
                     base: oracle.base(),
@@ -194,7 +125,7 @@ contract OracleLens {
             );
         } else if (strEq(name, "EulerRouter")) {
             address[] memory resolvedOracles = new address[](bases.length);
-            OracleInfo[] memory resolvedOraclesInfo = new OracleInfo[](bases.length);
+            OracleDetailedInfo[] memory resolvedOraclesInfo = new OracleDetailedInfo[](bases.length);
             for (uint256 i = 0; i < bases.length; ++i) {
                 address base = bases[i];
                 (,,, address resolvedOracle) = oracle.resolveOracle(0, base, unitOfAccount);
@@ -215,6 +146,6 @@ contract OracleLens {
             );
         }
 
-        return OracleInfo({name: name, oracleInfo: oracleInfo});
+        return OracleDetailedInfo({name: name, oracleInfo: oracleInfo});
     }
 }

@@ -189,3 +189,72 @@ struct RewardAmountInfo {
     uint256 epochEnd;
     uint256 rewardAmount;
 }
+
+struct OracleDetailedInfo {
+    string name;
+    bytes oracleInfo;
+}
+
+struct EulerRouterInfo {
+    address governor;
+    address fallbackOracle;
+    address[] resolvedOracles;
+    OracleDetailedInfo fallbackOracleInfo;
+    OracleDetailedInfo[] resolvedOraclesInfo;
+}
+
+struct ChainlinkOracleInfo {
+    address base;
+    address quote;
+    address feed;
+    uint256 maxStaleness;
+}
+
+struct ChronicleOracleInfo {
+    address base;
+    address quote;
+    address feed;
+    uint256 maxStaleness;
+}
+
+struct LidoOracleInfo {
+    address base;
+    address quote;
+}
+
+struct PythOracleInfo {
+    address pyth;
+    address base;
+    address quote;
+    bytes32 feedId;
+    uint256 maxStaleness;
+    uint256 maxConfWidth;
+}
+
+struct RedstoneCoreOracleInfo {
+    address base;
+    address quote;
+    bytes32 feedId;
+    uint8 feedDecimals;
+    uint256 maxStaleness;
+    uint208 cachePrice;
+    uint48 cachePriceTimestamp;
+}
+
+struct UniswapV3OracleInfo {
+    address tokenA;
+    address tokenB;
+    address pool;
+    uint24 fee;
+    uint32 twapWindow;
+}
+
+struct CrossAdapterInfo {
+    address base;
+    address cross;
+    address quote;
+    address oracleBaseCross;
+    address oracleCrossQuote;
+    OracleDetailedInfo oracleBaseCrossInfo;
+    OracleDetailedInfo oracleCrossQuoteInfo;
+}
