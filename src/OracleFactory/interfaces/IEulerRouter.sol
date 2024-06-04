@@ -6,6 +6,9 @@ pragma solidity ^0.8.0;
 /// @notice Oracle resolver interface.
 interface IEulerRouter {
     function name() external view returns (string memory);
+    function governor() external view returns (address);
+    function fallbackOracle() external view returns (address);
+    function transferGovernance(address newGovernor) external;
     function resolveOracle(uint256 inAmount, address base, address quote)
         external
         view
