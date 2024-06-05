@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import {IEVault, IERC20} from "../EVault/IEVault.sol";
+import {IEVault, IERC20} from "euler-vault-kit/EVault/IEVault.sol";
 
-contract SwapValidator  {
+contract SwapValidator {
     error SwapValidator_skimMin();
     error SwapValidator_debtMax();
 

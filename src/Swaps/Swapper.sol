@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import {IEVault, IERC20} from "../EVault/IEVault.sol";
-import {SafeERC20Lib} from "../EVault/shared/lib/SafeERC20Lib.sol";
-import {RevertBytes} from "../EVault/shared/lib/RevertBytes.sol";
+import {IEVault, IERC20} from "euler-vault-kit/EVault/IEVault.sol";
+import {SafeERC20Lib} from "euler-vault-kit/EVault/shared/lib/SafeERC20Lib.sol";
+import {RevertBytes} from "euler-vault-kit/EVault/shared/lib/RevertBytes.sol";
 
 import {OneInchHandler} from "./handlers/OneInchHandler.sol";
 import {UniswapV2Handler} from "./handlers/UniswapV2Handler.sol";
@@ -76,7 +76,6 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         // return unused input token after exact out swap. Caller contract should check amountInMax and skim immediately
         sweep(params.tokenIn, 0, params.sender);
     }
-
 
     // in case of over-swapping to repay, pass max uint amount
     function repay(address token, address vault, uint256 amount, address account) public externalLock {
