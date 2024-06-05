@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
-import {SafeERC20Lib} from "evk/EVault/shared/lib/SafeERC20Lib.sol";
-import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
+import {IEVault, IERC20} from "euler-vault-kit/EVault/IEVault.sol";
+import {SafeERC20Lib} from "euler-vault-kit/EVault/shared/lib/SafeERC20Lib.sol";
+import {RevertBytes} from "euler-vault-kit/EVault/shared/lib/RevertBytes.sol";
 
 import {OneInchHandler} from "./handlers/OneInchHandler.sol";
 import {UniswapV2Handler} from "./handlers/UniswapV2Handler.sol";
@@ -22,7 +22,8 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
 
     uint256 private reentrancyLock;
 
-    error Swapper_UnsupportedHandler();
+    error Swapper_UnknownMode();
+    error Swapper_UnknownHandler();
     error Swapper_Reentrancy();
 
     modifier externalLock() {
@@ -50,22 +51,40 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         override (OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapAutoRouterHandler)
         externalLock
     {
-        _swap(params);
-    }
+        if (params.mode >= SWAPMODE_MAX_VALUE) revert Swapper_UnknownMode();
 
-    function swapMany(SwapParams[] memory params) public externalLock {
-        for (uint256 i; i < params.length; i++) {
-            _swap(params[i]);
+        if (params.handler == HANDLER_ONE_INCH) {
+            OneInchHandler.swap(params);
+        } else if (params.handler == HANDLER_UNISWAP_V2) {
+            UniswapV2Handler.swap(params);
+        } else if (params.handler == HANDLER_UNISWAP_V3) {
+            UniswapV3Handler.swap(params);
+        } else if (params.handler == HANDLER_UNISWAP_AUTOROUTER) {
+            UniswapAutoRouterHandler.swap(params);
+        } else {
+            revert Swapper_UnknownHandler();
         }
+
+        if (params.mode == SWAPMODE_EXACT_IN) return;
+
+        // swapping to target debt is only useful for repaying
+        if (params.mode == SWAPMODE_TARGET_DEBT) {
+            uint256 balance = IERC20(params.tokenOut).balanceOf(address(this));
+            repay(params.tokenOut, params.receiver, balance, params.account);
+        }
+
+        // return unused input token after exact out swap. Caller contract should check amountInMax and skim immediately
+        sweep(params.tokenIn, 0, params.sender);
     }
 
     // in case of over-swapping to repay, pass max uint amount
     function repay(address token, address vault, uint256 amount, address account) public externalLock {
-        setMaxAllowance(token, amount, vault);
+        setMaxAllowance(token, vault);
 
         IEVault(vault).repay(amount, account);
     }
 
+    // ignore dust with amountMin
     function sweep(address token, uint256 amountMin, address receiver) public externalLock {
         uint256 balance = IERC20(token).balanceOf(address(this));
         if (balance >= amountMin) {
@@ -78,30 +97,5 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
             (bool success, bytes memory result) = address(this).call(calls[i]);
             if (!success) RevertBytes.revertBytes(result);
         }
-    }
-
-    function _swap(SwapParams memory params) internal {
-        if (params.handler == HANDLER_ONE_INCH) {
-            OneInchHandler.swap(params);
-        } else if (params.handler == HANDLER_UNISWAP_V2) {
-            UniswapV2Handler.swap(params);
-        } else if (params.handler == HANDLER_UNISWAP_V3) {
-            UniswapV3Handler.swap(params);
-        } else if (params.handler == HANDLER_UNISWAP_AUTOROUTER) {
-            UniswapAutoRouterHandler.swap(params);
-        } else {
-            revert Swapper_UnsupportedHandler();
-        }
-
-        if (params.mode == SWAPMODE_EXACT_IN) return;
-
-        // swapping to target debt is only useful for repaying
-        if (params.mode == SWAPMODE_TARGET_DEBT) {
-            uint256 balance = IERC20(params.tokenOut).balanceOf(address(this));
-            repay(params.tokenOut, params.receiver, balance, params.account);
-        }
-
-        // return unused input token after exact out swap. Caller contract should check amountInMax and skim immediately
-        sweep(params.tokenIn, 0, params.vaultIn);
     }
 }

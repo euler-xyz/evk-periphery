@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {BaseHandler} from "./BaseHandler.sol";
-import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
+import {RevertBytes} from "euler-vault-kit/EVault/shared/lib/RevertBytes.sol";
 
 abstract contract UniswapAutoRouterHandler is BaseHandler {
     address public immutable uniSwapRouter02;
@@ -13,9 +13,10 @@ abstract contract UniswapAutoRouterHandler is BaseHandler {
     }
 
     function swap(SwapParams memory params) public virtual override {
-        if (params.mode == SWAPMODE_TARGET_DEBT) revert SwapHandler_UnsupportedMode();
+        // TODO why wasn't it handling repays?
+        if (params.mode == SWAPMODE_TARGET_DEBT) revert Swapper_UnsupportedMode();
 
-        setMaxAllowance(params.tokenIn, params.amountIn, uniSwapRouter02);
+        setMaxAllowance(params.tokenIn, uniSwapRouter02);
 
         (bool success, bytes memory result) = uniSwapRouter02.call(params.data);
         if (!success) RevertBytes.revertBytes(result);

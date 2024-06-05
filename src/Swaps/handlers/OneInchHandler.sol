@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {BaseHandler} from "./BaseHandler.sol";
-import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
+import {RevertBytes} from "euler-vault-kit/EVault/shared/lib/RevertBytes.sol";
 
 abstract contract OneInchHandler is BaseHandler {
     address public immutable oneInchAggregator;
@@ -13,9 +13,9 @@ abstract contract OneInchHandler is BaseHandler {
     }
 
     function swap(SwapParams memory params) public virtual override {
-        if (params.mode != SWAPMODE_EXACT_IN) revert SwapHandler_UnsupportedMode();
+        if (params.mode != SWAPMODE_EXACT_IN) revert Swapper_UnsupportedMode();
 
-        setMaxAllowance(params.tokenIn, params.amountIn, oneInchAggregator);
+        setMaxAllowance(params.tokenIn, oneInchAggregator);
 
         (bool success, bytes memory result) = oneInchAggregator.call(params.data);
         if (!success) RevertBytes.revertBytes(result);
