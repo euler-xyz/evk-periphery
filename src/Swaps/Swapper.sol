@@ -33,6 +33,7 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     error Swapper_Reentrancy();
     error Swapper_InsufficientBalance();
 
+    // In the locked state, allow contract to call itself, but block all external calls
     modifier externalLock() {
         bool isExternal = msg.sender != address(this);
 
@@ -78,16 +79,15 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         // swapping to target debt is only useful for repaying
         if (params.mode == MODE_TARGET_DEBT) {
             // at this point amountOut holds the required repay amount
-            // repay and deposit unused output
             repayAndDeposit(params.tokenOut, params.receiver, params.amountOut, params.account);
         }
 
-        // return unused input token after exact out swap
+        // return unused input token after exact output swap
         deposit(params.tokenIn, params.vaultIn, 0, params.account);
     }
+
     /// @inheritdoc ISwapper
     /// @dev in case of over-swapping to repay, pass max uint amount
-
     function repay(address token, address vault, uint256 repayAmount, address account) public externalLock {
         uint256 balance = setMaxAllowance(token, vault);
         if (repayAmount != type(uint256).max && repayAmount > balance) revert Swapper_InsufficientBalance();
