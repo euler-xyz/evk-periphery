@@ -3,9 +3,9 @@
 pragma solidity ^0.8.0;
 
 import "../ISwapper.sol";
-import {IEVault, IERC20} from "../../EVault/IEVault.sol";
-import {SafeERC20Lib} from "../../EVault/shared/lib/SafeERC20Lib.sol";
-import {RevertBytes} from "../../EVault/shared/lib/RevertBytes.sol";
+import {IEVault, IERC20} from "euler-vault-kit/EVault/IEVault.sol";
+import {SafeERC20Lib} from "euler-vault-kit/EVault/shared/lib/SafeERC20Lib.sol";
+import {RevertBytes} from "euler-vault-kit/EVault/shared/lib/RevertBytes.sol";
 
 abstract contract BaseHandler is ISwapper {
     uint256 internal constant SWAPMODE_EXACT_IN = 0;
@@ -24,7 +24,8 @@ abstract contract BaseHandler is ISwapper {
         uint256 amountOut = params.amountOut;
         uint256 balanceOut = IERC20(params.tokenOut).balanceOf(address(this));
 
-        // for combined exact output swaps, which accumulate the output in the swapper, check how much is already available
+        // for combined exact output swaps, which accumulate the output in the swapper, check how much is already
+        // available
         if (params.mode == SWAPMODE_EXACT_OUT && params.receiver == address(this)) {
             amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
         }
