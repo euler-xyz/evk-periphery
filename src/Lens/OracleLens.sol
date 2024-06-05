@@ -127,10 +127,15 @@ contract OracleLens {
             address[] memory resolvedOracles = new address[](bases.length);
             OracleDetailedInfo[] memory resolvedOraclesInfo = new OracleDetailedInfo[](bases.length);
             for (uint256 i = 0; i < bases.length; ++i) {
-                address base = bases[i];
-                (,,, address resolvedOracle) = oracle.resolveOracle(0, base, unitOfAccount);
-                resolvedOracles[i] = resolvedOracle;
-                resolvedOraclesInfo[i] = getOracleInfo(resolvedOracle, bases, unitOfAccount);
+                try oracle.resolveOracle(0, bases[i], unitOfAccount) returns (
+                    uint256, address, address, address resolvedOracle
+                ) {
+                    resolvedOracles[i] = resolvedOracle;
+                    resolvedOraclesInfo[i] = getOracleInfo(resolvedOracle, bases, unitOfAccount);
+                } catch {
+                    resolvedOracles[i] = address(0);
+                    resolvedOraclesInfo[i] = OracleDetailedInfo({name: "", oracleInfo: ""});
+                }
             }
 
             address fallbackOracle = oracle.fallbackOracle();

@@ -11,7 +11,7 @@ import {boundAddr, distinct} from "euler-price-oracle-test/utils/TestUtils.sol";
 import {OracleLens} from "src/Lens/OracleLens.sol";
 import "src/Lens/LensTypes.sol";
 
-contract OracleLensRedstoneCrossTest is Test {
+contract OracleLensCrossTest is Test {
     OracleLens lens;
 
     function setUp() public {
