@@ -1,66 +1,42 @@
-## Foundry
+# Euler Vault Kit Periphery
+Periphery contracts for the [Euler Vault Kit](https://github.com/euler-xyz/euler-vault-kit) and [Euler Price Oracle](https://github.com/euler-xyz/euler-price-oracle).
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+> The Euler Vault Kit is a system for constructing credit vaults. Credit vaults are ERC-4626 vaults with added borrowing functionality. Unlike typical ERC-4626 vaults which earn yield by actively investing deposited funds, credit vaults are passive lending pools. See the [whitepaper](https://docs.euler.finance/euler-vault-kit-white-paper/) for more details.
 
-Foundry consists of:
+> Euler Price Oracles is a library of modular oracle adapters and components that implement `IPriceOracle`, an opinionated quote-based interface.
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+The periphery consists of 5 components: IRMFactory, Lens, OracleFactory, Perspectives, Swaps.
 
-## Documentation
+## IRMFactory
+Directory: [src/IRMFactory](src/IRMFactory)
 
-https://book.getfoundry.sh/
+Factory for deploying Kink IRMs, used by EVK vaults.
 
-## Usage
+## Lens
+Directory: [src/Lens](src/Lens)
 
-### Build
+Getter contracts for querying vault and oracle information conveniently. Intended for off-chain usage e.g. in a front-end application.
 
-```shell
-$ forge build
-```
+## OracleFactory
+Directory: [src/OracleFactory](src/OracleFactory)
 
-### Test
+Contains a factory for `EulerRouter` and an adapter registry, used by perspectives to verify the root of trust for an EVK vault's oracle configuration.
 
-```shell
-$ forge test
-```
+## Perspectives
+Directory: [src/Perspectives](src/Perspectives)
 
-### Format
+Contracts that encode validity criteria for EVK vaults.
 
-```shell
-$ forge fmt
-```
+## Swaps
+Directory: [src/Swaps](src/Swaps)
 
-### Gas Snapshots
+Utilities for performing DEX swaps for EVK vault operations.
 
-```shell
-$ forge snapshot
-```
+## Safety
+This software is experimental and is provided "as is" and "as available".
 
-### Anvil
+No warranties are provided and no liability will be accepted for any loss incurred through the use of this codebase.
 
-```shell
-$ anvil
-```
+Always include thorough tests when using EVK Periphery to ensure it interacts correctly with your code.
 
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+EVK Periphery is currently unaudited and should not be used in production.
