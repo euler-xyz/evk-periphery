@@ -149,7 +149,7 @@ contract OracleLens {
 
         return OracleDetailedInfo({name: name, oracleInfo: oracleInfo});
     }
-    
+
     function strEq(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(bytes(a)) == keccak256(bytes(b));
     }
