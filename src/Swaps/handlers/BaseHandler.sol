@@ -44,7 +44,7 @@ abstract contract BaseHandler is ISwapper {
             amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
 
             // collect output in the swapper for repay
-            receiver = address(this); 
+            receiver = address(this);
         }
     }
 

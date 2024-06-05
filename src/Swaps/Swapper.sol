@@ -87,22 +87,23 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     }
     /// @inheritdoc ISwapper
     /// @dev in case of over-swapping to repay, pass max uint amount
+
     function repay(address token, address vault, uint256 repayAmount, address account) public externalLock {
         uint256 balance = setMaxAllowance(token, vault);
         if (repayAmount != type(uint256).max && repayAmount > balance) revert Swapper_InsufficientBalance();
- 
+
         IEVault(vault).repay(repayAmount, account);
     }
 
     /// @inheritdoc ISwapper
     function repayAndDeposit(address token, address vault, uint256 repayAmount, address account) public externalLock {
-        uint balance = setMaxAllowance(token, vault);
+        uint256 balance = setMaxAllowance(token, vault);
         if (repayAmount != type(uint256).max && repayAmount > balance) revert Swapper_InsufficientBalance();
 
         IEVault(vault).repay(repayAmount, account);
 
         if (balance > repayAmount) {
-            IEVault(vault).deposit(type(uint).max, account);
+            IEVault(vault).deposit(type(uint256).max, account);
         }
     }
 

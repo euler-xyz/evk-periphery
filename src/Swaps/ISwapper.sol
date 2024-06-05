@@ -10,9 +10,9 @@ interface ISwapper {
     /// @title SwapParams
     /// @notice This struct holds all the parameters needed to carry out a swap
     struct SwapParams {
-        // An identificator of the swap handler to use 
+        // An id of the swap handler to use
         bytes32 handler;
-        // An identificator of the swap mode to execute
+        // Swap mode to execute
         // 0 - exact input swap
         // 1 - exect output swap
         // 2 - exact output swap and repay, targeting a debt amount of an account
