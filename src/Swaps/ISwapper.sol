@@ -11,7 +11,8 @@ interface ISwapper {
         address tokenOut;
         address sender; // sender will receive the unused input back in EXACT_OUT
         address receiver; // in TARGET_DEBT liability vault
-        uint256 amountOut; // in EXACT_OUT amount of tokenOut to buy, in TARGET_DEBT mode, amount of debt the account should have
+        uint256 amountOut; // in EXACT_OUT amount of tokenOut to buy, in TARGET_DEBT mode, amount of debt the account
+            // should have
         bytes data;
     }
 

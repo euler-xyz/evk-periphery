@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {BaseHandler} from "./BaseHandler.sol";
-import {RevertBytes} from "../../EVault/shared/lib/RevertBytes.sol";
+import {RevertBytes} from "euler-vault-kit/EVault/shared/lib/RevertBytes.sol";
 
 abstract contract UniswapAutoRouterHandler is BaseHandler {
     address public immutable uniSwapRouter02;
