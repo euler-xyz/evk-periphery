@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import {IEVault, IERC20} from "euler-vault-kit/EVault/IEVault.sol";
-import {SafeERC20Lib} from "euler-vault-kit/EVault/shared/lib/SafeERC20Lib.sol";
-import {RevertBytes} from "euler-vault-kit/EVault/shared/lib/RevertBytes.sol";
+import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
+import {SafeERC20Lib} from "evk/EVault/shared/lib/SafeERC20Lib.sol";
+import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 
 import {OneInchHandler} from "./handlers/OneInchHandler.sol";
 import {UniswapV2Handler} from "./handlers/UniswapV2Handler.sol";
