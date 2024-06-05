@@ -17,11 +17,12 @@ abstract contract BaseHandler is ISwapper {
     error Swapper_TargetDebt();
     error Swapper_TargetDebtBalance();
 
-    // update params in place
-    function resolveParams(SwapParams memory params) internal view {
-        if (params.mode == SWAPMODE_EXACT_IN) return;
+    function resolveParams(SwapParams memory params) internal view returns (uint256 amountOut, address receiver) {
+        amountOut = params.amountOut;
+        receiver = params.receiver;
 
-        uint256 amountOut = params.amountOut;
+        if (params.mode == SWAPMODE_EXACT_IN) return (amountOut, receiver);
+
         uint256 balanceOut = IERC20(params.tokenOut).balanceOf(address(this));
 
         // for combined exact output swaps, which accumulate the output in the swapper, check how much is already
@@ -43,10 +44,8 @@ abstract contract BaseHandler is ISwapper {
             if (balanceOut > amountOut) revert Swapper_TargetDebtBalance();
 
             amountOut -= balanceOut;
-            params.receiver = address(this); // collect output in the swapper for repay
+            receiver = address(this); // collect output in the swapper for repay
         }
-
-        params.amountOut = amountOut;
     }
 
     function setMaxAllowance(address token, address spender) internal {

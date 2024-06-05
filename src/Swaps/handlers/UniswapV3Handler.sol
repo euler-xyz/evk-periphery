@@ -19,15 +19,15 @@ abstract contract UniswapV3Handler is BaseHandler {
         if (params.data.length < 43 || (params.data.length - 20) % 23 != 0) revert UniswapV3Handler_InvalidPath();
 
         setMaxAllowance(params.tokenIn, uniSwapRouterV3);
-        // update params according to the mode and current state
-        resolveParams(params);
+        // update amountOut and receiver according to the mode and current state
+        (uint256 amountOut, address receiver) = resolveParams(params);
 
-        if (params.amountOut > 0) {
+        if (amountOut > 0) {
             ISwapRouterV3(uniSwapRouterV3).exactOutput(
                 ISwapRouterV3.ExactOutputParams({
                     path: params.data,
-                    recipient: params.receiver,
-                    amountOut: params.amountOut,
+                    recipient: receiver,
+                    amountOut: amountOut,
                     amountInMaximum: type(uint256).max,
                     deadline: block.timestamp
                 })
