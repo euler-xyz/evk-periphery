@@ -77,7 +77,6 @@ struct VaultInfoSimple {
     uint256 totalCash;
     uint256 totalBorrowed;
     uint256 totalAssets;
-    address oracle;
     address governorAdmin;
     VaultInterestRateModelInfo irmInfo;
     LTVInfo[] collateralLTVInfo;
@@ -129,6 +128,7 @@ struct VaultInfoFull {
     LTVInfo[] collateralLTVInfo;
     AssetPriceInfo liabilityPriceInfo;
     AssetPriceInfo[] collateralPriceInfo;
+    OracleDetailedInfo oracleInfo;
 }
 
 struct LTVInfo {
@@ -143,20 +143,13 @@ struct LTVInfo {
 struct AssetPriceInfo {
     uint256 timestamp;
     uint256 blockNumber;
+    address oracle;
     address asset;
     address unitOfAccount;
     uint256 amountIn;
     uint256 amountOutMid;
     uint256 amountOutBid;
     uint256 amountOutAsk;
-    OracleInfo oracleInfo;
-}
-
-struct OracleInfo {
-    address router;
-    address adapter;
-    string name;
-    bytes details;
 }
 
 struct VaultInterestRateModelInfo {
@@ -211,4 +204,73 @@ struct RewardAmountInfo {
     uint256 epochStart;
     uint256 epochEnd;
     uint256 rewardAmount;
+}
+
+struct OracleDetailedInfo {
+    string name;
+    bytes oracleInfo;
+}
+
+struct EulerRouterInfo {
+    address governor;
+    address fallbackOracle;
+    address[] resolvedOracles;
+    OracleDetailedInfo fallbackOracleInfo;
+    OracleDetailedInfo[] resolvedOraclesInfo;
+}
+
+struct ChainlinkOracleInfo {
+    address base;
+    address quote;
+    address feed;
+    uint256 maxStaleness;
+}
+
+struct ChronicleOracleInfo {
+    address base;
+    address quote;
+    address feed;
+    uint256 maxStaleness;
+}
+
+struct LidoOracleInfo {
+    address base;
+    address quote;
+}
+
+struct PythOracleInfo {
+    address pyth;
+    address base;
+    address quote;
+    bytes32 feedId;
+    uint256 maxStaleness;
+    uint256 maxConfWidth;
+}
+
+struct RedstoneCoreOracleInfo {
+    address base;
+    address quote;
+    bytes32 feedId;
+    uint8 feedDecimals;
+    uint256 maxStaleness;
+    uint208 cachePrice;
+    uint48 cachePriceTimestamp;
+}
+
+struct UniswapV3OracleInfo {
+    address tokenA;
+    address tokenB;
+    address pool;
+    uint24 fee;
+    uint32 twapWindow;
+}
+
+struct CrossAdapterInfo {
+    address base;
+    address cross;
+    address quote;
+    address oracleBaseCross;
+    address oracleCrossQuote;
+    OracleDetailedInfo oracleBaseCrossInfo;
+    OracleDetailedInfo oracleCrossQuoteInfo;
 }
