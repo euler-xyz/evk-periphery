@@ -7,11 +7,18 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import {IIRM, IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {IPriceOracle} from "evk/interfaces/IPriceOracle.sol";
 import {IEulerRouter} from "../OracleFactory/interfaces/IEulerRouter.sol";
+import {OracleLens} from "./OracleLens.sol";
 import {LensUtils} from "./LensUtils.sol";
 import "evk/EVault/shared/types/AmountCap.sol";
 import "./LensTypes.sol";
 
 contract VaultLens is LensUtils {
+    OracleLens public immutable oracleLens;
+
+    constructor(address _oracleLens) {
+        oracleLens = OracleLens(_oracleLens);
+    }
+
     function getVaultInfoSimple(address vault) public view returns (VaultInfoSimple memory) {
         VaultInfoSimple memory result;
 
@@ -34,7 +41,6 @@ contract VaultLens is LensUtils {
         result.totalBorrowed = IEVault(vault).totalBorrows();
         result.totalAssets = IEVault(vault).totalAssets();
 
-        result.oracle = IEVault(vault).oracle();
         result.governorAdmin = IEVault(vault).governorAdmin();
 
         uint256[] memory cash = new uint256[](1);
@@ -123,9 +129,14 @@ contract VaultLens is LensUtils {
 
         result.collateralPriceInfo = new AssetPriceInfo[](result.collateralLTVInfo.length);
 
+        address[] memory bases = new address[](result.collateralLTVInfo.length + 1);
+        bases[0] = result.asset;
         for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
+            bases[i + 1] = result.collateralLTVInfo[i].collateral;
             result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
         }
+
+        result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, result.unitOfAccount);
 
         return result;
     }
@@ -293,31 +304,23 @@ contract VaultLens is LensUtils {
 
         result.asset = asset;
         result.unitOfAccount = IEVault(controller).unitOfAccount();
-        result.oracleInfo = getOracleInfo(IEVault(controller).oracle(), asset, result.unitOfAccount);
 
-        if (result.oracleInfo.router == address(0) || result.oracleInfo.adapter == address(0)) return result;
+        address oracle = IEVault(controller).oracle();
+
+        if (oracle == address(0)) return result;
 
         result.amountIn = 10 ** getDecimals(asset);
-        result.amountOutMid =
-            IPriceOracle(result.oracleInfo.router).getQuote(result.amountIn, asset, result.unitOfAccount);
-        (result.amountOutBid, result.amountOutAsk) =
-            IPriceOracle(result.oracleInfo.router).getQuotes(result.amountIn, asset, result.unitOfAccount);
 
-        return result;
-    }
-
-    function getOracleInfo(address router, address base, address quote) public view returns (OracleInfo memory) {
-        OracleInfo memory result;
-
-        result.router = router;
-
-        try IEulerRouter(router).resolveOracle(0, base, quote) returns (uint256, address, address, address adapter) {
-            result.adapter = adapter;
+        try IPriceOracle(oracle).getQuote(result.amountIn, asset, result.unitOfAccount) returns (uint256 amountOutMid) {
+            result.amountOutMid = amountOutMid;
         } catch {}
 
-        if (result.adapter == address(0)) return result;
-
-        result.name = IEulerRouter(router).name();
+        try IPriceOracle(oracle).getQuotes(result.amountIn, asset, result.unitOfAccount) returns (
+            uint256 amountOutBid, uint256 amountOutAsk
+        ) {
+            result.amountOutBid = amountOutBid;
+            result.amountOutAsk = amountOutAsk;
+        } catch {}
 
         return result;
     }

@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import {LensUtils} from "./LensUtils.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
 import "./LensTypes.sol";
 
@@ -35,7 +36,7 @@ interface IOracle is IPriceOracle {
     function getConfiguredOracle(address base, address quote) external view returns (address);
 }
 
-contract OracleLens {
+contract OracleLens is LensUtils {
     function getOracleInfo(address oracleAddress, address[] calldata bases, address unitOfAccount)
         public
         view
@@ -148,9 +149,5 @@ contract OracleLens {
         }
 
         return OracleDetailedInfo({name: name, oracleInfo: oracleInfo});
-    }
-
-    function strEq(string memory a, string memory b) internal pure returns (bool) {
-        return keccak256(bytes(a)) == keccak256(bytes(b));
     }
 }

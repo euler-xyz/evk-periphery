@@ -77,7 +77,6 @@ struct VaultInfoSimple {
     uint256 totalCash;
     uint256 totalBorrowed;
     uint256 totalAssets;
-    address oracle;
     address governorAdmin;
     VaultInterestRateModelInfo irmInfo;
     LTVInfo[] collateralLTVInfo;
@@ -129,6 +128,7 @@ struct VaultInfoFull {
     LTVInfo[] collateralLTVInfo;
     AssetPriceInfo liabilityPriceInfo;
     AssetPriceInfo[] collateralPriceInfo;
+    OracleDetailedInfo oracleInfo;
 }
 
 struct LTVInfo {
@@ -149,14 +149,6 @@ struct AssetPriceInfo {
     uint256 amountOutMid;
     uint256 amountOutBid;
     uint256 amountOutAsk;
-    OracleInfo oracleInfo;
-}
-
-struct OracleInfo {
-    address router;
-    address adapter;
-    string name;
-    bytes details;
 }
 
 struct VaultInterestRateModelInfo {
