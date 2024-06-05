@@ -25,6 +25,7 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     error Swapper_UnknownMode();
     error Swapper_UnknownHandler();
     error Swapper_Reentrancy();
+    error Swapper_InsufficientBalance();
 
     modifier externalLock() {
         bool isExternal = msg.sender != address(this);
@@ -69,19 +70,41 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
 
         // swapping to target debt is only useful for repaying
         if (params.mode == SWAPMODE_TARGET_DEBT) {
-            uint256 balance = IERC20(params.tokenOut).balanceOf(address(this));
-            repay(params.tokenOut, params.receiver, balance, params.account);
+            // at this point amountOut holds the required repay amount
+            // repay and deposit unused output
+            repayAndDeposit(params.tokenOut, params.receiver, params.amountOut, params.account);
         }
 
-        // return unused input token after exact out swap. Caller contract should check amountInMax and skim immediately
-        sweep(params.tokenIn, 0, params.sender);
+        // return unused input token after exact out swap
+        deposit(params.tokenIn, params.sender, 0, params.account);
     }
 
     // in case of over-swapping to repay, pass max uint amount
-    function repay(address token, address vault, uint256 amount, address account) public externalLock {
-        setMaxAllowance(token, vault);
+    function repay(address token, address vault, uint256 repayAmount, address account) public externalLock {
+        uint256 balance = setMaxAllowance(token, vault);
+        if (repayAmount != type(uint256).max && repayAmount > balance) revert Swapper_InsufficientBalance();
+ 
+        IEVault(vault).repay(repayAmount, account);
+    }
 
-        IEVault(vault).repay(amount, account);
+    // repay required amount and deposit any remaining balance
+    function repayAndDeposit(address token, address vault, uint256 repayAmount, address account) public externalLock {
+        uint balance = setMaxAllowance(token, vault);
+        if (repayAmount != type(uint256).max && repayAmount > balance) revert Swapper_InsufficientBalance();
+
+        IEVault(vault).repay(repayAmount, account);
+
+        if (balance > repayAmount) {
+            IEVault(vault).deposit(type(uint).max, account);
+        }
+    }
+
+    // ignore dust with amountMin
+    function deposit(address token, address vault, uint256 amountMin, address account) public externalLock {
+        uint256 balance = setMaxAllowance(token, vault);
+        if (balance >= amountMin) {
+            IEVault(vault).deposit(balance, account);
+        }
     }
 
     // ignore dust with amountMin

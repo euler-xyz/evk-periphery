@@ -32,26 +32,28 @@ abstract contract BaseHandler is ISwapper {
         }
 
         if (params.mode == SWAPMODE_TARGET_DEBT) {
-            // amountOut is the target debt
             uint256 debt = IEVault(params.receiver).debtOf(params.account);
 
+            // amountOut is the target debt
             if (amountOut > debt) revert Swapper_TargetDebt();
 
-            amountOut = debt - amountOut;
+            // reuse params.amountOut to hold repay
+            amountOut = params.amountOut = debt - amountOut;
 
-            // TODO - return unused? leave for sweep?
+            // check if balance is already sufficient to repay
+            amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
 
-            if (balanceOut > amountOut) revert Swapper_TargetDebtBalance();
-
-            amountOut -= balanceOut;
-            receiver = address(this); // collect output in the swapper for repay
+            // collect output in the swapper for repay
+            receiver = address(this); 
         }
     }
 
-    function setMaxAllowance(address token, address spender) internal {
+    function setMaxAllowance(address token, address spender) internal returns (uint256) {
         uint256 balance = IERC20(token).balanceOf(address(this));
         uint256 allowance = IERC20(token).allowance(address(this), spender);
         if (allowance < balance) safeApproveWithRetry(token, spender, type(uint256).max);
+
+        return balance;
     }
 
     function trySafeApprove(address token, address to, uint256 value) internal returns (bool, bytes memory) {

@@ -19,7 +19,7 @@ abstract contract UniswapV2Handler is BaseHandler {
         if (params.data.length < 64 || params.data.length % 32 != 0) revert UniswapV2Handler_InvalidPath();
 
         setMaxAllowance(params.tokenIn, uniSwapRouterV2);
-        // update amountOut and receiver according to the mode and current state
+        // process params according to the mode and current state
         (uint256 amountOut, address receiver) = resolveParams(params);
 
         if (amountOut > 0) {
