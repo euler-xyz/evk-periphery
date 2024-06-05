@@ -12,10 +12,10 @@ import {UniswapV3Handler} from "./handlers/UniswapV3Handler.sol";
 import {UniswapAutoRouterHandler} from "./handlers/UniswapAutoRouterHandler.sol";
 
 contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapAutoRouterHandler {
-    uint256 internal constant HANDLER_ONE_INCH = 0;
-    uint256 internal constant HANDLER_UNISWAP_V2 = 1;
-    uint256 internal constant HANDLER_UNISWAP_V3 = 2;
-    uint256 internal constant HANDLER_UNISWAP_AUTOROUTER = 3;
+    bytes32 public constant HANDLER_ONE_INCH = bytes32("1Inch");
+    bytes32 public constant HANDLER_UNISWAP_V2 = bytes32("UniswapV2");
+    bytes32 public constant HANDLER_UNISWAP_V3 = bytes32("UniswapV3");
+    bytes32 public constant HANDLER_UNISWAP_AUTOROUTER = bytes32("UniswapAutoRouter");
 
     uint256 internal constant REENTRANCYLOCK_UNLOCKED = 1;
     uint256 internal constant REENTRANCYLOCK_LOCKED = 2;

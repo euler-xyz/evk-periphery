@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 interface ISwapper {
     struct SwapParams {
-        uint256 handler;
+        bytes32 handler;
         uint256 mode;
         address account;
         address tokenIn;
