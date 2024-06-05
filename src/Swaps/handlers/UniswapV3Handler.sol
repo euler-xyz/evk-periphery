@@ -4,7 +4,12 @@ pragma solidity ^0.8.0;
 
 import {BaseHandler} from "./BaseHandler.sol";
 import {ISwapRouterV3} from "../vendor/ISwapRouterV3.sol";
+import {ISwapper} from "../ISwapper.sol";
 
+/// @title UniswapV3Handler
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice Swap handler executing exact output trades on Uniswap V3
 abstract contract UniswapV3Handler is BaseHandler {
     address public immutable uniSwapRouterV3;
 
@@ -14,8 +19,9 @@ abstract contract UniswapV3Handler is BaseHandler {
         uniSwapRouterV3 = _uniSwapRouterV3;
     }
 
+    /// @inheritdoc ISwapper
     function swap(SwapParams memory params) public virtual override {
-        if (params.mode == SWAPMODE_EXACT_IN) revert Swapper_UnsupportedMode();
+        if (params.mode == MODE_EXACT_IN) revert Swapper_UnsupportedMode();
         if (params.data.length < 43 || (params.data.length - 20) % 23 != 0) revert UniswapV3Handler_InvalidPath();
 
         setMaxAllowance(params.tokenIn, uniSwapRouterV3);
