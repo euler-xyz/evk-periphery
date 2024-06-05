@@ -24,8 +24,10 @@ contract AdapterRegistry is Ownable {
 
     /// @notice An adapter was added to the registry.
     /// @param adapter The address of the adapter.
+    /// @param asset0 The smaller address out of (base, quote).
+    /// @param asset1 The larger address out of (base, quote).
     /// @param addedAt The timestamp when the adapter was added.
-    event AdapterAdded(address indexed adapter, uint256 addedAt);
+    event AdapterAdded(address indexed adapter, address indexed asset0, address indexed asset1, uint256 addedAt);
     /// @notice An adapter was revoked from the registry.
     /// @param adapter The address of the adapter.
     /// @param revokedAt The timestamp when the adapter was revoked.
@@ -54,8 +56,8 @@ contract AdapterRegistry is Ownable {
 
         (address asset0, address asset1) = _sort(base, quote);
         adapterMap[asset0][asset1].push(adapter);
-        
-        emit AdapterAdded(adapter, block.timestamp);
+
+        emit AdapterAdded(adapter, asset0, asset1, block.timestamp);
     }
 
     /// @notice Revokes an adapter from the registry.
@@ -67,6 +69,37 @@ contract AdapterRegistry is Ownable {
         if (entry.revokedAt != 0) revert Registry_AlreadyRevoked();
         entry.revokedAt = uint128(block.timestamp);
         emit AdapterRevoked(adapter, block.timestamp);
+    }
+
+    /// @notice Returns the all valid adapters for a given base and quote.
+    /// @param base The address of the base asset.
+    /// @param quote The address of the quote asset.
+    /// @param snapshotTime The timestamp to check.
+    /// @dev Order of base and quote does not matter.
+    /// @return All adapters for base and quote valid at `snapshotTime`.
+    function getValidAdapters(address base, address quote, uint256 snapshotTime)
+        external
+        view
+        returns (address[] memory)
+    {
+        (address asset0, address asset1) = _sort(base, quote);
+        address[] memory adapters = adapterMap[asset0][asset1];
+        address[] memory validAdapters = new address[](adapters.length);
+
+        uint256 numValidAdapters = 0;
+        for (uint256 i = 0; i < adapters.length; ++i) {
+            address adapter = adapters[i];
+            if (isValidAdapter(adapter, snapshotTime)) {
+                validAdapters[numValidAdapters++] = adapter;
+            }
+        }
+
+        /// @solidity memory-safe-assembly
+        assembly {
+            // update the length
+            mstore(validAdapters, numValidAdapters)
+        }
+        return validAdapters;
     }
 
     /// @notice Returns whether an adapter was valid at a point in time.
@@ -84,31 +117,6 @@ contract AdapterRegistry is Ownable {
         if (addedAt == 0 || addedAt > snapshotTime) return false;
         if (revokedAt != 0 && revokedAt <= snapshotTime) return false;
         return true;
-    }
-
-    /// @notice Returns the all valid adapters for a given base and quote.
-    /// @param base The address of the base asset.
-    /// @param quote The address of the quote asset.
-    /// @param snapshotTime The timestamp to check.
-    /// @dev Order of base and quote does not matter.
-    /// @return All adapters for base and quote valid at `snapshotTime`.
-    function getValidAdapters(address base, address quote, uint256 snapshotTime) external view returns (address[] memory) {
-        (address asset0, address asset1) = _sort(base, quote);
-        address[] memory adapters = adapterMap[asset0][asset1];
-        address[] memory validAdapters = new address[](adapters.length);
-
-        uint256 numValidAdapters = 0;
-        for (uint256 i = 0; i < adapters.length; ++i) {
-            if (isValidAdapter(adapter, snapshotTime)) {
-                validAdapters[numValidAdapters++] = adapter;
-            }
-        }
-
-        /// @solidity memory-safe-assembly
-        assembly {
-            mstore(validAdapters, numValidAdapters)
-        }
-        return validAdapters;
     }
 
     /// @notice Lexicographically sort two addresses.

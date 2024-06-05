@@ -15,14 +15,21 @@ function boundAddr(address a) pure returns (address) {
 contract AdapterRegistryHarness is Test {
     AdapterRegistry public immutable registry;
 
-    address[] internal addHistory;
+    struct AdapterConfig {
+        address adapter;
+        address base;
+        address quote;
+        uint256 timestamp;
+    }
+
+    AdapterConfig[] internal addHistory;
     address[] internal revokeHistory;
 
     constructor(address owner) {
         registry = new AdapterRegistry(owner);
     }
 
-    function getAddHistory() external view returns (address[] memory) {
+    function getAddHistory() external view returns (AdapterConfig[] memory) {
         return addHistory;
     }
 
@@ -30,11 +37,11 @@ contract AdapterRegistryHarness is Test {
         return revokeHistory;
     }
 
-    function addAdapter(address adapter) external {
+    function addAdapter(address adapter, address base, address quote) external {
         adapter = boundAddr(adapter);
         vm.prank(msg.sender);
-        registry.addAdapter(adapter);
-        addHistory.push(adapter);
+        registry.addAdapter(adapter, base, quote);
+        addHistory.push(AdapterConfig(adapter, base, quote, block.timestamp));
     }
 
     function revokeAdapter(address adapter) external {
@@ -76,14 +83,14 @@ contract AdapterRegistryInvariantTest is Test {
     /// forge-config: default.invariant.runs = 50
     /// forge-config: default.invariant.depth = 200
     function invariant_AddAtMostOnce() public view {
-        address[] memory addHistory = harness.getAddHistory();
+        AdapterRegistryHarness.AdapterConfig[] memory addHistory = harness.getAddHistory();
         uint256 length = addHistory.length;
         if (length < 2) return;
 
         for (uint256 i = 0; i < length; ++i) {
-            address added_i = addHistory[i];
+            address added_i = addHistory[i].adapter;
             for (uint256 j = i + 1; j < length - 1; ++j) {
-                address added_j = addHistory[j];
+                address added_j = addHistory[j].adapter;
                 vm.assertNotEq(added_i, added_j);
             }
         }
@@ -110,14 +117,14 @@ contract AdapterRegistryInvariantTest is Test {
     /// forge-config: default.invariant.runs = 50
     /// forge-config: default.invariant.depth = 200
     function invariant_IfRevokeThenExistsAdd() public view {
-        address[] memory addHistory = harness.getAddHistory();
+        AdapterRegistryHarness.AdapterConfig[] memory addHistory = harness.getAddHistory();
         address[] memory revokeHistory = harness.getRevokeHistory();
 
         for (uint256 i = 0; i < revokeHistory.length; ++i) {
             address revoked_i = revokeHistory[i];
             bool found;
             for (uint256 j = 0; j < addHistory.length; ++j) {
-                address added_j = addHistory[j];
+                address added_j = addHistory[j].adapter;
                 if (added_j == revoked_i) {
                     found = true;
                     break;
@@ -131,10 +138,10 @@ contract AdapterRegistryInvariantTest is Test {
     /// forge-config: default.invariant.runs = 50
     /// forge-config: default.invariant.depth = 200
     function invariant_AddPostState() public view {
-        address[] memory addHistory = harness.getAddHistory();
+        AdapterRegistryHarness.AdapterConfig[] memory addHistory = harness.getAddHistory();
 
         for (uint256 i = 0; i < addHistory.length; ++i) {
-            address added_i = addHistory[i];
+            address added_i = addHistory[i].adapter;
             (uint128 addedAt,) = registry.entries(added_i);
             assertGt(addedAt, 0);
         }
@@ -151,6 +158,26 @@ contract AdapterRegistryInvariantTest is Test {
             (uint128 addedAt, uint128 revokedAt) = registry.entries(revoked_i);
             assertGe(revokedAt, addedAt);
             assertGt(addedAt, 0);
+        }
+    }
+
+    /// @dev `getValidAdapters` returns the adapter at the timestamp.
+    /// It returns the same array for (base, quote) and (quote, base).
+    /// forge-config: default.invariant.runs = 50
+    /// forge-config: default.invariant.depth = 200
+    function invariant_ValidAdapterList() public view {
+        AdapterRegistryHarness.AdapterConfig[] memory addHistory = harness.getAddHistory();
+
+        for (uint256 i = 0; i < addHistory.length; ++i) {
+            address[] memory validAdapters =
+                registry.getValidAdapters(addHistory[i].base, addHistory[i].quote, addHistory[i].timestamp);
+            address[] memory validAdaptersInv =
+                registry.getValidAdapters(addHistory[i].quote, addHistory[i].base, addHistory[i].timestamp);
+            assertEq(keccak256(abi.encode(validAdapters)), keccak256(abi.encode(validAdaptersInv)));
+            (uint128 addedAt, uint128 revokedAt) = registry.entries(addHistory[i].adapter);
+            if (revokedAt == addedAt) continue;
+            assertEq(validAdapters[validAdapters.length - 1], addHistory[i].adapter);
+            assertEq(validAdapters[validAdapters.length - 1], addHistory[i].adapter);
         }
     }
 }

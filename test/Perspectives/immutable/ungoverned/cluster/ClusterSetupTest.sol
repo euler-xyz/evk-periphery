@@ -131,19 +131,26 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         IEVault(vaultCluster3).setGovernorAdmin(address(0));
 
         // configure the oracle
-        address stubAdapter = address(new StubPriceOracle());
-        vm.prank(adapterRegistryOwner);
-        adapterRegistry.addAdapter(stubAdapter);
+        address stubAdapter_assetTST_USD = address(new StubPriceOracle());
+        address stubAdapter_assetTST_WETH = address(new StubPriceOracle());
+        address stubAdapter_assetTST2_USD = address(new StubPriceOracle());
+        address stubAdapter_assetTST2_WETH = address(new StubPriceOracle());
+        vm.startPrank(adapterRegistryOwner);
+        adapterRegistry.addAdapter(stubAdapter_assetTST_USD, address(assetTST), USD);
+        adapterRegistry.addAdapter(stubAdapter_assetTST_WETH, address(assetTST), WETH);
+        adapterRegistry.addAdapter(stubAdapter_assetTST2_USD, address(assetTST2), USD);
+        adapterRegistry.addAdapter(stubAdapter_assetTST2_WETH, address(assetTST2), WETH);
+        vm.stopPrank();
 
         vm.startPrank(routerGovernor);
         router.govSetResolvedVault(vaultEscrow, true);
         router.govSetResolvedVault(vaultCluster1, true);
         router.govSetResolvedVault(vaultCluster2, true);
         router.govSetResolvedVault(vaultCluster3, true);
-        router.govSetConfig(address(assetTST), USD, stubAdapter);
-        router.govSetConfig(address(assetTST), WETH, stubAdapter);
-        router.govSetConfig(address(assetTST2), USD, stubAdapter);
-        router.govSetConfig(address(assetTST2), WETH, stubAdapter);
+        router.govSetConfig(address(assetTST), USD, stubAdapter_assetTST_USD);
+        router.govSetConfig(address(assetTST), WETH, stubAdapter_assetTST_WETH);
+        router.govSetConfig(address(assetTST2), USD, stubAdapter_assetTST2_USD);
+        router.govSetConfig(address(assetTST2), WETH, stubAdapter_assetTST2_WETH);
         router.transferGovernance(address(0));
         vm.stopPrank();
 
