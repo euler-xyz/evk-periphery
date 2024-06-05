@@ -144,6 +144,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         router.govSetConfig(address(assetTST), WETH, stubAdapter);
         router.govSetConfig(address(assetTST2), USD, stubAdapter);
         router.govSetConfig(address(assetTST2), WETH, stubAdapter);
+        router.transferGovernance(address(0));
         vm.stopPrank();
 
         vm.label(address(escrowSingletonPerspective), "escrowSingletonPerspective");

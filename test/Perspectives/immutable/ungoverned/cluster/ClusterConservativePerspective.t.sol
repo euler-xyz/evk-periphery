@@ -46,7 +46,7 @@ contract ClusterConservativePerspectiveTest is ClusterSetupTest {
                 IPerspective.PerspectiveError.selector,
                 address(clusterConservativePerspective),
                 vaultEscrow,
-                ERROR__ORACLE
+                ERROR__INTEREST_RATE_MODEL
             )
         );
         clusterConservativePerspective.perspectiveVerify(vaultEscrow, true);

@@ -2,16 +2,24 @@
 
 pragma solidity ^0.8.24;
 
+import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
 import {BasePerspective} from "../../../BasePerspective.sol";
 
 contract WhitelistPerspective is BasePerspective {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     constructor(address[] memory whitelist) BasePerspective(address(0)) {
         for (uint256 i = 0; i < whitelist.length; ++i) {
-            perspectiveVerify(whitelist[i], true);
+            verified.add(whitelist[i]);
+            emit PerspectiveVerified(whitelist[i]);
         }
     }
 
     function name() public pure virtual override returns (string memory) {
         return "Immutable.Ungoverned.WhitelistPerspective";
+    }
+
+    function perspectiveVerifyInternal(address vault) internal virtual override {
+        revert PerspectiveError(address(this), vault, 0);
     }
 }
