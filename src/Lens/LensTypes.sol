@@ -143,6 +143,7 @@ struct LTVInfo {
 struct AssetPriceInfo {
     uint256 timestamp;
     uint256 blockNumber;
+    address oracle;
     address asset;
     address unitOfAccount;
     uint256 amountIn;

@@ -302,20 +302,21 @@ contract VaultLens is LensUtils {
         result.timestamp = block.timestamp;
         result.blockNumber = block.number;
 
+        result.oracle = IEVault(controller).oracle();
         result.asset = asset;
         result.unitOfAccount = IEVault(controller).unitOfAccount();
 
-        address oracle = IEVault(controller).oracle();
-
-        if (oracle == address(0)) return result;
+        if (result.oracle == address(0)) return result;
 
         result.amountIn = 10 ** getDecimals(asset);
 
-        try IPriceOracle(oracle).getQuote(result.amountIn, asset, result.unitOfAccount) returns (uint256 amountOutMid) {
+        try IPriceOracle(result.oracle).getQuote(result.amountIn, asset, result.unitOfAccount) returns (
+            uint256 amountOutMid
+        ) {
             result.amountOutMid = amountOutMid;
         } catch {}
 
-        try IPriceOracle(oracle).getQuotes(result.amountIn, asset, result.unitOfAccount) returns (
+        try IPriceOracle(result.oracle).getQuotes(result.amountIn, asset, result.unitOfAccount) returns (
             uint256 amountOutBid, uint256 amountOutAsk
         ) {
             result.amountOutBid = amountOutBid;
