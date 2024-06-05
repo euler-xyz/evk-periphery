@@ -2,20 +2,26 @@
 
 pragma solidity ^0.8.0;
 
-import {IEVault, IERC20} from "euler-vault-kit/EVault/IEVault.sol";
-import {SafeERC20Lib} from "euler-vault-kit/EVault/shared/lib/SafeERC20Lib.sol";
-import {RevertBytes} from "euler-vault-kit/EVault/shared/lib/RevertBytes.sol";
+import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
+import {SafeERC20Lib} from "evk/EVault/shared/lib/SafeERC20Lib.sol";
+import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
+
+import {ISwapper} from "./ISwapper.sol";
 
 import {OneInchHandler} from "./handlers/OneInchHandler.sol";
 import {UniswapV2Handler} from "./handlers/UniswapV2Handler.sol";
 import {UniswapV3Handler} from "./handlers/UniswapV3Handler.sol";
 import {UniswapAutoRouterHandler} from "./handlers/UniswapAutoRouterHandler.sol";
 
+/// @title Swapper
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice Untrusted helper contract for EVK for performing swaps and swaps to repay
 contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapAutoRouterHandler {
-    uint256 internal constant HANDLER_ONE_INCH = 0;
-    uint256 internal constant HANDLER_UNISWAP_V2 = 1;
-    uint256 internal constant HANDLER_UNISWAP_V3 = 2;
-    uint256 internal constant HANDLER_UNISWAP_AUTOROUTER = 3;
+    bytes32 public constant HANDLER_ONE_INCH = bytes32("1Inch");
+    bytes32 public constant HANDLER_UNISWAP_V2 = bytes32("UniswapV2");
+    bytes32 public constant HANDLER_UNISWAP_V3 = bytes32("UniswapV3");
+    bytes32 public constant HANDLER_UNISWAP_AUTOROUTER = bytes32("UniswapAutoRouter");
 
     uint256 internal constant REENTRANCYLOCK_UNLOCKED = 1;
     uint256 internal constant REENTRANCYLOCK_LOCKED = 2;
@@ -25,6 +31,7 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     error Swapper_UnknownMode();
     error Swapper_UnknownHandler();
     error Swapper_Reentrancy();
+    error Swapper_InsufficientBalance();
 
     modifier externalLock() {
         bool isExternal = msg.sender != address(this);
@@ -46,12 +53,13 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         UniswapAutoRouterHandler(uniSwapRouter02)
     {}
 
+    /// @inheritdoc ISwapper
     function swap(SwapParams memory params)
         public
         override (OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapAutoRouterHandler)
         externalLock
     {
-        if (params.mode >= SWAPMODE_MAX_VALUE) revert Swapper_UnknownMode();
+        if (params.mode >= MODE_MAX_VALUE) revert Swapper_UnknownMode();
 
         if (params.handler == HANDLER_ONE_INCH) {
             OneInchHandler.swap(params);
@@ -65,33 +73,57 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
             revert Swapper_UnknownHandler();
         }
 
-        if (params.mode == SWAPMODE_EXACT_IN) return;
+        if (params.mode == MODE_EXACT_IN) return;
 
         // swapping to target debt is only useful for repaying
-        if (params.mode == SWAPMODE_TARGET_DEBT) {
-            uint256 balance = IERC20(params.tokenOut).balanceOf(address(this));
-            repay(params.tokenOut, params.receiver, balance, params.account);
+        if (params.mode == MODE_TARGET_DEBT) {
+            // at this point amountOut holds the required repay amount
+            // repay and deposit unused output
+            repayAndDeposit(params.tokenOut, params.receiver, params.amountOut, params.account);
         }
 
-        // return unused input token after exact out swap. Caller contract should check amountInMax and skim immediately
-        sweep(params.tokenIn, 0, params.sender);
+        // return unused input token after exact out swap
+        deposit(params.tokenIn, params.vaultIn, 0, params.account);
+    }
+    /// @inheritdoc ISwapper
+    /// @dev in case of over-swapping to repay, pass max uint amount
+
+    function repay(address token, address vault, uint256 repayAmount, address account) public externalLock {
+        uint256 balance = setMaxAllowance(token, vault);
+        if (repayAmount != type(uint256).max && repayAmount > balance) revert Swapper_InsufficientBalance();
+
+        IEVault(vault).repay(repayAmount, account);
     }
 
-    // in case of over-swapping to repay, pass max uint amount
-    function repay(address token, address vault, uint256 amount, address account) public externalLock {
-        setMaxAllowance(token, vault);
+    /// @inheritdoc ISwapper
+    function repayAndDeposit(address token, address vault, uint256 repayAmount, address account) public externalLock {
+        uint256 balance = setMaxAllowance(token, vault);
+        if (repayAmount != type(uint256).max && repayAmount > balance) revert Swapper_InsufficientBalance();
 
-        IEVault(vault).repay(amount, account);
+        IEVault(vault).repay(repayAmount, account);
+
+        if (balance > repayAmount) {
+            IEVault(vault).deposit(type(uint256).max, account);
+        }
     }
 
-    // ignore dust with amountMin
-    function sweep(address token, uint256 amountMin, address receiver) public externalLock {
+    /// @inheritdoc ISwapper
+    function deposit(address token, address vault, uint256 amountMin, address account) public externalLock {
+        uint256 balance = setMaxAllowance(token, vault);
+        if (balance >= amountMin) {
+            IEVault(vault).deposit(balance, account);
+        }
+    }
+
+    /// @inheritdoc ISwapper
+    function sweep(address token, uint256 amountMin, address to) public externalLock {
         uint256 balance = IERC20(token).balanceOf(address(this));
         if (balance >= amountMin) {
-            SafeERC20Lib.safeTransfer(IERC20(token), receiver, balance);
+            SafeERC20Lib.safeTransfer(IERC20(token), to, balance);
         }
     }
 
+    /// @inheritdoc ISwapper
     function multicall(bytes[] memory calls) external externalLock {
         for (uint256 i; i < calls.length; i++) {
             (bool success, bytes memory result) = address(this).call(calls[i]);

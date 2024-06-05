@@ -4,7 +4,12 @@ pragma solidity ^0.8.0;
 
 import {BaseHandler} from "./BaseHandler.sol";
 import {ISwapRouterV2} from "../vendor/ISwapRouterV2.sol";
+import {ISwapper} from "../ISwapper.sol";
 
+/// @title UniswapV2Handler
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice Swap handler executing exact output trades on Uniswap V2
 abstract contract UniswapV2Handler is BaseHandler {
     address public immutable uniSwapRouterV2;
 
@@ -14,20 +19,21 @@ abstract contract UniswapV2Handler is BaseHandler {
         uniSwapRouterV2 = _uniSwapRouterV2;
     }
 
+    /// @inheritdoc ISwapper
     function swap(SwapParams memory params) public virtual override {
-        if (params.mode == SWAPMODE_EXACT_IN) revert Swapper_UnsupportedMode();
+        if (params.mode == MODE_EXACT_IN) revert Swapper_UnsupportedMode();
         if (params.data.length < 64 || params.data.length % 32 != 0) revert UniswapV2Handler_InvalidPath();
 
         setMaxAllowance(params.tokenIn, uniSwapRouterV2);
-        // update params according to the mode and current state
-        resolveParams(params);
+        // process params according to the mode and current state
+        (uint256 amountOut, address receiver) = resolveParams(params);
 
-        if (params.amountOut > 0) {
+        if (amountOut > 0) {
             ISwapRouterV2(uniSwapRouterV2).swapTokensForExactTokens({
-                amountOut: params.amountOut,
+                amountOut: amountOut,
                 amountInMax: type(uint256).max,
                 path: abi.decode(params.data, (address[])),
-                to: params.receiver,
+                to: receiver,
                 deadline: block.timestamp
             });
         }

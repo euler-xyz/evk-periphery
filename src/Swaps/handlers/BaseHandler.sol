@@ -2,57 +2,58 @@
 
 pragma solidity ^0.8.0;
 
-import "../ISwapper.sol";
-import {IEVault, IERC20} from "euler-vault-kit/EVault/IEVault.sol";
-import {SafeERC20Lib} from "euler-vault-kit/EVault/shared/lib/SafeERC20Lib.sol";
-import {RevertBytes} from "euler-vault-kit/EVault/shared/lib/RevertBytes.sol";
+import {ISwapper} from "../ISwapper.sol";
+import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
+import {SafeERC20Lib} from "evk/EVault/shared/lib/SafeERC20Lib.sol";
+import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 
 abstract contract BaseHandler is ISwapper {
-    uint256 internal constant SWAPMODE_EXACT_IN = 0;
-    uint256 internal constant SWAPMODE_EXACT_OUT = 1;
-    uint256 internal constant SWAPMODE_TARGET_DEBT = 2;
-    uint256 internal constant SWAPMODE_MAX_VALUE = 3;
+    uint256 internal constant MODE_EXACT_IN = 0;
+    uint256 internal constant MODE_EXACT_OUT = 1;
+    uint256 internal constant MODE_TARGET_DEBT = 2;
+    uint256 internal constant MODE_MAX_VALUE = 3;
 
     error Swapper_UnsupportedMode();
     error Swapper_TargetDebt();
     error Swapper_TargetDebtBalance();
 
-    // update params in place
-    function resolveParams(SwapParams memory params) internal view {
-        if (params.mode == SWAPMODE_EXACT_IN) return;
+    function resolveParams(SwapParams memory params) internal view returns (uint256 amountOut, address receiver) {
+        amountOut = params.amountOut;
+        receiver = params.receiver;
 
-        uint256 amountOut = params.amountOut;
+        if (params.mode == MODE_EXACT_IN) return (amountOut, receiver);
+
         uint256 balanceOut = IERC20(params.tokenOut).balanceOf(address(this));
 
         // for combined exact output swaps, which accumulate the output in the swapper, check how much is already
         // available
-        if (params.mode == SWAPMODE_EXACT_OUT && params.receiver == address(this)) {
+        if (params.mode == MODE_EXACT_OUT && params.receiver == address(this)) {
             amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
         }
 
-        if (params.mode == SWAPMODE_TARGET_DEBT) {
-            // amountOut is the target debt
+        if (params.mode == MODE_TARGET_DEBT) {
             uint256 debt = IEVault(params.receiver).debtOf(params.account);
 
+            // amountOut is the target debt
             if (amountOut > debt) revert Swapper_TargetDebt();
 
-            amountOut = debt - amountOut;
+            // reuse params.amountOut to hold repay
+            amountOut = params.amountOut = debt - amountOut;
 
-            // TODO - return unused? leave for sweep?
+            // check if balance is already sufficient to repay
+            amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
 
-            if (balanceOut > amountOut) revert Swapper_TargetDebtBalance();
-
-            amountOut -= balanceOut;
-            params.receiver = address(this); // collect output in the swapper for repay
+            // collect output in the swapper for repay
+            receiver = address(this);
         }
-
-        params.amountOut = amountOut;
     }
 
-    function setMaxAllowance(address token, address spender) internal {
+    function setMaxAllowance(address token, address spender) internal returns (uint256) {
         uint256 balance = IERC20(token).balanceOf(address(this));
         uint256 allowance = IERC20(token).allowance(address(this), spender);
         if (allowance < balance) safeApproveWithRetry(token, spender, type(uint256).max);
+
+        return balance;
     }
 
     function trySafeApprove(address token, address to, uint256 value) internal returns (bool, bytes memory) {
