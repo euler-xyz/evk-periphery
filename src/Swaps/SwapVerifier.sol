@@ -17,7 +17,7 @@ contract SwapVerifier{
     /// @param vault The EVault to query
     /// @param amountMin Minimum amount of assets that should be available for skim
     /// @dev Swapper contract will send bought assets to the vault in certain situations.
-    /// #dev Calling the function is then equivalent to a slippage check.
+    /// @dev Calling the function is then equivalent to a slippage check.
     function verifySkimMin(address vault, uint256 amountMin) external view {
         if (amountMin == 0) return;
 
