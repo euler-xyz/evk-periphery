@@ -117,6 +117,7 @@ F2. Swap deposits from one EVault (A) to exact amount of another (B)
 
 
 F3. Create leveraged position
+
 The process is the same as in F1 or F2, but instead of withdrawing, the input token (short asset) is borrowed, with the `receiver` set to the swapper contract. To create leverage, the output token (long asset) should be deposited into a vault that is configured as collateral for the vault where the loan is taken. Of course, the user needs to enable correct controller and collaterals on the EVC first.
 
 F4. Sell deposits from one vault (A) to repay debt in another (B)
