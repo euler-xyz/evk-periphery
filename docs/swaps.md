@@ -36,7 +36,7 @@ The general steps to use the `Swapper` contract are following:
 
 The `Swapper` contract should implement the `ISwapper` interface. This ensures, that users could potentially provide their own implementations of the swapper contract in the UI, without needing to modify the FE code.
 
-The main function is `swap()`, which takes a swap definition in a `SwapParams`. The params define a handler to use, swapping mode, bought and sold tokens, the amounts etc. See [ISwapper natspec](./ISwapper.sol). Note, that some parameters might be ignored in certain modes or by certain handlers, while others (`amountOut`) might have differrent semantics in certain modes.
+The main function is `swap()`, which takes a swap definition in a `SwapParams` struct. The params define a handler to use, swapping mode, bought and sold tokens, the amounts etc. See [ISwapper natspec](../src/Swaps/ISwapper.sol) for details. Note, that some parameters might be ignored in certain modes or by certain handlers, while others (`amountOut`) might have differrent semantics in certain modes.
 
 The interface also defines helper functions like `sweep`, `deposit`, `repay` and `repayAndDeposit` which allow consuming the contract's balance.
 
@@ -47,19 +47,19 @@ Finally a `multicall` function allows chaining all of the above to execute compl
 The swaps can be performed in one of 3 modes:
 - exact input 
 
-  In this mode, all of the provided input token is expected to be swapped for an unknown amount of the output token. The proceeds are expected to be sent to a vault, to be skimmed by the user, or back to the swapper. The latter option is useful when performing complex, multi-stage swaps, where the output token is accumulated in the swapper before being consumed at the end of the operation. Note that the available handlers (1Inch and Uniswap Auto Router) execute a payload encoded off-chain, so a lot of the parameters passed to the `swap` funtion will be ignored and only an encoded amount of input token will be swapped, even if the swapper holds more.
+  In this mode, all of the provided input token is expected to be swapped for an unknown amount of the output token. The proceeds are expected to be sent to a vault, to be skimmed by the user, or back to the swapper contract. The latter option is useful when performing complex, multi-stage swaps, where the output token is accumulated in the swapper before being consumed at the end of the operation. Note that the available handlers (1Inch and Uniswap Auto Router) execute a payload encoded off-chain, so a lot of the parameters passed to the `swap` funtion will be ignored and only the amount of input token encoded in the payload will be swapped, even if the swapper holds more.
 
 - exact output
 
-  In this mode, the swapper is expected to purchase a specified amount of the output token in exchange for an unknown amount of the input token. The input token amount provided to the swapper acts as an implicit slippage limit on the input. Currently available handlers (Uniswap V2 and V3) will check the current balance of the output token held by the swapper and adjust the amount of token to buy to only purchase the remainder. This feature can be used to construct multi-stage swaps. For instance. in the first stage most of the token is bought through an aggregator, which presumably offers better price, but doesn't provide exact output swaps. The proceeds are directed to the swapper contract. In the second stage another `swap` call is executed, and the remainder is bought directly in Uniswap, where exact output trades are supported.
+  In this mode, the swapper is expected to purchase a specified amount of the output token in exchange for an unknown amount of the input token. The input token amount provided to the swapper acts as an implicit slippage limit. Currently available handlers (Uniswap V2 and V3) will check the current balance of the output token held by the swapper and adjust the amount of token to buy to only purchase the remainder. This feature can be used to construct multi-stage swaps. For instance, in the first stage, most of the token is bought through a dex aggregator, which presumably offers better price, but doesn't provide exact output swaps. The proceeds are directed to the swapper contract. In the second stage another `swap` call is executed, and the remainder is bought directly in Uniswap, where exact output trades are supported.
 
   In exact output trades, the remaining, unused input token amount is automatically redeposited for the account in a vault specified in `SwapParams.vaultIn`.
 
-- swap to target debt (swap and repay)
+- target debt (swap and repay)
 
-  In this mode, the swapper will check how much debt a provided account has (including current interest accrued), compare it with a target debt the user provided and the amount already held by the swapper contract, and by exact output trade will buy exactly the amount required to repay the debt down to the target amount. In most cases the target amount will be zero, which means the mode can be used to close debt positions without leaving any dust.
+  In this mode, the swapper will check how much debt a provided account has (including current interest accrued), compare it with a target debt the user requests, and the amount already held by the swapper contract, and by exact output trade will buy exactly the amount required to repay the debt (down to the target amount). In most cases the target amount will be zero, which means the mode can be used to close debt positions without leaving any dust.
 
-  After buing the necessary amount, the swapper will repay the user's debt down to the target amount.
+  After buing the necessary amount, the swapper will automatically execute `repay` on the liability vault for the user.
 
   If at the time the swap is executed, the swapper contract holds more funds than necessary to repay to the target debt, the swap is not carried out, but instead the debt is repaid and any surplus of the output token is deposited for the account in the liability vault. This allows combined swaps to safely target high ratios of exact input swaps vs exact output remainders. The exact input swap doesn't know the exact amount of output that will be received and it can 'over-swap' more than is necessary to repay the debt. Because the surplus doesn't revert the transaction, high ratios of better priced exact input swaps can be targeted by the UI.
 
@@ -90,30 +90,30 @@ The swapper contract executes trades using external providers like `1Inch` or `U
 
 This simple contract only provides 2 functions to verify results of the swaps and swaps-and-repays.
 
-`verifySkimMin` - Checks the amount of assets available to skim on a vault and reverts if it is less than required minimum. The available assets are considered the result of the swap. The user must make sure to put all the tokens bought with the swapper in the vault, either by performing swaps directly into the vault, or by calling `sweep` on the swapper before calling the verification function.
+`verifySkimMin` - Checks the amount of assets available to skim on a vault and reverts if it is less than the required minimum. The assets available are considered the result of the swap. The user must make sure to put all the tokens bought with the swapper in the vault, either by performing swaps directly into the vault, or by calling `sweep` on the swapper before calling the verification function (see F2. in common flows below).
 
-`verifyDebtMax` - Checks that the debt of an account is no larger than given max amount. Swapper contract will automatically repay the debt when executing swap-and-repay mode, so no additional steps are required before or after verification.
+`verifyDebtMax` - Checks that the debt of an account is not larger than given max amount. Swapper contract will automatically repay the debt when executing swap-and-repay mode, so no additional steps are required before or after verification.
 
 ## Common flows in EVK
 
 F1. Swap exact amount of deposits from one EVault (A) to another (B)
 - fetch a swap payload from either 1Inch api or Uniswap Auto Router, setting B as the receiver
 - create EVC batch call with the following items:
-  - `A.withdraw` to the swapper contract the requested input token amount
+  - `A.withdraw` the required input token amount to the swapper contract 
   - `Swapper.swap` - `exact input` on the selected handler
-  - `SwapVerifier.verifySkimMin` Check a minimum required amount was bought for the input (apply slippage settings)
-  - `A.skim` the result for the user on B, passing max uint256 amount to skim all available balance 
+  - `SwapVerifier.verifySkimMin` Check a minimum required amount was bought for the input, according to slippage settings
+  - `B.skim` claim the swap results for the user. Pass max uint256 amount to skim all available balance 
 
 F2. Swap deposits from one EVault (A) to exact amount of another (B)
-- find an exact input payload on 1Inch or Uniswap Auto Router such that most of the required output amount is bought. E.g. binary search input amount that yields 98% of the required output amount. The receiver must be the swapper contract.
+- find an exact input payload on 1Inch or Uniswap Auto Router such that most of the required output amount is bought. E.g., binary search input amount that yields 98% of the required output amount. The receiver encoded in the payload must be the swapper contract.
 - create EVC batch with the following items:
-  - `A.withdraw` to the swapper contract. The amount must cover all of the estimated swap costs with extra to account for slippage
+  - `A.withdraw` to the swapper contract. The amount must cover all of the estimated swap costs with some extra, to account for slippage
   - `swapper.multicall` with the following items:
     - `Swapper.swap` - `exact input` with the off-chain payload
     - `Swapper.swap` - `exact output` on one of the supportin handlers (Uni V2/V3) with the user specified `amountOut`. The receiver can be either the swapper contract or B vault.
-    - `Swapper.sweep` for the output token, into the B vault
+    - `Swapper.sweep` the output token, into the B vault
   - `SwapVerifier.verifySkimMin` check a minimum required amount was bought. Because exact output swaps are not guaranteed to be exact always, a small slippage could be allowed.
-  - `B.skim` claim the output token for the user, pass max uint256 amount to skim all the available balance 
+  - `B.skim` claim the swap results for the user. Pass max uint256 amount to skim all the available balance 
 
 
 F3. Create leveraged position
@@ -126,5 +126,5 @@ F4. Sell deposits from one vault (A) to repay debt in another (B)
 - `A.withdraw` to the swapper contract. The amount must cover all of the estimated swap costs with extra to account for slippage
 - `swapper.multicall` with the following items:
   - `Swapper.swap` - `exact input` with the off-chain payload
-  - `Swapper.swap` - `target debt` mode on one of the supportin handlers (Uni V2/V3). The `amountOut` should be set to the amount of debt the user requested to have after the operation. Set to zero, to repay full debt.
+  - `Swapper.swap` - `target debt` mode on one of the supporting handlers (Uni V2/V3). The `amountOut` should be set to the amount of debt the user requested to have after the operation. Set to zero, to repay full debt.
 - `SwapVerifier.verifyDebtMax` check that the user's debt matches the expectations. Because exact output swaps are not guaranteed to be exact always, a small slippage could be allowed.
