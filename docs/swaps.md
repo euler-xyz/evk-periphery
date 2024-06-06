@@ -68,7 +68,7 @@ The swaps can be performed in one of 3 modes:
 
 ### Handlers
 
-The swapper contract executes trades using external providers like `1Inch` or `Uniswap`. Internal 'handlers' take care of interfacing with the provider. They are enumerated by a bytes32 encoded string. The available handlers are listed as constants in `Swapper.sol`.
+The swapper contract executes trades using external providers like 1Inch or Uniswap. Internal handler modules take care of interfacing with the provider. They are enumerated by a `bytes32` encoded string. The available handlers are listed as constants in `Swapper.sol`.
 
 - 1Inch handler
 
