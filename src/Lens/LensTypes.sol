@@ -189,6 +189,9 @@ struct VaultRewardInfo {
     uint256 blockNumber;
     address vault;
     address reward;
+    string rewardName;
+    string rewardSymbol;
+    uint8 rewardDecimals;
     address balanceTracker;
     uint256 epochDuration;
     uint256 currentEpoch;

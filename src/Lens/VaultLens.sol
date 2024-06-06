@@ -153,6 +153,9 @@ contract VaultLens is LensUtils {
 
         result.vault = vault;
         result.reward = reward;
+        result.rewardName = getStringOrBytes32(result.reward, IEVault(vault).name.selector);
+        result.rewardSymbol = getStringOrBytes32(result.reward, IEVault(vault).symbol.selector);
+        result.rewardDecimals = getDecimals(result.reward);
         result.balanceTracker = IEVault(vault).balanceTrackerAddress();
 
         if (result.balanceTracker == address(0)) return result;
