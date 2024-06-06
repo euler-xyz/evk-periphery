@@ -9,7 +9,7 @@ import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Simple contract used to verify post swap conditions
 /// @dev This contract is the only trusted code in the EVK swap periphery
-contract SwapVerifier{
+contract SwapVerifier {
     error SwapVerifier_skimMin();
     error SwapVerifier_debtMax();
 
@@ -31,7 +31,7 @@ contract SwapVerifier{
     /// @param vault The EVault to query
     /// @param account User account to query
     /// @param amountMax Max amount of debt that can be held by the account
-    /// @dev Swapper contract will repay debt up to a requested target amount in certain situations. 
+    /// @dev Swapper contract will repay debt up to a requested target amount in certain situations.
     /// @dev Calling the function is then equivalent to a slippage check.
     function verifyDebtMax(address vault, address account, uint256 amountMax) external view {
         uint256 debt = IEVault(vault).debtOf(account);
