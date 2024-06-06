@@ -13,8 +13,8 @@ import {ISwapper} from "../ISwapper.sol";
 abstract contract UniswapAutoRouterHandler is BaseHandler {
     address public immutable uniswapRouter02;
 
-    constructor(address _uniSwapRouter02) {
-        uniswapRouter02 = _uniSwapRouter02;
+    constructor(address _uniswapRouter02) {
+        uniswapRouter02 = _uniswapRouter02;
     }
 
     /// @inheritdoc ISwapper

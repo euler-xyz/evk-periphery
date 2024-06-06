@@ -15,8 +15,8 @@ abstract contract UniswapV3Handler is BaseHandler {
 
     error UniswapV3Handler_InvalidPath();
 
-    constructor(address _uniSwapRouterV3) {
-        uniswapRouterV3 = _uniSwapRouterV3;
+    constructor(address _uniswapRouterV3) {
+        uniswapRouterV3 = _uniswapRouterV3;
     }
 
     /// @inheritdoc ISwapper
