@@ -34,6 +34,7 @@ interface IOracle is IPriceOracle {
         view
         returns (uint256, address, address, address);
     function getConfiguredOracle(address base, address quote) external view returns (address);
+    function description() external view returns (string memory);
 }
 
 contract OracleLens is LensUtils {
@@ -56,6 +57,7 @@ contract OracleLens is LensUtils {
                     base: oracle.base(),
                     quote: oracle.quote(),
                     feed: oracle.feed(),
+                    feedDescription: IOracle(oracle.feed()).description(),
                     maxStaleness: oracle.maxStaleness()
                 })
             );
