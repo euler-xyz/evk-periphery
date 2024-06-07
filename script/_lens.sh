@@ -51,7 +51,7 @@ fi
 echo "Provide lenses addresses..."
 
 fileName=_lens
-scriptFileName=08_Lenses.s.sol
+scriptFileName=$fileName.s.sol
 scriptJsonFileName=$fileName.json
 tempScriptJsonFileName=temp_$scriptJsonFileName
 scriptJsonResultFileName=${fileName}_result.json
@@ -123,7 +123,7 @@ jq -n \
         optionId: $optionId
     }' --indent 4 > script/$scriptJsonFileName
 
-forge script script/$scriptFileName:UseLenses --rpc-url $DEPLOYMENT_RPC_URL
+forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL
 
 cat script/$scriptJsonResultFileName
 rm script/$scriptJsonResultFileName

@@ -210,16 +210,18 @@ source .env && forge script script/07_EVault.s.sol --rpc-url "$DEPLOYMENT_RPC_UR
 Outputs:
 `script/output/07_EVault.json`
 
-### Lenses
+### Peripherals
 
 This command deploys:
 - Account Lens
 - Oracle Lens
 - Vault Lens
+- Escrow Singleton Perspective
+- Cluster Conservative Perspective
 
 ```sh
-source .env && forge script script/08_Lenses.s.sol --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy
+source .env && forge script script/08_Peripherals.s.sol --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy
 ```
 
 Outputs:
-`script/output/08_Lenses.json`
+`script/output/08_Peripherals.json`
