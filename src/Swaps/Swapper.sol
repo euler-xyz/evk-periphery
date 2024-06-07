@@ -47,11 +47,11 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         if (isExternal) reentrancyLock = REENTRANCYLOCK_UNLOCKED;
     }
 
-    constructor(address oneInchAggregator, address uniswapRouterV2, address uniswapRouterV3, address uniSwapRouter02)
+    constructor(address oneInchAggregator, address uniswapRouterV2, address uniswapRouterV3, address uniswapRouter02)
         OneInchHandler(oneInchAggregator)
         UniswapV2Handler(uniswapRouterV2)
         UniswapV3Handler(uniswapRouterV3)
-        UniswapAutoRouterHandler(uniSwapRouter02)
+        UniswapAutoRouterHandler(uniswapRouter02)
     {}
 
     /// @inheritdoc ISwapper

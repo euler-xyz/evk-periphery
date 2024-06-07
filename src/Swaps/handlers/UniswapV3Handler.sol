@@ -11,12 +11,12 @@ import {ISwapper} from "../ISwapper.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Swap handler executing exact output trades on Uniswap V3
 abstract contract UniswapV3Handler is BaseHandler {
-    address public immutable uniSwapRouterV3;
+    address public immutable uniswapRouterV3;
 
     error UniswapV3Handler_InvalidPath();
 
-    constructor(address _uniSwapRouterV3) {
-        uniSwapRouterV3 = _uniSwapRouterV3;
+    constructor(address _uniswapRouterV3) {
+        uniswapRouterV3 = _uniswapRouterV3;
     }
 
     /// @inheritdoc ISwapper
@@ -24,12 +24,12 @@ abstract contract UniswapV3Handler is BaseHandler {
         if (params.mode == MODE_EXACT_IN) revert Swapper_UnsupportedMode();
         if (params.data.length < 43 || (params.data.length - 20) % 23 != 0) revert UniswapV3Handler_InvalidPath();
 
-        setMaxAllowance(params.tokenIn, uniSwapRouterV3);
+        setMaxAllowance(params.tokenIn, uniswapRouterV3);
         // update amountOut and receiver according to the mode and current state
         (uint256 amountOut, address receiver) = resolveParams(params);
 
         if (amountOut > 0) {
-            ISwapRouterV3(uniSwapRouterV3).exactOutput(
+            ISwapRouterV3(uniswapRouterV3).exactOutput(
                 ISwapRouterV3.ExactOutputParams({
                     path: params.data,
                     recipient: receiver,

@@ -11,19 +11,19 @@ import {ISwapper} from "../ISwapper.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Swap handler executing trades encoded by Uniswap's Auto Router
 abstract contract UniswapAutoRouterHandler is BaseHandler {
-    address public immutable uniSwapRouter02;
+    address public immutable uniswapRouter02;
 
-    constructor(address _uniSwapRouter02) {
-        uniSwapRouter02 = _uniSwapRouter02;
+    constructor(address _uniswapRouter02) {
+        uniswapRouter02 = _uniswapRouter02;
     }
 
     /// @inheritdoc ISwapper
     function swap(SwapParams memory params) public virtual override {
         if (params.mode == MODE_TARGET_DEBT) revert Swapper_UnsupportedMode();
 
-        setMaxAllowance(params.tokenIn, uniSwapRouter02);
+        setMaxAllowance(params.tokenIn, uniswapRouter02);
 
-        (bool success, bytes memory result) = uniSwapRouter02.call(params.data);
+        (bool success, bytes memory result) = uniswapRouter02.call(params.data);
         if (!success) RevertBytes.revertBytes(result);
     }
 }
