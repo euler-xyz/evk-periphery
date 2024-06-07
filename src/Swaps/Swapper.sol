@@ -32,6 +32,7 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     error Swapper_UnknownHandler();
     error Swapper_Reentrancy();
     error Swapper_InsufficientBalance();
+    error Swapper_PastDeadline();
 
     // In the locked state, allow contract to call itself, but block all external calls
     modifier externalLock() {
@@ -61,6 +62,7 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         externalLock
     {
         if (params.mode >= MODE_MAX_VALUE) revert Swapper_UnknownMode();
+        if (params.deadline < block.timestamp) revert Swapper_PastDeadline();
 
         if (params.handler == HANDLER_ONE_INCH) {
             OneInchHandler.swap(params);

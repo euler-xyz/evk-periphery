@@ -34,6 +34,8 @@ interface ISwapper {
         // In exact output mode (1) - amount of `tokenOut` to buy
         // In swap and repay mode (2) - amount of debt the account should have after swap and repay
         uint256 amountOut;
+        // Timestamp after which the swap must revert
+        uint256 deadline;
         // Auxilary payload for swap providers
         bytes data;
     }
