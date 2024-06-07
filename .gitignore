@@ -12,3 +12,6 @@ docs/
 
 # Dotenv file
 .env
+
+broadcast/
+script/_lens.json
