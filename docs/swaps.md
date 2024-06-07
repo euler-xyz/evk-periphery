@@ -59,7 +59,7 @@ The swaps can be performed in one of 3 modes:
 
   In this mode, the swapper will check how much debt a provided account has (including current interest accrued), compare it with a target debt the user requests, and the amount already held by the swapper contract, and by exact output trade will buy exactly the amount required to repay the debt (down to the target amount). In most cases the target amount will be zero, which means the mode can be used to close debt positions without leaving any dust.
 
-  After buing the necessary amount, the swapper will automatically execute `repay` on the liability vault for the user.
+  After buying the necessary amount, the swapper will automatically execute `repay` on the liability vault for the user.
 
   If at the time the swap is executed, the swapper contract holds more funds than necessary to repay to the target debt, the swap is not carried out, but instead the debt is repaid and any surplus of the output token is deposited for the account in the liability vault. This allows combined swaps to safely target high ratios of exact input swaps vs exact output remainders. The exact input swap doesn't know the exact amount of output that will be received and it can 'over-swap' more than is necessary to repay the debt. Because the surplus doesn't revert the transaction, high ratios of better priced exact input swaps can be targeted by the UI.
 
@@ -128,3 +128,14 @@ F4. Sell deposits from one vault (A) to repay debt in another (B)
   - `Swapper.swap` - `exact input` with the off-chain payload
   - `Swapper.swap` - `target debt` mode on one of the supporting handlers (Uni V2/V3). The `amountOut` should be set to the amount of debt the user requested to have after the operation. Set to zero, to repay full debt.
 - `SwapVerifier.verifyDebtMax` check that the user's debt matches the expectations. Because exact output swaps are not guaranteed to be exact always, a small slippage could be allowed.
+
+F5. Sell deposit from one vault (A) to repay debt in another (B) when exact output is unavailable
+
+For some token pairs, the exact output swap might not be available at all, or the price impact might be too big due to poor liquidity in Uniswap. In such cases to repay the full debt:
+- find an exact input payload on 1Inch or Uniswap Auto Router, to buy slightly **more** of the output token than is necessary to repay the debt, taking into account slippage on exchanges and interest accrual between the payload generation and transaction execution. E.g., binary search input amount that yields 102% of the current debt. The receiver encoded in the payload must be the swapper contract. Set the receiver to the liability vault.
+- create EVC batch with the following items:
+  - `A.withdraw` the required input token amount to the swapper contract
+  - `Swapper.swap` - `exact input` on the selected handler
+  - `SwapVerifier.verifySkimMin` check that the minimum required amount was bought. 
+  - `B.skim` claim the swap results for the user. Pass max uint256 amount to skim all the available balance 
+  - `B.repayWithShares` setting the amount to max uint255. Debt should be removed to zero, with the remainder of the output token deposited in B vault for the borrower.
