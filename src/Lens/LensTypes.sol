@@ -226,6 +226,7 @@ struct ChainlinkOracleInfo {
     address base;
     address quote;
     address feed;
+    string feedDescription;
     uint256 maxStaleness;
 }
 
