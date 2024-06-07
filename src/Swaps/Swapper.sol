@@ -57,19 +57,18 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     /// @inheritdoc ISwapper
     function swap(SwapParams memory params)
         public
-        override (OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapAutoRouterHandler)
         externalLock
     {
         if (params.mode >= MODE_MAX_VALUE) revert Swapper_UnknownMode();
 
         if (params.handler == HANDLER_ONE_INCH) {
-            OneInchHandler.swap(params);
+            swapOneInch(params);
         } else if (params.handler == HANDLER_UNISWAP_V2) {
-            UniswapV2Handler.swap(params);
+            swapUniswapV2(params);
         } else if (params.handler == HANDLER_UNISWAP_V3) {
-            UniswapV3Handler.swap(params);
+            swapUniswapV3(params);
         } else if (params.handler == HANDLER_UNISWAP_AUTOROUTER) {
-            UniswapAutoRouterHandler.swap(params);
+            swapAutoRouter(params);
         } else {
             revert Swapper_UnknownHandler();
         }

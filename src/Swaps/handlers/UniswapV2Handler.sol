@@ -19,8 +19,7 @@ abstract contract UniswapV2Handler is BaseHandler {
         uniSwapRouterV2 = _uniSwapRouterV2;
     }
 
-    /// @inheritdoc ISwapper
-    function swap(SwapParams memory params) public virtual override {
+    function swapUniswapV2(SwapParams memory params) internal virtual {
         if (params.mode == MODE_EXACT_IN) revert Swapper_UnsupportedMode();
         if (params.data.length < 64 || params.data.length % 32 != 0) revert UniswapV2Handler_InvalidPath();
 
