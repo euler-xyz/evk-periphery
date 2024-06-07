@@ -17,8 +17,7 @@ abstract contract UniswapAutoRouterHandler is BaseHandler {
         uniswapRouter02 = _uniswapRouter02;
     }
 
-    /// @inheritdoc ISwapper
-    function swap(SwapParams memory params) public virtual override {
+    function swapAutoRouter(SwapParams memory params) internal virtual {
         if (params.mode == MODE_TARGET_DEBT) revert Swapper_UnsupportedMode();
 
         setMaxAllowance(params.tokenIn, uniswapRouter02);

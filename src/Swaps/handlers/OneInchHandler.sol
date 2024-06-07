@@ -17,8 +17,7 @@ abstract contract OneInchHandler is BaseHandler {
         oneInchAggregator = _oneInchAggregator;
     }
 
-    /// @inheritdoc ISwapper
-    function swap(SwapParams memory params) public virtual override {
+    function swapOneInch(SwapParams memory params) internal virtual {
         if (params.mode != MODE_EXACT_IN) revert Swapper_UnsupportedMode();
 
         setMaxAllowance(params.tokenIn, oneInchAggregator);
