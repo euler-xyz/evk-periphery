@@ -15,7 +15,6 @@ import {BasePerspective} from "../../../BasePerspective.sol";
 contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspective {
     address[] public recognizedCollateralPerspectives;
     address internal constant USD = address(840);
-    address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     IEulerRouterFactory internal immutable routerFactory;
     AdapterRegistry internal immutable adapterRegistry;
@@ -83,7 +82,7 @@ contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspect
 
         // Verify the unit of account is either USD or WETH
         address unitOfAccount = IEVault(vault).unitOfAccount();
-        testProperty(unitOfAccount == USD || unitOfAccount == ETH || unitOfAccount == WETH, ERROR__UNIT_OF_ACCOUNT);
+        testProperty(unitOfAccount == USD || unitOfAccount == WETH, ERROR__UNIT_OF_ACCOUNT);
 
         // the router must contain a valid pricing configuration
         address fallbackOracle = IEulerRouter(oracle).fallbackOracle();

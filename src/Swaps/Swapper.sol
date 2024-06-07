@@ -56,10 +56,7 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     {}
 
     /// @inheritdoc ISwapper
-    function swap(SwapParams memory params)
-        public
-        externalLock
-    {
+    function swap(SwapParams memory params) public externalLock {
         if (params.mode >= MODE_MAX_VALUE) revert Swapper_UnknownMode();
         if (params.deadline < block.timestamp) revert Swapper_PastDeadline();
 

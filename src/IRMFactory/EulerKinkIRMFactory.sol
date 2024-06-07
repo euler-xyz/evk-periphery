@@ -9,7 +9,7 @@ import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 /// @notice A minimal factory for Kink IRMs.
 contract EulerKinkIRMFactory {
     // corresponds to 1000% APY
-    uint256 internal constant MAX_ALLOWED_INTEREST_RATE = 75986276241127470105;
+    uint256 internal constant MAX_ALLOWED_INTEREST_RATE = 75986279153383989049;
 
     struct DeploymentInfo {
         /// @notice The sender of the deployment call.
