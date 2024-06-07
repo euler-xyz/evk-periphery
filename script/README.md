@@ -219,6 +219,9 @@ This command deploys:
 - Escrow Singleton Perspective
 - Cluster Conservative Perspective
 
+Inputs:
+`script/input/08_Peripherals.json`
+
 ```sh
 source .env && forge script script/08_Peripherals.s.sol --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy
 ```
