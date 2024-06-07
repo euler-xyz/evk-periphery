@@ -4,35 +4,10 @@ pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./ScriptUtils.s.sol";
 import {AccountLens} from "../src/Lens/AccountLens.sol";
-import {OracleLens} from "../src/Lens/OracleLens.sol";
 import {VaultLens} from "../src/Lens/VaultLens.sol";
 import "../src/Lens/LensTypes.sol";
 
-contract Lenses is ScriptUtils {
-    function run() public startBroadcast returns (address accountLens, address oracleLens, address vaultLens) {
-        string memory scriptFileName = "08_Lenses.json";
-
-        (accountLens, oracleLens, vaultLens) = deploy();
-
-        string memory object;
-        object = vm.serializeAddress("lens", "accountLens", accountLens);
-        object = vm.serializeAddress("lens", "oracleLens", oracleLens);
-        object = vm.serializeAddress("lens", "vaultLens", vaultLens);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
-    }
-
-    function deploy() public returns (address accountLens, address oracleLens, address vaultLens) {
-        (accountLens, oracleLens, vaultLens) = execute();
-    }
-
-    function execute() internal returns (address accountLens, address oracleLens, address vaultLens) {
-        accountLens = address(new AccountLens());
-        oracleLens = address(new OracleLens());
-        vaultLens = address(new VaultLens(address(oracleLens)));
-    }
-}
-
-contract UseLenses is ScriptUtils {
+contract UseLens is ScriptUtils {
     function run() public {
         string memory json = vm.readFile(string.concat(vm.projectRoot(), "/script/", "_lens.json"));
         address accountLens = abi.decode(vm.parseJson(json, ".accountLens"), (address));
