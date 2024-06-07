@@ -138,4 +138,4 @@ For some token pairs, the exact output swap might not be available at all, or th
   - `Swapper.swap` - `exact input` on the selected handler
   - `SwapVerifier.verifySkimMin` check that the minimum required amount was bought. 
   - `B.skim` claim the swap results for the user. Pass max uint256 amount to skim all the available balance 
-  - `B.repayWithShares` setting the amount to max uint255. Debt should be removed to zero, with the remainder of the output token deposited in B vault for the borrower.
+  - `B.repayWithShares` setting the amount to max uint256. Debt should be removed to zero, with the remainder of the output token deposited in B vault for the borrower.
