@@ -132,7 +132,7 @@ F4. Sell deposits from one vault (A) to repay debt in another (B)
 F5. Sell deposit from one vault (A) to repay debt in another (B) when exact output is unavailable
 
 For some token pairs, the exact output swap might not be available at all, or the price impact might be too big due to poor liquidity in Uniswap. In such cases to repay the full debt:
-- find an exact input payload on 1Inch or Uniswap Auto Router, to buy slightly **more** of the output token than is necessary to repay the debt, taking into account slippage on exchanges and interest accrual between the payload generation and transaction execution. E.g., binary search input amount that yields 102% of the current debt. The receiver encoded in the payload must be the swapper contract. Set the receiver to the liability vault.
+- find an exact input payload on 1Inch or Uniswap Auto Router, to buy slightly **more** of the output token than is necessary to repay the debt, taking into account slippage on exchanges and interest accrual between the payload generation and transaction execution. E.g., binary search input amount that yields 102% of the current debt. Set the receiver to the liability vault.
 - create EVC batch with the following items:
   - `A.withdraw` the required input token amount to the swapper contract
   - `Swapper.swap` - `exact input` on the selected handler
