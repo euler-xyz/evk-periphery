@@ -131,11 +131,24 @@ contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspect
                     ? address(this)
                     : recognizedCollateralPerspectives[j];
 
-                try BasePerspective(perspective).perspectiveVerify(collateral, true) {
+                if (BasePerspective(perspective).isVerified(collateral)) {
                     recognized = true;
-                } catch {}
+                    break;
+                }
+            }
 
-                if (recognized) break;
+            if (!recognized) {
+                for (uint256 j = 0; j < recognizedCollateralPerspectives.length; ++j) {
+                    address perspective = recognizedCollateralPerspectives[j] == address(0)
+                        ? address(this)
+                        : recognizedCollateralPerspectives[j];
+
+                    try BasePerspective(perspective).perspectiveVerify(collateral, true) {
+                        recognized = true;
+                    } catch {}
+
+                    if (recognized) break;
+                }
             }
 
             testProperty(recognized, ERROR__LTV_COLLATERAL_RECOGNITION);
