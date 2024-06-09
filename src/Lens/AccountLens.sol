@@ -143,19 +143,10 @@ contract AccountLens is LensUtils {
             if (bytes4(reason) != Errors.E_NoLiability.selector) result.liquidityInfo.timeToLiquidation = TTL_ERROR;
         }
 
-        if (result.liquidityInfo.timeToLiquidation == 0) {
-            if (result.liquidityInfo.liabilityValue == 0) {
-                // if there's no liability, time to liquidation is infinite
-                result.liquidityInfo.timeToLiquidation = TTL_INFINITY;
-            } else if (result.liquidityInfo.liabilityValue >= result.liquidityInfo.collateralValueLiquidation) {
-                // if liability is greater than or equal to collateral, the account is eligible for liquidation right
-                // away
-                result.liquidityInfo.timeToLiquidation = TTL_LIQUIDATION;
-            } else {
-                result.liquidityInfo.timeToLiquidation = calculateTimeToLiquidation(
-                    vault, result.liquidityInfo.liabilityValue, enabledCollaterals, collateralValues
-                );
-            }
+        if (result.liquidityInfo.timeToLiquidation != TTL_ERROR) {
+            result.liquidityInfo.timeToLiquidation = calculateTimeToLiquidation(
+                vault, result.liquidityInfo.liabilityValue, enabledCollaterals, collateralValues
+            );
         }
 
         return result;
@@ -164,29 +155,15 @@ contract AccountLens is LensUtils {
     function getTimeToLiquidation(address account, address vault) public view returns (int256) {
         address[] memory collaterals;
         uint256[] memory collateralValues;
-
-        // get collateral and liability values
-        uint256 collateralValue;
         uint256 liabilityValue;
-        try IEVault(vault).accountLiquidity(account, true) returns (uint256 _collateralValue, uint256 _liabilityValue) {
-            collateralValue = _collateralValue;
-            liabilityValue = _liabilityValue;
-        } catch (bytes memory reason) {
-            if (bytes4(reason) != Errors.E_NoLiability.selector) return TTL_ERROR;
-        }
 
-        // if there's no liability, time to liquidation is infinite
-        if (liabilityValue == 0) return TTL_INFINITY;
-
-        // if liability is greater than or equal to collateral, the account is eligible for liquidation right away
-        if (liabilityValue >= collateralValue) return TTL_LIQUIDATION;
-
-        // get detailed collateral values
+        // get detailed collateral values and liability value
         try IEVault(vault).accountLiquidityFull(account, true) returns (
-            address[] memory _collaterals, uint256[] memory _collateralValues, uint256
+            address[] memory _collaterals, uint256[] memory _collateralValues, uint256 _liabilityValue
         ) {
             collaterals = _collaterals;
             collateralValues = _collateralValues;
+            liabilityValue = _liabilityValue;
         } catch (bytes memory reason) {
             if (bytes4(reason) != Errors.E_NoLiability.selector) return TTL_ERROR;
         }

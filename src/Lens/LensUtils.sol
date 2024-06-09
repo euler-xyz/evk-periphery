@@ -63,17 +63,18 @@ abstract contract LensUtils {
         address[] memory collaterals,
         uint256[] memory collateralValues
     ) internal view returns (int256) {
+        // if there's no liability, time to liquidation is infinite
+        if (liabilityValue == 0) return TTL_INFINITY;
+
         // get borrow interest rate
         uint256 liabilitySPY;
         try IEVault(liabilityVault).interestRate() returns (uint256 _spy) {
             liabilitySPY = _spy;
         } catch {}
 
-        // if there's no borrow interest rate, time to liquidation is infinite
-        if (liabilitySPY == 0) return TTL_INFINITY;
-
-        // get individual collateral interest rates
+        // get individual collateral interest rates and total collateral value
         uint256[] memory collateralSPYs = new uint256[](collaterals.length);
+        uint256 collateralValue;
         for (uint256 i = 0; i < collaterals.length; ++i) {
             address collateral = collaterals[i];
             uint256 borrowSPY;
@@ -89,7 +90,15 @@ abstract contract LensUtils {
                     IEVault(collateral).interestFee()
                 );
             }
+
+            collateralValue += collateralValues[i];
         }
+
+        // if liability is greater than or equal to collateral, the account is eligible for liquidation right away
+        if (liabilityValue >= collateralValue) return TTL_LIQUIDATION;
+
+        // if there's no borrow interest rate, time to liquidation is infinite
+        if (liabilitySPY == 0) return TTL_INFINITY;
 
         int256 minTTL = TTL_COMPUTATION_MIN;
         int256 maxTTL = TTL_COMPUTATION_MAX;
@@ -114,14 +123,12 @@ abstract contract LensUtils {
             }
 
             // calculate the collaterals interest accrued
-            uint256 collateralValue;
             uint256 collateralInterest;
             for (uint256 i = 0; i < collaterals.length; ++i) {
                 (uint256 multiplier, bool overflow) = RPow.rpow(collateralSPYs[i] + ONE, uint256(ttl), ONE);
 
                 if (overflow) return TTL_ERROR;
 
-                collateralValue += collateralValues[i];
                 collateralInterest = collateralValues[i] * multiplier / ONE - collateralValues[i];
             }
 
