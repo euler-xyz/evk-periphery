@@ -155,16 +155,16 @@ struct AssetPriceInfo {
 struct VaultInterestRateModelInfo {
     address vault;
     address interestRateModel;
-    APYInfo[] apyInfo;
+    InterestRateInfo[] interestRateInfo;
 }
 
-struct APYInfo {
+struct InterestRateInfo {
     uint256 cash;
     uint256 borrows;
-    uint256 borrowInterestRateSPY;
-    uint256 borrowInterestRateAPY;
-    uint256 supplyInterestRateSPY;
-    uint256 supplyInterestRateAPY;
+    uint256 borrowSPY;
+    uint256 supplySPY;
+    uint256 borrowAPY;
+    uint256 supplyAPY;
 }
 
 struct AccountRewardInfo {

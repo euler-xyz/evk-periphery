@@ -37,21 +37,26 @@ abstract contract LensUtils {
         return success && data.length == 32 ? abi.decode(data, (uint8)) : 18;
     }
 
-    function computeInterestRates(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
+    function computeSupplySPY(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
         internal
         pure
-        returns (uint256 supplySPY, uint256 borrowAPY, uint256 supplyAPY)
+        returns (uint256)
     {
         uint256 totalAssets = cash + borrows;
+        return totalAssets == 0 ? 0 : borrowSPY * borrows * (CONFIG_SCALE - interestFee) / totalAssets / CONFIG_SCALE;
+    }
+
+    function computeAPYs(uint256 borrowSPY, uint256 supplySPY)
+        internal
+        pure
+        returns (uint256 borrowAPY, uint256 supplyAPY)
+    {
         bool overflowBorrow;
         bool overflowSupply;
-
-        supplySPY =
-            totalAssets == 0 ? 0 : borrowSPY * borrows * (CONFIG_SCALE - interestFee) / totalAssets / CONFIG_SCALE;
         (borrowAPY, overflowBorrow) = RPow.rpow(borrowSPY + ONE, SECONDS_PER_YEAR, ONE);
         (supplyAPY, overflowSupply) = RPow.rpow(supplySPY + ONE, SECONDS_PER_YEAR, ONE);
 
-        if (overflowBorrow || overflowSupply) return (supplySPY, 0, 0);
+        if (overflowBorrow || overflowSupply) return (0, 0);
 
         borrowAPY -= ONE;
         supplyAPY -= ONE;
@@ -83,7 +88,7 @@ abstract contract LensUtils {
             } catch {}
 
             if (borrowSPY > 0) {
-                (collateralSPYs[i],,) = computeInterestRates(
+                collateralSPYs[i] = computeSupplySPY(
                     borrowSPY,
                     IEVault(collateral).cash(),
                     IEVault(collateral).totalBorrows(),

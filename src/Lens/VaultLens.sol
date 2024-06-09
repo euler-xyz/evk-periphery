@@ -251,21 +251,21 @@ contract VaultLens is LensUtils {
         if (result.interestRateModel == address(0)) return result;
 
         uint256 interestFee = IEVault(vault).interestFee();
-        result.apyInfo = new APYInfo[](cash.length);
+        result.interestRateInfo = new InterestRateInfo[](cash.length);
 
         for (uint256 i = 0; i < cash.length; ++i) {
-            result.apyInfo[i].cash = cash[i];
-            result.apyInfo[i].borrows = borrows[i];
+            result.interestRateInfo[i].cash = cash[i];
+            result.interestRateInfo[i].borrows = borrows[i];
 
-            result.apyInfo[i].borrowInterestRateSPY = IIRM(result.interestRateModel).computeInterestRateView(
-                vault, result.apyInfo[i].cash, result.apyInfo[i].borrows
+            result.interestRateInfo[i].borrowSPY = IIRM(result.interestRateModel).computeInterestRateView(
+                vault, result.interestRateInfo[i].cash, result.interestRateInfo[i].borrows
             );
 
-            (
-                result.apyInfo[i].supplyInterestRateSPY,
-                result.apyInfo[i].borrowInterestRateAPY,
-                result.apyInfo[i].supplyInterestRateAPY
-            ) = computeInterestRates(result.apyInfo[i].borrowInterestRateSPY, cash[i], borrows[i], interestFee);
+            result.interestRateInfo[i].supplySPY =
+                computeSupplySPY(result.interestRateInfo[i].borrowSPY, cash[i], borrows[i], interestFee);
+
+            (result.interestRateInfo[i].borrowAPY, result.interestRateInfo[i].supplyAPY) =
+                computeAPYs(result.interestRateInfo[i].borrowSPY, result.interestRateInfo[i].supplySPY);
         }
 
         return result;
