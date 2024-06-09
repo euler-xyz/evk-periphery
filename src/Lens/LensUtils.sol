@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {RPow} from "evk/EVault/shared/lib/RPow.sol";
 
-abstract contract LensUtils {
+contract LensUtils {
     uint256 internal constant SECONDS_PER_YEAR = 365.2425 * 86400;
     uint256 internal constant ONE = 1e27;
     uint256 internal constant CONFIG_SCALE = 1e4;
@@ -38,7 +38,7 @@ abstract contract LensUtils {
     }
 
     function computeSupplySPY(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
-        internal
+        public
         pure
         returns (uint256)
     {
@@ -47,7 +47,7 @@ abstract contract LensUtils {
     }
 
     function computeAPYs(uint256 borrowSPY, uint256 supplySPY)
-        internal
+        public
         pure
         returns (uint256 borrowAPY, uint256 supplyAPY)
     {
@@ -67,7 +67,7 @@ abstract contract LensUtils {
         uint256 liabilityValue,
         address[] memory collaterals,
         uint256[] memory collateralValues
-    ) internal view returns (int256) {
+    ) public view returns (int256) {
         // if there's no liability, time to liquidation is infinite
         if (liabilityValue == 0) return TTL_INFINITY;
 
