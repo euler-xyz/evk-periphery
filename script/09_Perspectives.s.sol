@@ -3,25 +3,16 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./ScriptUtils.s.sol";
-import {AccountLens} from "../src/Lens/AccountLens.sol";
-import {OracleLens} from "../src/Lens/OracleLens.sol";
-import {VaultLens} from "../src/Lens/VaultLens.sol";
 import {EscrowSingletonPerspective} from
     "../src/Perspectives/immutable/ungoverned/escrow/EscrowSingletonPerspective.sol";
 import {ClusterConservativePerspective} from
     "../src/Perspectives/immutable/ungoverned/cluster/ClusterConservativePerspective.sol";
 
-contract Peripherals is ScriptUtils {
+contract Perspectives is ScriptUtils {
     function run()
         public
         startBroadcast
-        returns (
-            address accountLens,
-            address oracleLens,
-            address vaultLens,
-            address escrowSingletonPerspective,
-            address clusterConservativePerspective
-        )
+        returns (address escrowSingletonPerspective, address clusterConservativePerspective)
     {
         string memory scriptFileName = "08_Peripherals.json";
         string memory json = getInputConfig(scriptFileName);
@@ -30,15 +21,12 @@ contract Peripherals is ScriptUtils {
         address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
         address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
 
-        (accountLens, oracleLens, vaultLens, escrowSingletonPerspective, clusterConservativePerspective) =
+        (escrowSingletonPerspective, clusterConservativePerspective) =
             deploy(eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, kinkIRMFactory);
 
         string memory object;
-        object = vm.serializeAddress("peripherals", "accountLens", accountLens);
-        object = vm.serializeAddress("peripherals", "oracleLens", oracleLens);
-        object = vm.serializeAddress("peripherals", "vaultLens", vaultLens);
-        object = vm.serializeAddress("peripherals", "escrowSingletonPerspective", escrowSingletonPerspective);
-        object = vm.serializeAddress("peripherals", "clusterConservativePerspective", clusterConservativePerspective);
+        object = vm.serializeAddress("perspectives", "escrowSingletonPerspective", escrowSingletonPerspective);
+        object = vm.serializeAddress("perspectives", "clusterConservativePerspective", clusterConservativePerspective);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
     }
 
@@ -47,17 +35,8 @@ contract Peripherals is ScriptUtils {
         address oracleRouterFactory,
         address oracleAdapterRegistry,
         address kinkIRMFactory
-    )
-        public
-        returns (
-            address accountLens,
-            address oracleLens,
-            address vaultLens,
-            address escrowSingletonPerspective,
-            address clusterConservativePerspective
-        )
-    {
-        (accountLens, oracleLens, vaultLens, escrowSingletonPerspective, clusterConservativePerspective) =
+    ) public returns (address escrowSingletonPerspective, address clusterConservativePerspective) {
+        (escrowSingletonPerspective, clusterConservativePerspective) =
             execute(eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, kinkIRMFactory);
     }
 
@@ -66,19 +45,7 @@ contract Peripherals is ScriptUtils {
         address oracleRouterFactory,
         address oracleAdapterRegistry,
         address kinkIRMFactory
-    )
-        internal
-        returns (
-            address accountLens,
-            address oracleLens,
-            address vaultLens,
-            address escrowSingletonPerspective,
-            address clusterConservativePerspective
-        )
-    {
-        accountLens = address(new AccountLens());
-        oracleLens = address(new OracleLens());
-        vaultLens = address(new VaultLens(address(oracleLens)));
+    ) internal returns (address escrowSingletonPerspective, address clusterConservativePerspective) {
         escrowSingletonPerspective = address(new EscrowSingletonPerspective(eVaultFactory));
         clusterConservativePerspective = address(
             new ClusterConservativePerspective(
