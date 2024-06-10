@@ -30,7 +30,7 @@ contract SwapVerifier {
         if (balance <= cash || balance - cash < amountMin) revert SwapVerifier_skimMin();
     }
 
-    /// @notice Verify results of a swap and repay operation, when debt is repaid with bought tokens
+    /// @notice Verify results of a swap and repay operation, when debt is repaid down to a requested target
     /// @param vault The EVault to query
     /// @param account User account to query
     /// @param amountMax Max amount of debt that can be held by the account
