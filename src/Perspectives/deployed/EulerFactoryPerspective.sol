@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.24;
 
-import {BasePerspective} from "../BasePerspective.sol";
+import {BasePerspective} from "../implementation/BasePerspective.sol";
 
-contract FactoryPerspective is BasePerspective {
+contract EulerFactoryPerspective is BasePerspective {
     constructor(address vaultFactory_) BasePerspective(vaultFactory_) {}
 
     function name() public pure virtual override returns (string memory) {
-        return "Unknown.Unknown.FactoryPerspective";
+        return "Euler Factory Perspective";
     }
 
     function perspectiveVerifyInternal(address vault) internal virtual override {

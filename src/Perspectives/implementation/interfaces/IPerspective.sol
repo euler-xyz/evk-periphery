@@ -14,8 +14,7 @@ interface IPerspective {
     error PerspectiveError(address perspective, address vault, uint256 codes);
 
     /// @notice Returns the name of the perspective.
-    /// @dev Name should be unique and descriptive. The following name format should be used:
-    /// "[Immutable|Upgradable].[Governed|Ungoverned].UniqueAndDescriptiveNameOfThePerspective"
+    /// @dev Name should be unique and descriptive.
     /// @return The name of the perspective.
     function name() external view returns (string memory);
 

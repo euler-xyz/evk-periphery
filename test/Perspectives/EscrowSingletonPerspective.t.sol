@@ -6,10 +6,9 @@ import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {EscrowSingletonPerspective} from
-    "../../../../../src/Perspectives/immutable/ungoverned/escrow/EscrowSingletonPerspective.sol";
-import {PerspectiveErrors} from "../../../../../src/Perspectives/PerspectiveErrors.sol";
-import {IPerspective} from "../../../../../src/Perspectives/interfaces/IPerspective.sol";
+import {EscrowSingletonPerspective} from "../../src/Perspectives/deployed/EscrowSingletonPerspective.sol";
+import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
+import {IPerspective} from "../../src/Perspectives/implementation/interfaces/IPerspective.sol";
 
 contract EscrowSingletonPerspectiveTest is EVaultTestBase, PerspectiveErrors {
     event PerspectiveVerified(address indexed vault);
@@ -25,7 +24,7 @@ contract EscrowSingletonPerspectiveTest is EVaultTestBase, PerspectiveErrors {
     }
 
     function test_EscrowSingletonPerspective_name() public view {
-        assertEq(perspective.name(), "Immutable.Ungoverned.EscrowSingletonPerspective");
+        assertEq(perspective.name(), "Escrow Singleton Perspective");
     }
 
     function test_EscrowSingletonPerspective_general() public {

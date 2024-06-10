@@ -6,13 +6,13 @@ import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {IEulerRouter} from "../../../../OracleFactory/interfaces/IEulerRouter.sol";
-import {IEulerRouterFactory} from "../../../../OracleFactory/interfaces/IEulerRouterFactory.sol";
-import {AdapterRegistry} from "../../../../OracleFactory/AdapterRegistry.sol";
-import {EulerKinkIRMFactory} from "../../../../IRMFactory/EulerKinkIRMFactory.sol";
-import {BasePerspective} from "../../../BasePerspective.sol";
+import {IEulerRouter} from "../../OracleFactory/interfaces/IEulerRouter.sol";
+import {IEulerRouterFactory} from "../../OracleFactory/interfaces/IEulerRouterFactory.sol";
+import {AdapterRegistry} from "../../OracleFactory/AdapterRegistry.sol";
+import {EulerKinkIRMFactory} from "../../IRMFactory/EulerKinkIRMFactory.sol";
+import {BasePerspective} from "./BasePerspective.sol";
 
-contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspective {
+abstract contract ClusterPerspective is BasePerspective {
     address[] public recognizedCollateralPerspectives;
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -31,10 +31,6 @@ contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspect
         adapterRegistry = AdapterRegistry(adapterRegistry_);
         irmFactory = EulerKinkIRMFactory(irmFactory_);
         recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
-    }
-
-    function name() public pure virtual override returns (string memory) {
-        return "Immutable.Ungoverned.ClusterConservativeWithRecognizedCollateralsPerspective";
     }
 
     function perspectiveVerifyInternal(address vault) internal override {

@@ -6,7 +6,7 @@ import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {BasePerspective} from "../../../BasePerspective.sol";
+import {BasePerspective} from "../implementation/BasePerspective.sol";
 
 contract EscrowSingletonPerspective is BasePerspective {
     mapping(address => address) public assetLookup;
@@ -14,7 +14,7 @@ contract EscrowSingletonPerspective is BasePerspective {
     constructor(address vaultFactory_) BasePerspective(vaultFactory_) {}
 
     function name() public pure virtual override returns (string memory) {
-        return "Immutable.Ungoverned.EscrowSingletonPerspective";
+        return "Escrow Singleton Perspective";
     }
 
     function perspectiveVerifyInternal(address vault) internal override {
