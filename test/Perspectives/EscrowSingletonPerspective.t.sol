@@ -90,8 +90,8 @@ contract EscrowSingletonPerspectiveTest is EVaultTestBase, PerspectiveErrors {
                 IPerspective.PerspectiveError.selector,
                 address(perspective),
                 vault3,
-                ERROR__UPGRADABILITY | ERROR__SINGLETON | ERROR__ORACLE | ERROR__UNIT_OF_ACCOUNT | ERROR__GOVERNOR
-                    | ERROR__HOOKED_OPS | ERROR__LIQUIDATION_DISCOUNT | ERROR__LTV_LENGTH
+                ERROR__UPGRADABILITY | ERROR__SINGLETON | ERROR__ORACLE_INVALID_ROUTER | ERROR__UNIT_OF_ACCOUNT
+                    | ERROR__GOVERNOR | ERROR__HOOKED_OPS | ERROR__LIQUIDATION_DISCOUNT | ERROR__LTV_LENGTH
             )
         );
         perspective.perspectiveVerify(vault3, false);

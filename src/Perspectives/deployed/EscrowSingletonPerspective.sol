@@ -35,7 +35,7 @@ contract EscrowSingletonPerspective is BasePerspective {
         testProperty(!vaultFactory.isProxy(asset), ERROR__NESTING);
 
         // escrow vaults must not have an oracle or unit of account
-        testProperty(IEVault(vault).oracle() == address(0), ERROR__ORACLE);
+        testProperty(IEVault(vault).oracle() == address(0), ERROR__ORACLE_INVALID_ROUTER);
         testProperty(IEVault(vault).unitOfAccount() == address(0), ERROR__UNIT_OF_ACCOUNT);
 
         // verify vault configuration at the governance level.

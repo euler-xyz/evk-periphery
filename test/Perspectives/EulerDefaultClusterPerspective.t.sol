@@ -19,7 +19,7 @@ contract EulerDefaultClusterPerspectiveTest is ClusterSetupTest {
 
         vm.expectRevert();
         new EulerDefaultClusterPerspective(
-            address(0), address(0), address(0), address(0), address(clusterPerspectiveInstance1)
+            address(0), address(0), address(0), address(0), address(defaultClusterPerspectiveInstance1)
         );
 
         // no revert

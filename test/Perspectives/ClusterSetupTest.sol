@@ -8,7 +8,7 @@ import "evk/EVault/shared/Constants.sol";
 
 import {EulerDefaultClusterPerspective} from "../../src/Perspectives/deployed/EulerDefaultClusterPerspective.sol";
 import {EscrowSingletonPerspective} from "../../src/Perspectives/deployed/EscrowSingletonPerspective.sol";
-import {ClusterPerspective} from "../../src/Perspectives/implementation/ClusterPerspective.sol";
+import {DefaultClusterPerspective} from "../../src/Perspectives/implementation/DefaultClusterPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
 import {AdapterRegistry} from "../../src/OracleFactory/AdapterRegistry.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
@@ -16,17 +16,19 @@ import {IEulerRouterFactory} from "../../src/OracleFactory/interfaces/IEulerRout
 import {IEulerRouter} from "../../src/OracleFactory/interfaces/IEulerRouter.sol";
 import {StubPriceOracle} from "../utils/StubPriceOracle.sol";
 
-contract ClusterPerspectiveInstance is ClusterPerspective {
+contract DefaultClusterPerspectiveInstance is DefaultClusterPerspective {
     constructor(
         address factory,
         address routerFactory,
         address adapterRegistry,
         address irmFactory,
         address[] memory recognizedCollateralPerspectives
-    ) ClusterPerspective(factory, routerFactory, adapterRegistry, irmFactory, recognizedCollateralPerspectives) {}
+    )
+        DefaultClusterPerspective(factory, routerFactory, adapterRegistry, irmFactory, recognizedCollateralPerspectives)
+    {}
 
     function name() public pure override returns (string memory) {
-        return "Cluster Perspective Instance";
+        return "Default Cluster Perspective Instance";
     }
 }
 
@@ -46,9 +48,9 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
 
     EscrowSingletonPerspective escrowSingletonPerspective;
     EulerDefaultClusterPerspective eulerDefaultClusterPerspective;
-    ClusterPerspectiveInstance clusterPerspectiveInstance1;
-    ClusterPerspectiveInstance clusterPerspectiveInstance2;
-    ClusterPerspectiveInstance clusterPerspectiveInstance3;
+    DefaultClusterPerspectiveInstance defaultClusterPerspectiveInstance1;
+    DefaultClusterPerspectiveInstance defaultClusterPerspectiveInstance2;
+    DefaultClusterPerspectiveInstance defaultClusterPerspectiveInstance3;
 
     address vaultEscrow;
     address vaultCluster1;
@@ -85,7 +87,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
 
         address[] memory recognizedCollateralPerspectives = new address[](1);
         recognizedCollateralPerspectives[0] = address(0);
-        clusterPerspectiveInstance1 = new ClusterPerspectiveInstance(
+        defaultClusterPerspectiveInstance1 = new DefaultClusterPerspectiveInstance(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -94,7 +96,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         );
 
         recognizedCollateralPerspectives[0] = address(escrowSingletonPerspective);
-        clusterPerspectiveInstance2 = new ClusterPerspectiveInstance(
+        defaultClusterPerspectiveInstance2 = new DefaultClusterPerspectiveInstance(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -104,8 +106,8 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
 
         recognizedCollateralPerspectives = new address[](2);
         recognizedCollateralPerspectives[0] = address(escrowSingletonPerspective);
-        recognizedCollateralPerspectives[1] = address(clusterPerspectiveInstance1);
-        clusterPerspectiveInstance3 = new ClusterPerspectiveInstance(
+        recognizedCollateralPerspectives[1] = address(defaultClusterPerspectiveInstance1);
+        defaultClusterPerspectiveInstance3 = new DefaultClusterPerspectiveInstance(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -167,9 +169,9 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
 
         vm.label(address(escrowSingletonPerspective), "escrowSingletonPerspective");
         vm.label(address(eulerDefaultClusterPerspective), "eulerDefaultClusterPerspective");
-        vm.label(address(clusterPerspectiveInstance1), "clusterPerspectiveInstance1");
-        vm.label(address(clusterPerspectiveInstance2), "clusterPerspectiveInstance2");
-        vm.label(address(clusterPerspectiveInstance3), "clusterPerspectiveInstance3");
+        vm.label(address(defaultClusterPerspectiveInstance1), "defaultClusterPerspectiveInstance1");
+        vm.label(address(defaultClusterPerspectiveInstance2), "defaultClusterPerspectiveInstance2");
+        vm.label(address(defaultClusterPerspectiveInstance3), "defaultClusterPerspectiveInstance3");
         vm.label(vaultEscrow, "vaultEscrow");
         vm.label(vaultCluster1, "vaultCluster1");
         vm.label(vaultCluster2, "vaultCluster2");

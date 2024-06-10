@@ -3,16 +3,16 @@
 pragma solidity ^0.8.24;
 
 import {BasePerspective} from "../implementation/BasePerspective.sol";
-import {ClusterPerspective} from "../implementation/ClusterPerspective.sol";
+import {DefaultClusterPerspective} from "../implementation/DefaultClusterPerspective.sol";
 
-contract EulerDefaultClusterPerspective is ClusterPerspective {
+contract EulerDefaultClusterPerspective is DefaultClusterPerspective {
     constructor(
         address vaultFactory_,
         address routerFactory_,
         address adapterRegistry_,
         address irmFactory_,
         address escrowSingletonPerspective_
-    ) ClusterPerspective(vaultFactory_, routerFactory_, adapterRegistry_, irmFactory_, new address[](0)) {
+    ) DefaultClusterPerspective(vaultFactory_, routerFactory_, adapterRegistry_, irmFactory_, new address[](0)) {
         require(
             keccak256(bytes(BasePerspective(escrowSingletonPerspective_).name()))
                 == keccak256("Escrow Singleton Perspective"),

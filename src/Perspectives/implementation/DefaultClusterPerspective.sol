@@ -12,7 +12,7 @@ import {AdapterRegistry} from "../../OracleFactory/AdapterRegistry.sol";
 import {EulerKinkIRMFactory} from "../../IRMFactory/EulerKinkIRMFactory.sol";
 import {BasePerspective} from "./BasePerspective.sol";
 
-abstract contract ClusterPerspective is BasePerspective {
+abstract contract DefaultClusterPerspective is BasePerspective {
     address[] public recognizedCollateralPerspectives;
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -73,22 +73,29 @@ abstract contract ClusterPerspective is BasePerspective {
 
         // cluster vaults must point to an ungoverned EulerRouter instance deployed by the factory
         address oracle = IEVault(vault).oracle();
-        testProperty(routerFactory.isValidDeployment(oracle), ERROR__ORACLE);
-        testProperty(IEulerRouter(oracle).governor() == address(0), ERROR__ORACLE);
+        testProperty(routerFactory.isValidDeployment(oracle), ERROR__ORACLE_INVALID_ROUTER);
+        testProperty(IEulerRouter(oracle).governor() == address(0), ERROR__ORACLE_GOVERNED_ROUTER);
+
+        // cluster vaults, as a fallback oracle, must have an ungoverned EulerRouter instance deployed by the factory
+        address fallbackOracle = IEulerRouter(oracle).fallbackOracle();
+        if (fallbackOracle != address(0)) {
+            testProperty(routerFactory.isValidDeployment(fallbackOracle), ERROR__ORACLE_INVALID_FALLBACK);
+            testProperty(IEulerRouter(fallbackOracle).governor() == address(0), ERROR__ORACLE_GOVERNED_FALLBACK);
+            testProperty(IEulerRouter(fallbackOracle).fallbackOracle() == address(0), ERROR__ORACLE_NESTED_FALLBACK);
+        }
 
         // Verify the unit of account is either USD or WETH
         address unitOfAccount = IEVault(vault).unitOfAccount();
         testProperty(unitOfAccount == USD || unitOfAccount == WETH, ERROR__UNIT_OF_ACCOUNT);
 
         // the router must contain a valid pricing configuration
-        address fallbackOracle = IEulerRouter(oracle).fallbackOracle();
         {
-            testProperty(fallbackOracle == address(0) || routerFactory.isValidDeployment(fallbackOracle), ERROR__ORACLE);
             (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
+            if (fallbackOracle != address(0) && resolvedOracle == fallbackOracle) {
+                (,,, resolvedOracle) = IEulerRouter(fallbackOracle).resolveOracle(1e18, vault, unitOfAccount);
+            }
             testProperty(
-                (fallbackOracle != address(0) && resolvedOracle == fallbackOracle)
-                    || adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
-                ERROR__ORACLE_ASSET
+                adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp), ERROR__ORACLE_INVALID_ASSET_ADAPTER
             );
         }
 
@@ -96,15 +103,19 @@ abstract contract ClusterPerspective is BasePerspective {
         address[] memory ltvList = IEVault(vault).LTVList();
         testProperty(ltvList.length > 0 && ltvList.length <= 10, ERROR__LTV_LENGTH);
 
-        // cluster vaults must have recognized collaterals with LTV set in range
+        // cluster vaults must have recognized collaterals
         for (uint256 i = 0; i < ltvList.length; ++i) {
             address collateral = ltvList[i];
+
+            // the router must contain a valid pricing configuration for all the collaterals
             {
-                (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
+                (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, collateral, unitOfAccount);
+                if (fallbackOracle != address(0) && resolvedOracle == fallbackOracle) {
+                    (,,, resolvedOracle) = IEulerRouter(fallbackOracle).resolveOracle(1e18, collateral, unitOfAccount);
+                }
                 testProperty(
-                    (fallbackOracle != address(0) && resolvedOracle == fallbackOracle)
-                        || adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
-                    ERROR__ORACLE_COLLATERAL
+                    adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
+                    ERROR__ORACLE_INVALID_COLLATERAL_ADAPTER
                 );
             }
 
