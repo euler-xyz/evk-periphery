@@ -7,10 +7,10 @@ import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.
 import {IRewardStreams} from "reward-streams/interfaces/IRewardStreams.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {Errors} from "evk/EVault/shared/Errors.sol";
-import {LensUtils} from "./LensUtils.sol";
+import {Utils} from "./Utils.sol";
 import "./LensTypes.sol";
 
-contract AccountLens is LensUtils {
+contract AccountLens is Utils {
     function getAccountInfo(address account, address vault) public view returns (AccountInfo memory) {
         AccountInfo memory result;
 
@@ -144,7 +144,7 @@ contract AccountLens is LensUtils {
         }
 
         if (result.liquidityInfo.timeToLiquidation != TTL_ERROR) {
-            result.liquidityInfo.timeToLiquidation = calculateTimeToLiquidation(
+            result.liquidityInfo.timeToLiquidation = _calculateTimeToLiquidation(
                 vault, result.liquidityInfo.liabilityValue, enabledCollaterals, collateralValues
             );
         }
@@ -168,7 +168,7 @@ contract AccountLens is LensUtils {
             if (bytes4(reason) != Errors.E_NoLiability.selector) return TTL_ERROR;
         }
 
-        return calculateTimeToLiquidation(vault, liabilityValue, collaterals, collateralValues);
+        return _calculateTimeToLiquidation(vault, liabilityValue, collaterals, collateralValues);
     }
 
     function getRewardAccountInfo(address account, address vault) public view returns (AccountRewardInfo memory) {

@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {RPow} from "evk/EVault/shared/lib/RPow.sol";
 
-contract LensUtils {
+abstract contract Utils {
     uint256 internal constant SECONDS_PER_YEAR = 365.2425 * 86400;
     uint256 internal constant ONE = 1e27;
     uint256 internal constant CONFIG_SCALE = 1e4;
@@ -17,12 +17,12 @@ contract LensUtils {
     int256 public constant TTL_LIQUIDATION = -1;
     int256 public constant TTL_ERROR = -2;
 
-    function strEq(string memory a, string memory b) internal pure returns (bool) {
+    function _strEq(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(bytes(a)) == keccak256(bytes(b));
     }
 
     /// @dev for tokens like MKR which return bytes32 on name() or symbol()
-    function getStringOrBytes32(address contractAddress, bytes4 selector) internal view returns (string memory) {
+    function _getStringOrBytes32(address contractAddress, bytes4 selector) internal view returns (string memory) {
         (bool success, bytes memory result) = contractAddress.staticcall(abi.encodeWithSelector(selector));
 
         return (success && result.length != 0)
@@ -30,15 +30,15 @@ contract LensUtils {
             : "";
     }
 
-    function getDecimals(address contractAddress) internal view returns (uint8) {
+    function _getDecimals(address contractAddress) internal view returns (uint8) {
         (bool success, bytes memory data) =
             contractAddress.staticcall(abi.encodeCall(IEVault(contractAddress).decimals, ()));
 
         return success && data.length == 32 ? abi.decode(data, (uint8)) : 18;
     }
 
-    function computeSupplySPY(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
-        public
+    function _computeSupplySPY(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
+        internal
         pure
         returns (uint256)
     {
@@ -46,8 +46,8 @@ contract LensUtils {
         return totalAssets == 0 ? 0 : borrowSPY * borrows * (CONFIG_SCALE - interestFee) / totalAssets / CONFIG_SCALE;
     }
 
-    function computeAPYs(uint256 borrowSPY, uint256 supplySPY)
-        public
+    function _computeAPYs(uint256 borrowSPY, uint256 supplySPY)
+        internal
         pure
         returns (uint256 borrowAPY, uint256 supplyAPY)
     {
@@ -62,12 +62,12 @@ contract LensUtils {
         supplyAPY -= ONE;
     }
 
-    function calculateTimeToLiquidation(
+    function _calculateTimeToLiquidation(
         address liabilityVault,
         uint256 liabilityValue,
         address[] memory collaterals,
         uint256[] memory collateralValues
-    ) public view returns (int256) {
+    ) internal view returns (int256) {
         // if there's no liability, time to liquidation is infinite
         if (liabilityValue == 0) return TTL_INFINITY;
 
@@ -88,7 +88,7 @@ contract LensUtils {
             } catch {}
 
             if (borrowSPY > 0) {
-                collateralSPYs[i] = computeSupplySPY(
+                collateralSPYs[i] = _computeSupplySPY(
                     borrowSPY,
                     IEVault(collateral).cash(),
                     IEVault(collateral).totalBorrows(),
