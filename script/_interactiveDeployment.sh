@@ -14,14 +14,30 @@ function backup_script_files {
 }
 
 function backup_and_restore_script_files {
-    local block_number=$1
-    local scriptFileName=$2
-    local tempScriptFileName=$3
+    local scriptFileName=$1
+    local tempScriptFileName=$2
+    local block_number=$3
     local deployment_dir="script/deployments/$block_number"
 
     mkdir -p "$deployment_dir/input" "$deployment_dir/output"
-    cp script/input/$scriptFileName "$deployment_dir/input/$scriptFileName"
-    cp script/output/$scriptFileName "$deployment_dir/output/$scriptFileName"
+
+    if [[ -f "$deployment_dir/input/$scriptFileName" ]]; then
+        is_array=$(jq 'if (type == "array") then true else false end' < "$deployment_dir/input/$scriptFileName")
+
+        if [[ $is_array == "true" ]]; then
+            jq -s '.[0] + [.[1]]' "$deployment_dir/input/$scriptFileName" "script/input/$scriptFileName" > "$deployment_dir/input/temp_$scriptFileName"
+            jq -s '.[0] + [.[1]]' "$deployment_dir/output/$scriptFileName" "script/output/$scriptFileName" > "$deployment_dir/output/temp_$scriptFileName"
+        else
+            jq -s '[.[0]] + [.[1]]' "$deployment_dir/input/$scriptFileName" "script/input/$scriptFileName" > "$deployment_dir/input/temp_$scriptFileName"
+            jq -s '[.[0]] + [.[1]]' "$deployment_dir/output/$scriptFileName" "script/output/$scriptFileName" > "$deployment_dir/output/temp_$scriptFileName"
+        fi
+        
+        mv "$deployment_dir/input/temp_$scriptFileName" "$deployment_dir/input/$scriptFileName"
+        mv "$deployment_dir/output/temp_$scriptFileName" "$deployment_dir/output/$scriptFileName"
+    else
+        cp "script/input/$scriptFileName" "$deployment_dir/input/$scriptFileName"
+        cp "script/output/$scriptFileName" "$deployment_dir/output/$scriptFileName"
+    fi
 
     if [[ -f script/input/$tempScriptFileName ]]; then
         cp script/input/$tempScriptFileName script/input/$scriptFileName
@@ -498,5 +514,5 @@ while true; do
     esac
 
     execute_forge_command $scriptFileName $verify_contracts
-    backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
+    backup_and_restore_script_files $scriptJsonFileName $tempScriptJsonFileName $block_number
 done
