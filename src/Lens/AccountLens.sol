@@ -106,12 +106,14 @@ contract AccountLens is Utils {
         {
             result.liquidityInfo.liabilityValue = _liabilityValue;
             result.liquidityInfo.collateralValueBorrowing = _collateralValue;
-        } catch {}
+        } catch {
+            result.liquidityInfo.failure = true;
+        }
 
         try IEVault(vault).accountLiquidity(account, true) returns (uint256 _collateralValue, uint256) {
             result.liquidityInfo.collateralValueLiquidation = _collateralValue;
-        } catch (bytes memory reason) {
-            if (bytes4(reason) != Errors.E_NoLiability.selector) result.liquidityInfo.timeToLiquidation = TTL_ERROR;
+        } catch {
+            result.liquidityInfo.failure = true;
         }
 
         try IEVault(vault).accountLiquidityFull(account, false) returns (
@@ -123,7 +125,9 @@ contract AccountLens is Utils {
                 result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateral = _collaterals[i];
                 result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateralValue = _collateralValues[i];
             }
-        } catch {}
+        } catch {
+            result.liquidityInfo.failure = true;
+        }
 
         address[] memory enabledCollaterals;
         uint256[] memory collateralValues;
@@ -139,11 +143,11 @@ contract AccountLens is Utils {
                 result.liquidityInfo.collateralLiquidityLiquidationInfo[i].collateral = _collaterals[i];
                 result.liquidityInfo.collateralLiquidityLiquidationInfo[i].collateralValue = _collateralValues[i];
             }
-        } catch (bytes memory reason) {
-            if (bytes4(reason) != Errors.E_NoLiability.selector) result.liquidityInfo.timeToLiquidation = TTL_ERROR;
+        } catch {
+            result.liquidityInfo.failure = true;
         }
 
-        if (result.liquidityInfo.timeToLiquidation != TTL_ERROR) {
+        if (!result.liquidityInfo.failure) {
             result.liquidityInfo.timeToLiquidation = _calculateTimeToLiquidation(
                 vault, result.liquidityInfo.liabilityValue, enabledCollaterals, collateralValues
             );
