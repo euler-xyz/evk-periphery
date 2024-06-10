@@ -10,6 +10,8 @@ It should contain the following environment variables:
 - `FORK_RPC_URL` (remote endpoint from which the state will be fetched in case of local anvil deployment)
 - `DEPLOYMENT_RPC_URL` (destination RPC endpoint; use http://127.0.0.1:8545 in case of local anvil deployment)
 - `DEPLOYER_KEY` (the private key which will be used for all the contracts deployments; this will also become an owner/admin/governor for all the  deployed contracts)
+- `VERIFIER_URL` (url of the contract verifier, i.e. https://api.polygonscan.com/api)
+- `ETHERSCAN_API_KEY` (etherscan api key)
 
 ## Anvil fork
 
@@ -44,6 +46,13 @@ chmod +x ./script/_interactiveDeployment.sh
 The result of the deployment will be saved in `script/deployments/[current_block_number]` directory.
 
 ## Direct deployment
+
+If you want to verify the contracts being deployed, add the following at the end of each command:
+
+```sh
+--verify --verifier-url "$VERIFIER_URL" --etherscan-api-key "$ETHERSCAN_API_KEY"
+```
+
 ### Mock ERC20 token deployment
 
 This command deploys mock ERC20 token.

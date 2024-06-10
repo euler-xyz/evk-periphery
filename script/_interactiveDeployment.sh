@@ -38,6 +38,17 @@ function backup_and_restore_script_files {
     fi
 }
 
+function execute_forge_command {
+    local scriptFileName=$1
+    local shouldVerify=$2
+
+    if [[ $shouldVerify == "y" ]]; then
+        forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy --verify --verifier-url $VERIFIER_URL --etherscan-api-key $ETHERSCAN_API_KEY
+    else
+        forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
+    fi
+}
+
 if ! command -v jq &> /dev/null
 then
     echo "jq could not be found. Please install jq first."
@@ -99,6 +110,9 @@ else
     fi
 fi
 
+read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
+verify_contracts=${verify_contracts:-n}
+
 block_number=$(cast block-number)
 echo "Current block number: $block_number"
 
@@ -151,9 +165,6 @@ while true; do
                     symbol: $symbol,
                     decimals: $decimals
                 }' --indent 4 > script/input/$scriptJsonFileName
-
-            forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
-            backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
             ;;
         1)
             echo "Deploying periphery factories..."
@@ -163,9 +174,6 @@ while true; do
             scriptJsonFileName=$fileName.json
             tempScriptJsonFileName=temp_$scriptJsonFileName
             backup_script_files $scriptJsonFileName $tempScriptJsonFileName
-
-            forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
-            backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
             ;;
         2)
             echo "Deploying oracle adapter..."
@@ -320,11 +328,7 @@ while true; do
                     echo "Invalid adapter choice. Exiting."
                     exit 1
                     ;;
-            esac
-
-            forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
-            backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
-            
+            esac            
             ;;
         3)
             echo "Deploying kink IRM..."
@@ -354,9 +358,6 @@ while true; do
                     slope2: $slope2,
                     kink: $kink
                 }' --indent 4 > script/input/$scriptJsonFileName
-
-            forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
-            backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
             ;;
         4)
             echo "Deploying intergrations..."
@@ -366,9 +367,6 @@ while true; do
             scriptJsonFileName=$fileName.json
             tempScriptJsonFileName=temp_$scriptJsonFileName
             backup_script_files $scriptJsonFileName $tempScriptJsonFileName
-
-            forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
-            backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
             ;;
         5)
             echo "Deploying EVault implementation..."
@@ -398,9 +396,6 @@ while true; do
                     balanceTracker: $balanceTracker,
                     permit2: $permit2
                 }' --indent 4 > script/input/$scriptJsonFileName
-
-            forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
-            backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
             ;;
         6)
             echo "Deploying EVault factory..."
@@ -418,9 +413,6 @@ while true; do
                 '{
                     eVaultImplementation: $eVaultImplementation
                 }' --indent 4 > script/input/$scriptJsonFileName
-
-            forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
-            backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
             ;;
         7)
             echo "Deploying EVault..."
@@ -463,9 +455,6 @@ while true; do
                     oracle: $oracle,
                     unitOfAccount: $unitOfAccount
                 }' --indent 4 > script/input/$scriptJsonFileName
-
-            forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
-            backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
             ;;
         8)
             echo "Deploying lenses..."
@@ -475,9 +464,6 @@ while true; do
             scriptJsonFileName=$fileName.json
             tempScriptJsonFileName=temp_$scriptJsonFileName
             backup_script_files $scriptJsonFileName $tempScriptJsonFileName
-
-            forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
-            backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
             ;;
         9)
             echo "Deploying EVault..."
@@ -504,13 +490,13 @@ while true; do
                     oracleAdapterRegistry: $oracleAdapterRegistry,
                     kinkIrmFactory: $kinkIrmFactory
                 }' --indent 4 > script/input/$scriptJsonFileName
-
-            forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
-            backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
             ;;
         *)
             echo "Invalid choice. Exiting."
             exit 1
             ;;
     esac
+
+    execute_forge_command $scriptFileName $verify_contracts
+    backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
 done
