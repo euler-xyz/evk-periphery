@@ -114,8 +114,9 @@ while true; do
     echo "6. Deploy EVault factory"
     echo "7. Deploy EVault"
     echo "8. Deploy lenses"
-    echo "9. Exit"
-    read -p "Enter your choice (0-9): " deployment_choice
+    echo "9. Deploy perspectives"
+    echo "10. Exit"
+    read -p "Enter your choice (0-10): " deployment_choice
 
     if [[ "$deployment_choice" == "9" ]]; then
         echo "Exiting..."
@@ -474,6 +475,35 @@ while true; do
             scriptJsonFileName=$fileName.json
             tempScriptJsonFileName=temp_$scriptJsonFileName
             backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+
+            forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
+            backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
+            ;;
+        9)
+            echo "Deploying EVault..."
+            
+            fileName=09_Perspectives
+            scriptFileName=$fileName.s.sol
+            scriptJsonFileName=$fileName.json
+            tempScriptJsonFileName=temp_$scriptJsonFileName
+            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+
+            read -p "Enter the EVault Factory address: " evault_factory
+            read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+            read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+            read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+
+            jq -n \
+                --arg eVaultFactory "$evault_factory" \
+                --arg oracleRouterFactory "$oracle_router_factory" \
+                --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                --arg kinkIrmFactory "$kink_irm_factory" \
+                '{
+                    eVaultFactory: $eVaultFactory,
+                    oracleRouterFactory: $oracleRouterFactory,
+                    oracleAdapterRegistry: $oracleAdapterRegistry,
+                    kinkIrmFactory: $kinkIrmFactory
+                }' --indent 4 > script/input/$scriptJsonFileName
 
             forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
             backup_and_restore_script_files $block_number $scriptJsonFileName $tempScriptJsonFileName
