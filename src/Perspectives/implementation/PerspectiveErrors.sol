@@ -2,6 +2,10 @@
 
 pragma solidity ^0.8.0;
 
+/// @title PerspectiveErrors
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice A contract that defines the error codes for the perspectives.
 abstract contract PerspectiveErrors {
     uint256 internal constant ERROR__FACTORY = 1 << 0;
     uint256 internal constant ERROR__IMPLEMENTATION = 1 << 1;

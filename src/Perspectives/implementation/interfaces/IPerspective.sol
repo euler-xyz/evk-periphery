@@ -2,6 +2,10 @@
 
 pragma solidity ^0.8.0;
 
+/// @title IPerspective
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice A contract that verifies the properties of a vault.
 interface IPerspective {
     /// @notice Emitted when a vault is verified successfully.
     /// @param vault The address of the vault that has been verified.

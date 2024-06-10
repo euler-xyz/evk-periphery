@@ -5,6 +5,11 @@ pragma solidity ^0.8.24;
 import {BasePerspective} from "../implementation/BasePerspective.sol";
 import {DefaultClusterPerspective} from "../implementation/DefaultClusterPerspective.sol";
 
+/// @title EulerDefaultClusterPerspective
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice A contract that verifies whether a vault has the properties of a cluster vault. It allows collaterals to be
+/// recognized by the cluster or escrow perspective.
 contract EulerDefaultClusterPerspective is DefaultClusterPerspective {
     constructor(
         address vaultFactory_,

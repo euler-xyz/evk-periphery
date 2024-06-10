@@ -12,6 +12,11 @@ import {AdapterRegistry} from "../../OracleFactory/AdapterRegistry.sol";
 import {EulerKinkIRMFactory} from "../../IRMFactory/EulerKinkIRMFactory.sol";
 import {BasePerspective} from "./BasePerspective.sol";
 
+/// @title DefaultClusterPerspective
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice A contract that verifies whether a vault has the properties of a cluster vault. It allows collaterals to be
+/// recognized by ony of the specified perspectives.
 abstract contract DefaultClusterPerspective is BasePerspective {
     address[] public recognizedCollateralPerspectives;
     address internal constant USD = address(840);
@@ -20,6 +25,13 @@ abstract contract DefaultClusterPerspective is BasePerspective {
     AdapterRegistry internal immutable adapterRegistry;
     EulerKinkIRMFactory internal immutable irmFactory;
 
+    /// @notice Creates a new DefaultClusterPerspective instance.
+    /// @param vaultFactory_ The address of the GenericFactory contract.
+    /// @param routerFactory_ The address of the EulerRouterFactory contract.
+    /// @param adapterRegistry_ The address of the AdapterRegistry contract.
+    /// @param irmFactory_ The address of the EulerKinkIRMFactory contract.
+    /// @param recognizedCollateralPerspectives_ The addresses of the recognized collateral perspectives. address(0) for
+    /// self.
     constructor(
         address vaultFactory_,
         address routerFactory_,
