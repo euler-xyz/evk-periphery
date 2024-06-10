@@ -11,7 +11,7 @@ It should contain the following environment variables:
 - `DEPLOYMENT_RPC_URL` (destination RPC endpoint; use http://127.0.0.1:8545 in case of local anvil deployment)
 - `DEPLOYER_KEY` (the private key which will be used for all the contracts deployments; this will also become an owner/admin/governor for all the  deployed contracts)
 - `VERIFIER_URL` (url of the contract verifier, i.e. https://api.polygonscan.com/api)
-- `ETHERSCAN_API_KEY` (etherscan api key)
+- `VERIFIER_API_KEY` (verifier api key)
 
 ## Anvil fork
 

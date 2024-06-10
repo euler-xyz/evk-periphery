@@ -43,7 +43,7 @@ function execute_forge_command {
     local shouldVerify=$2
 
     if [[ $shouldVerify == "y" ]]; then
-        forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy --verify --verifier-url $VERIFIER_URL --etherscan-api-key $ETHERSCAN_API_KEY
+        forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy --verify --verifier-url $VERIFIER_URL --etherscan-api-key $VERIFIER_API_KEY
     else
         forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
     fi
