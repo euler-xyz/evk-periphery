@@ -35,8 +35,6 @@ contract DefaultClusterPerspectiveInstance is DefaultClusterPerspective {
 contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    uint32 internal constant ESCROW_DISABLED_OPS =
-        OP_BORROW | OP_REPAY | OP_REPAY_WITH_SHARES | OP_PULL_DEBT | OP_CONVERT_FEES | OP_LIQUIDATE | OP_TOUCH;
 
     address adapterRegistryOwner = makeAddr("adapterRegistryOwner");
     address routerGovernor = makeAddr("routerGovernor");
@@ -122,7 +120,6 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         vaultCluster2 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST2), router, USD));
         vaultCluster3 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST2), router, WETH));
 
-        IEVault(vaultEscrow).setHookConfig(address(0), ESCROW_DISABLED_OPS);
         IEVault(vaultEscrow).setGovernorAdmin(address(0));
 
         IEVault(vaultCluster1).setInterestRateModel(irmZero);

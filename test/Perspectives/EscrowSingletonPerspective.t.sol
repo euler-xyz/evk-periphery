@@ -13,9 +13,6 @@ import {IPerspective} from "../../src/Perspectives/implementation/interfaces/IPe
 contract EscrowSingletonPerspectiveTest is EVaultTestBase, PerspectiveErrors {
     event PerspectiveVerified(address indexed vault);
 
-    uint32 constant ESCROW_DISABLED_OPS =
-        OP_BORROW | OP_REPAY | OP_REPAY_WITH_SHARES | OP_PULL_DEBT | OP_CONVERT_FEES | OP_LIQUIDATE | OP_TOUCH;
-
     EscrowSingletonPerspective perspective;
 
     function setUp() public override {
@@ -31,7 +28,6 @@ contract EscrowSingletonPerspectiveTest is EVaultTestBase, PerspectiveErrors {
         // deploy and configure the vault
         address vault =
             factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), address(0), address(0)));
-        IEVault(vault).setHookConfig(address(0), ESCROW_DISABLED_OPS);
         IEVault(vault).setGovernorAdmin(address(0));
 
         vm.expectEmit(true, false, false, false, address(perspective));
@@ -51,15 +47,14 @@ contract EscrowSingletonPerspectiveTest is EVaultTestBase, PerspectiveErrors {
         address vault3 =
             factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(1), address(2)));
 
-        IEVault(vault1).setHookConfig(address(0), ESCROW_DISABLED_OPS);
         IEVault(vault1).setGovernorAdmin(address(0));
 
         // this vault will violate the singleton rules
-        IEVault(vault2).setHookConfig(address(0), ESCROW_DISABLED_OPS);
         IEVault(vault2).setGovernorAdmin(address(0));
 
         // this vault will violate the singleton rules but also other ones
         IEVault(vault3).setMaxLiquidationDiscount(1);
+        IEVault(vault3).setHookConfig(address(0), 1);
         IEVault(vault3).setLTV(address(0), 0, 0, 0);
 
         // verification of the first vault is successful

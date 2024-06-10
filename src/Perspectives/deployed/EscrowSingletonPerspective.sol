@@ -50,19 +50,10 @@ contract EscrowSingletonPerspective is BasePerspective {
             testProperty(supplyCap == 0, ERROR__SUPPLY_CAP);
             testProperty(borrowCap == 0, ERROR__BORROW_CAP);
 
-            // escrow vaults must not have a hook target
+            // escrow vaults must not have a hook target nor any operations disabled
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
             testProperty(hookTarget == address(0), ERROR__HOOK_TARGET);
-
-            // escrow vaults must have certain operations disabled
-            testProperty(
-                hookedOps
-                    == (
-                        OP_BORROW | OP_REPAY | OP_REPAY_WITH_SHARES | OP_PULL_DEBT | OP_CONVERT_FEES | OP_LIQUIDATE
-                            | OP_TOUCH
-                    ),
-                ERROR__HOOKED_OPS
-            );
+            testProperty(hookedOps == 0, ERROR__HOOKED_OPS);
         }
 
         // escrow vaults must not have any config flags set
