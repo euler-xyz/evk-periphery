@@ -12,13 +12,16 @@ import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
 contract SwapVerifier {
     error SwapVerifier_skimMin();
     error SwapVerifier_debtMax();
+    error SwapVerifier_pastDeadline();
 
-    /// @notice Verify amount of assets available for `skim` in an EVault is greater than a given limit
+    /// @notice Verify results of a regular swap, when bought tokens are available for skim
     /// @param vault The EVault to query
     /// @param amountMin Minimum amount of assets that should be available for skim
+    /// @param deadline Timestamp after which the swap transaction is outdated
     /// @dev Swapper contract will send bought assets to the vault in certain situations.
     /// @dev Calling the function is then equivalent to a slippage check.
-    function verifySkimMin(address vault, uint256 amountMin) external view {
+    function verifySkimMin(address vault, uint256 amountMin, uint256 deadline) external view {
+        if (deadline < block.timestamp) revert SwapVerifier_pastDeadline();
         if (amountMin == 0) return;
 
         uint256 cash = IEVault(vault).cash();
@@ -27,14 +30,19 @@ contract SwapVerifier {
         if (balance <= cash || balance - cash < amountMin) revert SwapVerifier_skimMin();
     }
 
-    /// @notice Verify amount of debt held by an account is less than a given limit
+    /// @notice Verify results of a swap and repay operation, when debt is repaid with bought tokens
     /// @param vault The EVault to query
     /// @param account User account to query
     /// @param amountMax Max amount of debt that can be held by the account
+    /// @param deadline Timestamp after which the swap transaction is outdated
     /// @dev Swapper contract will repay debt up to a requested target amount in certain situations.
     /// @dev Calling the function is then equivalent to a slippage check.
-    function verifyDebtMax(address vault, address account, uint256 amountMax) external view {
+    function verifyDebtMax(address vault, address account, uint256 amountMax, uint256 deadline) external view {
+        if (deadline < block.timestamp) revert SwapVerifier_pastDeadline();
+        if (amountMax == type(uint256).max) return;
+
         uint256 debt = IEVault(vault).debtOf(account);
+
         if (debt > amountMax) revert SwapVerifier_debtMax();
     }
 }
