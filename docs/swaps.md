@@ -26,11 +26,9 @@ The general steps to use the `Swapper` contract are following:
 
   The verifiaction should be taking into account any expected slippage and price impact. This step is an essential security measure.
 
-- for regular swaps (without repays), call `skim` on the vault the bought token was directed to.
+  For regular swaps, `SwapVerifier` assumes that any token balance present in the output vault after the swap is the result of the swap. For this reason the bought token is not deposited for the user automatically by the `Swapper`. It is the verifier that checks slippage and then skims the available assets for the user.
 
-  The `SwapVerifier` assumes that any token balance present in the output vault after the swap is the result of the swap. For this reason the bought token is not deposited for the user automatically. The user must 'skim' the result immediately after calling the verifier, to make sure the funds can't be picked up by someone else in between.
-
-  In case of swap-to-repay mode, the `Swapper` contract is expected to repay the debt for the account, so no action is needed other than checking with `SwapVerifier` that the resulting debt matches expectations 
+  In case of swap-to-repay mode, the `Swapper` contract is expected to repay the debt for the account, so `SwapVerifier` only checks that the resulting debt matches expectations 
 
 ### Interface
 
@@ -90,7 +88,7 @@ The swapper contract executes trades using external providers like 1Inch or Unis
 
 This simple contract only provides 2 functions to verify results of the swaps and swaps-and-repays.
 
-`verifySkimMin` - Checks the amount of assets available to skim on a vault and reverts if it is less than the required minimum. The assets available are considered the result of the swap. The user must make sure to put all the tokens bought with the swapper in the vault, either by performing swaps directly into the vault, or by calling `sweep` on the swapper before calling the verification function (see F2. in common flows below).
+`verifyAmountMinAndSkim` - Checks the amount of assets available to skim on a vault and reverts if it is less than the required minimum. After verification the function skims available assets for the specified account. The assets available are considered the result of the swap. The user must make sure to put all the tokens bought with the swapper in the vault, either by performing swaps directly into the vault, or by calling `sweep` on the swapper, before calling the verification function (see F2. in common flows below).
 
 `verifyDebtMax` - Checks that the debt of an account is not larger than given max amount. Swapper contract will automatically repay the debt when executing swap-and-repay mode, so no additional steps are required before or after verification.
 
@@ -101,8 +99,7 @@ F1. Swap exact amount of deposits from one EVault (A) to another (B)
 - create EVC batch call with the following items:
   - `A.withdraw` the required input token amount to the swapper contract 
   - `Swapper.swap` - `exact input` on the selected handler
-  - `SwapVerifier.verifySkimMin` Check a minimum required amount was bought for the input, according to slippage settings
-  - `B.skim` claim the swap results for the user. Pass max uint256 amount to skim all available balance 
+  - `SwapVerifier.verifyAmountMinAndSkim` Check a minimum required amount was bought for the input, according to slippage settings and claim it for the user.
 
 F2. Swap deposits from one EVault (A) to exact amount of another (B)
 - find an exact input payload on 1Inch or Uniswap Auto Router such that most of the required output amount is bought. E.g., binary search input amount that yields 98% of the required output amount. The receiver encoded in the payload must be the swapper contract.
@@ -112,9 +109,7 @@ F2. Swap deposits from one EVault (A) to exact amount of another (B)
     - `Swapper.swap` - `exact input` with the off-chain payload
     - `Swapper.swap` - `exact output` on one of the supportin handlers (Uni V2/V3) with the user specified `amountOut`. The receiver can be either the swapper contract or B vault.
     - `Swapper.sweep` the output token, into the B vault
-  - `SwapVerifier.verifySkimMin` check a minimum required amount was bought. Because exact output swaps are not guaranteed to be exact always, a small slippage could be allowed.
-  - `B.skim` claim the swap results for the user. Pass max uint256 amount to skim all the available balance 
-
+  - `SwapVerifier.verifyAmountMinAndSkim` check a minimum required amount was bought and claim the funds for the user. Because exact output swaps are not guaranteed to be exact always, a small slippage could be allowed.
 
 F3. Create leveraged position
 
@@ -136,6 +131,5 @@ For some token pairs, the exact output swap might not be available at all, or th
 - create EVC batch with the following items:
   - `A.withdraw` the required input token amount to the swapper contract
   - `Swapper.swap` - `exact input` on the selected handler
-  - `SwapVerifier.verifySkimMin` check that the minimum required amount was bought. 
-  - `B.skim` claim the swap results for the user. Pass max uint256 amount to skim all the available balance 
+  - `SwapVerifier.verifyAmountMinAndSkim` check that the minimum required amount was bought and claim it for the user
   - `B.repayWithShares` setting the amount to max uint256. Debt should be removed to zero, with the remainder of the output token deposited in B vault for the borrower.
