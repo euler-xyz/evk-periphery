@@ -6,21 +6,32 @@ import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {IEulerRouter} from "../../../../OracleFactory/interfaces/IEulerRouter.sol";
-import {IEulerRouterFactory} from "../../../../OracleFactory/interfaces/IEulerRouterFactory.sol";
-import {IEulerKinkIRMFactory} from "../../../../IRMFactory/interfaces/IEulerKinkIRMFactory.sol";
-import {AdapterRegistry} from "../../../../OracleFactory/AdapterRegistry.sol";
-import {BasePerspective} from "../../../BasePerspective.sol";
+import {IEulerRouter} from "../../OracleFactory/interfaces/IEulerRouter.sol";
+import {IEulerRouterFactory} from "../../OracleFactory/interfaces/IEulerRouterFactory.sol";
+import {AdapterRegistry} from "../../OracleFactory/AdapterRegistry.sol";
+import {IEulerKinkIRMFactory} from "../../IRMFactory/interfaces/IEulerKinkIRMFactory.sol";
+import {BasePerspective} from "./BasePerspective.sol";
 
-contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspective {
+/// @title DefaultClusterPerspective
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice A contract that verifies whether a vault has the properties of a cluster vault. It allows collaterals to be
+/// recognized by ony of the specified perspectives.
+abstract contract DefaultClusterPerspective is BasePerspective {
     address[] public recognizedCollateralPerspectives;
     address internal constant USD = address(840);
-    address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     IEulerRouterFactory internal immutable routerFactory;
     AdapterRegistry internal immutable adapterRegistry;
     IEulerKinkIRMFactory internal immutable irmFactory;
 
+    /// @notice Creates a new DefaultClusterPerspective instance.
+    /// @param vaultFactory_ The address of the GenericFactory contract.
+    /// @param routerFactory_ The address of the EulerRouterFactory contract.
+    /// @param adapterRegistry_ The address of the AdapterRegistry contract.
+    /// @param irmFactory_ The address of the EulerKinkIRMFactory contract.
+    /// @param recognizedCollateralPerspectives_ The addresses of the recognized collateral perspectives. address(0) for
+    /// self.
     constructor(
         address vaultFactory_,
         address routerFactory_,
@@ -32,10 +43,6 @@ contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspect
         adapterRegistry = AdapterRegistry(adapterRegistry_);
         irmFactory = IEulerKinkIRMFactory(irmFactory_);
         recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
-    }
-
-    function name() public pure virtual override returns (string memory) {
-        return "Immutable.Ungoverned.ClusterConservativeWithRecognizedCollateralsPerspective";
     }
 
     function perspectiveVerifyInternal(address vault) internal override {
@@ -78,22 +85,29 @@ contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspect
 
         // cluster vaults must point to an ungoverned EulerRouter instance deployed by the factory
         address oracle = IEVault(vault).oracle();
-        testProperty(routerFactory.isValidDeployment(oracle), ERROR__ORACLE);
-        testProperty(IEulerRouter(oracle).governor() == address(0), ERROR__ORACLE);
+        testProperty(routerFactory.isValidDeployment(oracle), ERROR__ORACLE_INVALID_ROUTER);
+        testProperty(IEulerRouter(oracle).governor() == address(0), ERROR__ORACLE_GOVERNED_ROUTER);
+
+        // cluster vaults, as a fallback oracle, must have an ungoverned EulerRouter instance deployed by the factory
+        address fallbackOracle = IEulerRouter(oracle).fallbackOracle();
+        if (fallbackOracle != address(0)) {
+            testProperty(routerFactory.isValidDeployment(fallbackOracle), ERROR__ORACLE_INVALID_FALLBACK);
+            testProperty(IEulerRouter(fallbackOracle).governor() == address(0), ERROR__ORACLE_GOVERNED_FALLBACK);
+            testProperty(IEulerRouter(fallbackOracle).fallbackOracle() == address(0), ERROR__ORACLE_NESTED_FALLBACK);
+        }
 
         // Verify the unit of account is either USD or WETH
         address unitOfAccount = IEVault(vault).unitOfAccount();
-        testProperty(unitOfAccount == USD || unitOfAccount == ETH || unitOfAccount == WETH, ERROR__UNIT_OF_ACCOUNT);
+        testProperty(unitOfAccount == USD || unitOfAccount == WETH, ERROR__UNIT_OF_ACCOUNT);
 
         // the router must contain a valid pricing configuration
-        address fallbackOracle = IEulerRouter(oracle).fallbackOracle();
         {
-            testProperty(fallbackOracle == address(0) || routerFactory.isValidDeployment(fallbackOracle), ERROR__ORACLE);
             (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
+            if (fallbackOracle != address(0) && resolvedOracle == fallbackOracle) {
+                (,,, resolvedOracle) = IEulerRouter(fallbackOracle).resolveOracle(1e18, vault, unitOfAccount);
+            }
             testProperty(
-                (fallbackOracle != address(0) && resolvedOracle == fallbackOracle)
-                    || adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
-                ERROR__ORACLE_ASSET
+                adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp), ERROR__ORACLE_INVALID_ASSET_ADAPTER
             );
         }
 
@@ -101,15 +115,19 @@ contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspect
         address[] memory ltvList = IEVault(vault).LTVList();
         testProperty(ltvList.length > 0 && ltvList.length <= 10, ERROR__LTV_LENGTH);
 
-        // cluster vaults must have recognized collaterals with LTV set in range
+        // cluster vaults must have recognized collaterals
         for (uint256 i = 0; i < ltvList.length; ++i) {
             address collateral = ltvList[i];
+
+            // the router must contain a valid pricing configuration for all the collaterals
             {
-                (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
+                (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, collateral, unitOfAccount);
+                if (fallbackOracle != address(0) && resolvedOracle == fallbackOracle) {
+                    (,,, resolvedOracle) = IEulerRouter(fallbackOracle).resolveOracle(1e18, collateral, unitOfAccount);
+                }
                 testProperty(
-                    (fallbackOracle != address(0) && resolvedOracle == fallbackOracle)
-                        || adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
-                    ERROR__ORACLE_COLLATERAL
+                    adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
+                    ERROR__ORACLE_INVALID_COLLATERAL_ADAPTER
                 );
             }
 
@@ -132,11 +150,24 @@ contract ClusterConservativeWithRecognizedCollateralsPerspective is BasePerspect
                     ? address(this)
                     : recognizedCollateralPerspectives[j];
 
-                try BasePerspective(perspective).perspectiveVerify(collateral, true) {
+                if (BasePerspective(perspective).isVerified(collateral)) {
                     recognized = true;
-                } catch {}
+                    break;
+                }
+            }
 
-                if (recognized) break;
+            if (!recognized) {
+                for (uint256 j = 0; j < recognizedCollateralPerspectives.length; ++j) {
+                    address perspective = recognizedCollateralPerspectives[j] == address(0)
+                        ? address(this)
+                        : recognizedCollateralPerspectives[j];
+
+                    try BasePerspective(perspective).perspectiveVerify(collateral, true) {
+                        recognized = true;
+                    } catch {}
+
+                    if (recognized) break;
+                }
             }
 
             testProperty(recognized, ERROR__LTV_COLLATERAL_RECOGNITION);

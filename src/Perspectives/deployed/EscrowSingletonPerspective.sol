@@ -6,15 +6,23 @@ import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {BasePerspective} from "../../../BasePerspective.sol";
+import {BasePerspective} from "../implementation/BasePerspective.sol";
 
+/// @title EscrowSingletonPerspective
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice A contract that verifies whether a vault has properties of an escrow vault. It allows only one escrow vault
+/// per asset.
 contract EscrowSingletonPerspective is BasePerspective {
     mapping(address => address) public assetLookup;
 
+    /// @notice Creates a new EscrowSingletonPerspective instance.
+    /// @param vaultFactory_ The address of the GenericFactory contract.
     constructor(address vaultFactory_) BasePerspective(vaultFactory_) {}
 
+    /// @inheritdoc BasePerspective
     function name() public pure virtual override returns (string memory) {
-        return "Immutable.Ungoverned.EscrowSingletonPerspective";
+        return "Escrow Singleton Perspective";
     }
 
     function perspectiveVerifyInternal(address vault) internal override {
@@ -35,7 +43,7 @@ contract EscrowSingletonPerspective is BasePerspective {
         testProperty(!vaultFactory.isProxy(asset), ERROR__NESTING);
 
         // escrow vaults must not have an oracle or unit of account
-        testProperty(IEVault(vault).oracle() == address(0), ERROR__ORACLE);
+        testProperty(IEVault(vault).oracle() == address(0), ERROR__ORACLE_INVALID_ROUTER);
         testProperty(IEVault(vault).unitOfAccount() == address(0), ERROR__UNIT_OF_ACCOUNT);
 
         // verify vault configuration at the governance level.
@@ -50,19 +58,10 @@ contract EscrowSingletonPerspective is BasePerspective {
             testProperty(supplyCap == 0, ERROR__SUPPLY_CAP);
             testProperty(borrowCap == 0, ERROR__BORROW_CAP);
 
-            // escrow vaults must not have a hook target
+            // escrow vaults must not have a hook target nor any operations disabled
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
             testProperty(hookTarget == address(0), ERROR__HOOK_TARGET);
-
-            // escrow vaults must have certain operations disabled
-            testProperty(
-                hookedOps
-                    == (
-                        OP_BORROW | OP_REPAY | OP_REPAY_WITH_SHARES | OP_PULL_DEBT | OP_CONVERT_FEES | OP_LIQUIDATE
-                            | OP_TOUCH
-                    ),
-                ERROR__HOOKED_OPS
-            );
+            testProperty(hookedOps == 0, ERROR__HOOKED_OPS);
         }
 
         // escrow vaults must not have any config flags set

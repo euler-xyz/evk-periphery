@@ -3,21 +3,20 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {IPerspective} from "../../../../../src/Perspectives/interfaces/IPerspective.sol";
-import {WhitelistPerspective} from
-    "../../../../../src/Perspectives/immutable/ungoverned/whitelist/WhitelistPerspective.sol";
+import {IPerspective} from "../../src/Perspectives/implementation/interfaces/IPerspective.sol";
+import {ImmutableWhitelistPerspective} from "../../src/Perspectives/deployed/ImmutableWhitelistPerspective.sol";
 
-contract WhitelistPerspectiveTest is Test {
-    function test_WhitelistPerspective(uint8 size, uint256 seed) public {
+contract ImmutableWhitelistPerspectiveTest is Test {
+    function test_ImmutableWhitelistPerspective(uint8 size, uint256 seed) public {
         address[] memory whitelist = new address[](size);
 
         for (uint256 i = 0; i < size; i++) {
             whitelist[i] = address(uint160(uint256(keccak256(abi.encode(seed, i)))));
         }
 
-        WhitelistPerspective perspective = new WhitelistPerspective(whitelist);
+        ImmutableWhitelistPerspective perspective = new ImmutableWhitelistPerspective(whitelist);
 
-        assertEq(perspective.name(), "Immutable.Ungoverned.WhitelistPerspective");
+        assertEq(perspective.name(), "Immutable Whitelist Perspective");
 
         for (uint256 i = 0; i < size; i++) {
             assertTrue(perspective.isVerified(whitelist[i]));
