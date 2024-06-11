@@ -75,11 +75,11 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         // swapping to target debt is only useful for repaying
         if (params.mode == MODE_TARGET_DEBT) {
             // at this point amountOut holds the required repay amount
-            repayAndDeposit(params.tokenOut, params.receiver, params.amountOut, params.account);
+            _repayAndDeposit(params.tokenOut, params.receiver, params.amountOut, params.account);
         }
 
         // return unused input token after exact output swap
-        deposit(params.tokenIn, params.vaultIn, 0, params.account);
+        _deposit(params.tokenIn, params.vaultIn, 0, params.account);
     }
 
     /// @inheritdoc ISwapper
@@ -93,22 +93,12 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
 
     /// @inheritdoc ISwapper
     function repayAndDeposit(address token, address vault, uint256 repayAmount, address account) public externalLock {
-        uint256 balance = setMaxAllowance(token, vault);
-        if (repayAmount != type(uint256).max && repayAmount > balance) revert Swapper_InsufficientBalance();
-
-        IEVault(vault).repay(repayAmount, account);
-
-        if (balance > repayAmount) {
-            IEVault(vault).deposit(type(uint256).max, account);
-        }
+        _repayAndDeposit(token, vault, repayAmount, account);
     }
 
     /// @inheritdoc ISwapper
     function deposit(address token, address vault, uint256 amountMin, address account) public externalLock {
-        uint256 balance = setMaxAllowance(token, vault);
-        if (balance >= amountMin) {
-            IEVault(vault).deposit(balance, account);
-        }
+        _deposit(token, vault, amountMin, account);
     }
 
     /// @inheritdoc ISwapper
@@ -124,6 +114,26 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         for (uint256 i; i < calls.length; i++) {
             (bool success, bytes memory result) = address(this).call(calls[i]);
             if (!success) RevertBytes.revertBytes(result);
+        }
+    }
+
+    // internal
+
+    function _deposit(address token, address vault, uint256 amountMin, address account) internal {
+        uint256 balance = setMaxAllowance(token, vault);
+        if (balance >= amountMin) {
+            IEVault(vault).deposit(balance, account);
+        }
+    }
+
+    function _repayAndDeposit(address token, address vault, uint256 repayAmount, address account) internal {
+        uint256 balance = setMaxAllowance(token, vault);
+        if (repayAmount != type(uint256).max && repayAmount > balance) revert Swapper_InsufficientBalance();
+
+        IEVault(vault).repay(repayAmount, account);
+
+        if (balance > repayAmount) {
+            IEVault(vault).deposit(type(uint256).max, account);
         }
     }
 }
