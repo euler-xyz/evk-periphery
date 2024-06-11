@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 /// @title ISwapper
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice Interface of a helper contracts, which handle swapping of tokens for the EVK
+/// @notice Interface of helper contracts, which handle swapping of assets for Euler Vault Kit
 interface ISwapper {
     /// @title SwapParams
     /// @notice This struct holds all the parameters needed to carry out a swap
@@ -17,7 +17,7 @@ interface ISwapper {
         // 1 - exect output swap
         // 2 - exact output swap and repay, targeting a debt amount of an account
         uint256 mode;
-        // An EVC compatible account address
+        // An EVC compatible account address, used e.g. as receiver of repay in swap and repay mode
         address account;
         // Sold asset
         address tokenIn;
@@ -27,18 +27,18 @@ interface ISwapper {
         address vaultIn;
         // In swapping modes (0 and 1) - address of the intended recipient of the bought tokens
         // In swap and repay mode (2) - address of the liability vault of the account, where to repay debt
-        // Note that if the swap uses off-chain encoded payload, the receiver might be ignored. The swapper
+        // Note that if the swap uses off-chain encoded payload, the receiver might be ignored. The user
         // should verify the assets are in fact in the receiver address after the swap
         address receiver; // in TARGET_DEBT liability vault
         // In exact input mode (0) - ignored
         // In exact output mode (1) - amount of `tokenOut` to buy
         // In swap and repay mode (2) - amount of debt the account should have after swap and repay
         uint256 amountOut;
-        // Auxilary payload for swap providers
+        // Auxiliary payload for swap providers
         bytes data;
     }
 
-    /// @notice Execute a swap according to the SwapParams configuraion
+    /// @notice Execute a swap (and possibly repay or deposit) according to the SwapParams configuration
     /// @param params Configuration of the swap
     function swap(SwapParams calldata params) external;
 

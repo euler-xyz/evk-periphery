@@ -47,29 +47,25 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         if (isExternal) reentrancyLock = REENTRANCYLOCK_UNLOCKED;
     }
 
-    constructor(address oneInchAggregator, address uniswapRouterV2, address uniswapRouterV3, address uniSwapRouter02)
+    constructor(address oneInchAggregator, address uniswapRouterV2, address uniswapRouterV3, address uniswapRouter02)
         OneInchHandler(oneInchAggregator)
         UniswapV2Handler(uniswapRouterV2)
         UniswapV3Handler(uniswapRouterV3)
-        UniswapAutoRouterHandler(uniSwapRouter02)
+        UniswapAutoRouterHandler(uniswapRouter02)
     {}
 
     /// @inheritdoc ISwapper
-    function swap(SwapParams memory params)
-        public
-        override (OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapAutoRouterHandler)
-        externalLock
-    {
+    function swap(SwapParams memory params) public externalLock {
         if (params.mode >= MODE_MAX_VALUE) revert Swapper_UnknownMode();
 
         if (params.handler == HANDLER_ONE_INCH) {
-            OneInchHandler.swap(params);
+            swapOneInch(params);
         } else if (params.handler == HANDLER_UNISWAP_V2) {
-            UniswapV2Handler.swap(params);
+            swapUniswapV2(params);
         } else if (params.handler == HANDLER_UNISWAP_V3) {
-            UniswapV3Handler.swap(params);
+            swapUniswapV3(params);
         } else if (params.handler == HANDLER_UNISWAP_AUTOROUTER) {
-            UniswapAutoRouterHandler.swap(params);
+            swapAutoRouter(params);
         } else {
             revert Swapper_UnknownHandler();
         }

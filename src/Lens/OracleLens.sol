@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {LensUtils} from "./LensUtils.sol";
+import {Utils} from "./Utils.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
 import "./LensTypes.sol";
 
@@ -34,9 +34,10 @@ interface IOracle is IPriceOracle {
         view
         returns (uint256, address, address, address);
     function getConfiguredOracle(address base, address quote) external view returns (address);
+    function description() external view returns (string memory);
 }
 
-contract OracleLens is LensUtils {
+contract OracleLens is Utils {
     function getOracleInfo(address oracleAddress, address[] calldata bases, address unitOfAccount)
         public
         view
@@ -50,16 +51,17 @@ contract OracleLens is LensUtils {
         string memory name = oracle.name();
         bytes memory oracleInfo;
 
-        if (strEq(name, "ChainlinkOracle")) {
+        if (_strEq(name, "ChainlinkOracle")) {
             oracleInfo = abi.encode(
                 ChainlinkOracleInfo({
                     base: oracle.base(),
                     quote: oracle.quote(),
                     feed: oracle.feed(),
+                    feedDescription: IOracle(oracle.feed()).description(),
                     maxStaleness: oracle.maxStaleness()
                 })
             );
-        } else if (strEq(name, "ChronicleOracle")) {
+        } else if (_strEq(name, "ChronicleOracle")) {
             oracleInfo = abi.encode(
                 ChronicleOracleInfo({
                     base: oracle.base(),
@@ -68,9 +70,9 @@ contract OracleLens is LensUtils {
                     maxStaleness: oracle.maxStaleness()
                 })
             );
-        } else if (strEq(name, "LidoOracle")) {
+        } else if (_strEq(name, "LidoOracle")) {
             oracleInfo = abi.encode(LidoOracleInfo({base: oracle.WSTETH(), quote: oracle.STETH()}));
-        } else if (strEq(name, "PythOracle")) {
+        } else if (_strEq(name, "PythOracle")) {
             oracleInfo = abi.encode(
                 PythOracleInfo({
                     pyth: oracle.pyth(),
@@ -81,7 +83,7 @@ contract OracleLens is LensUtils {
                     maxConfWidth: oracle.maxConfWidth()
                 })
             );
-        } else if (strEq(name, "RedstoneCoreOracle")) {
+        } else if (_strEq(name, "RedstoneCoreOracle")) {
             (uint208 cachePrice, uint48 cachePriceTimestamp) = oracle.cache();
             oracleInfo = abi.encode(
                 RedstoneCoreOracleInfo({
@@ -94,7 +96,7 @@ contract OracleLens is LensUtils {
                     cachePriceTimestamp: cachePriceTimestamp
                 })
             );
-        } else if (strEq(name, "UniswapV3Oracle")) {
+        } else if (_strEq(name, "UniswapV3Oracle")) {
             oracleInfo = abi.encode(
                 UniswapV3OracleInfo({
                     tokenA: oracle.tokenA(),
@@ -104,7 +106,7 @@ contract OracleLens is LensUtils {
                     twapWindow: oracle.twapWindow()
                 })
             );
-        } else if (strEq(name, "CrossAdapter")) {
+        } else if (_strEq(name, "CrossAdapter")) {
             address oracleBaseCross = oracle.oracleBaseCross();
             address oracleCrossQuote = oracle.oracleCrossQuote();
             OracleDetailedInfo memory oracleBaseCrossInfo = getOracleInfo(oracleBaseCross, bases, unitOfAccount);
@@ -120,7 +122,7 @@ contract OracleLens is LensUtils {
                     oracleCrossQuoteInfo: oracleCrossQuoteInfo
                 })
             );
-        } else if (strEq(name, "EulerRouter")) {
+        } else if (_strEq(name, "EulerRouter")) {
             address[] memory resolvedOracles = new address[](bases.length);
             OracleDetailedInfo[] memory resolvedOraclesInfo = new OracleDetailedInfo[](bases.length);
             for (uint256 i = 0; i < bases.length; ++i) {

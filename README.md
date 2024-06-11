@@ -32,6 +32,8 @@ Directory: [src/Swaps](src/Swaps)
 
 Utilities for performing DEX swaps for EVK vault operations.
 
+[Docs](./docs/swaps.md)
+
 ## Safety
 This software is experimental and is provided "as is" and "as available".
 

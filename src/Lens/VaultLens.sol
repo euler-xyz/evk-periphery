@@ -8,11 +8,11 @@ import {IIRM, IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {IPriceOracle} from "evk/interfaces/IPriceOracle.sol";
 import {IEulerRouter} from "../OracleFactory/interfaces/IEulerRouter.sol";
 import {OracleLens} from "./OracleLens.sol";
-import {LensUtils} from "./LensUtils.sol";
+import {Utils} from "./Utils.sol";
 import "evk/EVault/shared/types/AmountCap.sol";
 import "./LensTypes.sol";
 
-contract VaultLens is LensUtils {
+contract VaultLens is Utils {
     OracleLens public immutable oracleLens;
 
     constructor(address _oracleLens) {
@@ -23,7 +23,6 @@ contract VaultLens is LensUtils {
         VaultInfoSimple memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.vault = vault;
         result.vaultName = IEVault(vault).name();
@@ -31,16 +30,17 @@ contract VaultLens is LensUtils {
         result.vaultDecimals = IEVault(vault).decimals();
 
         result.asset = IEVault(vault).asset();
-        result.assetDecimals = getDecimals(result.asset);
+        result.assetDecimals = _getDecimals(result.asset);
 
         result.unitOfAccount = IEVault(vault).unitOfAccount();
-        result.unitOfAccountDecimals = getDecimals(result.unitOfAccount);
+        result.unitOfAccountDecimals = _getDecimals(result.unitOfAccount);
 
         result.totalShares = IEVault(vault).totalSupply();
         result.totalCash = IEVault(vault).cash();
         result.totalBorrowed = IEVault(vault).totalBorrows();
         result.totalAssets = IEVault(vault).totalAssets();
 
+        result.oracle = IEVault(vault).oracle();
         result.governorAdmin = IEVault(vault).governorAdmin();
 
         uint256[] memory cash = new uint256[](1);
@@ -59,6 +59,15 @@ contract VaultLens is LensUtils {
             result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
         }
 
+        address[] memory bases = new address[](result.collateralLTVInfo.length + 1);
+        bases[0] = result.asset;
+        for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
+            bases[i + 1] = result.collateralLTVInfo[i].collateral;
+            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
+        }
+
+        result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, result.unitOfAccount);
+
         return result;
     }
 
@@ -66,7 +75,6 @@ contract VaultLens is LensUtils {
         VaultInfoFull memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.vault = vault;
         result.vaultName = IEVault(vault).name();
@@ -74,14 +82,14 @@ contract VaultLens is LensUtils {
         result.vaultDecimals = IEVault(vault).decimals();
 
         result.asset = IEVault(vault).asset();
-        result.assetName = getStringOrBytes32(result.asset, IEVault(vault).name.selector);
-        result.assetSymbol = getStringOrBytes32(result.asset, IEVault(vault).symbol.selector);
-        result.assetDecimals = getDecimals(result.asset);
+        result.assetName = _getStringOrBytes32(result.asset, IEVault(vault).name.selector);
+        result.assetSymbol = _getStringOrBytes32(result.asset, IEVault(vault).symbol.selector);
+        result.assetDecimals = _getDecimals(result.asset);
 
         result.unitOfAccount = IEVault(vault).unitOfAccount();
-        result.unitOfAccountName = getStringOrBytes32(result.unitOfAccount, IEVault(vault).name.selector);
-        result.unitOfAccountSymbol = getStringOrBytes32(result.unitOfAccount, IEVault(vault).symbol.selector);
-        result.unitOfAccountDecimals = getDecimals(result.unitOfAccount);
+        result.unitOfAccountName = _getStringOrBytes32(result.unitOfAccount, IEVault(vault).name.selector);
+        result.unitOfAccountSymbol = _getStringOrBytes32(result.unitOfAccount, IEVault(vault).symbol.selector);
+        result.unitOfAccountDecimals = _getDecimals(result.unitOfAccount);
 
         result.totalShares = IEVault(vault).totalSupply();
         result.totalCash = IEVault(vault).cash();
@@ -149,10 +157,12 @@ contract VaultLens is LensUtils {
         VaultRewardInfo memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.vault = vault;
         result.reward = reward;
+        result.rewardName = _getStringOrBytes32(result.reward, IEVault(vault).name.selector);
+        result.rewardSymbol = _getStringOrBytes32(result.reward, IEVault(vault).symbol.selector);
+        result.rewardDecimals = _getDecimals(result.reward);
         result.balanceTracker = IEVault(vault).balanceTrackerAddress();
 
         if (result.balanceTracker == address(0)) return result;
@@ -248,21 +258,21 @@ contract VaultLens is LensUtils {
         if (result.interestRateModel == address(0)) return result;
 
         uint256 interestFee = IEVault(vault).interestFee();
-        result.apyInfo = new APYInfo[](cash.length);
+        result.interestRateInfo = new InterestRateInfo[](cash.length);
 
         for (uint256 i = 0; i < cash.length; ++i) {
-            result.apyInfo[i].cash = cash[i];
-            result.apyInfo[i].borrows = borrows[i];
+            result.interestRateInfo[i].cash = cash[i];
+            result.interestRateInfo[i].borrows = borrows[i];
 
-            result.apyInfo[i].borrowInterestRateSPY = IIRM(result.interestRateModel).computeInterestRateView(
-                vault, result.apyInfo[i].cash, result.apyInfo[i].borrows
+            result.interestRateInfo[i].borrowSPY = IIRM(result.interestRateModel).computeInterestRateView(
+                vault, result.interestRateInfo[i].cash, result.interestRateInfo[i].borrows
             );
 
-            (
-                result.apyInfo[i].supplyInterestRateSPY,
-                result.apyInfo[i].borrowInterestRateAPY,
-                result.apyInfo[i].supplyInterestRateAPY
-            ) = computeInterestRates(result.apyInfo[i].borrowInterestRateSPY, cash[i], borrows[i], interestFee);
+            result.interestRateInfo[i].supplySPY =
+                _computeSupplySPY(result.interestRateInfo[i].borrowSPY, cash[i], borrows[i], interestFee);
+
+            (result.interestRateInfo[i].borrowAPY, result.interestRateInfo[i].supplyAPY) =
+                _computeAPYs(result.interestRateInfo[i].borrowSPY, result.interestRateInfo[i].supplySPY);
         }
 
         return result;
@@ -274,7 +284,6 @@ contract VaultLens is LensUtils {
         if (interestRateModel == address(0)) {
             VaultInterestRateModelInfo memory result;
             result.vault = vault;
-            result.interestRateModel = address(0);
             return result;
         }
 
@@ -300,28 +309,34 @@ contract VaultLens is LensUtils {
         AssetPriceInfo memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.oracle = IEVault(controller).oracle();
         result.asset = asset;
         result.unitOfAccount = IEVault(controller).unitOfAccount();
 
-        if (result.oracle == address(0)) return result;
+        result.amountIn = 10 ** _getDecimals(asset);
 
-        result.amountIn = 10 ** getDecimals(asset);
+        if (result.oracle == address(0)) {
+            result.queryFailure = true;
+            return result;
+        }
 
         try IPriceOracle(result.oracle).getQuote(result.amountIn, asset, result.unitOfAccount) returns (
             uint256 amountOutMid
         ) {
             result.amountOutMid = amountOutMid;
-        } catch {}
+        } catch {
+            result.queryFailure = true;
+        }
 
         try IPriceOracle(result.oracle).getQuotes(result.amountIn, asset, result.unitOfAccount) returns (
             uint256 amountOutBid, uint256 amountOutAsk
         ) {
             result.amountOutBid = amountOutBid;
             result.amountOutAsk = amountOutAsk;
-        } catch {}
+        } catch {
+            result.queryFailure = true;
+        }
 
         return result;
     }
