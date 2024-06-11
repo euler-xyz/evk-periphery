@@ -47,7 +47,7 @@ struct VaultAccountInfo {
 }
 
 struct AccountLiquidityInfo {
-    bool failure;
+    bool queryFailure;
     int256 timeToLiquidation;
     uint256 liabilityValue;
     uint256 collateralValueBorrowing;
@@ -75,11 +75,13 @@ struct VaultInfoSimple {
     uint256 totalCash;
     uint256 totalBorrowed;
     uint256 totalAssets;
+    address oracle;
     address governorAdmin;
     VaultInterestRateModelInfo irmInfo;
     LTVInfo[] collateralLTVInfo;
     AssetPriceInfo liabilityPriceInfo;
     AssetPriceInfo[] collateralPriceInfo;
+    OracleDetailedInfo oracleInfo;
 }
 
 struct VaultInfoFull {
@@ -138,6 +140,7 @@ struct LTVInfo {
 }
 
 struct AssetPriceInfo {
+    bool queryFailure;
     uint256 timestamp;
     address oracle;
     address asset;

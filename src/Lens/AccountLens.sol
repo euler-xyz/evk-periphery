@@ -105,13 +105,13 @@ contract AccountLens is Utils {
             result.liquidityInfo.liabilityValue = _liabilityValue;
             result.liquidityInfo.collateralValueBorrowing = _collateralValue;
         } catch {
-            result.liquidityInfo.failure = true;
+            result.liquidityInfo.queryFailure = true;
         }
 
         try IEVault(vault).accountLiquidity(account, true) returns (uint256 _collateralValue, uint256) {
             result.liquidityInfo.collateralValueLiquidation = _collateralValue;
         } catch {
-            result.liquidityInfo.failure = true;
+            result.liquidityInfo.queryFailure = true;
         }
 
         try IEVault(vault).accountLiquidityFull(account, false) returns (
@@ -124,7 +124,7 @@ contract AccountLens is Utils {
                 result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateralValue = _collateralValues[i];
             }
         } catch {
-            result.liquidityInfo.failure = true;
+            result.liquidityInfo.queryFailure = true;
         }
 
         address[] memory enabledCollaterals;
@@ -142,10 +142,10 @@ contract AccountLens is Utils {
                 result.liquidityInfo.collateralLiquidityLiquidationInfo[i].collateralValue = _collateralValues[i];
             }
         } catch {
-            result.liquidityInfo.failure = true;
+            result.liquidityInfo.queryFailure = true;
         }
 
-        if (!result.liquidityInfo.failure) {
+        if (!result.liquidityInfo.queryFailure) {
             result.liquidityInfo.timeToLiquidation = _calculateTimeToLiquidation(
                 vault, result.liquidityInfo.liabilityValue, enabledCollaterals, collateralValues
             );

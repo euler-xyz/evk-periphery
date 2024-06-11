@@ -40,6 +40,7 @@ contract VaultLens is Utils {
         result.totalBorrowed = IEVault(vault).totalBorrows();
         result.totalAssets = IEVault(vault).totalAssets();
 
+        result.oracle = IEVault(vault).oracle();
         result.governorAdmin = IEVault(vault).governorAdmin();
 
         uint256[] memory cash = new uint256[](1);
@@ -57,6 +58,15 @@ contract VaultLens is Utils {
         for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
             result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
         }
+
+        address[] memory bases = new address[](result.collateralLTVInfo.length + 1);
+        bases[0] = result.asset;
+        for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
+            bases[i + 1] = result.collateralLTVInfo[i].collateral;
+            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
+        }
+
+        result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, result.unitOfAccount);
 
         return result;
     }
@@ -274,7 +284,6 @@ contract VaultLens is Utils {
         if (interestRateModel == address(0)) {
             VaultInterestRateModelInfo memory result;
             result.vault = vault;
-            result.interestRateModel = address(0);
             return result;
         }
 
@@ -305,22 +314,29 @@ contract VaultLens is Utils {
         result.asset = asset;
         result.unitOfAccount = IEVault(controller).unitOfAccount();
 
-        if (result.oracle == address(0)) return result;
-
         result.amountIn = 10 ** _getDecimals(asset);
+
+        if (result.oracle == address(0)) {
+            result.queryFailure = true;
+            return result;
+        }
 
         try IPriceOracle(result.oracle).getQuote(result.amountIn, asset, result.unitOfAccount) returns (
             uint256 amountOutMid
         ) {
             result.amountOutMid = amountOutMid;
-        } catch {}
+        } catch {
+            result.queryFailure = true;
+        }
 
         try IPriceOracle(result.oracle).getQuotes(result.amountIn, asset, result.unitOfAccount) returns (
             uint256 amountOutBid, uint256 amountOutAsk
         ) {
             result.amountOutBid = amountOutBid;
             result.amountOutAsk = amountOutAsk;
-        } catch {}
+        } catch {
+            result.queryFailure = true;
+        }
 
         return result;
     }
