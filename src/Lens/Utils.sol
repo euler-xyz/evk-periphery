@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {RPow} from "evk/EVault/shared/lib/RPow.sol";
 
-abstract contract LensUtils {
+abstract contract Utils {
     uint256 internal constant SECONDS_PER_YEAR = 365.2425 * 86400;
     uint256 internal constant ONE = 1e27;
     uint256 internal constant CONFIG_SCALE = 1e4;
@@ -17,12 +17,12 @@ abstract contract LensUtils {
     int256 public constant TTL_LIQUIDATION = -1;
     int256 public constant TTL_ERROR = -2;
 
-    function strEq(string memory a, string memory b) internal pure returns (bool) {
+    function _strEq(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(bytes(a)) == keccak256(bytes(b));
     }
 
     /// @dev for tokens like MKR which return bytes32 on name() or symbol()
-    function getStringOrBytes32(address contractAddress, bytes4 selector) internal view returns (string memory) {
+    function _getStringOrBytes32(address contractAddress, bytes4 selector) internal view returns (string memory) {
         (bool success, bytes memory result) = contractAddress.staticcall(abi.encodeWithSelector(selector));
 
         return (success && result.length != 0)
@@ -30,50 +30,56 @@ abstract contract LensUtils {
             : "";
     }
 
-    function getDecimals(address contractAddress) internal view returns (uint8) {
+    function _getDecimals(address contractAddress) internal view returns (uint8) {
         (bool success, bytes memory data) =
             contractAddress.staticcall(abi.encodeCall(IEVault(contractAddress).decimals, ()));
 
         return success && data.length == 32 ? abi.decode(data, (uint8)) : 18;
     }
 
-    function computeInterestRates(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
+    function _computeSupplySPY(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
         internal
         pure
-        returns (uint256 supplySPY, uint256 borrowAPY, uint256 supplyAPY)
+        returns (uint256)
     {
         uint256 totalAssets = cash + borrows;
+        return totalAssets == 0 ? 0 : borrowSPY * borrows * (CONFIG_SCALE - interestFee) / totalAssets / CONFIG_SCALE;
+    }
+
+    function _computeAPYs(uint256 borrowSPY, uint256 supplySPY)
+        internal
+        pure
+        returns (uint256 borrowAPY, uint256 supplyAPY)
+    {
         bool overflowBorrow;
         bool overflowSupply;
-
-        supplySPY =
-            totalAssets == 0 ? 0 : borrowSPY * borrows * (CONFIG_SCALE - interestFee) / totalAssets / CONFIG_SCALE;
         (borrowAPY, overflowBorrow) = RPow.rpow(borrowSPY + ONE, SECONDS_PER_YEAR, ONE);
         (supplyAPY, overflowSupply) = RPow.rpow(supplySPY + ONE, SECONDS_PER_YEAR, ONE);
 
-        if (overflowBorrow || overflowSupply) return (supplySPY, 0, 0);
+        if (overflowBorrow || overflowSupply) return (0, 0);
 
         borrowAPY -= ONE;
         supplyAPY -= ONE;
     }
 
-    function calculateTimeToLiquidation(
+    function _calculateTimeToLiquidation(
         address liabilityVault,
         uint256 liabilityValue,
         address[] memory collaterals,
         uint256[] memory collateralValues
     ) internal view returns (int256) {
+        // if there's no liability, time to liquidation is infinite
+        if (liabilityValue == 0) return TTL_INFINITY;
+
         // get borrow interest rate
         uint256 liabilitySPY;
         try IEVault(liabilityVault).interestRate() returns (uint256 _spy) {
             liabilitySPY = _spy;
         } catch {}
 
-        // if there's no borrow interest rate, time to liquidation is infinite
-        if (liabilitySPY == 0) return TTL_INFINITY;
-
-        // get individual collateral interest rates
+        // get individual collateral interest rates and total collateral value
         uint256[] memory collateralSPYs = new uint256[](collaterals.length);
+        uint256 collateralValue;
         for (uint256 i = 0; i < collaterals.length; ++i) {
             address collateral = collaterals[i];
             uint256 borrowSPY;
@@ -82,14 +88,22 @@ abstract contract LensUtils {
             } catch {}
 
             if (borrowSPY > 0) {
-                (collateralSPYs[i],,) = computeInterestRates(
+                collateralSPYs[i] = _computeSupplySPY(
                     borrowSPY,
                     IEVault(collateral).cash(),
                     IEVault(collateral).totalBorrows(),
                     IEVault(collateral).interestFee()
                 );
             }
+
+            collateralValue += collateralValues[i];
         }
+
+        // if liability is greater than or equal to collateral, the account is eligible for liquidation right away
+        if (liabilityValue >= collateralValue) return TTL_LIQUIDATION;
+
+        // if there's no borrow interest rate, time to liquidation is infinite
+        if (liabilitySPY == 0) return TTL_INFINITY;
 
         int256 minTTL = TTL_COMPUTATION_MIN;
         int256 maxTTL = TTL_COMPUTATION_MAX;
@@ -114,14 +128,12 @@ abstract contract LensUtils {
             }
 
             // calculate the collaterals interest accrued
-            uint256 collateralValue;
             uint256 collateralInterest;
             for (uint256 i = 0; i < collaterals.length; ++i) {
                 (uint256 multiplier, bool overflow) = RPow.rpow(collateralSPYs[i] + ONE, uint256(ttl), ONE);
 
                 if (overflow) return TTL_ERROR;
 
-                collateralValue += collateralValues[i];
                 collateralInterest = collateralValues[i] * multiplier / ONE - collateralValues[i];
             }
 
