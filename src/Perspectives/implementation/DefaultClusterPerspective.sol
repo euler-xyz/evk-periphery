@@ -9,7 +9,7 @@ import "evk/EVault/shared/Constants.sol";
 import {IEulerRouter} from "../../OracleFactory/interfaces/IEulerRouter.sol";
 import {IEulerRouterFactory} from "../../OracleFactory/interfaces/IEulerRouterFactory.sol";
 import {AdapterRegistry} from "../../OracleFactory/AdapterRegistry.sol";
-import {EulerKinkIRMFactory} from "../../IRMFactory/EulerKinkIRMFactory.sol";
+import {IEulerKinkIRMFactory} from "../../IRMFactory/interfaces/IEulerKinkIRMFactory.sol";
 import {BasePerspective} from "./BasePerspective.sol";
 
 /// @title DefaultClusterPerspective
@@ -23,7 +23,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     IEulerRouterFactory internal immutable routerFactory;
     AdapterRegistry internal immutable adapterRegistry;
-    EulerKinkIRMFactory internal immutable irmFactory;
+    IEulerKinkIRMFactory internal immutable irmFactory;
 
     /// @notice Creates a new DefaultClusterPerspective instance.
     /// @param vaultFactory_ The address of the GenericFactory contract.
@@ -41,7 +41,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
     ) BasePerspective(vaultFactory_) {
         routerFactory = IEulerRouterFactory(routerFactory_);
         adapterRegistry = AdapterRegistry(adapterRegistry_);
-        irmFactory = EulerKinkIRMFactory(irmFactory_);
+        irmFactory = IEulerKinkIRMFactory(irmFactory_);
         recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
     }
 

@@ -2,30 +2,15 @@
 
 pragma solidity ^0.8.0;
 
+import {BaseFactory} from "../BaseFactory/BaseFactory.sol";
 import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 
 /// @title EulerKinkIRMFactory
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A minimal factory for Kink IRMs.
-contract EulerKinkIRMFactory {
+contract EulerKinkIRMFactory is BaseFactory {
     // corresponds to 1000% APY
     uint256 internal constant MAX_ALLOWED_INTEREST_RATE = 75986279153383989049;
-
-    struct DeploymentInfo {
-        /// @notice The sender of the deployment call.
-        address deployer;
-        /// @notice The timestamp when the IRM was deployed.
-        uint96 deployedAt;
-    }
-
-    /// @notice IRMs deployed by the factory.
-    mapping(address irm => DeploymentInfo) public deployments;
-
-    /// @notice An instance of IRMLinearKink was deployed.
-    /// @param irm The deployment address of the IRM.
-    /// @param deployer The sender of the deployment call.
-    /// @param deployedAt The deployment timestamp of the IRM.
-    event IRMDeployed(address indexed irm, address indexed deployer, uint256 deployedAt);
 
     /// @notice Error thrown when the kink value is incorrect.
     error IRMFactory_IncorrectKinkValue();
@@ -51,12 +36,9 @@ contract EulerKinkIRMFactory {
 
         if (maxInterestRate > MAX_ALLOWED_INTEREST_RATE) revert IRMFactory_ExcessiveInterestRate();
 
-        deployments[address(irm)] = DeploymentInfo(msg.sender, uint96(block.timestamp));
-        emit IRMDeployed(address(irm), msg.sender, block.timestamp);
+        deploymentInfo[address(irm)] = DeploymentInfo(msg.sender, uint96(block.timestamp));
+        deployments.push(address(irm));
+        emit ContractDeployed(address(irm), msg.sender, block.timestamp);
         return address(irm);
-    }
-
-    function isValidDeployment(address irm) external view returns (bool) {
-        return deployments[irm].deployedAt != 0;
     }
 }

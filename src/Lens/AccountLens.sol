@@ -7,10 +7,10 @@ import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.
 import {IRewardStreams} from "reward-streams/interfaces/IRewardStreams.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {Errors} from "evk/EVault/shared/Errors.sol";
-import {LensUtils} from "./LensUtils.sol";
+import {Utils} from "./Utils.sol";
 import "./LensTypes.sol";
 
-contract AccountLens is LensUtils {
+contract AccountLens is Utils {
     function getAccountInfo(address account, address vault) public view returns (AccountInfo memory) {
         AccountInfo memory result;
 
@@ -55,7 +55,6 @@ contract AccountLens is LensUtils {
         EVCAccountInfo memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.evc = evc;
         result.account = account;
@@ -75,7 +74,6 @@ contract AccountLens is LensUtils {
         VaultAccountInfo memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.account = account;
         result.vault = vault;
@@ -106,12 +104,14 @@ contract AccountLens is LensUtils {
         {
             result.liquidityInfo.liabilityValue = _liabilityValue;
             result.liquidityInfo.collateralValueBorrowing = _collateralValue;
-        } catch {}
+        } catch {
+            result.liquidityInfo.queryFailure = true;
+        }
 
         try IEVault(vault).accountLiquidity(account, true) returns (uint256 _collateralValue, uint256) {
             result.liquidityInfo.collateralValueLiquidation = _collateralValue;
-        } catch (bytes memory reason) {
-            if (bytes4(reason) != Errors.E_NoLiability.selector) result.liquidityInfo.timeToLiquidation = TTL_ERROR;
+        } catch {
+            result.liquidityInfo.queryFailure = true;
         }
 
         try IEVault(vault).accountLiquidityFull(account, false) returns (
@@ -123,7 +123,9 @@ contract AccountLens is LensUtils {
                 result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateral = _collaterals[i];
                 result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateralValue = _collateralValues[i];
             }
-        } catch {}
+        } catch {
+            result.liquidityInfo.queryFailure = true;
+        }
 
         address[] memory enabledCollaterals;
         uint256[] memory collateralValues;
@@ -139,23 +141,14 @@ contract AccountLens is LensUtils {
                 result.liquidityInfo.collateralLiquidityLiquidationInfo[i].collateral = _collaterals[i];
                 result.liquidityInfo.collateralLiquidityLiquidationInfo[i].collateralValue = _collateralValues[i];
             }
-        } catch (bytes memory reason) {
-            if (bytes4(reason) != Errors.E_NoLiability.selector) result.liquidityInfo.timeToLiquidation = TTL_ERROR;
+        } catch {
+            result.liquidityInfo.queryFailure = true;
         }
 
-        if (result.liquidityInfo.timeToLiquidation == 0) {
-            if (result.liquidityInfo.liabilityValue == 0) {
-                // if there's no liability, time to liquidation is infinite
-                result.liquidityInfo.timeToLiquidation = TTL_INFINITY;
-            } else if (result.liquidityInfo.liabilityValue >= result.liquidityInfo.collateralValueLiquidation) {
-                // if liability is greater than or equal to collateral, the account is eligible for liquidation right
-                // away
-                result.liquidityInfo.timeToLiquidation = TTL_LIQUIDATION;
-            } else {
-                result.liquidityInfo.timeToLiquidation = calculateTimeToLiquidation(
-                    vault, result.liquidityInfo.liabilityValue, enabledCollaterals, collateralValues
-                );
-            }
+        if (!result.liquidityInfo.queryFailure) {
+            result.liquidityInfo.timeToLiquidation = _calculateTimeToLiquidation(
+                vault, result.liquidityInfo.liabilityValue, enabledCollaterals, collateralValues
+            );
         }
 
         return result;
@@ -164,41 +157,26 @@ contract AccountLens is LensUtils {
     function getTimeToLiquidation(address account, address vault) public view returns (int256) {
         address[] memory collaterals;
         uint256[] memory collateralValues;
-
-        // get collateral and liability values
-        uint256 collateralValue;
         uint256 liabilityValue;
-        try IEVault(vault).accountLiquidity(account, true) returns (uint256 _collateralValue, uint256 _liabilityValue) {
-            collateralValue = _collateralValue;
+
+        // get detailed collateral values and liability value
+        try IEVault(vault).accountLiquidityFull(account, true) returns (
+            address[] memory _collaterals, uint256[] memory _collateralValues, uint256 _liabilityValue
+        ) {
+            collaterals = _collaterals;
+            collateralValues = _collateralValues;
             liabilityValue = _liabilityValue;
         } catch (bytes memory reason) {
             if (bytes4(reason) != Errors.E_NoLiability.selector) return TTL_ERROR;
         }
 
-        // if there's no liability, time to liquidation is infinite
-        if (liabilityValue == 0) return TTL_INFINITY;
-
-        // if liability is greater than or equal to collateral, the account is eligible for liquidation right away
-        if (liabilityValue >= collateralValue) return TTL_LIQUIDATION;
-
-        // get detailed collateral values
-        try IEVault(vault).accountLiquidityFull(account, true) returns (
-            address[] memory _collaterals, uint256[] memory _collateralValues, uint256
-        ) {
-            collaterals = _collaterals;
-            collateralValues = _collateralValues;
-        } catch (bytes memory reason) {
-            if (bytes4(reason) != Errors.E_NoLiability.selector) return TTL_ERROR;
-        }
-
-        return calculateTimeToLiquidation(vault, liabilityValue, collaterals, collateralValues);
+        return _calculateTimeToLiquidation(vault, liabilityValue, collaterals, collateralValues);
     }
 
     function getRewardAccountInfo(address account, address vault) public view returns (AccountRewardInfo memory) {
         AccountRewardInfo memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.account = account;
         result.vault = vault;
