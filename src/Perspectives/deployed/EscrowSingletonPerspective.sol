@@ -72,7 +72,7 @@ contract EscrowSingletonPerspective is BasePerspective {
         testProperty(IEVault(vault).liquidationCoolOffTime() == 0, ERROR__LIQUIDATION_COOL_OFF_TIME);
 
         // escrow vaults must not have any collateral set up
-        testProperty(IEVault(vault).LTVList().length == 0, ERROR__LTV_LENGTH);
+        testProperty(IEVault(vault).LTVList().length == 0, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
 
         // store in mapping so that one escrow vault per asset can be achieved
         assetLookup[asset] = vault;

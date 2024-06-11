@@ -85,7 +85,7 @@ contract EulerDefaultClusterPerspectiveTest is ClusterSetupTest {
                 IPerspective.PerspectiveError.selector,
                 address(eulerDefaultClusterPerspective),
                 vaultCluster1,
-                ERROR__LTV_CONFIG
+                ERROR__LTV_COLLATERAL_CONFIG_SEPARATION
             )
         );
         eulerDefaultClusterPerspective.perspectiveVerify(vaultCluster1, true);

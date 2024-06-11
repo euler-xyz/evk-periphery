@@ -103,7 +103,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
         // cluster vaults must have collaterals set up
         address[] memory ltvList = IEVault(vault).LTVList();
-        testProperty(ltvList.length > 0 && ltvList.length <= 10, ERROR__LTV_LENGTH);
+        testProperty(ltvList.length > 0 && ltvList.length <= 10, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
 
         // cluster vaults must have recognized collaterals
         for (uint256 i = 0; i < ltvList.length; ++i) {
@@ -125,10 +125,11 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             );
 
             // cluster vaults collaterals must have the LTVs set in range with LTV separation provided
-            (uint16 borrowLTV, uint16 liquidationLTV,,,) = IEVault(vault).LTVFull(collateral);
-            testProperty(borrowLTV != liquidationLTV, ERROR__LTV_CONFIG);
-            testProperty(borrowLTV > 0 && borrowLTV <= 0.85e4, ERROR__LTV_CONFIG);
-            testProperty(liquidationLTV > 0 && liquidationLTV <= 0.9e4, ERROR__LTV_CONFIG);
+            (uint16 borrowLTV, uint16 liquidationLTV,,, uint32 rampDuration) = IEVault(vault).LTVFull(collateral);
+            testProperty(borrowLTV != liquidationLTV, ERROR__LTV_COLLATERAL_CONFIG_SEPARATION);
+            testProperty(borrowLTV > 0 && borrowLTV <= 0.85e4, ERROR__LTV_COLLATERAL_CONFIG_BORROW);
+            testProperty(liquidationLTV > 0 && liquidationLTV <= 0.9e4, ERROR__LTV_COLLATERAL_CONFIG_LIQUIDATION);
+            testProperty(rampDuration == 0, ERROR__LTV_COLLATERAL_RAMPING);
 
             // iterate over recognized collateral perspectives to check if the collateral is recognized
             bool recognized = false;
