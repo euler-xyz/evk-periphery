@@ -16,7 +16,6 @@ struct AccountMultipleVaultsInfo {
 
 struct EVCAccountInfo {
     uint256 timestamp;
-    uint256 blockNumber;
     address evc;
     address account;
     bytes19 addressPrefix;
@@ -30,7 +29,6 @@ struct EVCAccountInfo {
 
 struct VaultAccountInfo {
     uint256 timestamp;
-    uint256 blockNumber;
     address account;
     address vault;
     address asset;
@@ -65,7 +63,6 @@ struct CollateralLiquidityInfo {
 
 struct VaultInfoSimple {
     uint256 timestamp;
-    uint256 blockNumber;
     address vault;
     string vaultName;
     string vaultSymbol;
@@ -87,7 +84,6 @@ struct VaultInfoSimple {
 
 struct VaultInfoFull {
     uint256 timestamp;
-    uint256 blockNumber;
     address vault;
     string vaultName;
     string vaultSymbol;
@@ -143,7 +139,6 @@ struct LTVInfo {
 
 struct AssetPriceInfo {
     uint256 timestamp;
-    uint256 blockNumber;
     address oracle;
     address asset;
     address unitOfAccount;
@@ -170,7 +165,6 @@ struct InterestRateInfo {
 
 struct AccountRewardInfo {
     uint256 timestamp;
-    uint256 blockNumber;
     address account;
     address vault;
     address balanceTracker;
@@ -187,7 +181,6 @@ struct EnabledRewardInfo {
 
 struct VaultRewardInfo {
     uint256 timestamp;
-    uint256 blockNumber;
     address vault;
     address reward;
     string rewardName;

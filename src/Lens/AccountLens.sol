@@ -55,7 +55,6 @@ contract AccountLens is Utils {
         EVCAccountInfo memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.evc = evc;
         result.account = account;
@@ -75,7 +74,6 @@ contract AccountLens is Utils {
         VaultAccountInfo memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.account = account;
         result.vault = vault;
@@ -179,7 +177,6 @@ contract AccountLens is Utils {
         AccountRewardInfo memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.account = account;
         result.vault = vault;

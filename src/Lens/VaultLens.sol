@@ -23,7 +23,6 @@ contract VaultLens is Utils {
         VaultInfoSimple memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.vault = vault;
         result.vaultName = IEVault(vault).name();
@@ -66,7 +65,6 @@ contract VaultLens is Utils {
         VaultInfoFull memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.vault = vault;
         result.vaultName = IEVault(vault).name();
@@ -149,7 +147,6 @@ contract VaultLens is Utils {
         VaultRewardInfo memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.vault = vault;
         result.reward = reward;
@@ -303,7 +300,6 @@ contract VaultLens is Utils {
         AssetPriceInfo memory result;
 
         result.timestamp = block.timestamp;
-        result.blockNumber = block.number;
 
         result.oracle = IEVault(controller).oracle();
         result.asset = asset;
