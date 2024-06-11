@@ -5,7 +5,7 @@ pragma solidity ^0.8.23;
 import {Test} from "forge-std/Test.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
-import {IEulerRouterFactory} from "../../src/OracleFactory/interfaces/IEulerRouterFactory.sol";
+import {IEulerRouterFactory, IFactory} from "../../src/OracleFactory/interfaces/IEulerRouterFactory.sol";
 
 contract EulerRouterFactoryTest is Test {
     address internal OWNER;
@@ -22,11 +22,11 @@ contract EulerRouterFactoryTest is Test {
         vm.warp(timestamp);
 
         vm.expectEmit(false, true, false, true, address(factory));
-        emit IEulerRouterFactory.RouterDeployed(address(0), deployer, timestamp);
+        emit IFactory.ContractDeployed(address(0), deployer, timestamp);
         vm.prank(deployer);
         address deployment = factory.deploy(governor);
 
-        (address storedDeployer, uint256 storedTimestamp) = factory.deployments(deployment);
+        (address storedDeployer, uint256 storedTimestamp) = factory.getDeploymentInfo(deployment);
         assertEq(storedDeployer, deployer);
         assertEq(storedTimestamp, timestamp);
     }
@@ -39,8 +39,8 @@ contract EulerRouterFactoryTest is Test {
         address deploymentA = factory.deploy(governor);
         address deploymentB = factory.deploy(governor);
 
-        (address storedDeployerA, uint256 storedTimestampA) = factory.deployments(deploymentA);
-        (address storedDeployerB, uint256 storedTimestampB) = factory.deployments(deploymentB);
+        (address storedDeployerA, uint256 storedTimestampA) = factory.getDeploymentInfo(deploymentA);
+        (address storedDeployerB, uint256 storedTimestampB) = factory.getDeploymentInfo(deploymentB);
 
         assertNotEq(deploymentA, deploymentB);
         assertEq(storedDeployerA, storedDeployerB);
