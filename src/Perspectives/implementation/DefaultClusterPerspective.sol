@@ -87,14 +87,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         address oracle = IEVault(vault).oracle();
         testProperty(routerFactory.isValidDeployment(oracle), ERROR__ORACLE_INVALID_ROUTER);
         testProperty(IEulerRouter(oracle).governor() == address(0), ERROR__ORACLE_GOVERNED_ROUTER);
-
-        // cluster vaults, as a fallback oracle, must have an ungoverned EulerRouter instance deployed by the factory
-        address fallbackOracle = IEulerRouter(oracle).fallbackOracle();
-        if (fallbackOracle != address(0)) {
-            testProperty(routerFactory.isValidDeployment(fallbackOracle), ERROR__ORACLE_INVALID_FALLBACK);
-            testProperty(IEulerRouter(fallbackOracle).governor() == address(0), ERROR__ORACLE_GOVERNED_FALLBACK);
-            testProperty(IEulerRouter(fallbackOracle).fallbackOracle() == address(0), ERROR__ORACLE_NESTED_FALLBACK);
-        }
+        testProperty(IEulerRouter(oracle).fallbackOracle() == address(0), ERROR__ORACLE_INVALID_FALLBACK);
 
         // Verify the unit of account is either USD or WETH
         address unitOfAccount = IEVault(vault).unitOfAccount();
@@ -103,9 +96,6 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         // the router must contain a valid pricing configuration
         {
             (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
-            if (fallbackOracle != address(0) && resolvedOracle == fallbackOracle) {
-                (,,, resolvedOracle) = IEulerRouter(fallbackOracle).resolveOracle(1e18, vault, unitOfAccount);
-            }
             testProperty(
                 adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp), ERROR__ORACLE_INVALID_ASSET_ADAPTER
             );
@@ -113,7 +103,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
         // cluster vaults must have collaterals set up
         address[] memory ltvList = IEVault(vault).LTVList();
-        testProperty(ltvList.length > 0 && ltvList.length <= 10, ERROR__LTV_LENGTH);
+        testProperty(ltvList.length > 0 && ltvList.length <= 10, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
 
         // cluster vaults must have recognized collaterals
         for (uint256 i = 0; i < ltvList.length; ++i) {
@@ -122,9 +112,6 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             // the router must contain a valid pricing configuration for all the collaterals
             {
                 (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, collateral, unitOfAccount);
-                if (fallbackOracle != address(0) && resolvedOracle == fallbackOracle) {
-                    (,,, resolvedOracle) = IEulerRouter(fallbackOracle).resolveOracle(1e18, collateral, unitOfAccount);
-                }
                 testProperty(
                     adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
                     ERROR__ORACLE_INVALID_COLLATERAL_ADAPTER
@@ -138,10 +125,11 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             );
 
             // cluster vaults collaterals must have the LTVs set in range with LTV separation provided
-            (uint16 borrowLTV, uint16 liquidationLTV,,,) = IEVault(vault).LTVFull(collateral);
-            testProperty(borrowLTV != liquidationLTV, ERROR__LTV_CONFIG);
-            testProperty(borrowLTV > 0 && borrowLTV <= 0.85e4, ERROR__LTV_CONFIG);
-            testProperty(liquidationLTV > 0 && liquidationLTV <= 0.9e4, ERROR__LTV_CONFIG);
+            (uint16 borrowLTV, uint16 liquidationLTV,,, uint32 rampDuration) = IEVault(vault).LTVFull(collateral);
+            testProperty(borrowLTV != liquidationLTV, ERROR__LTV_COLLATERAL_CONFIG_SEPARATION);
+            testProperty(borrowLTV > 0 && borrowLTV <= 0.85e4, ERROR__LTV_COLLATERAL_CONFIG_BORROW);
+            testProperty(liquidationLTV > 0 && liquidationLTV <= 0.9e4, ERROR__LTV_COLLATERAL_CONFIG_LIQUIDATION);
+            testProperty(rampDuration == 0, ERROR__LTV_COLLATERAL_RAMPING);
 
             // iterate over recognized collateral perspectives to check if the collateral is recognized
             bool recognized = false;
