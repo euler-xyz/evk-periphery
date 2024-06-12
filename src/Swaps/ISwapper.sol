@@ -29,7 +29,7 @@ interface ISwapper {
         // In swap and repay mode (2) - address of the liability vault of the account, where to repay debt
         // Note that if the swap uses off-chain encoded payload, the receiver might be ignored. The user
         // should verify the assets are in fact in the receiver address after the swap
-        address receiver; // in TARGET_DEBT liability vault
+        address receiver;
         // In exact input mode (0) - ignored
         // In exact output mode (1) - amount of `tokenOut` to buy
         // In swap and repay mode (2) - amount of debt the account should have after swap and repay
