@@ -3,30 +3,28 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./ScriptUtils.s.sol";
-import {EscrowSingletonPerspective} from
-    "../src/Perspectives/immutable/ungoverned/escrow/EscrowSingletonPerspective.sol";
-import {ClusterConservativePerspective} from
-    "../src/Perspectives/immutable/ungoverned/cluster/ClusterConservativePerspective.sol";
+import {EscrowSingletonPerspective} from "../src/Perspectives/deployed/EscrowSingletonPerspective.sol";
+import {EulerDefaultClusterPerspective} from "../src/Perspectives/deployed/EulerDefaultClusterPerspective.sol";
 
 contract Perspectives is ScriptUtils {
     function run()
         public
         startBroadcast
-        returns (address escrowSingletonPerspective, address clusterConservativePerspective)
+        returns (address escrowSingletonPerspective, address eulerDefaultClusterPerspective)
     {
-        string memory scriptFileName = "08_Peripherals.json";
+        string memory scriptFileName = "09_Peripherals.json";
         string memory json = getInputConfig(scriptFileName);
         address eVaultFactory = abi.decode(vm.parseJson(json, ".eVaultFactory"), (address));
         address oracleRouterFactory = abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address));
         address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
         address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
 
-        (escrowSingletonPerspective, clusterConservativePerspective) =
+        (escrowSingletonPerspective, eulerDefaultClusterPerspective) =
             deploy(eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, kinkIRMFactory);
 
         string memory object;
         object = vm.serializeAddress("perspectives", "escrowSingletonPerspective", escrowSingletonPerspective);
-        object = vm.serializeAddress("perspectives", "clusterConservativePerspective", clusterConservativePerspective);
+        object = vm.serializeAddress("perspectives", "eulerDefaultClusterPerspective", eulerDefaultClusterPerspective);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
     }
 
@@ -35,8 +33,8 @@ contract Perspectives is ScriptUtils {
         address oracleRouterFactory,
         address oracleAdapterRegistry,
         address kinkIRMFactory
-    ) public returns (address escrowSingletonPerspective, address clusterConservativePerspective) {
-        (escrowSingletonPerspective, clusterConservativePerspective) =
+    ) public returns (address escrowSingletonPerspective, address eulerDefaultClusterPerspective) {
+        (escrowSingletonPerspective, eulerDefaultClusterPerspective) =
             execute(eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, kinkIRMFactory);
     }
 
@@ -45,10 +43,10 @@ contract Perspectives is ScriptUtils {
         address oracleRouterFactory,
         address oracleAdapterRegistry,
         address kinkIRMFactory
-    ) internal returns (address escrowSingletonPerspective, address clusterConservativePerspective) {
+    ) internal returns (address escrowSingletonPerspective, address eulerDefaultClusterPerspective) {
         escrowSingletonPerspective = address(new EscrowSingletonPerspective(eVaultFactory));
-        clusterConservativePerspective = address(
-            new ClusterConservativePerspective(
+        eulerDefaultClusterPerspective = address(
+            new EulerDefaultClusterPerspective(
                 eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, kinkIRMFactory, escrowSingletonPerspective
             )
         );

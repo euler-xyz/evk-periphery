@@ -42,7 +42,6 @@ contract UseLens is ScriptUtils {
     function serializeEVCAccountInfo(EVCAccountInfo memory result) internal returns (string memory) {
         string memory object;
         object = vm.serializeUint("evcAccountInfo", "timestamp", result.timestamp);
-        object = vm.serializeUint("evcAccountInfo", "blockNumber", result.blockNumber);
         object = vm.serializeAddress("evcAccountInfo", "evc", result.evc);
         object = vm.serializeAddress("evcAccountInfo", "account", result.account);
         object = vm.serializeBytes32("evcAccountInfo", "addressPrefix", bytes32(result.addressPrefix));
@@ -60,7 +59,6 @@ contract UseLens is ScriptUtils {
     function serializeVaultAccountInfo(VaultAccountInfo memory result) internal returns (string memory) {
         string memory object;
         object = vm.serializeUint("vaultAccountInfo", "timestamp", result.timestamp);
-        object = vm.serializeUint("vaultAccountInfo", "blockNumber", result.blockNumber);
         object = vm.serializeAddress("vaultAccountInfo", "account", result.account);
         object = vm.serializeAddress("vaultAccountInfo", "vault", result.vault);
         object = vm.serializeAddress("vaultAccountInfo", "asset", result.asset);
@@ -79,6 +77,7 @@ contract UseLens is ScriptUtils {
         object = vm.serializeBool("vaultAccountInfo", "isCollateral", result.isCollateral);
 
         string memory object2;
+        object2 = vm.serializeBool("liquidityInfo", "queryFailure", result.liquidityInfo.queryFailure);
         object2 = vm.serializeInt("liquidityInfo", "timeToLiquidation", result.liquidityInfo.timeToLiquidation);
         object2 = vm.serializeUint("liquidityInfo", "liabilityValue", result.liquidityInfo.liabilityValue);
         object2 =
@@ -97,7 +96,6 @@ contract UseLens is ScriptUtils {
     function serializeAccountRewardInfo(AccountRewardInfo memory result) internal returns (string memory) {
         string memory object;
         object = vm.serializeUint("accountRewardInfo", "timestamp", result.timestamp);
-        object = vm.serializeUint("accountRewardInfo", "blockNumber", result.blockNumber);
         object = vm.serializeAddress("accountRewardInfo", "account", result.account);
         object = vm.serializeAddress("accountRewardInfo", "vault", result.vault);
         object = vm.serializeAddress("accountRewardInfo", "balanceTracker", result.balanceTracker);
@@ -112,7 +110,6 @@ contract UseLens is ScriptUtils {
     function serializeVaultFullInfo(VaultInfoFull memory result) internal returns (string memory) {
         string memory object;
         object = vm.serializeUint("vaultInfo", "timestamp", result.timestamp);
-        object = vm.serializeUint("vaultInfo", "blockNumber", result.blockNumber);
         object = vm.serializeAddress("vaultInfo", "vault", result.vault);
         object = vm.serializeString("vaultInfo", "vaultName", result.vaultName);
         object = vm.serializeString("vaultInfo", "vaultSymbol", result.vaultSymbol);
@@ -154,14 +151,14 @@ contract UseLens is ScriptUtils {
         string memory object2;
         object2 = vm.serializeAddress("irmInfo", "vault", result.irmInfo.vault);
         object2 = vm.serializeAddress("irmInfo", "interestRateModel", result.irmInfo.interestRateModel);
-        object2 = vm.serializeString("irmInfo", "apyInfo", "unknown");
+        object2 = vm.serializeString("irmInfo", "interestRateInfo", "unknown");
         object = vm.serializeString("vaultInfo", "irmInfo", object2);
 
         object = vm.serializeString("vaultInfo", "collateralLTVInfo", "unknown");
 
         string memory object3;
+        object3 = vm.serializeBool("liabilityPriceInfo", "queryFailure", result.liabilityPriceInfo.queryFailure);
         object3 = vm.serializeUint("liabilityPriceInfo", "timestamp", result.liabilityPriceInfo.timestamp);
-        object3 = vm.serializeUint("liabilityPriceInfo", "blockNumber", result.liabilityPriceInfo.blockNumber);
         object3 = vm.serializeAddress("liabilityPriceInfo", "oracle", result.liabilityPriceInfo.oracle);
         object3 = vm.serializeAddress("liabilityPriceInfo", "asset", result.liabilityPriceInfo.asset);
         object3 = vm.serializeAddress("liabilityPriceInfo", "unitOfAccount", result.liabilityPriceInfo.unitOfAccount);
