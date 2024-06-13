@@ -44,6 +44,7 @@ Utilities for performing DEX swaps for EVK vault operations.
 
 `Swapper.sol` and the handlers are considered to live outside the trusted code-base. Swapper invocations should always be followed by a call to one of `SwapVerifier`'s methods. `SwapVerifier.sol` *is* considered part of the trusted code-base.
 
+Fork tests require `.env` file with `MAINNET_RPC_URL` variable set to a provider with archive node support, like Alchemy.
 
 ## Lens
 
