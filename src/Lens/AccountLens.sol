@@ -33,8 +33,15 @@ contract AccountLens is Utils {
         uint256 controllersLength = result.evcAccountInfo.enabledControllers.length;
         uint256 collateralsLength = result.evcAccountInfo.enabledCollaterals.length;
 
-        result.vaultAccountInfo = new VaultAccountInfo[](controllersLength + collateralsLength);
-        result.accountRewardInfo = new AccountRewardInfo[](controllersLength + collateralsLength);
+        uint256 uniqueVaultsCounter = collateralsLength;
+        for (uint256 i = 0; i < controllersLength; ++i) {
+            if (!IEVC(evc).isCollateralEnabled(account, result.evcAccountInfo.enabledControllers[i])) {
+                ++uniqueVaultsCounter;
+            }
+        }
+
+        result.vaultAccountInfo = new VaultAccountInfo[](uniqueVaultsCounter);
+        result.accountRewardInfo = new AccountRewardInfo[](uniqueVaultsCounter);
 
         for (uint256 i = 0; i < controllersLength; ++i) {
             result.vaultAccountInfo[i] = getVaultAccountInfo(account, result.evcAccountInfo.enabledControllers[i]);
@@ -42,10 +49,14 @@ contract AccountLens is Utils {
         }
 
         for (uint256 i = 0; i < collateralsLength; ++i) {
-            result.vaultAccountInfo[controllersLength + i] =
+            VaultAccountInfo memory vaultAccountInfo =
                 getVaultAccountInfo(account, result.evcAccountInfo.enabledCollaterals[i]);
-            result.accountRewardInfo[controllersLength + i] =
-                getRewardAccountInfo(account, result.evcAccountInfo.enabledCollaterals[i]);
+
+            if (!vaultAccountInfo.isController) {
+                result.vaultAccountInfo[controllersLength + i] = vaultAccountInfo;
+                result.accountRewardInfo[controllersLength + i] =
+                    getRewardAccountInfo(account, result.evcAccountInfo.enabledCollaterals[i]);
+            }
         }
 
         return result;
@@ -77,7 +88,12 @@ contract AccountLens is Utils {
 
         result.account = account;
         result.vault = vault;
-        result.asset = IEVault(vault).asset();
+
+        try IEVault(vault).asset() returns (address _asset) {
+            result.asset = _asset;
+        } catch {
+            return result;
+        }
 
         result.assetsAccount = IEVault(result.asset).balanceOf(account);
         result.shares = IEVault(vault).balanceOf(account);
