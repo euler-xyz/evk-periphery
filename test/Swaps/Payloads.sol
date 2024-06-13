@@ -36,7 +36,7 @@ bytes constant USDT_STETH_V2_PATH =
 function USDT_STETH_injectReceiver(address receiver) pure returns (bytes memory payload) {
     payload = USDT_STETH_PAYLOAD;
     assembly {
-        mstore(0, receiver) // receiver is not aligned in full bytes in the payload
+        mstore(0, receiver)
         mcopy(add(add(payload, 32), RECEIVER_OFFSET), 12, 20)
     }
 }
