@@ -47,6 +47,7 @@ interface ISwapper {
     /// @param vault The lending vault where the debt is tracked
     /// @param repayAmount Amount of debt to repay
     /// @param account Receiver of the repay
+    /// @dev If contract's balance is lower than requested repay amount, repay only the balance
     function repay(address token, address vault, uint256 repayAmount, address account) external;
 
     /// @notice Use the contract's token balance to repay debt of the account in a lending vault
@@ -55,6 +56,7 @@ interface ISwapper {
     /// @param vault The lending vault where the debt is tracked
     /// @param repayAmount Amount of debt to repay
     /// @param account Receiver of the repay
+    /// @dev If contract's balance is lower than requested repay amount, repay only the balance
     function repayAndDeposit(address token, address vault, uint256 repayAmount, address account) external;
 
     /// @notice Use all of the contract's token balance to execute a deposit for an account
