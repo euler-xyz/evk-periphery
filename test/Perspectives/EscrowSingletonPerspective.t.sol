@@ -56,6 +56,7 @@ contract EscrowSingletonPerspectiveTest is EVaultTestBase, PerspectiveErrors {
         IEVault(vault3).setMaxLiquidationDiscount(1);
         IEVault(vault3).setHookConfig(address(0), 1);
         IEVault(vault3).setLTV(address(0), 0, 0, 0);
+        IEVault(vault3).setCaps(0, 1);
 
         // verification of the first vault is successful
         vm.expectEmit(true, false, false, false, address(perspective));
@@ -87,7 +88,7 @@ contract EscrowSingletonPerspectiveTest is EVaultTestBase, PerspectiveErrors {
                 vault3,
                 ERROR__UPGRADABILITY | ERROR__SINGLETON | ERROR__ORACLE_INVALID_ROUTER | ERROR__UNIT_OF_ACCOUNT
                     | ERROR__GOVERNOR | ERROR__HOOKED_OPS | ERROR__LIQUIDATION_DISCOUNT
-                    | ERROR__LTV_COLLATERAL_CONFIG_LENGTH
+                    | ERROR__LTV_COLLATERAL_CONFIG_LENGTH | ERROR__BORROW_CAP
             )
         );
         perspective.perspectiveVerify(vault3, false);
