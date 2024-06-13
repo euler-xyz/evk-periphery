@@ -43,7 +43,7 @@ You will be walked through the deployment process step by step. Note that you ma
 chmod +x ./script/_interactiveDeployment.sh
 ```
 
-The result of the deployment will be saved in `script/deployments/[current_block_number]` directory.
+The result of the deployment will be saved in `script/deployments/[your_deployment_name]` directory.
 
 ## Direct deployment
 

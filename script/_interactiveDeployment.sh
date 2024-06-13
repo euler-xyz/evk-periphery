@@ -16,8 +16,8 @@ function backup_script_files {
 function backup_and_restore_script_files {
     local scriptFileName=$1
     local tempScriptFileName=$2
-    local block_number=$3
-    local deployment_dir="script/deployments/$block_number"
+    local deployment_name=$3
+    local deployment_dir="script/deployments/$deployment_name"
 
     mkdir -p "$deployment_dir/input" "$deployment_dir/output"
 
@@ -129,8 +129,8 @@ fi
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}
 
-block_number=$(cast block-number)
-echo "Current block number: $block_number"
+read -p "Provide the deployment name used to save results (default: default): " deployment_name
+deployment_name=${deployment_name:-default}
 
 while true; do
     echo ""
@@ -514,5 +514,5 @@ while true; do
     esac
 
     execute_forge_command $scriptFileName $verify_contracts
-    backup_and_restore_script_files $scriptJsonFileName $tempScriptJsonFileName $block_number
+    backup_and_restore_script_files $scriptJsonFileName $tempScriptJsonFileName "$deployment_name"
 done
