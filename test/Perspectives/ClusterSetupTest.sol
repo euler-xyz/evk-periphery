@@ -6,24 +6,35 @@ import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {ClusterConservativePerspective} from
-    "../../../../../src/Perspectives/immutable/ungoverned/cluster/ClusterConservativePerspective.sol";
-import {ClusterConservativeWithRecognizedCollateralsPerspective} from
-    "../../../../../src/Perspectives/immutable/ungoverned/cluster/ClusterConservativeWithRecognizedCollateralsPerspective.sol";
-import {EscrowSingletonPerspective} from
-    "../../../../../src/Perspectives/immutable/ungoverned/escrow/EscrowSingletonPerspective.sol";
-import {PerspectiveErrors} from "../../../../../src/Perspectives/PerspectiveErrors.sol";
-import {AdapterRegistry} from "../../../../../src/OracleFactory/AdapterRegistry.sol";
-import {EulerKinkIRMFactory} from "../../../../../src/IRMFactory/EulerKinkIRMFactory.sol";
-import {IEulerRouterFactory} from "../../../../../src/OracleFactory/interfaces/IEulerRouterFactory.sol";
-import {IEulerRouter} from "../../../../../src/OracleFactory/interfaces/IEulerRouter.sol";
-import {StubPriceOracle} from "../../../../utils/StubPriceOracle.sol";
+import {EulerDefaultClusterPerspective} from "../../src/Perspectives/deployed/EulerDefaultClusterPerspective.sol";
+import {EscrowSingletonPerspective} from "../../src/Perspectives/deployed/EscrowSingletonPerspective.sol";
+import {DefaultClusterPerspective} from "../../src/Perspectives/implementation/DefaultClusterPerspective.sol";
+import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
+import {AdapterRegistry} from "../../src/OracleFactory/AdapterRegistry.sol";
+import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
+import {IEulerRouterFactory} from "../../src/OracleFactory/interfaces/IEulerRouterFactory.sol";
+import {IEulerRouter} from "../../src/OracleFactory/interfaces/IEulerRouter.sol";
+import {StubPriceOracle} from "../utils/StubPriceOracle.sol";
+
+contract DefaultClusterPerspectiveInstance is DefaultClusterPerspective {
+    constructor(
+        address factory,
+        address routerFactory,
+        address adapterRegistry,
+        address irmFactory,
+        address[] memory recognizedCollateralPerspectives
+    )
+        DefaultClusterPerspective(factory, routerFactory, adapterRegistry, irmFactory, recognizedCollateralPerspectives)
+    {}
+
+    function name() public pure override returns (string memory) {
+        return "Default Cluster Perspective Instance";
+    }
+}
 
 contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    uint32 internal constant ESCROW_DISABLED_OPS =
-        OP_BORROW | OP_REPAY | OP_REPAY_WITH_SHARES | OP_PULL_DEBT | OP_CONVERT_FEES | OP_LIQUIDATE | OP_TOUCH;
 
     address adapterRegistryOwner = makeAddr("adapterRegistryOwner");
     address routerGovernor = makeAddr("routerGovernor");
@@ -34,10 +45,10 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
     EulerKinkIRMFactory irmFactory;
 
     EscrowSingletonPerspective escrowSingletonPerspective;
-    ClusterConservativePerspective clusterConservativePerspective;
-    ClusterConservativeWithRecognizedCollateralsPerspective clusterConservativeWithRecognizedCollateralsPerspective1;
-    ClusterConservativeWithRecognizedCollateralsPerspective clusterConservativeWithRecognizedCollateralsPerspective2;
-    ClusterConservativeWithRecognizedCollateralsPerspective clusterConservativeWithRecognizedCollateralsPerspective3;
+    EulerDefaultClusterPerspective eulerDefaultClusterPerspective;
+    DefaultClusterPerspectiveInstance defaultClusterPerspectiveInstance1;
+    DefaultClusterPerspectiveInstance defaultClusterPerspectiveInstance2;
+    DefaultClusterPerspectiveInstance defaultClusterPerspectiveInstance3;
 
     address vaultEscrow;
     address vaultCluster1;
@@ -64,7 +75,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         // deploy different perspectives
         escrowSingletonPerspective = new EscrowSingletonPerspective(address(factory));
 
-        clusterConservativePerspective = new ClusterConservativePerspective(
+        eulerDefaultClusterPerspective = new EulerDefaultClusterPerspective(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -74,7 +85,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
 
         address[] memory recognizedCollateralPerspectives = new address[](1);
         recognizedCollateralPerspectives[0] = address(0);
-        clusterConservativeWithRecognizedCollateralsPerspective1 = new ClusterConservativeWithRecognizedCollateralsPerspective(
+        defaultClusterPerspectiveInstance1 = new DefaultClusterPerspectiveInstance(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -83,7 +94,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         );
 
         recognizedCollateralPerspectives[0] = address(escrowSingletonPerspective);
-        clusterConservativeWithRecognizedCollateralsPerspective2 = new ClusterConservativeWithRecognizedCollateralsPerspective(
+        defaultClusterPerspectiveInstance2 = new DefaultClusterPerspectiveInstance(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -93,8 +104,8 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
 
         recognizedCollateralPerspectives = new address[](2);
         recognizedCollateralPerspectives[0] = address(escrowSingletonPerspective);
-        recognizedCollateralPerspectives[1] = address(clusterConservativeWithRecognizedCollateralsPerspective1);
-        clusterConservativeWithRecognizedCollateralsPerspective3 = new ClusterConservativeWithRecognizedCollateralsPerspective(
+        recognizedCollateralPerspectives[1] = address(defaultClusterPerspectiveInstance1);
+        defaultClusterPerspectiveInstance3 = new DefaultClusterPerspectiveInstance(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -109,7 +120,6 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         vaultCluster2 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST2), router, USD));
         vaultCluster3 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST2), router, WETH));
 
-        IEVault(vaultEscrow).setHookConfig(address(0), ESCROW_DISABLED_OPS);
         IEVault(vaultEscrow).setGovernorAdmin(address(0));
 
         IEVault(vaultCluster1).setInterestRateModel(irmZero);
@@ -155,19 +165,10 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         vm.stopPrank();
 
         vm.label(address(escrowSingletonPerspective), "escrowSingletonPerspective");
-        vm.label(address(clusterConservativePerspective), "clusterConservativePerspective");
-        vm.label(
-            address(clusterConservativeWithRecognizedCollateralsPerspective1),
-            "clusterConservativeWithRecognizedCollateralsPerspective1"
-        );
-        vm.label(
-            address(clusterConservativeWithRecognizedCollateralsPerspective2),
-            "clusterConservativeWithRecognizedCollateralsPerspective2"
-        );
-        vm.label(
-            address(clusterConservativeWithRecognizedCollateralsPerspective3),
-            "clusterConservativeWithRecognizedCollateralsPerspective3"
-        );
+        vm.label(address(eulerDefaultClusterPerspective), "eulerDefaultClusterPerspective");
+        vm.label(address(defaultClusterPerspectiveInstance1), "defaultClusterPerspectiveInstance1");
+        vm.label(address(defaultClusterPerspectiveInstance2), "defaultClusterPerspectiveInstance2");
+        vm.label(address(defaultClusterPerspectiveInstance3), "defaultClusterPerspectiveInstance3");
         vm.label(vaultEscrow, "vaultEscrow");
         vm.label(vaultCluster1, "vaultCluster1");
         vm.label(vaultCluster2, "vaultCluster2");

@@ -2,6 +2,10 @@
 
 pragma solidity ^0.8.0;
 
+/// @title IPerspective
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice A contract that verifies the properties of a vault.
 interface IPerspective {
     /// @notice Emitted when a vault is verified successfully.
     /// @param vault The address of the vault that has been verified.
@@ -14,8 +18,7 @@ interface IPerspective {
     error PerspectiveError(address perspective, address vault, uint256 codes);
 
     /// @notice Returns the name of the perspective.
-    /// @dev Name should be unique and descriptive. The following name format should be used:
-    /// "[Immutable|Upgradable].[Governed|Ungoverned].UniqueAndDescriptiveNameOfThePerspective"
+    /// @dev Name should be unique and descriptive.
     /// @return The name of the perspective.
     function name() external view returns (string memory);
 
