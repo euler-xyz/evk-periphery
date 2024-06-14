@@ -105,10 +105,10 @@ echo ""
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
 
-read -p "Do you want to deploy on a local fork? (y/n) (default: y): " deploy_local_fork
-deploy_local_fork=${deploy_local_fork:-y}
+read -p "Do you want to deploy on a local fork? (y/n) (default: y): " local_fork
+local_fork=${local_fork:-y}
 
-if [[ $deploy_local_fork == "y" ]]; then
+if [[ $local_fork == "y" ]]; then
     # Check if Anvil is running
     if ! pgrep -x "anvil" > /dev/null; then
         echo "Anvil is not running. Please start Anvil and try again."
@@ -136,7 +136,7 @@ while true; do
     echo ""
     echo "Select an option to deploy:"
     echo "0. ERC20 mock token"
-    echo "1. Periphery factories (Oracle Router, Oracle Adapter, Kink IRM Factory)"
+    echo "1. Periphery factories (Oracle Router, Oracle Adapter Registry, Kink IRM Factory)"
     echo "2. Oracle adapter"
     echo "3. Kink IRM"
     echo "4. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
@@ -146,14 +146,14 @@ while true; do
     echo "8. Lenses"
     echo "9. Perspectives"
     echo "10. Exit"
-    read -p "Enter your choice (0-10): " deployment_choice
+    read -p "Enter your choice (0-10): " choice
 
-    if [[ "$deployment_choice" == "9" ]]; then
+    if [[ "$choice" == "10" ]]; then
         echo "Exiting..."
         break
     fi
 
-    case $deployment_choice in
+    case $choice in
         0)
             echo "Deploying ERC20 mock token..."
 

@@ -24,7 +24,7 @@ contract EVault is ScriptUtils {
 
         string memory object;
         if (deployRouterForOracle) {
-            object = vm.serializeAddress("oracleRouter", "oracleRouter", oracleRouter);
+            object = vm.serializeAddress("eVault", "oracleRouter", oracleRouter);
         }
         object = vm.serializeAddress("eVault", "eVault", eVault);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
