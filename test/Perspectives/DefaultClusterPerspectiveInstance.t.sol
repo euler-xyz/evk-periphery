@@ -91,4 +91,18 @@ contract DefaultDefaultClusterPerspectiveInstanceTest is ClusterSetupTest {
         assertTrue(defaultClusterPerspectiveInstance1.isVerified(vaultCluster1));
         assertTrue(defaultClusterPerspectiveInstance1.isVerified(vaultCluster2));
     }
+
+    function test_Perspective_DefaultClusterPerspectiveInstance_nesting() public {
+        address nestedVault =
+            factory.createProxy(address(0), false, abi.encodePacked(address(vaultCluster1), address(0), address(0)));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IPerspective.PerspectiveError.selector,
+                address(defaultClusterPerspectiveInstance1),
+                nestedVault,
+                ERROR__NESTING
+            )
+        );
+        defaultClusterPerspectiveInstance1.perspectiveVerify(nestedVault, true);
+    }
 }

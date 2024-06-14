@@ -6,6 +6,7 @@ import {BaseFactory} from "../BaseFactory/BaseFactory.sol";
 import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 
 /// @title EulerKinkIRMFactory
+/// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A minimal factory for Kink IRMs.
 contract EulerKinkIRMFactory is BaseFactory {
