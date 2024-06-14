@@ -12,9 +12,9 @@ import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Base contract for swap handlers - contracts interfacing with swap providers
 abstract contract BaseHandler is ISwapper {
-    // exact input swaps - unknonw amount of tokens bought for exact amount of tokens sold
+    // exact input swaps - unknown amount of tokens bought for exact amount of tokens sold
     uint256 internal constant MODE_EXACT_IN = 0;
-    // exact output swaps - exact amount of tokens bought for unknwon amount of tokens sold
+    // exact output swaps - exact amount of tokens bought for unknown amount of tokens sold
     uint256 internal constant MODE_EXACT_OUT = 1;
     // target debt swap and repay - the amount requested is the debt amount the account should have after swap and repay
     uint256 internal constant MODE_TARGET_DEBT = 2;
