@@ -7,10 +7,18 @@ import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
 import {SafeERC20Lib} from "evk/EVault/shared/lib/SafeERC20Lib.sol";
 import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 
+/// @title BaseHandler
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice Base contract for swap handlers - contracts interfacing with swap providers
 abstract contract BaseHandler is ISwapper {
+    // exact input swaps - unknonw amount of tokens bought for exact amount of tokens sold
     uint256 internal constant MODE_EXACT_IN = 0;
+    // exact output swaps - exact amount of tokens bought for unknwon amount of tokens sold
     uint256 internal constant MODE_EXACT_OUT = 1;
+    // target debt swap and repay - the amount requested is the debt amount the account should have after swap and repay
     uint256 internal constant MODE_TARGET_DEBT = 2;
+    // swap modes delimiter
     uint256 internal constant MODE_MAX_VALUE = 3;
 
     error Swapper_UnsupportedMode();
