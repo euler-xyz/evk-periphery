@@ -26,13 +26,26 @@ There are two sub-directories:
 
 Directory: [src/IRMFactory](src/IRMFactory)
 
-Factory for deploying Kink IRMs, used by EVK vaults. This does some basic parameter validation, and tracks the addresses of created IRMs, so that the deployment provenance of IRM instances can be verified by perspectives.
+This is an immutable factory contract for deploying Linear Kink IRM instances, used by EVK vaults. It does some basic parameter validation and tracks the addresses of created IRMs, so that the deployment provenance of IRM instances can be verified by perspectives. Linear Kink IRMs are immutable and stateless.
 
 ### OracleFactory
 
 Directory: [src/OracleFactory](src/OracleFactory)
 
-Contains a factory for `EulerRouter` and an adapter registry, used by perspectives to verify the deployment provenance of an EVK vault's oracle configuration.
+#### EulerRouterFactory
+
+This is an immutable contract that can be used to deploy instances of `EulerRouter`. It allows the deployment provenance of router instances to be verified by perspectives.
+
+* Although the factory (and implementation) is immutable, the routers themselves are created with a user-specifiable address as the governor so that adapters can be installed. If a perspective wishes for the routers to be immutable, it must also confirm this governor has been changed to `address(0)`.
+* Routers can have fallbacks specified. If present, these must also be verified to be safe.
+
+#### AdapterRegistry
+
+Although the root of trust of a router can be verified through `OracleFactory`, individual adapters cannot. Because of the large variety of adapters, and also because it is difficult to determine the safety of various adapter parameters on-chain, the root of trust of adapters is difficult to verify. The adapter registry is one possible solution to this. It is a governed whitelist contract, where a governor can add new adapters and revoke existing ones. Perspectives who trust the governor of the registry can verify that each adapter was added there.
+
+* Querying the AdapterRegistry takes a `snapshotTime` parameter. This can be used to query the registry state at a point in the past. This allows a user who doesn't trust the registry to verify each apadter that was installed at a given time, and be confident that the governor can never alter this set. If you do trust the governor, the `snapshotTime` can simply be `block.timestamp`.
+* After revoking, an adapter can never be added back again. Instead, simply deploy an identical one at a new address.
+
 
 ### Swaps
 
