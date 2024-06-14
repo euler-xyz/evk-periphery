@@ -238,7 +238,8 @@ Outputs:
 
 This command deploys:
 - Escrow Singleton Perspective
-- Cluster Conservative Perspective
+- Euler Default Cluster Perspective
+- Euler Factory Perspective
 
 Inputs:
 `script/input/09_Perspectives.json`
