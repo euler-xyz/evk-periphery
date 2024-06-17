@@ -35,7 +35,7 @@ contract Swaps1Inch is EVaultTestBase {
     uint256 internal constant MODE_TARGET_DEBT = 2;
     uint256 internal constant MODE_INVALID = 3;
 
-    string MAINNET_RPC_URL = vm.envString("MAINNET_RPC_URL");
+    string MAINNET_RPC_URL = vm.envOr("MAINNET_RPC_URL", string(""));
 
     address user;
     address user2;
@@ -53,11 +53,12 @@ contract Swaps1Inch is EVaultTestBase {
 
         swapper = new Swapper(oneInchAggregatorV5, uniswapRouterV2, uniswapRouterV3, uniswapRouter02);
         swapVerifier = new SwapVerifier();
-
-        mainnetFork = vm.createSelectFork(MAINNET_RPC_URL);
     }
 
     function setupFork(uint256 blockNumber, bool forBorrow) internal {
+        vm.skip(bytes(MAINNET_RPC_URL).length == 0);
+        mainnetFork = vm.createSelectFork(MAINNET_RPC_URL);
+
         vm.rollFork(blockNumber);
 
         eGRT = IEVault(factory.createProxy(address(0), true, abi.encodePacked(GRT, address(oracle), unitOfAccount)));
