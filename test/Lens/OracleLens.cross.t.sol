@@ -8,7 +8,7 @@ import {ChainlinkOracle} from "euler-price-oracle/adapter/chainlink/ChainlinkOra
 import {ChronicleOracle} from "euler-price-oracle/adapter/chronicle/ChronicleOracle.sol";
 import {CrossAdapter} from "euler-price-oracle/adapter/CrossAdapter.sol";
 import {boundAddr, distinct} from "euler-price-oracle-test/utils/TestUtils.sol";
-import {OracleLens} from "src/Lens/OracleLens.sol";
+import {IOracle, OracleLens} from "src/Lens/OracleLens.sol";
 import "src/Lens/LensTypes.sol";
 
 contract OracleLensCrossTest is Test {
@@ -39,6 +39,7 @@ contract OracleLensCrossTest is Test {
         vm.mockCall(quote, abi.encodeCall(IERC20.decimals, ()), abi.encode(18));
         vm.mockCall(chainlinkFeed, abi.encodeCall(IERC20.decimals, ()), abi.encode(18));
         vm.mockCall(chronicleFeed, abi.encodeCall(IERC20.decimals, ()), abi.encode(18));
+        vm.mockCall(chainlinkFeed, abi.encodeCall(IOracle.description, ()), abi.encode("Chainlink Description"));
 
         chainlinkMaxStaleness = bound(chainlinkMaxStaleness, 1 minutes, 72 hours);
         chronicleMaxStaleness = bound(chronicleMaxStaleness, 1 minutes, 72 hours);
