@@ -65,6 +65,17 @@ Directory: [src/Lens](src/Lens)
 
 Getter contracts for querying vault and oracle information conveniently. Intended for off-chain usage e.g. in a front-end application.
 
+### Deploying lenses
+
+Copy [.env.example](.env.example) to `.env` and set `REMOTE_RPC_URL`, `MNEMONIC` and `VERIFIER_API_KEY`
+Run:
+
+```bash
+forge build
+source .env
+forge script --chain sepolia script/DeployLenses:DeployLenses --rpc-url $REMOTE_RPC_URL --broadcast --verify -vvvv --slow --skip-simulation --broadcast
+```
+
 
 ## Safety
 
