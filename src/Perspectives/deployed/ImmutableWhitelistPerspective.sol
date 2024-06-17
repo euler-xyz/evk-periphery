@@ -26,7 +26,7 @@ contract ImmutableWhitelistPerspective is BasePerspective {
         return "Immutable Whitelist Perspective";
     }
 
-    function perspectiveVerifyInternal(address vault) internal virtual override {
-        revert PerspectiveError(address(this), vault, 0);
+    function perspectiveVerifyInternal(address) internal virtual override {
+        testProperty(false, 0);
     }
 }
