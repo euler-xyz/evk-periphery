@@ -73,7 +73,7 @@ Run:
 ```bash
 forge build
 source .env
-forge script --chain sepolia script/DeployLenses:DeployLenses --rpc-url $REMOTE_RPC_URL --broadcast --verify -vvvv --slow --skip-simulation --broadcast
+forge script scripts/DeployLenses.sol:DeployLenses --rpc-url $REMOTE_RPC_URL --broadcast -vvvv --slow --skip-simulation
 ```
 
 
