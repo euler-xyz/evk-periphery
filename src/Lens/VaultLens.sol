@@ -265,7 +265,7 @@ contract VaultLens is Utils {
 
         for (uint256 i = 0; i < cash.length; ++i) {
             (bool success, bytes memory data) = result.interestRateModel.staticcall(
-                abi.encodeWithSelector(IIRM.computeInterestRateView.selector, vault, cash[i], borrows[i])
+                abi.encodeCall(IIRM.computeInterestRateView, (vault, cash[i], borrows[i]))
             );
 
             if (!success || data.length < 32) {
@@ -273,16 +273,15 @@ contract VaultLens is Utils {
                 break;
             }
 
-            uint256 borrowSPY = abi.decode(data, (uint256));
-
             result.interestRateInfo[i].cash = cash[i];
             result.interestRateInfo[i].borrows = borrows[i];
-            result.interestRateInfo[i].borrowSPY = borrowSPY;
+            result.interestRateInfo[i].borrowSPY = abi.decode(data, (uint256));
 
-            result.interestRateInfo[i].supplySPY = _computeSupplySPY(borrowSPY, cash[i], borrows[i], interestFee);
+            result.interestRateInfo[i].supplySPY =
+                _computeSupplySPY(result.interestRateInfo[i].borrowSPY, cash[i], borrows[i], interestFee);
 
             (result.interestRateInfo[i].borrowAPY, result.interestRateInfo[i].supplyAPY) =
-                _computeAPYs(borrowSPY, result.interestRateInfo[i].supplySPY);
+                _computeAPYs(result.interestRateInfo[i].borrowSPY, result.interestRateInfo[i].supplySPY);
         }
 
         return result;
@@ -331,20 +330,23 @@ contract VaultLens is Utils {
             return result;
         }
 
-        try IPriceOracle(result.oracle).getQuote(result.amountIn, asset, result.unitOfAccount) returns (
-            uint256 amountOutMid
-        ) {
-            result.amountOutMid = amountOutMid;
-        } catch {
+        (bool success, bytes memory data) = result.oracle.staticcall(
+            abi.encodeCall(IPriceOracle.getQuote, (result.amountIn, asset, result.unitOfAccount))
+        );
+
+        if (success && data.length >= 32) {
+            result.amountOutMid = abi.decode(data, (uint256));
+        } else {
             result.queryFailure = true;
         }
 
-        try IPriceOracle(result.oracle).getQuotes(result.amountIn, asset, result.unitOfAccount) returns (
-            uint256 amountOutBid, uint256 amountOutAsk
-        ) {
-            result.amountOutBid = amountOutBid;
-            result.amountOutAsk = amountOutAsk;
-        } catch {
+        (success, data) = result.oracle.staticcall(
+            abi.encodeCall(IPriceOracle.getQuotes, (result.amountIn, asset, result.unitOfAccount))
+        );
+
+        if (success && data.length >= 64) {
+            (result.amountOutBid, result.amountOutAsk) = abi.decode(data, (uint256, uint256));
+        } else {
             result.queryFailure = true;
         }
 
