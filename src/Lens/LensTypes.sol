@@ -152,6 +152,7 @@ struct AssetPriceInfo {
 }
 
 struct VaultInterestRateModelInfo {
+    bool queryFailure;
     address vault;
     address interestRateModel;
     InterestRateInfo[] interestRateInfo;
