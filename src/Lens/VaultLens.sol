@@ -264,22 +264,25 @@ contract VaultLens is Utils {
         result.interestRateInfo = new InterestRateInfo[](cash.length);
 
         for (uint256 i = 0; i < cash.length; ++i) {
-            try IIRM(result.interestRateModel).computeInterestRateView(
-                vault, result.interestRateInfo[i].cash, result.interestRateInfo[i].borrows
-            ) returns (uint256 borrowSPY) {
-                result.interestRateInfo[i].cash = cash[i];
-                result.interestRateInfo[i].borrows = borrows[i];
+            (bool success, bytes memory data) = result.interestRateModel.staticcall(
+                abi.encodeWithSelector(IIRM.computeInterestRateView.selector, vault, cash[i], borrows[i])
+            );
 
-                result.interestRateInfo[i].borrowSPY = borrowSPY;
-
-                result.interestRateInfo[i].supplySPY = _computeSupplySPY(borrowSPY, cash[i], borrows[i], interestFee);
-
-                (result.interestRateInfo[i].borrowAPY, result.interestRateInfo[i].supplyAPY) =
-                    _computeAPYs(borrowSPY, result.interestRateInfo[i].supplySPY);
-            } catch {
+            if (!success || data.length < 32) {
                 result.queryFailure = true;
                 break;
             }
+
+            uint256 borrowSPY = abi.decode(data, (uint256));
+
+            result.interestRateInfo[i].cash = cash[i];
+            result.interestRateInfo[i].borrows = borrows[i];
+            result.interestRateInfo[i].borrowSPY = borrowSPY;
+
+            result.interestRateInfo[i].supplySPY = _computeSupplySPY(borrowSPY, cash[i], borrows[i], interestFee);
+
+            (result.interestRateInfo[i].borrowAPY, result.interestRateInfo[i].supplyAPY) =
+                _computeAPYs(borrowSPY, result.interestRateInfo[i].supplySPY);
         }
 
         return result;
