@@ -255,24 +255,31 @@ contract VaultLens is Utils {
         result.vault = vault;
         result.interestRateModel = IEVault(vault).interestRateModel();
 
-        if (result.interestRateModel == address(0)) return result;
+        if (result.interestRateModel == address(0)) {
+            result.queryFailure = true;
+            return result;
+        }
 
         uint256 interestFee = IEVault(vault).interestFee();
         result.interestRateInfo = new InterestRateInfo[](cash.length);
 
         for (uint256 i = 0; i < cash.length; ++i) {
-            result.interestRateInfo[i].cash = cash[i];
-            result.interestRateInfo[i].borrows = borrows[i];
-
-            result.interestRateInfo[i].borrowSPY = IIRM(result.interestRateModel).computeInterestRateView(
+            try IIRM(result.interestRateModel).computeInterestRateView(
                 vault, result.interestRateInfo[i].cash, result.interestRateInfo[i].borrows
-            );
+            ) returns (uint256 borrowSPY) {
+                result.interestRateInfo[i].cash = cash[i];
+                result.interestRateInfo[i].borrows = borrows[i];
 
-            result.interestRateInfo[i].supplySPY =
-                _computeSupplySPY(result.interestRateInfo[i].borrowSPY, cash[i], borrows[i], interestFee);
+                result.interestRateInfo[i].borrowSPY = borrowSPY;
 
-            (result.interestRateInfo[i].borrowAPY, result.interestRateInfo[i].supplyAPY) =
-                _computeAPYs(result.interestRateInfo[i].borrowSPY, result.interestRateInfo[i].supplySPY);
+                result.interestRateInfo[i].supplySPY = _computeSupplySPY(borrowSPY, cash[i], borrows[i], interestFee);
+
+                (result.interestRateInfo[i].borrowAPY, result.interestRateInfo[i].supplyAPY) =
+                    _computeAPYs(borrowSPY, result.interestRateInfo[i].supplySPY);
+            } catch {
+                result.queryFailure = true;
+                break;
+            }
         }
 
         return result;
