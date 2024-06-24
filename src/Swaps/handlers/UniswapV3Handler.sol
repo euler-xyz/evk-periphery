@@ -21,7 +21,9 @@ abstract contract UniswapV3Handler is BaseHandler {
 
     function swapUniswapV3(SwapParams memory params) internal virtual {
         if (params.mode == MODE_EXACT_IN) revert Swapper_UnsupportedMode();
-        if (params.data.length < 43 || (params.data.length - 20) % 23 != 0) revert UniswapV3Handler_InvalidPath();
+        unchecked {
+            if (params.data.length < 43 || (params.data.length - 20) % 23 != 0) revert UniswapV3Handler_InvalidPath();
+        }
 
         setMaxAllowance(params.tokenIn, uniswapRouterV3);
         // update amountOut and receiver according to the mode and current state

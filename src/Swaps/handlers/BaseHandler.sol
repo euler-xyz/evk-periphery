@@ -35,7 +35,10 @@ abstract contract BaseHandler is ISwapper {
         // for combined exact output swaps, which accumulate the output in the swapper, check how much is already
         // available
         if (params.mode == MODE_EXACT_OUT && params.receiver == address(this)) {
-            amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
+            unchecked {
+                amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
+            }
+
             return (amountOut, receiver);
         }
 
@@ -45,11 +48,13 @@ abstract contract BaseHandler is ISwapper {
             // amountOut is the target debt
             if (amountOut > debt) revert Swapper_TargetDebt();
 
-            // reuse params.amountOut to hold repay
-            amountOut = params.amountOut = debt - amountOut;
+            unchecked {
+                // reuse params.amountOut to hold repay
+                amountOut = params.amountOut = debt - amountOut;
 
-            // check if balance is already sufficient to repay
-            amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
+                // check if balance is already sufficient to repay
+                amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
+            }
 
             // collect output in the swapper for repay
             receiver = address(this);
