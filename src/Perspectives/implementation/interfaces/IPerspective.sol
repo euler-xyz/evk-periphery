@@ -17,6 +17,9 @@ interface IPerspective {
     /// @param codes The error codes indicating the reasons for verification failure.
     error PerspectiveError(address perspective, address vault, uint256 codes);
 
+    /// @notice Error thrown when a panic occurs in the perspective contract.
+    error PerspectivePanic();
+
     /// @notice Returns the name of the perspective.
     /// @dev Name should be unique and descriptive.
     /// @return The name of the perspective.
