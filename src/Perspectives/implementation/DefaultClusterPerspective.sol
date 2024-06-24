@@ -105,10 +105,11 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
         // cluster vaults must have collaterals set up
         address[] memory ltvList = IEVault(vault).LTVList();
-        testProperty(ltvList.length > 0 && ltvList.length <= 10, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
+        uint256 ltvListLength = ltvList.length;
+        testProperty(ltvListLength > 0 && ltvListLength <= 10, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
 
         // cluster vaults must have recognized collaterals
-        for (uint256 i = 0; i < ltvList.length; ++i) {
+        for (uint256 i = 0; i < ltvListLength; ++i) {
             address collateral = ltvList[i];
 
             // the router must contain a valid pricing configuration for all the collaterals
@@ -129,7 +130,8 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
             // iterate over recognized collateral perspectives to check if the collateral is recognized
             bool recognized = false;
-            for (uint256 j = 0; j < recognizedCollateralPerspectives.length; ++j) {
+            uint256 recognizedCollateralPerspectivesLength = recognizedCollateralPerspectives.length;
+            for (uint256 j = 0; j < recognizedCollateralPerspectivesLength; ++j) {
                 address perspective = recognizedCollateralPerspectives[j] == address(0)
                     ? address(this)
                     : recognizedCollateralPerspectives[j];
@@ -141,7 +143,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             }
 
             if (!recognized) {
-                for (uint256 j = 0; j < recognizedCollateralPerspectives.length; ++j) {
+                for (uint256 j = 0; j < recognizedCollateralPerspectivesLength; ++j) {
                     address perspective = recognizedCollateralPerspectives[j] == address(0)
                         ? address(this)
                         : recognizedCollateralPerspectives[j];
