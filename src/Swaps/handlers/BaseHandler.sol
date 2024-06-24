@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import {ISwapper} from "../ISwapper.sol";
 import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
-import {SafeERC20Lib} from "evk/EVault/shared/lib/SafeERC20Lib.sol";
 import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 
 /// @title BaseHandler
