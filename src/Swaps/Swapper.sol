@@ -129,7 +129,7 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         uint256 balance = setMaxAllowance(token, vault);
         repayAmount = _capRepayToBalance(repayAmount, balance);
 
-        IEVault(vault).repay(repayAmount, account);
+        repayAmount = IEVault(vault).repay(repayAmount, account);
 
         if (balance > repayAmount) {
             IEVault(vault).deposit(type(uint256).max, account);
