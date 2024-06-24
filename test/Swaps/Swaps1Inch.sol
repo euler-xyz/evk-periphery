@@ -53,12 +53,13 @@ contract Swaps1Inch is EVaultTestBase {
 
         swapper = new Swapper(oneInchAggregatorV5, uniswapRouterV2, uniswapRouterV3, uniswapRouter02);
         swapVerifier = new SwapVerifier();
+
+        if (bytes(MAINNET_RPC_URL).length != 0)
+            mainnetFork = vm.createSelectFork(MAINNET_RPC_URL);
     }
 
     function setupFork(uint256 blockNumber, bool forBorrow) internal {
         vm.skip(bytes(MAINNET_RPC_URL).length == 0);
-        mainnetFork = vm.createSelectFork(MAINNET_RPC_URL);
-
         vm.rollFork(blockNumber);
 
         eGRT = IEVault(factory.createProxy(address(0), true, abi.encodePacked(GRT, address(oracle), unitOfAccount)));
