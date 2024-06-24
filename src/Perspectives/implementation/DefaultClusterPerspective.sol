@@ -56,7 +56,8 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         testProperty(!config.upgradeable, ERROR__UPGRADABILITY);
 
         // cluster vaults must not be nested
-        testProperty(!vaultFactory.isProxy(IEVault(vault).asset()), ERROR__NESTING);
+        address asset = IEVault(vault).asset();
+        testProperty(!vaultFactory.isProxy(asset), ERROR__NESTING);
 
         // verify vault configuration at the governance level
         // cluster vaults must not have a governor admin
@@ -93,10 +94,8 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
         // the router must contain a valid pricing configuration
         {
-            (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
-            testProperty(
-                adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp), ERROR__ORACLE_INVALID_ASSET_ADAPTER
-            );
+            address adapter = IEulerRouter(oracle).getConfiguredOracle(asset, unitOfAccount);
+            testProperty(adapterRegistry.isValidAdapter(adapter, block.timestamp), ERROR__ORACLE_INVALID_ASSET_ADAPTER);
         }
 
         // cluster vaults must have collaterals set up
@@ -109,10 +108,15 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
             // the router must contain a valid pricing configuration for all the collaterals
             {
-                (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, collateral, unitOfAccount);
+                address collateralAsset = IEVault(collateral).asset();
                 testProperty(
-                    adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
+                    IEulerRouter(oracle).resolvedVaults(collateral) == collateralAsset,
                     ERROR__ORACLE_INVALID_COLLATERAL_ADAPTER
+                );
+
+                address adapter = IEulerRouter(oracle).getConfiguredOracle(collateralAsset, unitOfAccount);
+                testProperty(
+                    adapterRegistry.isValidAdapter(adapter, block.timestamp), ERROR__ORACLE_INVALID_COLLATERAL_ADAPTER
                 );
             }
 
