@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.24;
 
+import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
@@ -12,8 +13,7 @@ import {DefaultClusterPerspective} from "../../src/Perspectives/implementation/D
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
 import {AdapterRegistry} from "../../src/OracleFactory/AdapterRegistry.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
-import {IEulerRouterFactory} from "../../src/OracleFactory/interfaces/IEulerRouterFactory.sol";
-import {IEulerRouter} from "../../src/OracleFactory/interfaces/IEulerRouter.sol";
+import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
 import {StubPriceOracle} from "../utils/StubPriceOracle.sol";
 
 contract DefaultClusterPerspectiveInstance is DefaultClusterPerspective {
@@ -39,8 +39,8 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
     address adapterRegistryOwner = makeAddr("adapterRegistryOwner");
     address routerGovernor = makeAddr("routerGovernor");
 
-    IEulerRouterFactory routerFactory;
-    IEulerRouter router;
+    EulerRouterFactory routerFactory;
+    EulerRouter router;
     AdapterRegistry adapterRegistry;
     EulerKinkIRMFactory irmFactory;
 
@@ -59,13 +59,8 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         super.setUp();
 
         // deploy the oracle-related contracts
-        bytes memory initcode = vm.getCode("EulerRouterFactory.sol");
-        address deployed;
-        assembly {
-            deployed := create(0, add(initcode, 0x20), mload(initcode))
-        }
-        routerFactory = IEulerRouterFactory(deployed);
-        router = IEulerRouter(routerFactory.deploy(routerGovernor));
+        routerFactory = new EulerRouterFactory();
+        router = EulerRouter(routerFactory.deploy(routerGovernor));
         adapterRegistry = new AdapterRegistry(adapterRegistryOwner);
         irmFactory = new EulerKinkIRMFactory();
 

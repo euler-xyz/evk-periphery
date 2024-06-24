@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.24;
 
+import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {IEulerRouter} from "../../OracleFactory/interfaces/IEulerRouter.sol";
 import {IEulerRouterFactory} from "../../OracleFactory/interfaces/IEulerRouterFactory.sol";
 import {AdapterRegistry} from "../../OracleFactory/AdapterRegistry.sol";
 import {IEulerKinkIRMFactory} from "../../IRMFactory/interfaces/IEulerKinkIRMFactory.sol";
@@ -88,8 +88,8 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         // cluster vaults must point to an ungoverned EulerRouter instance deployed by the factory
         address oracle = IEVault(vault).oracle();
         testProperty(routerFactory.isValidDeployment(oracle), ERROR__ORACLE_INVALID_ROUTER);
-        testProperty(IEulerRouter(oracle).governor() == address(0), ERROR__ORACLE_GOVERNED_ROUTER);
-        testProperty(IEulerRouter(oracle).fallbackOracle() == address(0), ERROR__ORACLE_INVALID_FALLBACK);
+        testProperty(EulerRouter(oracle).governor() == address(0), ERROR__ORACLE_GOVERNED_ROUTER);
+        testProperty(EulerRouter(oracle).fallbackOracle() == address(0), ERROR__ORACLE_INVALID_FALLBACK);
 
         // Verify the unit of account is either USD or WETH
         address unitOfAccount = IEVault(vault).unitOfAccount();
@@ -97,7 +97,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
         // the router must contain a valid pricing configuration
         {
-            (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
+            (,,, address resolvedOracle) = EulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
             testProperty(
                 adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp), ERROR__ORACLE_INVALID_ASSET_ADAPTER
             );
@@ -114,7 +114,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
             // the router must contain a valid pricing configuration for all the collaterals
             {
-                (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, collateral, unitOfAccount);
+                (,,, address resolvedOracle) = EulerRouter(oracle).resolveOracle(1e18, collateral, unitOfAccount);
                 testProperty(
                     adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
                     ERROR__ORACLE_INVALID_COLLATERAL_ADAPTER
