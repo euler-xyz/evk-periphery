@@ -10,6 +10,8 @@ interface IEulerRouter {
     function name() external view returns (string memory);
     function governor() external view returns (address);
     function fallbackOracle() external view returns (address);
+    function getConfiguredOracle(address base, address quote) external view returns (address);
+    function resolvedVaults(address vault) external view returns (address);
     function transferGovernance(address newGovernor) external;
     function resolveOracle(uint256 inAmount, address base, address quote)
         external

@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.24;
 
+import {IERC4626} from "forge-std/interfaces/IERC4626.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
@@ -91,13 +92,8 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         address unitOfAccount = IEVault(vault).unitOfAccount();
         testProperty(unitOfAccount == USD || unitOfAccount == WETH, ERROR__UNIT_OF_ACCOUNT);
 
-        // the router must contain a valid pricing configuration
-        {
-            (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
-            testProperty(
-                adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp), ERROR__ORACLE_INVALID_ASSET_ADAPTER
-            );
-        }
+        // Verify the full pricing configuration for vault/unitOfAccount in the router.
+        verifyPricingConfiguration(oracle, vault, unitOfAccount);
 
         // cluster vaults must have collaterals set up
         address[] memory ltvList = IEVault(vault).LTVList();
@@ -107,14 +103,8 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         for (uint256 i = 0; i < ltvList.length; ++i) {
             address collateral = ltvList[i];
 
-            // the router must contain a valid pricing configuration for all the collaterals
-            {
-                (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, collateral, unitOfAccount);
-                testProperty(
-                    adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
-                    ERROR__ORACLE_INVALID_COLLATERAL_ADAPTER
-                );
-            }
+            // Verify the full pricing configuration for collateral/unitOfAccount in the router.
+            verifyPricingConfiguration(oracle, collateral, unitOfAccount);
 
             // cluster vaults must have liquidation discount in a certain range
             uint16 maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
@@ -158,5 +148,55 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
             testProperty(recognized, ERROR__LTV_COLLATERAL_RECOGNITION);
         }
+    }
+
+    function verifyPricingConfiguration(address router, address vault, address unitOfAccount) internal {
+        (,,, address resolvedAdapter, address[] memory resolvedVaults) =
+            getFullPricingConfigution(router, 1e18, vault, unitOfAccount, new address[](5), 0);
+
+        // The router must have configured this vault as a resolved vault.
+        testProperty(resolvedVaults[0] == vault, ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+
+        // The router must have no other configured vaults along the path.
+        testProperty(resolvedVaults[1] == address(0), ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+
+        // The adapter must have been deployed by the adapter registry.
+        testProperty(adapterRegistry.isValidAdapter(resolvedAdapter, block.timestamp), ERROR__ORACLE_INVALID_ADAPTER);
+    }
+
+    function getFullPricingConfigution(
+        address router,
+        uint256 inAmount,
+        address base,
+        address quote,
+        address[] memory resolvedVaults,
+        uint256 resolvedVaultsIndex
+    )
+        internal
+        returns (
+            uint256, /* resolvedAmount */
+            address, /* base */
+            address, /* quote */
+            address, /* oracle */
+            address[] memory /* resolvedVaults */
+        )
+    {
+        // 1. Check the base case.
+        if (base == quote) return (inAmount, base, quote, address(0), resolvedVaults);
+        // 2. Check if there is a PriceOracle configured for base/quote.
+        address oracle = IEulerRouter(router).getConfiguredOracle(base, quote);
+        if (oracle != address(0)) return (inAmount, base, quote, oracle, resolvedVaults);
+        // 3. Recursively resolve `base`.
+        address baseAsset = IEulerRouter(router).resolvedVaults(base);
+        if (baseAsset != address(0)) {
+            inAmount = IERC4626(base).convertToAssets(inAmount);
+            testProperty(resolvedVaultsIndex < 5, ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+            resolvedVaults[resolvedVaultsIndex] = base;
+            return
+                getFullPricingConfigution(router, inAmount, baseAsset, quote, resolvedVaults, resolvedVaultsIndex + 1);
+        }
+        // 4. The fallbackOracle is required to be `address(0)` earlier.
+        testProperty(false, ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+        revert(); // Suppress compiler warnings about unassigned return variables.
     }
 }

@@ -15,9 +15,9 @@ abstract contract PerspectiveErrors {
     uint256 internal constant ERROR__ORACLE_INVALID_ROUTER = 1 << 5;
     uint256 internal constant ERROR__ORACLE_GOVERNED_ROUTER = 1 << 6;
     uint256 internal constant ERROR__ORACLE_INVALID_FALLBACK = 1 << 7;
-    uint256 internal constant ERROR__ORACLE_GOVERNED_FALLBACK = 1 << 8;
-    uint256 internal constant ERROR__ORACLE_INVALID_ASSET_ADAPTER = 1 << 9;
-    uint256 internal constant ERROR__ORACLE_INVALID_COLLATERAL_ADAPTER = 1 << 10;
+    uint256 internal constant ERROR__ORACLE_INVALID_ROUTER_CONFIG = 1 << 8;
+    uint256 internal constant ERROR__ORACLE_INVALID_ADAPTER = 1 << 9;
+    // uint256 internal constant ERROR__ORACLE_INVALID_COLLATERAL_ADAPTER = 1 << 10;
     uint256 internal constant ERROR__UNIT_OF_ACCOUNT = 1 << 11;
     uint256 internal constant ERROR__CREATOR = 1 << 12;
     uint256 internal constant ERROR__GOVERNOR = 1 << 13;
