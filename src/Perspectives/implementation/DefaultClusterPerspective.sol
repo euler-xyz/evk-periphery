@@ -78,6 +78,10 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         // cluster vaults must not have any config flags set
         testProperty(IEVault(vault).configFlags() == 0, ERROR__CONFIG_FLAGS);
 
+        // cluster vaults must have liquidation discount in a certain range
+        uint16 maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
+        testProperty(maxLiquidationDiscount >= 0.05e4 && maxLiquidationDiscount <= 0.2e4, ERROR__LIQUIDATION_DISCOUNT);
+
         // cluster vaults must have certain liquidation cool off time
         testProperty(IEVault(vault).liquidationCoolOffTime() == 1, ERROR__LIQUIDATION_COOL_OFF_TIME);
 
@@ -115,12 +119,6 @@ abstract contract DefaultClusterPerspective is BasePerspective {
                     ERROR__ORACLE_INVALID_COLLATERAL_ADAPTER
                 );
             }
-
-            // cluster vaults must have liquidation discount in a certain range
-            uint16 maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
-            testProperty(
-                maxLiquidationDiscount >= 0.05e4 && maxLiquidationDiscount <= 0.2e4, ERROR__LIQUIDATION_DISCOUNT
-            );
 
             // cluster vaults collaterals must have the LTVs set in range with LTV separation provided
             (uint16 borrowLTV, uint16 liquidationLTV,,, uint32 rampDuration) = IEVault(vault).LTVFull(collateral);
