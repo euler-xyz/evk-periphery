@@ -36,6 +36,7 @@ abstract contract BaseHandler is ISwapper {
         // available
         if (params.mode == MODE_EXACT_OUT && params.receiver == address(this)) {
             amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
+            return (amountOut, receiver);
         }
 
         if (params.mode == MODE_TARGET_DEBT) {
