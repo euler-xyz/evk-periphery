@@ -34,7 +34,7 @@ abstract contract Utils {
         (bool success, bytes memory data) =
             contractAddress.staticcall(abi.encodeCall(IEVault(contractAddress).decimals, ()));
 
-        return success && data.length == 32 ? abi.decode(data, (uint8)) : 18;
+        return success && data.length >= 32 ? abi.decode(data, (uint8)) : 18;
     }
 
     function _computeSupplySPY(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
@@ -73,19 +73,28 @@ abstract contract Utils {
 
         // get borrow interest rate
         uint256 liabilitySPY;
-        try IEVault(liabilityVault).interestRate() returns (uint256 _spy) {
-            liabilitySPY = _spy;
-        } catch {}
+        {
+            (bool success, bytes memory data) =
+                liabilityVault.staticcall(abi.encodeCall(IEVault(liabilityVault).interestRate, ()));
+
+            if (success && data.length >= 32) {
+                liabilitySPY = abi.decode(data, (uint256));
+            }
+        }
 
         // get individual collateral interest rates and total collateral value
         uint256[] memory collateralSPYs = new uint256[](collaterals.length);
         uint256 collateralValue;
         for (uint256 i = 0; i < collaterals.length; ++i) {
             address collateral = collaterals[i];
+
+            (bool success, bytes memory data) =
+                collateral.staticcall(abi.encodeCall(IEVault(collateral).interestRate, ()));
+
             uint256 borrowSPY;
-            try IEVault(collateral).interestRate() returns (uint256 _spy) {
-                borrowSPY = _spy;
-            } catch {}
+            if (success && data.length >= 32) {
+                borrowSPY = abi.decode(data, (uint256));
+            }
 
             if (borrowSPY > 0) {
                 collateralSPYs[i] = _computeSupplySPY(

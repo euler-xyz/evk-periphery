@@ -20,9 +20,7 @@ contract EulerFactoryPerspective is BasePerspective {
 
     /// @inheritdoc BasePerspective
     function perspectiveVerifyInternal(address vault) internal virtual override {
-        if (!vaultFactory.isProxy(vault)) {
-            revert PerspectiveError(address(this), vault, ERROR__FACTORY);
-        }
+        testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
     }
 
     /// @inheritdoc BasePerspective

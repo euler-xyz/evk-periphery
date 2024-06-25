@@ -15,7 +15,7 @@ import {
     CHAINLINK_BTC_USD_FEED
 } from "euler-price-oracle-test/adapter/chainlink/ChainlinkAddresses.sol";
 import {USDC, USDT, WBTC, WETH, USD} from "euler-price-oracle-test/utils/EthereumAddresses.sol";
-import {OracleLens} from "src/Lens/OracleLens.sol";
+import {IOracle, OracleLens} from "src/Lens/OracleLens.sol";
 import "src/Lens/LensTypes.sol";
 
 contract OracleLensEulerRouterTest is Test {
@@ -38,6 +38,10 @@ contract OracleLensEulerRouterTest is Test {
         vm.mockCall(CHAINLINK_BTC_USD_FEED, abi.encodeCall(IERC20.decimals, ()), abi.encode(8));
         vm.mockCall(CHAINLINK_USDC_USD_FEED, abi.encodeCall(IERC20.decimals, ()), abi.encode(8));
         vm.mockCall(CHAINLINK_USDT_USD_FEED, abi.encodeCall(IERC20.decimals, ()), abi.encode(8));
+        vm.mockCall(CHAINLINK_ETH_USD_FEED, abi.encodeCall(IOracle.description, ()), abi.encode("Chainlink ETH/USD"));
+        vm.mockCall(CHAINLINK_BTC_USD_FEED, abi.encodeCall(IOracle.description, ()), abi.encode("Chainlink BTC/USD"));
+        vm.mockCall(CHAINLINK_USDC_USD_FEED, abi.encodeCall(IOracle.description, ()), abi.encode("Chainlink USDC/USD"));
+        vm.mockCall(CHAINLINK_USDT_USD_FEED, abi.encodeCall(IOracle.description, ()), abi.encode("Chainlink USDT/USD"));
         vm.mockCall(wethVault, abi.encodeCall(IERC4626.asset, ()), abi.encode(WETH));
         vm.mockCall(wbtcVault, abi.encodeCall(IERC4626.asset, ()), abi.encode(WBTC));
         vm.mockCall(usdcVault, abi.encodeCall(IERC4626.asset, ()), abi.encode(USDC));
@@ -81,6 +85,7 @@ contract OracleLensEulerRouterTest is Test {
         assertEq(resolvedOracles0Info.base, WETH);
         assertEq(resolvedOracles0Info.quote, USD);
         assertEq(resolvedOracles0Info.feed, CHAINLINK_ETH_USD_FEED);
+        assertEq(resolvedOracles0Info.feedDescription, "Chainlink ETH/USD");
 
         assertEq(routerInfo.resolvedOracles[1], address(wbtcUsdOracle));
         ChainlinkOracleInfo memory resolvedOracles1Info =
@@ -88,6 +93,7 @@ contract OracleLensEulerRouterTest is Test {
         assertEq(resolvedOracles1Info.base, WBTC);
         assertEq(resolvedOracles1Info.quote, USD);
         assertEq(resolvedOracles1Info.feed, CHAINLINK_BTC_USD_FEED);
+        assertEq(resolvedOracles1Info.feedDescription, "Chainlink BTC/USD");
 
         assertEq(routerInfo.resolvedOracles[2], address(fallbackRouter));
         assertEq(routerInfo.resolvedOracles[3], address(fallbackRouter));
@@ -108,6 +114,7 @@ contract OracleLensEulerRouterTest is Test {
         assertEq(fallbackRouterResolvedOracles2Info.base, USDC);
         assertEq(fallbackRouterResolvedOracles2Info.quote, USD);
         assertEq(fallbackRouterResolvedOracles2Info.feed, CHAINLINK_USDC_USD_FEED);
+        assertEq(fallbackRouterResolvedOracles2Info.feedDescription, "Chainlink USDC/USD");
 
         assertEq(fallbackRouterInfo.resolvedOracles[3], address(usdtUsdOracle));
         ChainlinkOracleInfo memory fallbackRouterResolvedOracles3Info =
@@ -115,6 +122,7 @@ contract OracleLensEulerRouterTest is Test {
         assertEq(fallbackRouterResolvedOracles3Info.base, USDT);
         assertEq(fallbackRouterResolvedOracles3Info.quote, USD);
         assertEq(fallbackRouterResolvedOracles3Info.feed, CHAINLINK_USDT_USD_FEED);
+        assertEq(fallbackRouterResolvedOracles3Info.feedDescription, "Chainlink USDT/USD");
     }
 
     function arrOf(address e0) internal pure returns (address[] memory) {

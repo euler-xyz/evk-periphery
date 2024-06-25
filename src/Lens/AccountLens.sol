@@ -33,8 +33,15 @@ contract AccountLens is Utils {
         uint256 controllersLength = result.evcAccountInfo.enabledControllers.length;
         uint256 collateralsLength = result.evcAccountInfo.enabledCollaterals.length;
 
-        result.vaultAccountInfo = new VaultAccountInfo[](controllersLength + collateralsLength);
-        result.accountRewardInfo = new AccountRewardInfo[](controllersLength + collateralsLength);
+        uint256 uniqueVaultsCounter = collateralsLength;
+        for (uint256 i = 0; i < controllersLength; ++i) {
+            if (!IEVC(evc).isCollateralEnabled(account, result.evcAccountInfo.enabledControllers[i])) {
+                ++uniqueVaultsCounter;
+            }
+        }
+
+        result.vaultAccountInfo = new VaultAccountInfo[](uniqueVaultsCounter);
+        result.accountRewardInfo = new AccountRewardInfo[](uniqueVaultsCounter);
 
         for (uint256 i = 0; i < controllersLength; ++i) {
             result.vaultAccountInfo[i] = getVaultAccountInfo(account, result.evcAccountInfo.enabledControllers[i]);
@@ -42,10 +49,14 @@ contract AccountLens is Utils {
         }
 
         for (uint256 i = 0; i < collateralsLength; ++i) {
-            result.vaultAccountInfo[controllersLength + i] =
+            VaultAccountInfo memory vaultAccountInfo =
                 getVaultAccountInfo(account, result.evcAccountInfo.enabledCollaterals[i]);
-            result.accountRewardInfo[controllersLength + i] =
-                getRewardAccountInfo(account, result.evcAccountInfo.enabledCollaterals[i]);
+
+            if (!vaultAccountInfo.isController) {
+                result.vaultAccountInfo[controllersLength + i] = vaultAccountInfo;
+                result.accountRewardInfo[controllersLength + i] =
+                    getRewardAccountInfo(account, result.evcAccountInfo.enabledCollaterals[i]);
+            }
         }
 
         return result;
@@ -77,7 +88,14 @@ contract AccountLens is Utils {
 
         result.account = account;
         result.vault = vault;
-        result.asset = IEVault(vault).asset();
+
+        (bool success, bytes memory data) = vault.staticcall(abi.encodeCall(IEVault(vault).asset, ()));
+
+        if (!success || data.length < 32) {
+            return result;
+        }
+
+        result.asset = abi.decode(data, (address));
 
         result.assetsAccount = IEVault(result.asset).balanceOf(account);
         result.shares = IEVault(vault).balanceOf(account);
@@ -100,55 +118,58 @@ contract AccountLens is Utils {
         result.isController = IEVC(evc).isControllerEnabled(account, vault);
         result.isCollateral = IEVC(evc).isCollateralEnabled(account, vault);
 
-        try IEVault(vault).accountLiquidity(account, false) returns (uint256 _collateralValue, uint256 _liabilityValue)
-        {
-            result.liquidityInfo.liabilityValue = _liabilityValue;
-            result.liquidityInfo.collateralValueBorrowing = _collateralValue;
-        } catch {
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).accountLiquidity, (account, false)));
+
+        if (success) {
+            (result.liquidityInfo.collateralValueBorrowing, result.liquidityInfo.liabilityValue) =
+                abi.decode(data, (uint256, uint256));
+        } else {
             result.liquidityInfo.queryFailure = true;
         }
 
-        try IEVault(vault).accountLiquidity(account, true) returns (uint256 _collateralValue, uint256) {
-            result.liquidityInfo.collateralValueLiquidation = _collateralValue;
-        } catch {
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).accountLiquidity, (account, true)));
+
+        if (success) {
+            (result.liquidityInfo.collateralValueLiquidation,) = abi.decode(data, (uint256, uint256));
+        } else {
             result.liquidityInfo.queryFailure = true;
         }
 
-        try IEVault(vault).accountLiquidityFull(account, false) returns (
-            address[] memory _collaterals, uint256[] memory _collateralValues, uint256
-        ) {
-            result.liquidityInfo.collateralLiquidityBorrowingInfo = new CollateralLiquidityInfo[](_collaterals.length);
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).accountLiquidityFull, (account, false)));
 
-            for (uint256 i = 0; i < _collaterals.length; ++i) {
-                result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateral = _collaterals[i];
-                result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateralValue = _collateralValues[i];
-            }
-        } catch {
-            result.liquidityInfo.queryFailure = true;
-        }
-
-        address[] memory enabledCollaterals;
+        address[] memory collaterals;
         uint256[] memory collateralValues;
-        try IEVault(vault).accountLiquidityFull(account, true) returns (
-            address[] memory _collaterals, uint256[] memory _collateralValues, uint256
-        ) {
-            enabledCollaterals = _collaterals;
-            collateralValues = _collateralValues;
+        if (success) {
+            (collaterals, collateralValues,) = abi.decode(data, (address[], uint256[], uint256));
 
-            result.liquidityInfo.collateralLiquidityLiquidationInfo = new CollateralLiquidityInfo[](_collaterals.length);
+            result.liquidityInfo.collateralLiquidityBorrowingInfo = new CollateralLiquidityInfo[](collaterals.length);
 
-            for (uint256 i = 0; i < _collaterals.length; ++i) {
-                result.liquidityInfo.collateralLiquidityLiquidationInfo[i].collateral = _collaterals[i];
-                result.liquidityInfo.collateralLiquidityLiquidationInfo[i].collateralValue = _collateralValues[i];
+            for (uint256 i = 0; i < collaterals.length; ++i) {
+                result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateral = collaterals[i];
+                result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateralValue = collateralValues[i];
             }
-        } catch {
+        } else {
+            result.liquidityInfo.queryFailure = true;
+        }
+
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).accountLiquidityFull, (account, true)));
+
+        if (success) {
+            (collaterals, collateralValues,) = abi.decode(data, (address[], uint256[], uint256));
+
+            result.liquidityInfo.collateralLiquidityLiquidationInfo = new CollateralLiquidityInfo[](collaterals.length);
+
+            for (uint256 i = 0; i < collaterals.length; ++i) {
+                result.liquidityInfo.collateralLiquidityLiquidationInfo[i].collateral = collaterals[i];
+                result.liquidityInfo.collateralLiquidityLiquidationInfo[i].collateralValue = collateralValues[i];
+            }
+        } else {
             result.liquidityInfo.queryFailure = true;
         }
 
         if (!result.liquidityInfo.queryFailure) {
-            result.liquidityInfo.timeToLiquidation = _calculateTimeToLiquidation(
-                vault, result.liquidityInfo.liabilityValue, enabledCollaterals, collateralValues
-            );
+            result.liquidityInfo.timeToLiquidation =
+                _calculateTimeToLiquidation(vault, result.liquidityInfo.liabilityValue, collaterals, collateralValues);
         }
 
         return result;

@@ -126,6 +126,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         IEVault(vaultCluster1).setMaxLiquidationDiscount(0.1e4);
         IEVault(vaultCluster1).setLiquidationCoolOffTime(1);
         IEVault(vaultCluster1).setLTV(vaultCluster2, 0.1e4, 0.2e4, 0);
+        IEVault(vaultCluster1).setCaps(1, 2);
         IEVault(vaultCluster1).setGovernorAdmin(address(0));
 
         IEVault(vaultCluster2).setInterestRateModel(irmDefault);
@@ -138,6 +139,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         IEVault(vaultCluster3).setMaxLiquidationDiscount(0.2e4);
         IEVault(vaultCluster3).setLiquidationCoolOffTime(1);
         IEVault(vaultCluster3).setLTV(vaultEscrow, 0.5e4, 0.6e4, 0);
+        IEVault(vaultCluster3).setCaps(3, 4);
         IEVault(vaultCluster3).setGovernorAdmin(address(0));
 
         // configure the oracle

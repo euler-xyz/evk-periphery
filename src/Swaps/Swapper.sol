@@ -31,7 +31,6 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     error Swapper_UnknownMode();
     error Swapper_UnknownHandler();
     error Swapper_Reentrancy();
-    error Swapper_InsufficientBalance();
 
     // In the locked state, allow contract to call itself, but block all external calls
     modifier externalLock() {
@@ -86,7 +85,7 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     /// @dev in case of over-swapping to repay, pass max uint amount
     function repay(address token, address vault, uint256 repayAmount, address account) public externalLock {
         uint256 balance = setMaxAllowance(token, vault);
-        if (repayAmount != type(uint256).max && repayAmount > balance) revert Swapper_InsufficientBalance();
+        repayAmount = _capRepayToBalance(repayAmount, balance);
 
         IEVault(vault).repay(repayAmount, account);
     }
@@ -128,12 +127,22 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
 
     function _repayAndDeposit(address token, address vault, uint256 repayAmount, address account) internal {
         uint256 balance = setMaxAllowance(token, vault);
-        if (repayAmount != type(uint256).max && repayAmount > balance) revert Swapper_InsufficientBalance();
+        repayAmount = _capRepayToBalance(repayAmount, balance);
 
         IEVault(vault).repay(repayAmount, account);
 
         if (balance > repayAmount) {
             IEVault(vault).deposit(type(uint256).max, account);
         }
+    }
+
+    // Adjust repay to the available balance. It is needed when exact output swaps are not exact in reality.
+    // It is user's responsibility to verify the debt is within accepted limits after the call to Swapper
+    function _capRepayToBalance(uint256 repayAmount, uint256 balance) internal pure returns (uint256) {
+        if (repayAmount != type(uint256).max && repayAmount > balance) {
+            repayAmount = balance;
+        }
+
+        return repayAmount;
     }
 }

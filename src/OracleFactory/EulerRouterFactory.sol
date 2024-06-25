@@ -7,6 +7,7 @@ import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {IEulerRouterFactory} from "./interfaces/IEulerRouterFactory.sol";
 
 /// @title EulerRouterFactory
+/// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A minimal factory for EulerRouter.
 contract EulerRouterFactory is BaseFactory, IEulerRouterFactory {

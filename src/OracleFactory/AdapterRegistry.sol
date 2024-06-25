@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 
 /// @title AdapterRegistry
+/// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Revokeable append-only registry for oracle adapters.
 contract AdapterRegistry is Ownable {

@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {IFactory} from "./interfaces/IFactory.sol";
 
 /// @title BaseFactory
+/// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A minimal factory for deploying various contracts.
 abstract contract BaseFactory is IFactory {

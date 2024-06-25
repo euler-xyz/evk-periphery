@@ -55,6 +55,9 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         // cluster vaults must not be upgradeable
         testProperty(!config.upgradeable, ERROR__UPGRADABILITY);
 
+        // cluster vaults must not be nested
+        testProperty(!vaultFactory.isProxy(IEVault(vault).asset()), ERROR__NESTING);
+
         // verify vault configuration at the governance level
         // cluster vaults must not have a governor admin
         testProperty(IEVault(vault).governorAdmin() == address(0), ERROR__GOVERNOR);
@@ -66,11 +69,6 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         testProperty(irmFactory.isValidDeployment(IEVault(vault).interestRateModel()), ERROR__INTEREST_RATE_MODEL);
 
         {
-            // cluster vaults must not have supply or borrow caps
-            (uint32 supplyCap, uint32 borrowCap) = IEVault(vault).caps();
-            testProperty(supplyCap == 0, ERROR__SUPPLY_CAP);
-            testProperty(borrowCap == 0, ERROR__BORROW_CAP);
-
             // cluster vaults must not have a hook target nor any operations disabled
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
             testProperty(hookTarget == address(0), ERROR__HOOK_TARGET);
