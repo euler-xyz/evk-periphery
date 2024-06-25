@@ -58,10 +58,41 @@ function execute_forge_command {
     local scriptFileName=$1
     local shouldVerify=$2
 
+    forge script script/$scriptFileName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --slow
+
     if [[ $shouldVerify == "y" ]]; then
-        forge script script/$scriptFileName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --verify --verifier-url "$VERIFIER_URL" --etherscan-api-key "$VERIFIER_API_KEY"
-    else
-        forge script script/$scriptFileName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy
+        scriptFileName=${scriptFileName%%:*}
+        transactions=$(jq -c '.transactions[]' ./broadcast/$scriptFileName/1/run-latest.json)
+        
+        for tx in $transactions; do
+            transactionType=$(echo $tx | grep -o '"transactionType":"[^"]*' | grep -o '[^"]*$')
+            contractName=$(echo $tx | grep -o '"contractName":"[^"]*' | grep -o '[^"]*$')
+            contractAddress=$(echo $tx | grep -o '"contractAddress":"[^"]*' | grep -o '[^"]*$')    
+
+            if [[ $transactionType != "CREATE" || $contractName == "" || $contractAddress == "" ]]; then
+                if [[ $transactionType == "CREATE" && ( $contractName != "" || $contractAddress != "" ) ]]; then
+                    echo "Skipping verification of $contractName: $contractAddress"
+                fi
+                continue
+            fi
+    
+            verify_command="forge verify-contract $contractAddress $contractName --rpc-url \"$DEPLOYMENT_RPC_URL\" --verifier-url \"$VERIFIER_URL\" --etherscan-api-key \"$VERIFIER_API_KEY\" --skip-is-verified-check --watch"
+    
+            echo "Verifying $contractName: $contractAddress"
+            result=$(eval $verify_command --flatten --force 2>&1)
+
+            if [[ "$result" == *"Contract successfully verified"* ]]; then
+                echo "Success"
+            else
+                result=$(eval $verify_command 2>&1)
+
+                if [[ "$result" == *"Contract successfully verified"* ]]; then
+                    echo "Success"
+                else
+                    echo "Failure"
+                fi
+            fi
+        done
     fi
 }
 
@@ -101,6 +132,14 @@ else
     exit 1
 fi
 
+# Check if DEPLOYMENT_RPC_URL environment variable is set
+if [ -z "$DEPLOYMENT_RPC_URL" ]; then
+    echo "Error: DEPLOYMENT_RPC_URL environment variable is not set. Please set it and try again."
+    exit 1
+else
+    echo "DEPLOYMENT_RPC_URL is set to: $DEPLOYMENT_RPC_URL"
+fi
+
 echo ""
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
@@ -115,19 +154,23 @@ if [[ $local_fork == "y" ]]; then
         echo "You can spin up a local fork with the following command:"
         echo "anvil --fork-url ${FORK_RPC_URL}"
         exit 1
-    fi
-else
-    # Check if DEPLOYMENT_RPC_URL environment variable is set
-    if [ -z "$DEPLOYMENT_RPC_URL" ]; then
-        echo "Error: DEPLOYMENT_RPC_URL environment variable is not set. Please set it and try again."
-        exit 1
-    else
-        echo "DEPLOYMENT_RPC_URL is set to: $DEPLOYMENT_RPC_URL"
-    fi
+    fi  
 fi
 
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}
+
+if [[ $verify_contracts == "y" ]]; then
+    if [ -z "$VERIFIER_URL" ]; then
+        echo "Error: VERIFIER_URL environment variable is not set. Please set it and try again."
+        exit 1
+    fi
+
+    if [ -z "$VERIFIER_API_KEY" ]; then
+        echo "Error: VERIFIER_API_KEY environment variable is not set. Please set it and try again."
+        exit 1
+    fi
+fi
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}

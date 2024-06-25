@@ -39,7 +39,6 @@ if [ -z "$1" ]; then
     exit 1
 else
     account=$1
-    echo "Account address is set to: $account"
 fi
 
 # Check if a list of token addresses is provided as the second input parameter
@@ -48,7 +47,6 @@ if [ -z "$2" ]; then
     exit 1
 else
     IFS=',' read -r -a assetAddresses <<< "${2//[\[\]]/}"
-    echo "Asset addresses are set to: ${assetAddresses[@]}"
 fi
 
 echo ""
@@ -74,11 +72,10 @@ jsonPayload=$(jq -n \
     }')
 
 echo "Dealing ETH..."
-curl -s -X POST "$DEPLOYMENT_RPC_URL" -H "Content-Type: application/json" -d "$jsonPayload"
+curl -s -X POST "$DEPLOYMENT_RPC_URL" -H "Content-Type: application/json" -d "$jsonPayload" > /dev/null
 
 # Loop through the provided list of asset addresses
 for asset in "${assetAddresses[@]}"; do
-    echo ""
 	decimals=$(cast call $asset "decimals()(uint8)" --rpc-url $DEPLOYMENT_RPC_URL)
 
 	dealValueCalc=$(echo "obase=16; $dealValue * 10^$decimals" | bc)
@@ -101,7 +98,7 @@ for asset in "${assetAddresses[@]}"; do
         }')
 
 	echo "Dealing $asset..."
-	curl -s -X POST "$DEPLOYMENT_RPC_URL" -H "Content-Type: application/json" -d "$jsonPayload"
+	curl -s -X POST "$DEPLOYMENT_RPC_URL" -H "Content-Type: application/json" -d "$jsonPayload" > /dev/null
 done
 
 echo Done
