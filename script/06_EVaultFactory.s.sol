@@ -11,7 +11,7 @@ contract EVaultFactory is ScriptUtils {
         string memory json = getInputConfig(scriptFileName);
         address eVaultImplementation = abi.decode(vm.parseJson(json, ".eVaultImplementation"), (address));
 
-        eVaultFactory = deploy(eVaultImplementation);
+        eVaultFactory = execute(eVaultImplementation);
 
         string memory object;
         object = vm.serializeAddress("factory", "eVaultFactory", eVaultFactory);

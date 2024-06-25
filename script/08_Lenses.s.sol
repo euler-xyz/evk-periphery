@@ -16,7 +16,7 @@ contract Lenses is ScriptUtils {
     {
         string memory scriptFileName = "08_Lenses.json";
 
-        (accountLens, oracleLens, vaultLens, utilsLens) = deploy();
+        (accountLens, oracleLens, vaultLens, utilsLens) = execute();
 
         string memory object;
         object = vm.serializeAddress("lenses", "accountLens", accountLens);

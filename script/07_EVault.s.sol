@@ -20,7 +20,7 @@ contract EVault is ScriptUtils {
         address unitOfAccount = abi.decode(vm.parseJson(json, ".unitOfAccount"), (address));
 
         (oracleRouter, eVault) =
-            deploy(oracleRouterFactory, deployRouterForOracle, eVaultFactory, upgradable, asset, oracle, unitOfAccount);
+            execute(oracleRouterFactory, deployRouterForOracle, eVaultFactory, upgradable, asset, oracle, unitOfAccount);
 
         string memory object;
         if (deployRouterForOracle) {

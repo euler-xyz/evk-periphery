@@ -61,7 +61,7 @@ function execute_forge_command {
     if [[ $shouldVerify == "y" ]]; then
         forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy --verify --verifier-url $VERIFIER_URL --etherscan-api-key $VERIFIER_API_KEY
     else
-        forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy
+        forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy -vvv
     fi
 }
 
@@ -199,7 +199,8 @@ while true; do
             echo "2. Lido"
             echo "3. Pyth"
             echo "4. Redstone"
-            read -p "Enter your choice (0-4): " adapter_choice
+            echo "5. Cross"
+            read -p "Enter your choice (0-5): " adapter_choice
 
             scriptFileName=02_OracleAdapters.s.sol
 
@@ -338,6 +339,37 @@ while true; do
                             feedId: $feedId,
                             feedDecimals: $feedDecimals,
                             maxStaleness: $maxStaleness
+                        }' --indent 4 > script/input/$scriptJsonFileName
+                    ;;
+                5)
+                    echo "Deploying Cross Adapter..."
+                    
+                    scriptFileName=$scriptFileName:CrossAdapter
+                    scriptJsonFileName=02_CrossAdapter.json
+                    tempScriptJsonFileName=temp_$scriptJsonFileName
+                    backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+
+                    read -p "Enter the Adapter Registry address: " adapter_registry
+                    read -p "Enter base token address: " base
+                    read -p "Enter cross token address: " cross
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter oracleBaseCross address: " oracle_base_cross
+                    read -p "Enter oracleCrossQuote address: " oracle_cross_quote
+
+                    jq -n \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg base "$base" \
+                        --arg cross "$cross" \
+                        --arg quote "$quote" \
+                        --arg oracleBaseCross "$oracle_base_cross" \
+                        --arg oracleCrossQuote "$oracle_cross_quote" \
+                        '{
+                            adapterRegistry: $adapterRegistry,
+                            base: $base,
+                            quote: $quote,
+                            cross: $cross,
+                            oracleBaseCross: $oracleBaseCross,
+                            oracleCrossQuote: $oracleCrossQuote
                         }' --indent 4 > script/input/$scriptJsonFileName
                     ;;
                 *)
@@ -499,12 +531,12 @@ while true; do
                 --arg eVaultFactory "$evault_factory" \
                 --arg oracleRouterFactory "$oracle_router_factory" \
                 --arg oracleAdapterRegistry "$oracle_adapter_registry" \
-                --arg kinkIrmFactory "$kink_irm_factory" \
+                --arg kinkIRMFactory "$kink_irm_factory" \
                 '{
                     eVaultFactory: $eVaultFactory,
                     oracleRouterFactory: $oracleRouterFactory,
                     oracleAdapterRegistry: $oracleAdapterRegistry,
-                    kinkIrmFactory: $kinkIrmFactory
+                    kinkIRMFactory: $kinkIRMFactory
                 }' --indent 4 > script/input/$scriptJsonFileName
             ;;
         *)

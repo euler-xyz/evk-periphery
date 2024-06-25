@@ -9,6 +9,7 @@ import {ChronicleOracle} from "euler-price-oracle/adapter/chronicle/ChronicleOra
 import {LidoOracle} from "euler-price-oracle/adapter/lido/LidoOracle.sol";
 import {PythOracle} from "euler-price-oracle/adapter/pyth/PythOracle.sol";
 import {RedstoneCoreOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreOracle.sol";
+import {CrossAdapter as CrossOracle} from "euler-price-oracle/adapter/CrossAdapter.sol";
 
 contract ChainlinkAdapter is ScriptUtils {
     function run() public startBroadcast returns (address adapter) {
@@ -181,6 +182,47 @@ contract RedstoneAdapter is ScriptUtils {
         uint256 maxStaleness
     ) internal returns (address adapter) {
         adapter = address(new RedstoneCoreOracle(base, quote, feedId, feedDecimals, maxStaleness));
+        AdapterRegistry(adapterRegistry).addAdapter(adapter, base, quote);
+    }
+}
+
+contract CrossAdapter is ScriptUtils {
+    function run() public startBroadcast returns (address adapter) {
+        string memory json = getInputConfig("02_CrossAdapter.json");
+        address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        address base = abi.decode(vm.parseJson(json, ".base"), (address));
+        address cross = abi.decode(vm.parseJson(json, ".cross"), (address));
+        address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
+        address oracleBaseCross = abi.decode(vm.parseJson(json, ".oracleBaseCross"), (address));
+        address oracleCrossQuote = abi.decode(vm.parseJson(json, ".oracleCrossQuote"), (address));
+
+        adapter = execute(adapterRegistry, base, cross, quote, oracleBaseCross, oracleCrossQuote);
+
+        string memory object;
+        object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/02_CrossAdapter.json"));
+    }
+
+    function deploy(
+        address adapterRegistry,
+        address base,
+        address cross,
+        address quote,
+        address oracleBaseCross,
+        address oracleCrossQuote
+    ) public returns (address adapter) {
+        adapter = execute(adapterRegistry, base, cross, quote, oracleBaseCross, oracleCrossQuote);
+    }
+
+    function execute(
+        address adapterRegistry,
+        address base,
+        address cross,
+        address quote,
+        address oracleBaseCross,
+        address oracleCrossQuote
+    ) internal returns (address adapter) {
+        adapter = address(new CrossOracle(base, cross, quote, oracleBaseCross, oracleCrossQuote));
         AdapterRegistry(adapterRegistry).addAdapter(adapter, base, quote);
     }
 }

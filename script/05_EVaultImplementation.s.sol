@@ -41,7 +41,7 @@ contract EVaultImplementation is ScriptUtils {
         integrations.permit2 = abi.decode(vm.parseJson(json, ".permit2"), (address));
 
         Dispatch.DeployedModules memory modules;
-        (modules, implementation) = deploy(integrations);
+        (modules, implementation) = execute(integrations);
 
         moduleBalanceForwarder = modules.balanceForwarder;
         moduleBorrowing = modules.borrowing;
