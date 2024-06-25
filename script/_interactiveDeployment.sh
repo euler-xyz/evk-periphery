@@ -59,9 +59,9 @@ function execute_forge_command {
     local shouldVerify=$2
 
     if [[ $shouldVerify == "y" ]]; then
-        forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy --verify --verifier-url $VERIFIER_URL --etherscan-api-key $VERIFIER_API_KEY
+        forge script script/$scriptFileName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --verify --verifier-url "$VERIFIER_URL" --etherscan-api-key "$VERIFIER_API_KEY"
     else
-        forge script script/$scriptFileName --rpc-url $DEPLOYMENT_RPC_URL --broadcast --legacy -vvv
+        forge script script/$scriptFileName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy -vvv
     fi
 }
 
@@ -145,10 +145,11 @@ while true; do
     echo "7. EVault"
     echo "8. Lenses"
     echo "9. Perspectives"
-    echo "10. Exit"
-    read -p "Enter your choice (0-10): " choice
+    echo "10. Swap"
+    echo "11. Exit"
+    read -p "Enter your choice (0-11): " choice
 
-    if [[ "$choice" == "10" ]]; then
+    if [[ "$choice" == "11" ]]; then
         echo "Exiting..."
         break
     fi
@@ -514,7 +515,7 @@ while true; do
             backup_script_files $scriptJsonFileName $tempScriptJsonFileName
             ;;
         9)
-            echo "Deploying EVault..."
+            echo "Deploying Perspectives..."
             
             fileName=09_Perspectives
             scriptFileName=$fileName.s.sol
@@ -537,6 +538,32 @@ while true; do
                     oracleRouterFactory: $oracleRouterFactory,
                     oracleAdapterRegistry: $oracleAdapterRegistry,
                     kinkIRMFactory: $kinkIRMFactory
+                }' --indent 4 > script/input/$scriptJsonFileName
+            ;;
+        10)
+            echo "Deploying Swapper..."
+            
+            fileName=10_Swap
+            scriptFileName=$fileName.s.sol
+            scriptJsonFileName=$fileName.json
+            tempScriptJsonFileName=temp_$scriptJsonFileName
+            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+
+            read -p "Enter the OneInch Aggregator address: " oneinch_aggregator
+            read -p "Enter the Uniswap Router V2 address: " uniswap_router_v2
+            read -p "Enter the Uniswap Router V3 address: " uniswap_router_v3
+            read -p "Enter the Uniswap Router 02 address: " uniswap_router_02
+
+            jq -n \
+                --arg oneInchAggregator "$oneinch_aggregator" \
+                --arg uniswapRouterV2 "$uniswap_router_v2" \
+                --arg uniswapRouterV3 "$uniswap_router_v3" \
+                --arg uniswapRouter02 "$uniswap_router_02" \
+                '{
+                    oneInchAggregator: $oneInchAggregator,
+                    uniswapRouterV2: $uniswapRouterV2,
+                    uniswapRouterV3: $uniswapRouterV3,
+                    uniswapRouter02: $uniswapRouter02
                 }' --indent 4 > script/input/$scriptJsonFileName
             ;;
         *)

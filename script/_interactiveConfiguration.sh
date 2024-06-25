@@ -90,7 +90,7 @@ while true; do
                     read -p "Enter the destination address: " destination_address
                     read -p "Enter the amount to mint: " amount
 
-                    cast send $token_address "mint(address,uint256)" $destination_address $amount --private-key "$DEPLOYER_KEY"
+                    cast send $token_address "mint(address,uint256)" $destination_address $amount --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 *)
                     echo "Invalid choice. Exiting."
@@ -116,7 +116,7 @@ while true; do
                     read -p "Enter the Base address: " base_address
                     read -p "Enter the Quote address: " quote_address
 
-                    cast send $adapter_registry_address "addAdapter(address,address,address)" $oracle_adapter_address $base_address $quote_address --private-key "$DEPLOYER_KEY"
+                    cast send $adapter_registry_address "addAdapter(address,address,address)" $oracle_adapter_address $base_address $quote_address --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 *)
                     echo "Invalid choice. Exiting."
@@ -127,7 +127,7 @@ while true; do
         2)
             echo "Configuring Euler Router..."
             echo "Options:"
-            echo "0. Set config"
+            echo "0. Set oracle config"
             echo "1. Set resolved vault"
             echo "2. Set fallback oracle"
             echo "3. Go back"
@@ -145,18 +145,18 @@ while true; do
                     read -p "Enter the Quote address: " quote_address
                     read -p "Enter the Oracle address: " oracle_address
 
-                    cast send $euler_router_address "govSetConfig(address,address,address)" $base_address $quote_address $oracle_address --private-key "$DEPLOYER_KEY"
+                    cast send $euler_router_address "govSetConfig(address,address,address)" $base_address $quote_address $oracle_address --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 1)
                     read -p "Enter the Resolved Vault address: " resolved_vault_address
                     read -p "Do you want to set the resolved vault (true) or unset (false)?: " set_resolved_vault
 
-                    cast send $euler_router_address "govSetResolvedVault(address,bool)" $resolved_vault_address $set_resolved_vault --private-key "$DEPLOYER_KEY"
+                    cast send $euler_router_address "govSetResolvedVault(address,bool)" $resolved_vault_address $set_resolved_vault --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 2)
                     read -p "Enter the Fallback Oracle address: " fallback_oracle_address
 
-                    cast send $euler_router_address "govSetFallbackOracle(address)" $fallback_oracle_address --private-key "$DEPLOYER_KEY"
+                    cast send $euler_router_address "govSetFallbackOracle(address)" $fallback_oracle_address --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 *)
                     echo "Invalid choice. Exiting."
@@ -180,7 +180,7 @@ while true; do
                     read -p "Enter the EVault Factory address: " evault_factory_address
                     read -p "Enter the EVault implementation address: " evault_implementation_address
 
-                    cast send $evault_factory_address "setImplementation(address)" $evault_implementation_address --private-key "$DEPLOYER_KEY"
+                    cast send $evault_factory_address "setImplementation(address)" $evault_implementation_address --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 *)
                     echo "Invalid choice. Exiting."
@@ -214,12 +214,12 @@ while true; do
                 0)
                     read -p "Enter the governor admin address: " governor_admin_address
 
-                    cast send $evault_address "setGovernorAdmin(address)" $governor_admin_address --private-key "$DEPLOYER_KEY"
+                    cast send $evault_address "setGovernorAdmin(address)" $governor_admin_address --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 1)
                     read -p "Enter the fee receiver address: " fee_receiver_address
 
-                    cast send $evault_address "setFeeReceiver(address)" $fee_receiver_address --private-key "$DEPLOYER_KEY"
+                    cast send $evault_address "setFeeReceiver(address)" $fee_receiver_address --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 2)
                     read -p "Enter the collateral address: " collateral_address
@@ -227,44 +227,44 @@ while true; do
                     read -p "Enter the liquidation LTV: " liquidation_ltv
                     read -p "Enter the ramp duration: " ramp_duration
 
-                    cast send $evault_address "setLTV(address,uint16,uint16,uint32)" $collateral_address $borrow_ltv $liquidation_ltv $ramp_duration --private-key "$DEPLOYER_KEY"
+                    cast send $evault_address "setLTV(address,uint16,uint16,uint32)" $collateral_address $borrow_ltv $liquidation_ltv $ramp_duration --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 3)
                     read -p "Enter the max liquidation discount: " max_liquidation_discount
 
-                    cast send $evault_address "setMaxLiquidationDiscount(uint16)" $max_liquidation_discount --private-key "$DEPLOYER_KEY"
+                    cast send $evault_address "setMaxLiquidationDiscount(uint16)" $max_liquidation_discount --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 4)
                     read -p "Enter the liquidation cool off time: " liquidation_cool_off_time
 
-                    cast send $evault_address "setLiquidationCoolOffTime(uint16)" $liquidation_cool_off_time --private-key "$DEPLOYER_KEY"
+                    cast send $evault_address "setLiquidationCoolOffTime(uint16)" $liquidation_cool_off_time --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 5)
                     read -p "Enter the interest rate model: " interest_rate_model
 
-                    cast send $evault_address "setInterestRateModel(address)" $interest_rate_model --private-key "$DEPLOYER_KEY"
+                    cast send $evault_address "setInterestRateModel(address)" $interest_rate_model --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 6)
                     read -p "Enter the hook target address: " hook_target_address
                     read -p "Enter the hooked ops: " hooked_ops
 
-                    cast send $evault_address "setHookConfig(address,uint32)" $hook_target_address $hooked_ops --private-key "$DEPLOYER_KEY"
+                    cast send $evault_address "setHookConfig(address,uint32)" $hook_target_address $hooked_ops --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 7)
                     read -p "Enter the config flags: " config_flags
 
-                    cast send $evault_address "setConfigFlags(uint32)" $config_flags --private-key "$DEPLOYER_KEY"
+                    cast send $evault_address "setConfigFlags(uint32)" $config_flags --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 8)
                     read -p "Enter the supply cap: " supply_cap
                     read -p "Enter the borrow cap: " borrow_cap
 
-                    cast send $evault_address "setCaps(uint16,uint16)" $supply_cap $borrow_cap --private-key "$DEPLOYER_KEY"
+                    cast send $evault_address "setCaps(uint16,uint16)" $supply_cap $borrow_cap --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 9)
                     read -p "Enter the interest fee: " interest_fee
 
-                    cast send $evault_address "setInterestFee(uint16)" $interest_fee --private-key "$DEPLOYER_KEY"
+                    cast send $evault_address "setInterestFee(uint16)" $interest_fee --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 *)
                     echo "Invalid choice. Exiting."
@@ -288,7 +288,7 @@ while true; do
                     read -p "Enter the Perspectives address: " perspectives_address
                     read -p "Enter the EVault address: " evault_address
 
-                    cast send $perspectives_address "perspectiveVerify(address,bool)" $evault_address true --private-key "$DEPLOYER_KEY"
+                    cast send $perspectives_address "perspectiveVerify(address,bool)" $evault_address true --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 *)
                     echo "Invalid choice. Exiting."
