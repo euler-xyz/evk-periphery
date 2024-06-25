@@ -61,7 +61,8 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         testProperty(!config.upgradeable, ERROR__UPGRADABILITY);
 
         // cluster vaults must not be nested
-        testProperty(!vaultFactory.isProxy(IEVault(vault).asset()), ERROR__NESTING);
+        address asset = IEVault(vault).asset();
+        testProperty(!vaultFactory.isProxy(asset), ERROR__NESTING);
 
         // verify vault configuration at the governance level
         // cluster vaults must not have a governor admin
@@ -97,7 +98,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         testProperty(unitOfAccount == USD || unitOfAccount == WETH, ERROR__UNIT_OF_ACCOUNT);
 
         // Verify the full pricing configuration for asset/unitOfAccount in the router.
-        verifyAssetPricing(oracle, IEVault(vault).asset(), unitOfAccount);
+        verifyAssetPricing(oracle, asset, unitOfAccount);
 
         // cluster vaults must have collaterals set up
         address[] memory ltvList = IEVault(vault).LTVList();
@@ -155,16 +156,28 @@ abstract contract DefaultClusterPerspective is BasePerspective {
     }
 
     /// @notice Validate the EulerRouter configuration of a collateral vault.
+    /// @param router The EulerRouter instance.
+    /// @param vault The collateral vault to verify.
+    /// @param unitOfAccount The unit of account of the liability vault.
     /// @dev `vault` must be configured as a resolved vault and `verifyAssetPricing` must pass for its asset.
     function verifyCollateralPricing(address router, address vault, address unitOfAccount) internal {
         // The vault must have been configured in the router.
         address resolvedAsset = IEulerRouter(router).resolvedVaults(vault);
         testProperty(resolvedAsset == IEVault(vault).asset(), ERROR__ORACLE_INVALID_ROUTER_CONFIG);
 
+        // There must not be a short-circuiting adapter.
+        testProperty(
+            IEulerRouter(router).getConfiguredOracle(vault, unitOfAccount) == address(0),
+            ERROR__ORACLE_INVALID_ROUTER_CONFIG
+        );
+
         verifyAssetPricing(router, resolvedAsset, unitOfAccount);
     }
 
     /// @notice Validate the EulerRouter configuration of an asset.
+    /// @param router The EulerRouter instance.
+    /// @param asset The vault asset to verify.
+    /// @param unitOfAccount The unit of account of the liability vault.
     /// @dev Valid configurations:
     /// 1. `asset/unitOfAccount` has a configured adapter, valid in `adapterRegistry`.
     /// 2. `asset` is configured as a resolved vault, valid in `externalVaultRegistry`.
@@ -174,8 +187,12 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         // The asset must be either unresolved or a valid external vault.
         address unwrappedAsset = IEulerRouter(router).resolvedVaults(asset);
         if (unwrappedAsset != address(0)) {
+            // If the asset is itself an ERC4626 resolved vault, verify that it is valid in `externalVaultRegistry`.
+            testProperty(externalVaultRegistry.isValid(asset, block.timestamp), ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+            // Additionally, there must not be a short-circuiting adapter.
             testProperty(
-                externalVaultRegistry.isValid(unwrappedAsset, block.timestamp), ERROR__ORACLE_INVALID_ROUTER_CONFIG
+                IEulerRouter(router).getConfiguredOracle(asset, unitOfAccount) == address(0),
+                ERROR__ORACLE_INVALID_ROUTER_CONFIG
             );
         }
 
