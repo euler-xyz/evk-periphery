@@ -28,6 +28,17 @@ Directory: [src/IRMFactory](src/IRMFactory)
 
 This is an immutable factory contract for deploying Linear Kink IRM instances, used by EVK vaults. It does some basic parameter validation and tracks the addresses of created IRMs, so that the deployment provenance of IRM instances can be verified by perspectives. Linear Kink IRMs are immutable and stateless.
 
+### Deploying IRMFactory
+
+Copy [.env.example](.env.example) to `.env` and set `REMOTE_RPC_URL`, `MNEMONIC` and `VERIFIER_API_KEY`
+Run:
+
+```bash
+forge build
+source .env
+forge script scripts/DeployIRMFactory.sol:DeployIRMFactory --rpc-url $REMOTE_RPC_URL --broadcast -vvvv --slow --skip-simulation
+```
+
 ### OracleFactory
 
 Directory: [src/OracleFactory](src/OracleFactory)
