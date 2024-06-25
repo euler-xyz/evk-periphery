@@ -250,3 +250,19 @@ source .env && forge script script/09_Perspectives.s.sol --rpc-url "$DEPLOYMENT_
 
 Outputs:
 `script/output/09_Perspectives.json`
+
+### Swapper
+
+This command deploys:
+- Swapper
+- Swap Verifier
+
+Inputs:
+`script/input/10_Swap.json`
+
+```sh
+source .env && forge script script/10_Swap.s.sol --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy
+```
+
+Outputs:
+`script/output/10_Swap.json`
