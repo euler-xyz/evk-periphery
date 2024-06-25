@@ -19,11 +19,11 @@ contract EVaultFactory is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
     }
 
-    function deploy(address eVaultImplementation) public returns (address eVaultFactory) {
+    function deploy(address eVaultImplementation) public startBroadcast returns (address eVaultFactory) {
         eVaultFactory = execute(eVaultImplementation);
     }
 
-    function execute(address eVaultImplementation) internal returns (address eVaultFactory) {
+    function execute(address eVaultImplementation) public returns (address eVaultFactory) {
         eVaultFactory = address(new GenericFactory(getDeployer()));
         GenericFactory(eVaultFactory).setImplementation(eVaultImplementation);
     }

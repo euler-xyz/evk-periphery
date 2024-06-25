@@ -32,7 +32,7 @@ contract Swap is ScriptUtils {
         address uniswapRouterV2,
         address uniswapRouterV3,
         address uniswapRouter02
-    ) public returns (address swapper, address swapVerifier) {
+    ) public startBroadcast returns (address swapper, address swapVerifier) {
         (swapper, swapVerifier) = execute(oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02);
     }
 
@@ -41,7 +41,7 @@ contract Swap is ScriptUtils {
         address uniswapRouterV2,
         address uniswapRouterV3,
         address uniswapRouter02
-    ) internal returns (address swapper, address swapVerifier) {
+    ) public returns (address swapper, address swapVerifier) {
         swapper = address(new Swapper(oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02));
         swapVerifier = address(new SwapVerifier());
     }

@@ -29,13 +29,14 @@ contract ChainlinkAdapter is ScriptUtils {
 
     function deploy(address adapterRegistry, address base, address quote, address feed, uint256 maxStaleness)
         public
+        startBroadcast
         returns (address adapter)
     {
         adapter = execute(adapterRegistry, base, quote, feed, maxStaleness);
     }
 
     function execute(address adapterRegistry, address base, address quote, address feed, uint256 maxStaleness)
-        internal
+        public
         returns (address adapter)
     {
         adapter = address(new ChainlinkOracle(base, quote, feed, maxStaleness));
@@ -62,13 +63,14 @@ contract ChronicleAdapter is ScriptUtils {
 
     function deploy(address adapterRegistry, address base, address quote, address feed, uint256 maxStaleness)
         public
+        startBroadcast
         returns (address adapter)
     {
         adapter = execute(adapterRegistry, base, quote, feed, maxStaleness);
     }
 
     function execute(address adapterRegistry, address base, address quote, address feed, uint256 maxStaleness)
-        internal
+        public
         returns (address adapter)
     {
         adapter = address(new ChronicleOracle(base, quote, feed, maxStaleness));
@@ -89,11 +91,11 @@ contract LidoAdapter is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
     }
 
-    function deploy(address adapterRegistry) public returns (address adapter) {
+    function deploy(address adapterRegistry) public startBroadcast returns (address adapter) {
         adapter = execute(adapterRegistry);
     }
 
-    function execute(address adapterRegistry) internal returns (address adapter) {
+    function execute(address adapterRegistry) public returns (address adapter) {
         adapter = address(new LidoOracle());
         AdapterRegistry(adapterRegistry).addAdapter(adapter, LidoOracle(adapter).STETH(), LidoOracle(adapter).WSTETH());
     }
@@ -126,7 +128,7 @@ contract PythAdapter is ScriptUtils {
         bytes32 feedId,
         uint256 maxStaleness,
         uint256 maxConfWidth
-    ) public returns (address adapter) {
+    ) public startBroadcast returns (address adapter) {
         adapter = execute(adapterRegistry, pyth, base, quote, feedId, maxStaleness, maxConfWidth);
     }
 
@@ -138,7 +140,7 @@ contract PythAdapter is ScriptUtils {
         bytes32 feedId,
         uint256 maxStaleness,
         uint256 maxConfWidth
-    ) internal returns (address adapter) {
+    ) public returns (address adapter) {
         adapter = address(new PythOracle(pyth, base, quote, feedId, maxStaleness, maxConfWidth));
         AdapterRegistry(adapterRegistry).addAdapter(adapter, base, quote);
     }
@@ -169,7 +171,7 @@ contract RedstoneAdapter is ScriptUtils {
         bytes32 feedId,
         uint8 feedDecimals,
         uint256 maxStaleness
-    ) public returns (address adapter) {
+    ) public startBroadcast returns (address adapter) {
         adapter = execute(adapterRegistry, base, quote, feedId, feedDecimals, maxStaleness);
     }
 
@@ -180,7 +182,7 @@ contract RedstoneAdapter is ScriptUtils {
         bytes32 feedId,
         uint8 feedDecimals,
         uint256 maxStaleness
-    ) internal returns (address adapter) {
+    ) public returns (address adapter) {
         adapter = address(new RedstoneCoreOracle(base, quote, feedId, feedDecimals, maxStaleness));
         AdapterRegistry(adapterRegistry).addAdapter(adapter, base, quote);
     }
@@ -210,7 +212,7 @@ contract CrossAdapter is ScriptUtils {
         address quote,
         address oracleBaseCross,
         address oracleCrossQuote
-    ) public returns (address adapter) {
+    ) public startBroadcast returns (address adapter) {
         adapter = execute(adapterRegistry, base, cross, quote, oracleBaseCross, oracleCrossQuote);
     }
 
@@ -221,7 +223,7 @@ contract CrossAdapter is ScriptUtils {
         address quote,
         address oracleBaseCross,
         address oracleCrossQuote
-    ) internal returns (address adapter) {
+    ) public returns (address adapter) {
         adapter = address(new CrossOracle(base, cross, quote, oracleBaseCross, oracleCrossQuote));
         AdapterRegistry(adapterRegistry).addAdapter(adapter, base, quote);
     }

@@ -41,6 +41,7 @@ contract Perspectives is ScriptUtils {
         address kinkIRMFactory
     )
         public
+        startBroadcast
         returns (
             address escrowSingletonPerspective,
             address eulerDefaultClusterPerspective,
@@ -57,7 +58,7 @@ contract Perspectives is ScriptUtils {
         address oracleAdapterRegistry,
         address kinkIRMFactory
     )
-        internal
+        public
         returns (
             address escrowSingletonPerspective,
             address eulerDefaultClusterPerspective,

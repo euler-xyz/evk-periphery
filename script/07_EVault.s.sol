@@ -38,7 +38,7 @@ contract EVault is ScriptUtils {
         address asset,
         address oracle,
         address unitOfAccount
-    ) public returns (address oracleRouter, address eVault) {
+    ) public startBroadcast returns (address oracleRouter, address eVault) {
         (oracleRouter, eVault) =
             execute(oracleRouterFactory, deployRouterForOracle, eVaultFactory, upgradable, asset, oracle, unitOfAccount);
     }
@@ -51,7 +51,7 @@ contract EVault is ScriptUtils {
         address asset,
         address oracle,
         address unitOfAccount
-    ) internal returns (address oracleRouter, address eVault) {
+    ) public returns (address oracleRouter, address eVault) {
         if (deployRouterForOracle) {
             IEulerRouter _oracleRouter = IEulerRouter(EulerRouterFactory(oracleRouterFactory).deploy(getDeployer()));
             _oracleRouter.govSetConfig(asset, unitOfAccount, oracle);

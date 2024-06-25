@@ -26,14 +26,15 @@ contract Lenses is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
     }
 
-    function deploy() public returns (address accountLens, address oracleLens, address vaultLens, address utilsLens) {
+    function deploy()
+        public
+        startBroadcast
+        returns (address accountLens, address oracleLens, address vaultLens, address utilsLens)
+    {
         (accountLens, oracleLens, vaultLens, utilsLens) = execute();
     }
 
-    function execute()
-        internal
-        returns (address accountLens, address oracleLens, address vaultLens, address utilsLens)
-    {
+    function execute() public returns (address accountLens, address oracleLens, address vaultLens, address utilsLens) {
         accountLens = address(new AccountLens());
         oracleLens = address(new OracleLens());
         vaultLens = address(new VaultLens(address(oracleLens)));

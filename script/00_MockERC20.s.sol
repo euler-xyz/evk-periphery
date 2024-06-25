@@ -19,11 +19,15 @@ contract MockERC20 is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
     }
 
-    function deploy(string memory name, string memory symbol, uint8 decimals) public returns (address mockERC20) {
+    function deploy(string memory name, string memory symbol, uint8 decimals)
+        public
+        startBroadcast
+        returns (address mockERC20)
+    {
         mockERC20 = execute(name, symbol, decimals);
     }
 
-    function execute(string memory name, string memory symbol, uint8 decimals) internal returns (address mockERC20) {
+    function execute(string memory name, string memory symbol, uint8 decimals) public returns (address mockERC20) {
         mockERC20 = address(new ERC20Mintable(getDeployer(), name, symbol, decimals));
     }
 }

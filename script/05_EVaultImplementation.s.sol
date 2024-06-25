@@ -71,13 +71,14 @@ contract EVaultImplementation is ScriptUtils {
 
     function deploy(Base.Integrations memory integrations)
         public
+        startBroadcast
         returns (Dispatch.DeployedModules memory modules, address implementation)
     {
         (modules, implementation) = execute(integrations);
     }
 
     function execute(Base.Integrations memory integrations)
-        internal
+        public
         returns (Dispatch.DeployedModules memory modules, address implementation)
     {
         modules = Dispatch.DeployedModules({

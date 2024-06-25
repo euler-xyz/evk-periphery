@@ -24,13 +24,14 @@ contract KinkIRM is ScriptUtils {
 
     function deploy(address irmFactory, uint256 baseRate, uint256 slope1, uint256 slope2, uint256 kink)
         public
+        startBroadcast
         returns (address irm)
     {
         irm = execute(irmFactory, baseRate, slope1, slope2, kink);
     }
 
     function execute(address irmFactory, uint256 baseRate, uint256 slope1, uint256 slope2, uint256 kink)
-        internal
+        public
         returns (address irm)
     {
         irm = EulerKinkIRMFactory(irmFactory).deploy(baseRate, slope1, slope2, kink);

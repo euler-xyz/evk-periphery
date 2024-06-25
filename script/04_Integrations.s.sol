@@ -32,13 +32,14 @@ contract Integrations is ScriptUtils {
 
     function deploy()
         public
+        startBroadcast
         returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address permit2)
     {
         (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2) = execute();
     }
 
     function execute()
-        internal
+        public
         returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address permit2)
     {
         address deployer = getDeployer();

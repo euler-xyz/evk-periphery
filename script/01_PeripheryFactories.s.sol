@@ -26,13 +26,14 @@ contract PeripheryFactories is ScriptUtils {
 
     function deploy()
         public
+        startBroadcast
         returns (address oracleRouterFactory, address oracleAdapterRegistry, address kinkIRMFactory)
     {
         (oracleRouterFactory, oracleAdapterRegistry, kinkIRMFactory) = execute();
     }
 
     function execute()
-        internal
+        public
         returns (address oracleRouterFactory, address oracleAdapterRegistry, address kinkIRMFactory)
     {
         oracleRouterFactory = address(new EulerRouterFactory());
