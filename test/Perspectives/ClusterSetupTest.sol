@@ -10,7 +10,7 @@ import {EulerDefaultClusterPerspective} from "../../src/Perspectives/deployed/Eu
 import {EscrowSingletonPerspective} from "../../src/Perspectives/deployed/EscrowSingletonPerspective.sol";
 import {DefaultClusterPerspective} from "../../src/Perspectives/implementation/DefaultClusterPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
-import {AdapterRegistry} from "../../src/OracleFactory/AdapterRegistry.sol";
+import {SnapshotRegistry} from "../../src/OracleFactory/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
 import {IEulerRouterFactory} from "../../src/OracleFactory/interfaces/IEulerRouterFactory.sol";
 import {IEulerRouter} from "../../src/OracleFactory/interfaces/IEulerRouter.sol";
@@ -21,10 +21,18 @@ contract DefaultClusterPerspectiveInstance is DefaultClusterPerspective {
         address factory,
         address routerFactory,
         address adapterRegistry,
+        address externalVaultRegistry,
         address irmFactory,
         address[] memory recognizedCollateralPerspectives
     )
-        DefaultClusterPerspective(factory, routerFactory, adapterRegistry, irmFactory, recognizedCollateralPerspectives)
+        DefaultClusterPerspective(
+            factory,
+            routerFactory,
+            adapterRegistry,
+            externalVaultRegistry,
+            irmFactory,
+            recognizedCollateralPerspectives
+        )
     {}
 
     function name() public pure override returns (string memory) {
@@ -36,12 +44,13 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
-    address adapterRegistryOwner = makeAddr("adapterRegistryOwner");
+    address registryOwner = makeAddr("registryOwner");
     address routerGovernor = makeAddr("routerGovernor");
 
     IEulerRouterFactory routerFactory;
     IEulerRouter router;
-    AdapterRegistry adapterRegistry;
+    SnapshotRegistry adapterRegistry;
+    SnapshotRegistry externalVaultRegistry;
     EulerKinkIRMFactory irmFactory;
 
     EscrowSingletonPerspective escrowSingletonPerspective;
@@ -66,7 +75,8 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         }
         routerFactory = IEulerRouterFactory(deployed);
         router = IEulerRouter(routerFactory.deploy(routerGovernor));
-        adapterRegistry = new AdapterRegistry(adapterRegistryOwner);
+        adapterRegistry = new SnapshotRegistry(registryOwner);
+        externalVaultRegistry = new SnapshotRegistry(registryOwner);
         irmFactory = new EulerKinkIRMFactory();
 
         address irmZero = irmFactory.deploy(0, 0, 0, 0);
@@ -79,6 +89,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
+            address(externalVaultRegistry),
             address(irmFactory),
             address(escrowSingletonPerspective)
         );
@@ -89,6 +100,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
+            address(externalVaultRegistry),
             address(irmFactory),
             recognizedCollateralPerspectives
         );
@@ -98,6 +110,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
+            address(externalVaultRegistry),
             address(irmFactory),
             recognizedCollateralPerspectives
         );
@@ -109,6 +122,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
+            address(externalVaultRegistry),
             address(irmFactory),
             recognizedCollateralPerspectives
         );
@@ -147,11 +161,11 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         address stubAdapter_assetTST_WETH = address(new StubPriceOracle());
         address stubAdapter_assetTST2_USD = address(new StubPriceOracle());
         address stubAdapter_assetTST2_WETH = address(new StubPriceOracle());
-        vm.startPrank(adapterRegistryOwner);
-        adapterRegistry.addAdapter(stubAdapter_assetTST_USD, address(assetTST), USD);
-        adapterRegistry.addAdapter(stubAdapter_assetTST_WETH, address(assetTST), WETH);
-        adapterRegistry.addAdapter(stubAdapter_assetTST2_USD, address(assetTST2), USD);
-        adapterRegistry.addAdapter(stubAdapter_assetTST2_WETH, address(assetTST2), WETH);
+        vm.startPrank(registryOwner);
+        adapterRegistry.add(stubAdapter_assetTST_USD, address(assetTST), USD);
+        adapterRegistry.add(stubAdapter_assetTST_WETH, address(assetTST), WETH);
+        adapterRegistry.add(stubAdapter_assetTST2_USD, address(assetTST2), USD);
+        adapterRegistry.add(stubAdapter_assetTST2_WETH, address(assetTST2), WETH);
         vm.stopPrank();
 
         vm.startPrank(routerGovernor);
