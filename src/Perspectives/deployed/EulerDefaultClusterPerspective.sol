@@ -14,7 +14,7 @@ contract EulerDefaultClusterPerspective is DefaultClusterPerspective {
     constructor(
         address vaultFactory_,
         address routerFactory_,
-        address SnapshotRegistry_,
+        address adapterRegistry_,
         address externalVaultRegistry_,
         address irmFactory_,
         address escrowSingletonPerspective_
@@ -22,7 +22,7 @@ contract EulerDefaultClusterPerspective is DefaultClusterPerspective {
         DefaultClusterPerspective(
             vaultFactory_,
             routerFactory_,
-            SnapshotRegistry_,
+            adapterRegistry_,
             externalVaultRegistry_,
             irmFactory_,
             new address[](0)
