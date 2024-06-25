@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.24;
 
+import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {TestERC20} from "evk-test/mocks/TestERC20.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
@@ -13,8 +14,7 @@ import {DefaultClusterPerspective} from "../../src/Perspectives/implementation/D
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
 import {SnapshotRegistry} from "../../src/OracleFactory/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
-import {IEulerRouterFactory} from "../../src/OracleFactory/interfaces/IEulerRouterFactory.sol";
-import {IEulerRouter} from "../../src/OracleFactory/interfaces/IEulerRouter.sol";
+import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
 import {StubPriceOracle} from "../utils/StubPriceOracle.sol";
 import {StubERC4626} from "../utils/StubERC4626.sol";
 
@@ -49,8 +49,8 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
     address registryOwner = makeAddr("registryOwner");
     address routerGovernor = makeAddr("routerGovernor");
 
-    IEulerRouterFactory routerFactory;
-    IEulerRouter router;
+    EulerRouterFactory routerFactory;
+    EulerRouter router;
     SnapshotRegistry adapterRegistry;
     SnapshotRegistry externalVaultRegistry;
     EulerKinkIRMFactory irmFactory;
@@ -83,13 +83,8 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         xvTST4 = new StubERC4626(address(assetTST4), 1.05e18);
 
         // deploy the oracle-related contracts
-        bytes memory initcode = vm.getCode("EulerRouterFactory.sol");
-        address deployed;
-        assembly {
-            deployed := create(0, add(initcode, 0x20), mload(initcode))
-        }
-        routerFactory = IEulerRouterFactory(deployed);
-        router = IEulerRouter(routerFactory.deploy(routerGovernor));
+        routerFactory = new EulerRouterFactory();
+        router = EulerRouter(routerFactory.deploy(routerGovernor));
         adapterRegistry = new SnapshotRegistry(registryOwner);
         externalVaultRegistry = new SnapshotRegistry(registryOwner);
         irmFactory = new EulerKinkIRMFactory();

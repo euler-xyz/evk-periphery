@@ -112,6 +112,7 @@ abstract contract BasePerspective is IPerspective, PerspectiveErrors {
     /// @param errorCode The error code to use if the condition fails.
     function testProperty(bool condition, uint256 errorCode) internal virtual {
         if (condition) return;
+        if (errorCode == 0) revert PerspectivePanic();
 
         bool failEarly;
         assembly {
