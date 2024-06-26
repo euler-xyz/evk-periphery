@@ -68,6 +68,26 @@ abstract contract BaseHandler is ISwapper {
         return balance;
     }
 
+    function setAllowanceForBalance(address token, address spender, uint256 minAmount) internal returns (uint256) {
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        if (balance >= minAmount) {
+            safeApproveWithRetry(token, spender, balance);
+        }
+
+        return balance;
+    }
+
+    function removeAllowance(address token, address spender) internal {
+        (bool success, bytes memory data) = trySafeApprove(token, spender, 0);
+
+        // some weird tokens revert on zero amount approval
+        if (!success) {
+            (success,) = trySafeApprove(token, spender, 1);
+        }
+
+        if (!success) RevertBytes.revertBytes(data);
+    }
+
     function trySafeApprove(address token, address to, uint256 value) internal returns (bool, bytes memory) {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.approve.selector, to, value));
         return (success && (data.length == 0 || abi.decode(data, (bool))), data);

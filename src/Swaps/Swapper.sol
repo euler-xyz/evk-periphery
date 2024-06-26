@@ -84,10 +84,12 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     /// @inheritdoc ISwapper
     /// @dev in case of over-swapping to repay, pass max uint amount
     function repay(address token, address vault, uint256 repayAmount, address account) public externalLock {
-        uint256 balance = setMaxAllowance(token, vault);
+        uint256 balance = setAllowanceForBalance(token, vault, 0);
         repayAmount = _capRepayToBalance(repayAmount, balance);
 
         IEVault(vault).repay(repayAmount, account);
+
+        removeAllowance(token, vault);
     }
 
     /// @inheritdoc ISwapper
@@ -119,14 +121,16 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     // internal
 
     function _deposit(address token, address vault, uint256 amountMin, address account) internal {
-        uint256 balance = setMaxAllowance(token, vault);
+        uint256 balance = setAllowanceForBalance(token, vault, amountMin);
         if (balance >= amountMin) {
             IEVault(vault).deposit(balance, account);
         }
+
+        removeAllowance(token, vault);
     }
 
     function _repayAndDeposit(address token, address vault, uint256 repayAmount, address account) internal {
-        uint256 balance = setMaxAllowance(token, vault);
+        uint256 balance = setAllowanceForBalance(token, vault, 0);
         repayAmount = _capRepayToBalance(repayAmount, balance);
 
         repayAmount = IEVault(vault).repay(repayAmount, account);
@@ -134,6 +138,8 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         if (balance > repayAmount) {
             IEVault(vault).deposit(type(uint256).max, account);
         }
+
+        removeAllowance(token, vault);
     }
 
     // Adjust repay to the available balance. It is needed when exact output swaps are not exact in reality.
