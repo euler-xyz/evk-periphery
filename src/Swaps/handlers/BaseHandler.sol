@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import {ISwapper} from "../ISwapper.sol";
 import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
-import {SafeERC20Lib} from "evk/EVault/shared/lib/SafeERC20Lib.sol";
 import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 
 /// @title BaseHandler
@@ -23,7 +22,6 @@ abstract contract BaseHandler is ISwapper {
 
     error Swapper_UnsupportedMode();
     error Swapper_TargetDebt();
-    error Swapper_TargetDebtBalance();
 
     function resolveParams(SwapParams memory params) internal view returns (uint256 amountOut, address receiver) {
         amountOut = params.amountOut;
@@ -36,7 +34,11 @@ abstract contract BaseHandler is ISwapper {
         // for combined exact output swaps, which accumulate the output in the swapper, check how much is already
         // available
         if (params.mode == MODE_EXACT_OUT && params.receiver == address(this)) {
-            amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
+            unchecked {
+                amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
+            }
+
+            return (amountOut, receiver);
         }
 
         if (params.mode == MODE_TARGET_DEBT) {
@@ -45,11 +47,13 @@ abstract contract BaseHandler is ISwapper {
             // amountOut is the target debt
             if (amountOut > debt) revert Swapper_TargetDebt();
 
-            // reuse params.amountOut to hold repay
-            amountOut = params.amountOut = debt - amountOut;
+            unchecked {
+                // reuse params.amountOut to hold repay
+                amountOut = params.amountOut = debt - amountOut;
 
-            // check if balance is already sufficient to repay
-            amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
+                // check if balance is already sufficient to repay
+                amountOut = balanceOut >= amountOut ? 0 : amountOut - balanceOut;
+            }
 
             // collect output in the swapper for repay
             receiver = address(this);
@@ -62,6 +66,26 @@ abstract contract BaseHandler is ISwapper {
         if (allowance < balance) safeApproveWithRetry(token, spender, type(uint256).max);
 
         return balance;
+    }
+
+    function setAllowanceForBalance(address token, address spender, uint256 minAmount) internal returns (uint256) {
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        if (balance >= minAmount) {
+            safeApproveWithRetry(token, spender, balance);
+        }
+
+        return balance;
+    }
+
+    function removeAllowance(address token, address spender) internal {
+        (bool success, bytes memory data) = trySafeApprove(token, spender, 0);
+
+        // some weird tokens revert on zero amount approval
+        if (!success) {
+            (success,) = trySafeApprove(token, spender, 1);
+        }
+
+        if (!success) RevertBytes.revertBytes(data);
     }
 
     function trySafeApprove(address token, address to, uint256 value) internal returns (bool, bytes memory) {
