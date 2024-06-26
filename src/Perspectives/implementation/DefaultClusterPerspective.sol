@@ -2,13 +2,14 @@
 
 pragma solidity ^0.8.24;
 
+import {IERC4626} from "forge-std/interfaces/IERC4626.sol";
+import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {IEulerRouter} from "../../OracleFactory/interfaces/IEulerRouter.sol";
 import {IEulerRouterFactory} from "../../OracleFactory/interfaces/IEulerRouterFactory.sol";
-import {AdapterRegistry} from "../../OracleFactory/AdapterRegistry.sol";
+import {SnapshotRegistry} from "../../OracleFactory/SnapshotRegistry.sol";
 import {IEulerKinkIRMFactory} from "../../IRMFactory/interfaces/IEulerKinkIRMFactory.sol";
 import {BasePerspective} from "./BasePerspective.sol";
 
@@ -22,13 +23,15 @@ abstract contract DefaultClusterPerspective is BasePerspective {
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     IEulerRouterFactory internal immutable routerFactory;
-    AdapterRegistry internal immutable adapterRegistry;
+    SnapshotRegistry internal immutable adapterRegistry;
+    SnapshotRegistry internal immutable externalVaultRegistry;
     IEulerKinkIRMFactory internal immutable irmFactory;
 
     /// @notice Creates a new DefaultClusterPerspective instance.
     /// @param vaultFactory_ The address of the GenericFactory contract.
     /// @param routerFactory_ The address of the EulerRouterFactory contract.
-    /// @param adapterRegistry_ The address of the AdapterRegistry contract.
+    /// @param adapterRegistry_ The address of the adapter registry contract.
+    /// @param externalVaultRegistry_ The address of the external vault registry contract.
     /// @param irmFactory_ The address of the EulerKinkIRMFactory contract.
     /// @param recognizedCollateralPerspectives_ The addresses of the recognized collateral perspectives. address(0) for
     /// self.
@@ -36,11 +39,13 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         address vaultFactory_,
         address routerFactory_,
         address adapterRegistry_,
+        address externalVaultRegistry_,
         address irmFactory_,
         address[] memory recognizedCollateralPerspectives_
     ) BasePerspective(vaultFactory_) {
         routerFactory = IEulerRouterFactory(routerFactory_);
-        adapterRegistry = AdapterRegistry(adapterRegistry_);
+        adapterRegistry = SnapshotRegistry(adapterRegistry_);
+        externalVaultRegistry = SnapshotRegistry(externalVaultRegistry_);
         irmFactory = IEulerKinkIRMFactory(irmFactory_);
         recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
     }
@@ -56,7 +61,8 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         testProperty(!config.upgradeable, ERROR__UPGRADABILITY);
 
         // cluster vaults must not be nested
-        testProperty(!vaultFactory.isProxy(IEVault(vault).asset()), ERROR__NESTING);
+        address asset = IEVault(vault).asset();
+        testProperty(!vaultFactory.isProxy(asset), ERROR__NESTING);
 
         // verify vault configuration at the governance level
         // cluster vaults must not have a governor admin
@@ -78,49 +84,37 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         // cluster vaults must not have any config flags set
         testProperty(IEVault(vault).configFlags() == 0, ERROR__CONFIG_FLAGS);
 
+        // cluster vaults must have liquidation discount in a certain range
+        uint16 maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
+        testProperty(maxLiquidationDiscount >= 0.05e4 && maxLiquidationDiscount <= 0.2e4, ERROR__LIQUIDATION_DISCOUNT);
+
         // cluster vaults must have certain liquidation cool off time
         testProperty(IEVault(vault).liquidationCoolOffTime() == 1, ERROR__LIQUIDATION_COOL_OFF_TIME);
 
         // cluster vaults must point to an ungoverned EulerRouter instance deployed by the factory
         address oracle = IEVault(vault).oracle();
         testProperty(routerFactory.isValidDeployment(oracle), ERROR__ORACLE_INVALID_ROUTER);
-        testProperty(IEulerRouter(oracle).governor() == address(0), ERROR__ORACLE_GOVERNED_ROUTER);
-        testProperty(IEulerRouter(oracle).fallbackOracle() == address(0), ERROR__ORACLE_INVALID_FALLBACK);
+        testProperty(EulerRouter(oracle).governor() == address(0), ERROR__ORACLE_GOVERNED_ROUTER);
+        testProperty(EulerRouter(oracle).fallbackOracle() == address(0), ERROR__ORACLE_INVALID_FALLBACK);
 
         // Verify the unit of account is either USD or WETH
         address unitOfAccount = IEVault(vault).unitOfAccount();
         testProperty(unitOfAccount == USD || unitOfAccount == WETH, ERROR__UNIT_OF_ACCOUNT);
 
-        // the router must contain a valid pricing configuration
-        {
-            (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, vault, unitOfAccount);
-            testProperty(
-                adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp), ERROR__ORACLE_INVALID_ASSET_ADAPTER
-            );
-        }
+        // Verify the full pricing configuration for asset/unitOfAccount in the router.
+        verifyAssetPricing(oracle, asset, unitOfAccount);
 
         // cluster vaults must have collaterals set up
         address[] memory ltvList = IEVault(vault).LTVList();
-        testProperty(ltvList.length > 0 && ltvList.length <= 10, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
+        uint256 ltvListLength = ltvList.length;
+        testProperty(ltvListLength > 0 && ltvListLength <= 10, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
 
         // cluster vaults must have recognized collaterals
-        for (uint256 i = 0; i < ltvList.length; ++i) {
+        for (uint256 i = 0; i < ltvListLength; ++i) {
             address collateral = ltvList[i];
 
-            // the router must contain a valid pricing configuration for all the collaterals
-            {
-                (,,, address resolvedOracle) = IEulerRouter(oracle).resolveOracle(1e18, collateral, unitOfAccount);
-                testProperty(
-                    adapterRegistry.isValidAdapter(resolvedOracle, block.timestamp),
-                    ERROR__ORACLE_INVALID_COLLATERAL_ADAPTER
-                );
-            }
-
-            // cluster vaults must have liquidation discount in a certain range
-            uint16 maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
-            testProperty(
-                maxLiquidationDiscount >= 0.05e4 && maxLiquidationDiscount <= 0.2e4, ERROR__LIQUIDATION_DISCOUNT
-            );
+            // Verify the full pricing configuration for collateral/unitOfAccount in the router.
+            verifyCollateralPricing(oracle, collateral, unitOfAccount);
 
             // cluster vaults collaterals must have the LTVs set in range with LTV separation provided
             (uint16 borrowLTV, uint16 liquidationLTV,,, uint32 rampDuration) = IEVault(vault).LTVFull(collateral);
@@ -131,7 +125,8 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
             // iterate over recognized collateral perspectives to check if the collateral is recognized
             bool recognized = false;
-            for (uint256 j = 0; j < recognizedCollateralPerspectives.length; ++j) {
+            uint256 recognizedCollateralPerspectivesLength = recognizedCollateralPerspectives.length;
+            for (uint256 j = 0; j < recognizedCollateralPerspectivesLength; ++j) {
                 address perspective = recognizedCollateralPerspectives[j] == address(0)
                     ? address(this)
                     : recognizedCollateralPerspectives[j];
@@ -143,7 +138,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             }
 
             if (!recognized) {
-                for (uint256 j = 0; j < recognizedCollateralPerspectives.length; ++j) {
+                for (uint256 j = 0; j < recognizedCollateralPerspectivesLength; ++j) {
                     address perspective = recognizedCollateralPerspectives[j] == address(0)
                         ? address(this)
                         : recognizedCollateralPerspectives[j];
@@ -158,5 +153,53 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
             testProperty(recognized, ERROR__LTV_COLLATERAL_RECOGNITION);
         }
+    }
+
+    /// @notice Validate the EulerRouter configuration of a collateral vault.
+    /// @param router The EulerRouter instance.
+    /// @param vault The collateral vault to verify.
+    /// @param unitOfAccount The unit of account of the liability vault.
+    /// @dev `vault` must be configured as a resolved vault and `verifyAssetPricing` must pass for its asset.
+    function verifyCollateralPricing(address router, address vault, address unitOfAccount) internal {
+        // The vault must have been configured in the router.
+        address resolvedAsset = EulerRouter(router).resolvedVaults(vault);
+        testProperty(resolvedAsset == IEVault(vault).asset(), ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+
+        // There must not be a short-circuiting adapter.
+        testProperty(
+            EulerRouter(router).getConfiguredOracle(vault, unitOfAccount) == address(0),
+            ERROR__ORACLE_INVALID_ROUTER_CONFIG
+        );
+
+        verifyAssetPricing(router, resolvedAsset, unitOfAccount);
+    }
+
+    /// @notice Validate the EulerRouter configuration of an asset.
+    /// @param router The EulerRouter instance.
+    /// @param asset The vault asset to verify.
+    /// @param unitOfAccount The unit of account of the liability vault.
+    /// @dev Valid configurations:
+    /// 1. `asset/unitOfAccount` has a configured adapter, valid in `adapterRegistry`.
+    /// 2. `asset` is configured as a resolved vault, valid in `externalVaultRegistry`.
+    /// IERC4626(asset).asset()/unitOfAccount` has a configured adapter, valid in `adapterRegistry`.
+    /// The latter is done to accommodate ERC4626-based tokens e.g. sDai.
+    function verifyAssetPricing(address router, address asset, address unitOfAccount) internal {
+        // The asset must be either unresolved or a valid external vault.
+        address unwrappedAsset = EulerRouter(router).resolvedVaults(asset);
+        if (unwrappedAsset != address(0)) {
+            // If the asset is itself an ERC4626 resolved vault, verify that it is valid in `externalVaultRegistry`.
+            testProperty(externalVaultRegistry.isValid(asset, block.timestamp), ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+            // Additionally, there must not be a short-circuiting adapter.
+            testProperty(
+                EulerRouter(router).getConfiguredOracle(asset, unitOfAccount) == address(0),
+                ERROR__ORACLE_INVALID_ROUTER_CONFIG
+            );
+        }
+
+        // The final adapter must be valid according to the registry.
+        address adapter = EulerRouter(router).getConfiguredOracle(
+            unwrappedAsset == address(0) ? asset : unwrappedAsset, unitOfAccount
+        );
+        testProperty(adapterRegistry.isValid(adapter, block.timestamp), ERROR__ORACLE_INVALID_ADAPTER);
     }
 }
