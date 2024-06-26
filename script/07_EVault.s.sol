@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./ScriptUtils.s.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
+import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {EulerRouterFactory} from "../src/OracleFactory/EulerRouterFactory.sol";
-import {IEulerRouter} from "../src/OracleFactory/interfaces/IEulerRouter.sol";
 
 contract EVault is ScriptUtils {
     function run() public startBroadcast returns (address oracleRouter, address eVault) {
@@ -53,7 +53,7 @@ contract EVault is ScriptUtils {
         address unitOfAccount
     ) public returns (address oracleRouter, address eVault) {
         if (deployRouterForOracle) {
-            IEulerRouter _oracleRouter = IEulerRouter(EulerRouterFactory(oracleRouterFactory).deploy(getDeployer()));
+            EulerRouter _oracleRouter = EulerRouter(EulerRouterFactory(oracleRouterFactory).deploy(getDeployer()));
             _oracleRouter.govSetConfig(asset, unitOfAccount, oracle);
             oracleRouter = address(_oracleRouter);
         }

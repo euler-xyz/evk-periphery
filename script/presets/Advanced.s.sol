@@ -23,8 +23,8 @@ import {RiskManager} from "evk/EVault/modules/RiskManager.sol";
 import {Token} from "evk/EVault/modules/Token.sol";
 import {Vault} from "evk/EVault/modules/Vault.sol";
 import {Dispatch} from "evk/EVault/Dispatch.sol";
-import {IEulerRouter} from "../../src/OracleFactory/interfaces/IEulerRouter.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
+import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 
 contract Advanced is ScriptUtils {
     address internal USD = address(840);
@@ -38,6 +38,7 @@ contract Advanced is ScriptUtils {
     struct DeploymentInfo {
         address oracleRouterFactory;
         address oracleAdapterRegistry;
+        address externalVaultRegistry;
         address kinkIRMFactory;
         address chainlinkAdapterWETHUSD;
         address chainlinkAdapterUSDCUSD;
@@ -84,7 +85,12 @@ contract Advanced is ScriptUtils {
         // deploy periphery factories
         {
             PeripheryFactories deployer = new PeripheryFactories();
-            (result.oracleRouterFactory, result.oracleAdapterRegistry, result.kinkIRMFactory) = deployer.deploy();
+            (
+                result.oracleRouterFactory,
+                result.oracleAdapterRegistry,
+                result.externalVaultRegistry,
+                result.kinkIRMFactory
+            ) = deployer.deploy();
         }
 
         // deploy oracle adapters
@@ -186,14 +192,14 @@ contract Advanced is ScriptUtils {
 
             // configure the oracle router
             for (uint256 i = 0; i < result.eVault.length; i++) {
-                IEulerRouter(result.oracleRouter).govSetResolvedVault(result.eVault[i], true);
+                EulerRouter(result.oracleRouter).govSetResolvedVault(result.eVault[i], true);
             }
 
-            IEulerRouter(result.oracleRouter).govSetConfig(WETH, USD, result.chainlinkAdapterWETHUSD);
-            IEulerRouter(result.oracleRouter).govSetConfig(WBTC, USD, result.pythAdapterWBTCUSD);
-            IEulerRouter(result.oracleRouter).govSetConfig(USDC, USD, result.chainlinkAdapterUSDCUSD);
-            IEulerRouter(result.oracleRouter).govSetConfig(DAI, USD, result.chainlinkAdapterDAIUSD);
-            IEulerRouter(result.oracleRouter).govSetConfig(wstETH, USD, result.crossAdapterWSTETHUSD);
+            EulerRouter(result.oracleRouter).govSetConfig(WETH, USD, result.chainlinkAdapterWETHUSD);
+            EulerRouter(result.oracleRouter).govSetConfig(WBTC, USD, result.pythAdapterWBTCUSD);
+            EulerRouter(result.oracleRouter).govSetConfig(USDC, USD, result.chainlinkAdapterUSDCUSD);
+            EulerRouter(result.oracleRouter).govSetConfig(DAI, USD, result.chainlinkAdapterDAIUSD);
+            EulerRouter(result.oracleRouter).govSetConfig(wstETH, USD, result.crossAdapterWSTETHUSD);
 
             // configure the vaults
             // WETH vault has WBTC, USDC, DAI, wstETH escrow and WBTC escrow as collateral
@@ -237,7 +243,11 @@ contract Advanced is ScriptUtils {
             Perspectives deployer = new Perspectives();
             (result.escrowSingletonPerspective, result.eulerDefaultClusterPerspective, result.eulerFactoryPerspective) =
             deployer.deploy(
-                result.eVaultFactory, result.oracleRouterFactory, result.oracleAdapterRegistry, result.kinkIRMFactory
+                result.eVaultFactory,
+                result.oracleRouterFactory,
+                result.oracleAdapterRegistry,
+                result.externalVaultRegistry,
+                result.kinkIRMFactory
             );
         }
         // deploy swapper

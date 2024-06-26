@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./ScriptUtils.s.sol";
-import {AdapterRegistry} from "../src/OracleFactory/AdapterRegistry.sol";
+import {SnapshotRegistry} from "../src/OracleFactory/SnapshotRegistry.sol";
 import {ChainlinkOracle} from "euler-price-oracle/adapter/chainlink/ChainlinkOracle.sol";
 import {ChronicleOracle} from "euler-price-oracle/adapter/chronicle/ChronicleOracle.sol";
 import {LidoOracle} from "euler-price-oracle/adapter/lido/LidoOracle.sol";
@@ -40,7 +40,7 @@ contract ChainlinkAdapter is ScriptUtils {
         returns (address adapter)
     {
         adapter = address(new ChainlinkOracle(base, quote, feed, maxStaleness));
-        AdapterRegistry(adapterRegistry).addAdapter(adapter, base, quote);
+        SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
 
@@ -74,7 +74,7 @@ contract ChronicleAdapter is ScriptUtils {
         returns (address adapter)
     {
         adapter = address(new ChronicleOracle(base, quote, feed, maxStaleness));
-        AdapterRegistry(adapterRegistry).addAdapter(adapter, base, quote);
+        SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
 
@@ -97,7 +97,7 @@ contract LidoAdapter is ScriptUtils {
 
     function execute(address adapterRegistry) public returns (address adapter) {
         adapter = address(new LidoOracle());
-        AdapterRegistry(adapterRegistry).addAdapter(adapter, LidoOracle(adapter).STETH(), LidoOracle(adapter).WSTETH());
+        SnapshotRegistry(adapterRegistry).add(adapter, LidoOracle(adapter).STETH(), LidoOracle(adapter).WSTETH());
     }
 }
 
@@ -142,7 +142,7 @@ contract PythAdapter is ScriptUtils {
         uint256 maxConfWidth
     ) public returns (address adapter) {
         adapter = address(new PythOracle(pyth, base, quote, feedId, maxStaleness, maxConfWidth));
-        AdapterRegistry(adapterRegistry).addAdapter(adapter, base, quote);
+        SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
 
@@ -184,7 +184,7 @@ contract RedstoneAdapter is ScriptUtils {
         uint256 maxStaleness
     ) public returns (address adapter) {
         adapter = address(new RedstoneCoreOracle(base, quote, feedId, feedDecimals, maxStaleness));
-        AdapterRegistry(adapterRegistry).addAdapter(adapter, base, quote);
+        SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
 
@@ -225,6 +225,6 @@ contract CrossAdapter is ScriptUtils {
         address oracleCrossQuote
     ) public returns (address adapter) {
         adapter = address(new CrossOracle(base, cross, quote, oracleBaseCross, oracleCrossQuote));
-        AdapterRegistry(adapterRegistry).addAdapter(adapter, base, quote);
+        SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }

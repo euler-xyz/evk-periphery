@@ -72,6 +72,7 @@ Outputs:
 This command deploys:
 - Oracle Router Factory
 - Oracle Adapter Registry
+- External Vault Registry
 - Kink IRM Factory
 
 ```sh

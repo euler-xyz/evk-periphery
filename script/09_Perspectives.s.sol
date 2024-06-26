@@ -22,10 +22,11 @@ contract Perspectives is ScriptUtils {
         address eVaultFactory = abi.decode(vm.parseJson(json, ".eVaultFactory"), (address));
         address oracleRouterFactory = abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address));
         address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
+        address externalVaultRegistry = abi.decode(vm.parseJson(json, ".externalVaultRegistry"), (address));
         address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
 
         (escrowSingletonPerspective, eulerDefaultClusterPerspective, eulerFactoryPespective) =
-            execute(eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, kinkIRMFactory);
+            execute(eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory);
 
         string memory object;
         object = vm.serializeAddress("perspectives", "escrowSingletonPerspective", escrowSingletonPerspective);
@@ -38,6 +39,7 @@ contract Perspectives is ScriptUtils {
         address eVaultFactory,
         address oracleRouterFactory,
         address oracleAdapterRegistry,
+        address externalVaultRegistry,
         address kinkIRMFactory
     )
         public
@@ -49,13 +51,14 @@ contract Perspectives is ScriptUtils {
         )
     {
         (escrowSingletonPerspective, eulerDefaultClusterPerspective, eulerFactoryPespective) =
-            execute(eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, kinkIRMFactory);
+            execute(eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory);
     }
 
     function execute(
         address eVaultFactory,
         address oracleRouterFactory,
         address oracleAdapterRegistry,
+        address externalVaultRegistry,
         address kinkIRMFactory
     )
         public
@@ -68,7 +71,12 @@ contract Perspectives is ScriptUtils {
         escrowSingletonPerspective = address(new EscrowSingletonPerspective(eVaultFactory));
         eulerDefaultClusterPerspective = address(
             new EulerDefaultClusterPerspective(
-                eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, kinkIRMFactory, escrowSingletonPerspective
+                eVaultFactory,
+                oracleRouterFactory,
+                oracleAdapterRegistry,
+                externalVaultRegistry,
+                kinkIRMFactory,
+                escrowSingletonPerspective
             )
         );
         eulerFactoryPespective = address(new EulerFactoryPerspective(eVaultFactory));
