@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import {BaseHandler} from "./BaseHandler.sol";
 import {ISwapRouterV2} from "../vendor/ISwapRouterV2.sol";
-import {ISwapper} from "../ISwapper.sol";
 
 /// @title UniswapV2Handler
 /// @custom:security-contact security@euler.xyz

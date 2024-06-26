@@ -28,7 +28,9 @@ contract SwapVerifier {
         uint256 cash = IEVault(vault).cash();
         uint256 balance = IERC20(IEVault(vault).asset()).balanceOf(vault);
 
-        if (balance <= cash || balance - cash < amountMin) revert SwapVerifier_skimMin();
+        unchecked {
+            if (balance <= cash || balance - cash < amountMin) revert SwapVerifier_skimMin();
+        }
 
         IEVault(vault).skim(type(uint256).max, receiver);
     }

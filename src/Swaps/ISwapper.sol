@@ -32,7 +32,8 @@ interface ISwapper {
         address receiver;
         // In exact input mode (0) - ignored
         // In exact output mode (1) - amount of `tokenOut` to buy
-        // In swap and repay mode (2) - amount of debt the account should have after swap and repay
+        // In swap and repay mode (2) - amount of debt the account should have after swap and repay.
+        //    To repay all debt without leaving any dust, set this to zero.
         uint256 amountOut;
         // Auxiliary payload for swap providers
         bytes data;

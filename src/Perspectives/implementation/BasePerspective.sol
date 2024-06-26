@@ -4,8 +4,6 @@ pragma solidity ^0.8.24;
 
 import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
-import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
-import {IERC20} from "evk/EVault/IEVault.sol";
 
 import {IPerspective} from "./interfaces/IPerspective.sol";
 import {PerspectiveErrors} from "./PerspectiveErrors.sol";
