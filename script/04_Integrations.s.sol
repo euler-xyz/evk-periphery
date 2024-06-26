@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils} from "./ScriptUtils.s.sol";
+import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {EthereumVaultConnector} from "ethereum-vault-connector/EthereumVaultConnector.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {SequenceRegistry} from "evk/SequenceRegistry/SequenceRegistry.sol";

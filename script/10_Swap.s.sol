@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils} from "./ScriptUtils.s.sol";
+import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {Swapper} from "../src/Swaps/Swapper.sol";
 import {SwapVerifier} from "../src/Swaps/SwapVerifier.sol";
 import {OneInchHandler} from "../src/Swaps/handlers/OneInchHandler.sol";

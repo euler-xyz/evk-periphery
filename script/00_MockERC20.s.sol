@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils, ERC20Mintable} from "./ScriptUtils.s.sol";
+import {ScriptUtils, ERC20Mintable} from "./utils/ScriptUtils.s.sol";
 
 contract MockERC20 is ScriptUtils {
     function run() public broadcast returns (address mockERC20) {

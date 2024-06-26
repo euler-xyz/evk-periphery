@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils} from "./ScriptUtils.s.sol";
+import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {EscrowSingletonPerspective} from "../src/Perspectives/deployed/EscrowSingletonPerspective.sol";
 import {EulerDefaultClusterPerspective} from "../src/Perspectives/deployed/EulerDefaultClusterPerspective.sol";
 import {EulerFactoryPerspective} from "../src/Perspectives/deployed/EulerFactoryPerspective.sol";

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils} from "./ScriptUtils.s.sol";
+import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {BalanceForwarder} from "evk/EVault/modules/BalanceForwarder.sol";
 import {Borrowing} from "evk/EVault/modules/Borrowing.sol";

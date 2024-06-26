@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils} from "./ScriptUtils.s.sol";
+import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {AccountLens} from "../src/Lens/AccountLens.sol";
 import {OracleLens} from "../src/Lens/OracleLens.sol";
 import {VaultLens} from "../src/Lens/VaultLens.sol";

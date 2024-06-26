@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils} from "../ScriptUtils.s.sol";
+import {ScriptUtils} from "../utils/ScriptUtils.s.sol";
 import {PeripheryFactories} from "../01_PeripheryFactories.s.sol";
 import {ChainlinkAdapter, LidoAdapter, PythAdapter, CrossAdapter} from "../02_OracleAdapters.s.sol";
 import {KinkIRM} from "../03_KinkIRM.s.sol";
@@ -171,8 +171,8 @@ contract Advanced is ScriptUtils {
             EVaultFactory deployer = new EVaultFactory();
             result.eVaultFactory = deployer.deploy(result.eVaultImplementation);
         }
+        // deploy EVaults
         {
-            // deploy EVaults
             EVault deployer = new EVault();
             result.eVault = new address[](6);
 
@@ -194,10 +194,10 @@ contract Advanced is ScriptUtils {
             (, result.eVault[5]) = deployer.deploy(
                 result.oracleRouterFactory, false, result.eVaultFactory, false, WBTC, address(0), address(0)
             );
-
+        }
+        // configure the oracle router and the vaults
+        {
             startBroadcast();
-
-            // configure the oracle router
             for (uint256 i = 0; i < result.eVault.length; i++) {
                 EulerRouter(result.oracleRouter).govSetResolvedVault(result.eVault[i], true);
             }
@@ -228,11 +228,12 @@ contract Advanced is ScriptUtils {
             // DAI vault has USDC as collateral
             IEVault(result.eVault[3]).setLTV(result.eVault[2], 8500, 9000, 0);
 
+            address deployer = getDeployer();
             for (uint256 i = 0; i < result.eVault.length - 2; i++) {
                 IEVault(result.eVault[i]).setMaxLiquidationDiscount(0.2e4);
                 IEVault(result.eVault[i]).setLiquidationCoolOffTime(1);
                 IEVault(result.eVault[i]).setInterestRateModel(result.defaultIRM);
-                IEVault(result.eVault[i]).setFeeReceiver(getDeployer());
+                IEVault(result.eVault[i]).setFeeReceiver(deployer);
             }
 
             for (uint256 i = 0; i < result.eVault.length; i++) {
@@ -260,6 +261,7 @@ contract Advanced is ScriptUtils {
         }
         // verify vaults
         {
+            startBroadcast();
             EulerDefaultClusterPerspective(result.eulerDefaultClusterPerspective).perspectiveVerify(
                 result.eVault[0], true
             );
@@ -274,6 +276,7 @@ contract Advanced is ScriptUtils {
             );
             EscrowSingletonPerspective(result.escrowSingletonPerspective).perspectiveVerify(result.eVault[4], true);
             EscrowSingletonPerspective(result.escrowSingletonPerspective).perspectiveVerify(result.eVault[5], true);
+            stopBroadcast();
         }
         // deploy swapper
         {

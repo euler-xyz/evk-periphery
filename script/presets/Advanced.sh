@@ -1,7 +1,6 @@
 #!/bin/bash
 
-if ! command -v jq &> /dev/null
-then
+if ! command -v jq &> /dev/null; then
     echo "jq could not be found. Please install jq first."
     echo "You can install jq by running: sudo apt-get install jq"
     exit 1
@@ -67,51 +66,13 @@ fi
 account=$(cast wallet address --private-key "$DEPLOYER_KEY")
 assets=(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 0x6B175474E89094C44Da98b954EedeAC495271d0F 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0 0xd9Fcd98c322942075A5C3860693e9f4f03AAE07b 0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce)
 dealValue=1000000
-decimals=18
-dealValueCalc=$(echo "obase=16; $dealValue * 10^$decimals" | bc)
-dealValueHex="0x$(printf $dealValueCalc)"
 
 # fund ETH first
-jsonPayload=$(jq -n \
-	--arg account "$account" \
-	--arg dealValueHex "$dealValueHex" \
-	'{
-        "jsonrpc": "2.0",
-        "method": "tenderly_setBalance",
-        "params": [
-            $account,
-            $dealValueHex
-        ],
-        "id": 1
-    }')
-
-echo "Dealing ETH..."
-curl -s -X POST "$DEPLOYMENT_RPC_URL" -H "Content-Type: application/json" -d "$jsonPayload" > /dev/null
+./script/utils/tenderlyDeal.sh $account ETH $dealValue
 
 # Loop through the provided list of asset addresses
 for asset in "${assets[@]}"; do
-	decimals=$(cast call $asset "decimals()(uint8)" --rpc-url $DEPLOYMENT_RPC_URL)
-	dealValueCalc=$(echo "obase=16; $dealValue * 10^$decimals" | bc)
-	dealValueHex="0x$(printf $dealValueCalc)"
-
-	# Construct the JSON payload
-	jsonPayload=$(jq -n \
-		--arg account "$account" \
-		--arg asset "$asset" \
-		--arg dealValueHex "$dealValueHex" \
-		'{
-            "jsonrpc": "2.0",
-            "method": "tenderly_setErc20Balance",
-            "params": [
-                $asset,
-                $account,
-                $dealValueHex
-            ],
-            "id": 1
-        }')
-
-	echo "Dealing $asset..."
-	curl -s -X POST "$DEPLOYMENT_RPC_URL" -H "Content-Type: application/json" -d "$jsonPayload" > /dev/null
+	./script/utils/tenderlyDeal.sh $account $asset $dealValue
 done
 
 # Deploy the advanced preset
