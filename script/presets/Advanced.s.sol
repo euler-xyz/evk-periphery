@@ -164,22 +164,22 @@ contract Advanced is ScriptUtils {
             result.eVault = new address[](6);
 
             (result.oracleRouter, result.eVault[0]) = deployer.deploy(
-                result.oracleRouterFactory, true, result.eVaultFactory, true, WETH, result.chainlinkAdapterWETHUSD, USD
+                result.oracleRouterFactory, true, result.eVaultFactory, false, WETH, result.chainlinkAdapterWETHUSD, USD
             );
             (, result.eVault[1]) = deployer.deploy(
-                result.oracleRouterFactory, false, result.eVaultFactory, true, WBTC, result.oracleRouter, USD
+                result.oracleRouterFactory, false, result.eVaultFactory, false, WBTC, result.oracleRouter, USD
             );
             (, result.eVault[2]) = deployer.deploy(
-                result.oracleRouterFactory, false, result.eVaultFactory, true, USDC, result.oracleRouter, USD
+                result.oracleRouterFactory, false, result.eVaultFactory, false, USDC, result.oracleRouter, USD
             );
             (, result.eVault[3]) = deployer.deploy(
-                result.oracleRouterFactory, false, result.eVaultFactory, true, DAI, result.oracleRouter, USD
+                result.oracleRouterFactory, false, result.eVaultFactory, false, DAI, result.oracleRouter, USD
             );
             (, result.eVault[4]) = deployer.deploy(
-                result.oracleRouterFactory, false, result.eVaultFactory, true, wstETH, address(0), address(0)
+                result.oracleRouterFactory, false, result.eVaultFactory, false, wstETH, address(0), address(0)
             );
             (, result.eVault[5]) = deployer.deploy(
-                result.oracleRouterFactory, false, result.eVaultFactory, true, WBTC, address(0), address(0)
+                result.oracleRouterFactory, false, result.eVaultFactory, false, WBTC, address(0), address(0)
             );
 
             vm.startBroadcast(vm.envUint("DEPLOYER_KEY"));
@@ -196,33 +196,35 @@ contract Advanced is ScriptUtils {
             IEulerRouter(result.oracleRouter).govSetConfig(wstETH, USD, result.crossAdapterWSTETHUSD);
 
             // configure the vaults
-            for (uint256 i = 0; i < result.eVault.length; i++) {
-                IEVault(result.eVault[i]).setFeeReceiver(getDeployer());
-            }
-
             // WETH vault has WBTC, USDC, DAI, wstETH escrow and WBTC escrow as collateral
             IEVault(result.eVault[0]).setLTV(result.eVault[1], 6500, 7000, 0);
             IEVault(result.eVault[0]).setLTV(result.eVault[2], 7500, 8000, 0);
             IEVault(result.eVault[0]).setLTV(result.eVault[3], 7500, 8000, 0);
-            IEVault(result.eVault[0]).setLTV(result.eVault[4], 9000, 9500, 0);
+            IEVault(result.eVault[0]).setLTV(result.eVault[4], 8800, 9000, 0);
             IEVault(result.eVault[0]).setLTV(result.eVault[5], 8000, 8500, 0);
 
             // WBTC vault has USDC, DAI and WBTC escrow as collateral
             IEVault(result.eVault[1]).setLTV(result.eVault[2], 8000, 8500, 0);
             IEVault(result.eVault[1]).setLTV(result.eVault[3], 8000, 8500, 0);
-            IEVault(result.eVault[1]).setLTV(result.eVault[5], 9400, 9500, 0);
+            IEVault(result.eVault[1]).setLTV(result.eVault[5], 8800, 9000, 0);
 
             // USDC vault has DAI as collateral
-            IEVault(result.eVault[2]).setLTV(result.eVault[3], 9000, 9500, 0);
+            IEVault(result.eVault[2]).setLTV(result.eVault[3], 8800, 9000, 0);
 
             // DAI vault has USDC as collateral
-            IEVault(result.eVault[3]).setLTV(result.eVault[2], 9000, 9500, 0);
+            IEVault(result.eVault[3]).setLTV(result.eVault[2], 8800, 9000, 0);
 
             for (uint256 i = 0; i < result.eVault.length - 2; i++) {
                 IEVault(result.eVault[i]).setMaxLiquidationDiscount(0.2e4);
                 IEVault(result.eVault[i]).setLiquidationCoolOffTime(1);
                 IEVault(result.eVault[i]).setInterestRateModel(result.defaultIRM);
             }
+
+            for (uint256 i = 0; i < result.eVault.length; i++) {
+                IEVault(result.eVault[i]).setFeeReceiver(getDeployer());
+                IEVault(result.eVault[i]).setGovernorAdmin(address(0));
+            }
+
             vm.stopBroadcast();
         }
         // deploy lenses
