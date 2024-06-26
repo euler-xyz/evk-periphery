@@ -10,7 +10,7 @@ import {EulerKinkIRMFactory} from "../src/IRMFactory/EulerKinkIRMFactory.sol";
 contract PeripheryFactories is ScriptUtils {
     function run()
         public
-        startBroadcast
+        broadcast
         returns (
             address oracleRouterFactory,
             address oracleAdapterRegistry,
@@ -32,7 +32,7 @@ contract PeripheryFactories is ScriptUtils {
 
     function deploy()
         public
-        startBroadcast
+        broadcast
         returns (
             address oracleRouterFactory,
             address oracleAdapterRegistry,

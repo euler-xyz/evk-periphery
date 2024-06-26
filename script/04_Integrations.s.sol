@@ -14,7 +14,7 @@ contract Integrations is ScriptUtils {
 
     function run()
         public
-        startBroadcast
+        broadcast
         returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address permit2)
     {
         string memory scriptFileName = "04_Integrations.json";
@@ -32,7 +32,7 @@ contract Integrations is ScriptUtils {
 
     function deploy()
         public
-        startBroadcast
+        broadcast
         returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address permit2)
     {
         (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2) = execute();

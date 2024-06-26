@@ -12,7 +12,7 @@ import {RedstoneCoreOracle} from "euler-price-oracle/adapter/redstone/RedstoneCo
 import {CrossAdapter as CrossOracle} from "euler-price-oracle/adapter/CrossAdapter.sol";
 
 contract ChainlinkAdapter is ScriptUtils {
-    function run() public startBroadcast returns (address adapter) {
+    function run() public broadcast returns (address adapter) {
         string memory json = getInputConfig("02_ChainlinkAdapter.json");
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
@@ -29,7 +29,7 @@ contract ChainlinkAdapter is ScriptUtils {
 
     function deploy(address adapterRegistry, address base, address quote, address feed, uint256 maxStaleness)
         public
-        startBroadcast
+        broadcast
         returns (address adapter)
     {
         adapter = execute(adapterRegistry, base, quote, feed, maxStaleness);
@@ -45,7 +45,7 @@ contract ChainlinkAdapter is ScriptUtils {
 }
 
 contract ChronicleAdapter is ScriptUtils {
-    function run() public startBroadcast returns (address adapter) {
+    function run() public broadcast returns (address adapter) {
         string memory scriptFileName = "02_ChronicleAdapter.json";
         string memory json = getInputConfig(scriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
@@ -63,7 +63,7 @@ contract ChronicleAdapter is ScriptUtils {
 
     function deploy(address adapterRegistry, address base, address quote, address feed, uint256 maxStaleness)
         public
-        startBroadcast
+        broadcast
         returns (address adapter)
     {
         adapter = execute(adapterRegistry, base, quote, feed, maxStaleness);
@@ -79,7 +79,7 @@ contract ChronicleAdapter is ScriptUtils {
 }
 
 contract LidoAdapter is ScriptUtils {
-    function run() public startBroadcast returns (address adapter) {
+    function run() public broadcast returns (address adapter) {
         string memory scriptFileName = "02_LidoAdapter.json";
         string memory json = getInputConfig(scriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
@@ -91,7 +91,7 @@ contract LidoAdapter is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
     }
 
-    function deploy(address adapterRegistry) public startBroadcast returns (address adapter) {
+    function deploy(address adapterRegistry) public broadcast returns (address adapter) {
         adapter = execute(adapterRegistry);
     }
 
@@ -102,7 +102,7 @@ contract LidoAdapter is ScriptUtils {
 }
 
 contract PythAdapter is ScriptUtils {
-    function run() public startBroadcast returns (address adapter) {
+    function run() public broadcast returns (address adapter) {
         string memory scriptFileName = "02_PythAdapter.json";
         string memory json = getInputConfig(scriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
@@ -128,7 +128,7 @@ contract PythAdapter is ScriptUtils {
         bytes32 feedId,
         uint256 maxStaleness,
         uint256 maxConfWidth
-    ) public startBroadcast returns (address adapter) {
+    ) public broadcast returns (address adapter) {
         adapter = execute(adapterRegistry, pyth, base, quote, feedId, maxStaleness, maxConfWidth);
     }
 
@@ -147,7 +147,7 @@ contract PythAdapter is ScriptUtils {
 }
 
 contract RedstoneAdapter is ScriptUtils {
-    function run() public startBroadcast returns (address adapter) {
+    function run() public broadcast returns (address adapter) {
         string memory scriptFileName = "02_RedstoneAdapter.json";
         string memory json = getInputConfig(scriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
@@ -171,7 +171,7 @@ contract RedstoneAdapter is ScriptUtils {
         bytes32 feedId,
         uint8 feedDecimals,
         uint256 maxStaleness
-    ) public startBroadcast returns (address adapter) {
+    ) public broadcast returns (address adapter) {
         adapter = execute(adapterRegistry, base, quote, feedId, feedDecimals, maxStaleness);
     }
 
@@ -189,7 +189,7 @@ contract RedstoneAdapter is ScriptUtils {
 }
 
 contract CrossAdapter is ScriptUtils {
-    function run() public startBroadcast returns (address adapter) {
+    function run() public broadcast returns (address adapter) {
         string memory json = getInputConfig("02_CrossAdapter.json");
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
@@ -212,7 +212,7 @@ contract CrossAdapter is ScriptUtils {
         address quote,
         address oracleBaseCross,
         address oracleCrossQuote
-    ) public startBroadcast returns (address adapter) {
+    ) public broadcast returns (address adapter) {
         adapter = execute(adapterRegistry, base, cross, quote, oracleBaseCross, oracleCrossQuote);
     }
 

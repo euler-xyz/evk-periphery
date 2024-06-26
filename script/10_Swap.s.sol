@@ -11,7 +11,7 @@ import {UniswapV3Handler} from "../src/Swaps/handlers/UniswapV3Handler.sol";
 import {UniswapAutoRouterHandler} from "../src/Swaps/handlers/UniswapAutoRouterHandler.sol";
 
 contract Swap is ScriptUtils {
-    function run() public startBroadcast returns (address swapper, address swapVerifier) {
+    function run() public broadcast returns (address swapper, address swapVerifier) {
         string memory scriptFileName = "10_Swap.json";
         string memory json = getInputConfig(scriptFileName);
         address oneInchAggregator = abi.decode(vm.parseJson(json, ".oneInchAggregator"), (address));
@@ -32,7 +32,7 @@ contract Swap is ScriptUtils {
         address uniswapRouterV2,
         address uniswapRouterV3,
         address uniswapRouter02
-    ) public startBroadcast returns (address swapper, address swapVerifier) {
+    ) public broadcast returns (address swapper, address swapVerifier) {
         (swapper, swapVerifier) = execute(oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02);
     }
 

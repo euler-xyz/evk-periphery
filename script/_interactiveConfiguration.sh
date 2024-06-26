@@ -1,5 +1,19 @@
 #!/bin/bash
 
+if [[ ! -d "$(pwd)/script" ]]; then
+    echo "Error: script directory does not exist in the current directory."
+    echo "Please ensure this script is run from the top project directory."
+    exit 1
+fi
+
+if [[ -f .env ]]; then
+    source .env
+    echo ".env file loaded successfully."
+else
+    echo "Error: .env file does not exist. Please create it and try again."
+    exit 1
+fi
+
 echo "Compiling the smart contracts..."
 forge compile
 if [ $? -ne 0 ]; then
@@ -13,20 +27,6 @@ if [ $? -ne 0 ]; then
     fi
 else
     echo "Compilation successful."
-fi
-
-if [[ ! -d "$(pwd)/script" ]]; then
-    echo "Error: script directory does not exist in the current directory."
-    echo "Please ensure this script is run from the top project directory."
-    exit 1
-fi
-
-if [[ -f .env ]]; then
-    source .env
-    echo ".env file loaded successfully."
-else
-    echo "Error: .env file does not exist. Please create it and try again."
-    exit 1
 fi
 
 echo ""

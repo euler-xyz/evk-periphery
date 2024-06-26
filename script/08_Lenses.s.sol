@@ -11,7 +11,7 @@ import {UtilsLens} from "../src/Lens/UtilsLens.sol";
 contract Lenses is ScriptUtils {
     function run()
         public
-        startBroadcast
+        broadcast
         returns (address accountLens, address oracleLens, address vaultLens, address utilsLens)
     {
         string memory scriptFileName = "08_Lenses.json";
@@ -28,7 +28,7 @@ contract Lenses is ScriptUtils {
 
     function deploy()
         public
-        startBroadcast
+        broadcast
         returns (address accountLens, address oracleLens, address vaultLens, address utilsLens)
     {
         (accountLens, oracleLens, vaultLens, utilsLens) = execute();

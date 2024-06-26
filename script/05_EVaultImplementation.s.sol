@@ -18,7 +18,7 @@ import {EVault} from "evk/EVault/EVault.sol";
 contract EVaultImplementation is ScriptUtils {
     function run()
         public
-        startBroadcast
+        broadcast
         returns (
             address moduleBalanceForwarder,
             address moduleBorrowing,
@@ -71,7 +71,7 @@ contract EVaultImplementation is ScriptUtils {
 
     function deploy(Base.Integrations memory integrations)
         public
-        startBroadcast
+        broadcast
         returns (Dispatch.DeployedModules memory modules, address implementation)
     {
         (modules, implementation) = execute(integrations);

@@ -8,7 +8,7 @@ import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {EulerRouterFactory} from "../src/OracleFactory/EulerRouterFactory.sol";
 
 contract EVault is ScriptUtils {
-    function run() public startBroadcast returns (address oracleRouter, address eVault) {
+    function run() public broadcast returns (address oracleRouter, address eVault) {
         string memory scriptFileName = "07_EVault.json";
         string memory json = getInputConfig(scriptFileName);
         address oracleRouterFactory = abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address));
@@ -38,7 +38,7 @@ contract EVault is ScriptUtils {
         address asset,
         address oracle,
         address unitOfAccount
-    ) public startBroadcast returns (address oracleRouter, address eVault) {
+    ) public broadcast returns (address oracleRouter, address eVault) {
         (oracleRouter, eVault) =
             execute(oracleRouterFactory, deployRouterForOracle, eVaultFactory, upgradable, asset, oracle, unitOfAccount);
     }

@@ -7,9 +7,17 @@ import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
 contract ScriptUtils is Script {
-    modifier startBroadcast() {
+    modifier broadcast() {
         vm.startBroadcast(vm.envUint("DEPLOYER_KEY"));
         _;
+        vm.stopBroadcast();
+    }
+
+    function startBroadcast() internal {
+        vm.startBroadcast(vm.envUint("DEPLOYER_KEY"));
+    }
+
+    function stopBroadcast() internal {
         vm.stopBroadcast();
     }
 

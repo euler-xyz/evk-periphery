@@ -21,6 +21,21 @@ else
     exit 1
 fi
 
+echo "Compiling the smart contracts..."
+forge compile
+if [ $? -ne 0 ]; then
+    echo "Compilation failed, retrying..."
+    forge compile
+    if [ $? -ne 0 ]; then
+        echo "Compilation failed again, please check the errors and try again."
+        exit 1
+    else
+        echo "Compilation successful on retry."
+    fi
+else
+    echo "Compilation successful."
+fi
+
 echo ""
 echo "Welcome to the Advanced Deployment script!"
 echo "This script will deploy an advanced preset of smart contracts."
@@ -50,7 +65,7 @@ fi
 
 # Deal tokens to the deployer account
 account=$(cast wallet address --private-key "$DEPLOYER_KEY")
-assets=(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 0x6B175474E89094C44Da98b954EedeAC495271d0F 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0)
+assets=(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 0x6B175474E89094C44Da98b954EedeAC495271d0F 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0 0xd9Fcd98c322942075A5C3860693e9f4f03AAE07b 0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce)
 dealValue=1000000
 decimals=18
 dealValueCalc=$(echo "obase=16; $dealValue * 10^$decimals" | bc)
@@ -101,7 +116,9 @@ done
 
 # Deploy the advanced preset
 scriptName="Advanced.s.sol"
-forge script script/presets/$scriptName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --slow
+if ! forge script script/presets/$scriptName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --slow; then
+    exit 1
+fi
 
 if [[ $verify_contracts != "y" ]]; then
     exit 1
@@ -128,14 +145,10 @@ for tx in $transactions; do
     echo "Verifying $contractName: $contractAddress"
     result=$(eval $verify_command --flatten --force 2>&1)
 
-    if [[ "$result" == *"Contract successfully verified"* ]]; then
-        echo "Success"
-    else
+    if [[ "$result" != *"Contract successfully verified"* ]]; then
         result=$(eval $verify_command 2>&1)
 
-        if [[ "$result" == *"Contract successfully verified"* ]]; then
-            echo "Success"
-        else
+        if [[ "$result" != *"Contract successfully verified"* ]]; then
             echo "Failure"
         fi
     fi

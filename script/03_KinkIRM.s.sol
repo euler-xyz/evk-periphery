@@ -6,7 +6,7 @@ import {ScriptUtils} from "./ScriptUtils.s.sol";
 import {EulerKinkIRMFactory} from "../src/IRMFactory/EulerKinkIRMFactory.sol";
 
 contract KinkIRM is ScriptUtils {
-    function run() public startBroadcast returns (address irm) {
+    function run() public broadcast returns (address irm) {
         string memory scriptFileName = "03_KinkIRM.json";
         string memory json = getInputConfig(scriptFileName);
         address irmFactory = abi.decode(vm.parseJson(json, ".irmFactory"), (address));
@@ -24,7 +24,7 @@ contract KinkIRM is ScriptUtils {
 
     function deploy(address irmFactory, uint256 baseRate, uint256 slope1, uint256 slope2, uint256 kink)
         public
-        startBroadcast
+        broadcast
         returns (address irm)
     {
         irm = execute(irmFactory, baseRate, slope1, slope2, kink);

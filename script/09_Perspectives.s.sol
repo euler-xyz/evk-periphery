@@ -10,7 +10,7 @@ import {EulerFactoryPerspective} from "../src/Perspectives/deployed/EulerFactory
 contract Perspectives is ScriptUtils {
     function run()
         public
-        startBroadcast
+        broadcast
         returns (
             address escrowSingletonPerspective,
             address eulerDefaultClusterPerspective,
@@ -43,7 +43,7 @@ contract Perspectives is ScriptUtils {
         address kinkIRMFactory
     )
         public
-        startBroadcast
+        broadcast
         returns (
             address escrowSingletonPerspective,
             address eulerDefaultClusterPerspective,

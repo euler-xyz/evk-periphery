@@ -13,6 +13,8 @@ import {EVault} from "../07_EVault.s.sol";
 import {Lenses} from "../08_Lenses.s.sol";
 import {Perspectives} from "../09_Perspectives.s.sol";
 import {Swap} from "../10_Swap.s.sol";
+import {EscrowSingletonPerspective} from "../../src/Perspectives/deployed/EscrowSingletonPerspective.sol";
+import {EulerDefaultClusterPerspective} from "../../src/Perspectives/deployed/EulerDefaultClusterPerspective.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {BalanceForwarder} from "evk/EVault/modules/BalanceForwarder.sol";
 import {Borrowing} from "evk/EVault/modules/Borrowing.sol";
@@ -23,8 +25,9 @@ import {RiskManager} from "evk/EVault/modules/RiskManager.sol";
 import {Token} from "evk/EVault/modules/Token.sol";
 import {Vault} from "evk/EVault/modules/Vault.sol";
 import {Dispatch} from "evk/EVault/Dispatch.sol";
-import {IEVault} from "evk/EVault/IEVault.sol";
+import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
+import {TrackingRewardStreams} from "reward-streams/TrackingRewardStreams.sol";
 
 contract Advanced is ScriptUtils {
     address internal USD = address(840);
@@ -34,6 +37,8 @@ contract Advanced is ScriptUtils {
     address internal DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address internal stETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address internal wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
+    address internal EUL = 0xd9Fcd98c322942075A5C3860693e9f4f03AAE07b;
+    address internal SHIB = 0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE;
 
     struct DeploymentInfo {
         address oracleRouterFactory;
@@ -71,9 +76,11 @@ contract Advanced is ScriptUtils {
     function run()
         public
         returns (
+            address[] memory eVault,
             address evc,
             address balanceTracker,
-            address eulerFactoryPerspective,
+            address escrowSingletonPerspective,
+            address eulerDefaultClusterPerspective,
             address accountLens,
             address vaultLens,
             address swapper,
@@ -188,7 +195,7 @@ contract Advanced is ScriptUtils {
                 result.oracleRouterFactory, false, result.eVaultFactory, false, WBTC, address(0), address(0)
             );
 
-            vm.startBroadcast(vm.envUint("DEPLOYER_KEY"));
+            startBroadcast();
 
             // configure the oracle router
             for (uint256 i = 0; i < result.eVault.length; i++) {
@@ -200,38 +207,39 @@ contract Advanced is ScriptUtils {
             EulerRouter(result.oracleRouter).govSetConfig(USDC, USD, result.chainlinkAdapterUSDCUSD);
             EulerRouter(result.oracleRouter).govSetConfig(DAI, USD, result.chainlinkAdapterDAIUSD);
             EulerRouter(result.oracleRouter).govSetConfig(wstETH, USD, result.crossAdapterWSTETHUSD);
+            EulerRouter(result.oracleRouter).transferGovernance(address(0));
 
             // configure the vaults
             // WETH vault has WBTC, USDC, DAI, wstETH escrow and WBTC escrow as collateral
-            IEVault(result.eVault[0]).setLTV(result.eVault[1], 6500, 7000, 0);
+            IEVault(result.eVault[0]).setLTV(result.eVault[1], 6000, 6500, 0);
             IEVault(result.eVault[0]).setLTV(result.eVault[2], 7500, 8000, 0);
             IEVault(result.eVault[0]).setLTV(result.eVault[3], 7500, 8000, 0);
-            IEVault(result.eVault[0]).setLTV(result.eVault[4], 8800, 9000, 0);
-            IEVault(result.eVault[0]).setLTV(result.eVault[5], 8000, 8500, 0);
+            IEVault(result.eVault[0]).setLTV(result.eVault[4], 8500, 9000, 0);
+            IEVault(result.eVault[0]).setLTV(result.eVault[5], 7000, 7500, 0);
 
             // WBTC vault has USDC, DAI and WBTC escrow as collateral
             IEVault(result.eVault[1]).setLTV(result.eVault[2], 8000, 8500, 0);
             IEVault(result.eVault[1]).setLTV(result.eVault[3], 8000, 8500, 0);
-            IEVault(result.eVault[1]).setLTV(result.eVault[5], 8800, 9000, 0);
+            IEVault(result.eVault[1]).setLTV(result.eVault[5], 8500, 9000, 0);
 
             // USDC vault has DAI as collateral
-            IEVault(result.eVault[2]).setLTV(result.eVault[3], 8800, 9000, 0);
+            IEVault(result.eVault[2]).setLTV(result.eVault[3], 8500, 9000, 0);
 
             // DAI vault has USDC as collateral
-            IEVault(result.eVault[3]).setLTV(result.eVault[2], 8800, 9000, 0);
+            IEVault(result.eVault[3]).setLTV(result.eVault[2], 8500, 9000, 0);
 
             for (uint256 i = 0; i < result.eVault.length - 2; i++) {
                 IEVault(result.eVault[i]).setMaxLiquidationDiscount(0.2e4);
                 IEVault(result.eVault[i]).setLiquidationCoolOffTime(1);
                 IEVault(result.eVault[i]).setInterestRateModel(result.defaultIRM);
+                IEVault(result.eVault[i]).setFeeReceiver(getDeployer());
             }
 
             for (uint256 i = 0; i < result.eVault.length; i++) {
-                IEVault(result.eVault[i]).setFeeReceiver(getDeployer());
                 IEVault(result.eVault[i]).setGovernorAdmin(address(0));
             }
 
-            vm.stopBroadcast();
+            stopBroadcast();
         }
         // deploy lenses
         {
@@ -250,6 +258,23 @@ contract Advanced is ScriptUtils {
                 result.kinkIRMFactory
             );
         }
+        // verify vaults
+        {
+            EulerDefaultClusterPerspective(result.eulerDefaultClusterPerspective).perspectiveVerify(
+                result.eVault[0], true
+            );
+            EulerDefaultClusterPerspective(result.eulerDefaultClusterPerspective).perspectiveVerify(
+                result.eVault[1], true
+            );
+            EulerDefaultClusterPerspective(result.eulerDefaultClusterPerspective).perspectiveVerify(
+                result.eVault[2], true
+            );
+            EulerDefaultClusterPerspective(result.eulerDefaultClusterPerspective).perspectiveVerify(
+                result.eVault[3], true
+            );
+            EscrowSingletonPerspective(result.escrowSingletonPerspective).perspectiveVerify(result.eVault[4], true);
+            EscrowSingletonPerspective(result.escrowSingletonPerspective).perspectiveVerify(result.eVault[5], true);
+        }
         // deploy swapper
         {
             Swap deployer = new Swap();
@@ -260,11 +285,31 @@ contract Advanced is ScriptUtils {
                 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45
             );
         }
+        // set up reward streams
+        {
+            startBroadcast();
+            IERC20(EUL).approve(result.balanceTracker, type(uint256).max);
+            IERC20(SHIB).approve(result.balanceTracker, type(uint256).max);
+
+            uint128[] memory amounts = new uint128[](10);
+            for (uint256 i = 0; i < amounts.length; i++) {
+                amounts[i] = 1000e18;
+            }
+            TrackingRewardStreams(result.balanceTracker).registerReward(result.eVault[0], EUL, 0, amounts);
+            TrackingRewardStreams(result.balanceTracker).registerReward(result.eVault[1], EUL, 0, amounts);
+            for (uint256 i = 0; i < amounts.length; i++) {
+                amounts[i] = 100000e18;
+            }
+            TrackingRewardStreams(result.balanceTracker).registerReward(result.eVault[0], SHIB, 0, amounts);
+            stopBroadcast();
+        }
 
         return (
+            result.eVault,
             result.evc,
             result.balanceTracker,
-            result.eulerFactoryPerspective,
+            result.escrowSingletonPerspective,
+            result.eulerDefaultClusterPerspective,
             result.accountLens,
             result.vaultLens,
             result.swapper,
