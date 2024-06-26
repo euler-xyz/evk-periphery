@@ -140,7 +140,7 @@ for tx in $transactions; do
         continue
     fi
     
-    verify_command="forge verify-contract $contractAddress $contractName --rpc-url \"$DEPLOYMENT_RPC_URL\" --verifier-url \"$VERIFIER_URL\" --etherscan-api-key \"$VERIFIER_API_KEY\" --skip-is-verified-check --watch"
+    verify_command="forge verify-contract $contractAddress $contractName --rpc-url $DEPLOYMENT_RPC_URL --verifier-url $VERIFIER_URL --etherscan-api-key $VERIFIER_API_KEY --skip-is-verified-check --watch"
     
     echo "Verifying $contractName: $contractAddress"
     result=$(eval $verify_command --flatten --force 2>&1)
