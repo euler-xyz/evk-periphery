@@ -193,7 +193,7 @@ struct VaultRewardInfo {
     address balanceTracker;
     uint256 epochDuration;
     uint256 currentEpoch;
-    uint256 totalRewardEligible;
+    uint256 totalRewardedEligible;
     uint256 totalRewardRegistered;
     uint256 totalRewardClaimed;
     RewardAmountInfo[] epochInfoPrevious;

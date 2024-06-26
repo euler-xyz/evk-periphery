@@ -168,7 +168,7 @@ contract VaultLens is Utils {
 
         result.epochDuration = IRewardStreams(result.balanceTracker).EPOCH_DURATION();
         result.currentEpoch = IRewardStreams(result.balanceTracker).currentEpoch();
-        result.totalRewardEligible = IRewardStreams(result.balanceTracker).totalRewardedEligible(vault, reward);
+        result.totalRewardedEligible = IRewardStreams(result.balanceTracker).totalRewardedEligible(vault, reward);
         result.totalRewardRegistered = IRewardStreams(result.balanceTracker).totalRewardRegistered(vault, reward);
         result.totalRewardClaimed = IRewardStreams(result.balanceTracker).totalRewardClaimed(vault, reward);
 
