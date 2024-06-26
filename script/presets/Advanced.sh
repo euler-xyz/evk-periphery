@@ -125,10 +125,13 @@ if [[ $verify_contracts != "y" ]]; then
 fi
 
 # Verify the deployed smart contracts
-transactions=$(jq -c '.transactions[]' ./broadcast/$scriptName/1/run-latest.json)
+chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+chain=$(cast chain --rpc-url $DEPLOYMENT_RPC_URL)
+transactions=$(jq -c '.transactions[]' ./broadcast/$scriptName/$chainId/run-latest.json)
 
 # Iterate over each transaction and verify it
 for tx in $transactions; do
+    # this must be done using grep not jq because the foundry json file is corrupted
     transactionType=$(echo $tx | grep -o '"transactionType":"[^"]*' | grep -o '[^"]*$')
     contractName=$(echo $tx | grep -o '"contractName":"[^"]*' | grep -o '[^"]*$')
     contractAddress=$(echo $tx | grep -o '"contractAddress":"[^"]*' | grep -o '[^"]*$')    
@@ -140,7 +143,7 @@ for tx in $transactions; do
         continue
     fi
     
-    verify_command="forge verify-contract $contractAddress $contractName --rpc-url $DEPLOYMENT_RPC_URL --verifier-url $VERIFIER_URL --etherscan-api-key $VERIFIER_API_KEY --skip-is-verified-check --watch"
+    verify_command="forge verify-contract $contractAddress $contractName --rpc-url $DEPLOYMENT_RPC_URL --chain $chain --verifier-url $VERIFIER_URL --etherscan-api-key $VERIFIER_API_KEY --skip-is-verified-check --watch"
     
     echo "Verifying $contractName: $contractAddress"
     result=$(eval $verify_command --flatten --force 2>&1)
