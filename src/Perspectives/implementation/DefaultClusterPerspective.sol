@@ -117,11 +117,12 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             verifyCollateralPricing(oracle, collateral, unitOfAccount);
 
             // cluster vaults collaterals must have the LTVs set in range with LTV separation provided
-            (uint16 borrowLTV, uint16 liquidationLTV,,, uint32 rampDuration) = IEVault(vault).LTVFull(collateral);
+            (uint16 borrowLTV, uint16 liquidationLTV,, uint48 targetTimestamp, uint32 rampDuration) =
+                IEVault(vault).LTVFull(collateral);
             testProperty(borrowLTV != liquidationLTV, ERROR__LTV_COLLATERAL_CONFIG_SEPARATION);
             testProperty(borrowLTV > 0 && borrowLTV <= 0.85e4, ERROR__LTV_COLLATERAL_CONFIG_BORROW);
             testProperty(liquidationLTV > 0 && liquidationLTV <= 0.9e4, ERROR__LTV_COLLATERAL_CONFIG_LIQUIDATION);
-            testProperty(rampDuration == 0, ERROR__LTV_COLLATERAL_RAMPING);
+            testProperty(rampDuration == 0 || targetTimestamp <= block.timestamp, ERROR__LTV_COLLATERAL_RAMPING);
 
             // iterate over recognized collateral perspectives to check if the collateral is recognized
             bool recognized = false;
