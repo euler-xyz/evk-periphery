@@ -181,14 +181,18 @@ abstract contract DefaultClusterPerspective is BasePerspective {
     /// @dev Valid configurations:
     /// 1. `asset/unitOfAccount` has a configured adapter, valid in `adapterRegistry`.
     /// 2. `asset` is configured as a resolved vault, valid in `externalVaultRegistry`.
-    /// IERC4626(asset).asset()/unitOfAccount` has a configured adapter, valid in `adapterRegistry`.
+    /// `IERC4626(asset).asset()/unitOfAccount` has a configured adapter, valid in `adapterRegistry`.
     /// The latter is done to accommodate ERC4626-based tokens e.g. sDai.
     function verifyAssetPricing(address router, address asset, address unitOfAccount) internal {
         // The asset must be either unresolved or a valid external vault.
         address unwrappedAsset = EulerRouter(router).resolvedVaults(asset);
         if (unwrappedAsset != address(0)) {
-            // If the asset is itself an ERC4626 resolved vault, verify that it is valid in `externalVaultRegistry`.
+            // The asset is itself an ERC4626 resolved vault. Perform a sanity check against `IERC4626.asset()`.
+            testProperty(IERC4626(asset).asset() == unwrappedAsset, ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+
+            // Verify that it this vault valid in `externalVaultRegistry`.
             testProperty(externalVaultRegistry.isValid(asset, block.timestamp), ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+
             // Additionally, there must not be a short-circuiting adapter.
             testProperty(
                 EulerRouter(router).getConfiguredOracle(asset, unitOfAccount) == address(0),
@@ -196,10 +200,13 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             );
         }
 
-        // The final adapter must be valid according to the registry.
-        address adapter = EulerRouter(router).getConfiguredOracle(
-            unwrappedAsset == address(0) ? asset : unwrappedAsset, unitOfAccount
-        );
-        testProperty(adapterRegistry.isValid(adapter, block.timestamp), ERROR__ORACLE_INVALID_ADAPTER);
+        // Ignore the case where the underlying asset matches `unitOfAccount`, as the router handles that without
+        // calling an adapter.
+        address base = unwrappedAsset == address(0) ? asset : unwrappedAsset;
+        if (base != unitOfAccount) {
+            // The final adapter must be valid according to the registry.
+            address adapter = EulerRouter(router).getConfiguredOracle(base, unitOfAccount);
+            testProperty(adapterRegistry.isValid(adapter, block.timestamp), ERROR__ORACLE_INVALID_ADAPTER);
+        }
     }
 }
