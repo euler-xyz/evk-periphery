@@ -190,7 +190,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             // The asset is itself an ERC4626 resolved vault. Perform a sanity check against `IERC4626.asset()`.
             testProperty(IERC4626(asset).asset() == unwrappedAsset, ERROR__ORACLE_INVALID_ROUTER_CONFIG);
 
-            // Verify that it this vault valid in `externalVaultRegistry`.
+            // Verify that this vault valid in `externalVaultRegistry`.
             testProperty(externalVaultRegistry.isValid(asset, block.timestamp), ERROR__ORACLE_INVALID_ROUTER_CONFIG);
 
             // Additionally, there must not be a short-circuiting adapter.
