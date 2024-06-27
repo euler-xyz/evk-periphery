@@ -128,9 +128,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             bool recognized = false;
             uint256 recognizedCollateralPerspectivesLength = recognizedCollateralPerspectives.length;
             for (uint256 j = 0; j < recognizedCollateralPerspectivesLength; ++j) {
-                address perspective = recognizedCollateralPerspectives[j] == address(0)
-                    ? address(this)
-                    : recognizedCollateralPerspectives[j];
+                address perspective = resolveRecognizedPerspective(recognizedCollateralPerspectives[j]);
 
                 if (BasePerspective(perspective).isVerified(collateral)) {
                     recognized = true;
@@ -140,9 +138,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
             if (!recognized) {
                 for (uint256 j = 0; j < recognizedCollateralPerspectivesLength; ++j) {
-                    address perspective = recognizedCollateralPerspectives[j] == address(0)
-                        ? address(this)
-                        : recognizedCollateralPerspectives[j];
+                    address perspective = resolveRecognizedPerspective(recognizedCollateralPerspectives[j]);
 
                     try BasePerspective(perspective).perspectiveVerify(collateral, true) {
                         recognized = true;
@@ -213,5 +209,16 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             address adapter = EulerRouter(router).getConfiguredOracle(base, unitOfAccount);
             testProperty(adapterRegistry.isValid(adapter, block.timestamp), ERROR__ORACLE_INVALID_ADAPTER);
         }
+    }
+
+    /// @notice Resolves the recognized perspective address.
+    /// @param perspective The input perspective address.
+    /// @return The resolved perspective address. If the input is the zero address, returns the current contract
+    /// address.
+    function resolveRecognizedPerspective(address perspective) internal view returns (address) {
+        if (perspective == address(0)) {
+            return address(this);
+        }
+        return perspective;
     }
 }
