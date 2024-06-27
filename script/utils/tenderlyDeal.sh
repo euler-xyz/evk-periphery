@@ -1,4 +1,6 @@
 #!/bin/bash
+    
+source .env
 
 account=$1
 asset=$2
@@ -23,7 +25,7 @@ if [[ $asset == "ETH" ]]; then
         }')
 else
     decimals=$(cast call $asset "decimals()(uint8)" --rpc-url $DEPLOYMENT_RPC_URL)
-	dealAmountCalc=$(echo "obase=16; $dealValue * 10^$decimals" | bc)
+	dealAmountCalc=$(echo "obase=16; $dealAmount * 10^$decimals" | bc)
 	dealAmountHex="0x$(printf $dealAmountCalc)"
 
     jsonPayload=$(jq -n \

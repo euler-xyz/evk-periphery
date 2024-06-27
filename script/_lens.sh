@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source .env
+
 echo ""
 echo "Welcome to the lens caller script!"
 echo "This script will guide you through the calling the appropriate lens and getting the information you need."

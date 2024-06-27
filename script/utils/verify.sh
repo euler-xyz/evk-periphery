@@ -18,6 +18,8 @@ function verify_contract {
     fi
 }
 
+source .env
+
 # Verify the deployed smart contracts
 fileName=$1
 tmpFileName=${fileName}.tmp
