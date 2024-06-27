@@ -54,45 +54,17 @@ function backup_and_restore_script_files {
     fi
 }
 
-function execute_forge_command {
+function execute_forge_script {
     local scriptFileName=$1
     local shouldVerify=$2
 
     forge script script/$scriptFileName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --slow
 
     if [[ $shouldVerify == "y" ]]; then
-        scriptFileName=${scriptFileName%%:*}
-        transactions=$(jq -c '.transactions[]' ./broadcast/$scriptFileName/1/run-latest.json)
-        
-        for tx in $transactions; do
-            transactionType=$(echo $tx | grep -o '"transactionType":"[^"]*' | grep -o '[^"]*$')
-            contractName=$(echo $tx | grep -o '"contractName":"[^"]*' | grep -o '[^"]*$')
-            contractAddress=$(echo $tx | grep -o '"contractAddress":"[^"]*' | grep -o '[^"]*$')    
+        chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+        broadcastFileName=${scriptFileName%%:*}
 
-            if [[ $transactionType != "CREATE" || $contractName == "" || $contractAddress == "" ]]; then
-                if [[ $transactionType == "CREATE" && ( $contractName != "" || $contractAddress != "" ) ]]; then
-                    echo "Skipping verification of $contractName: $contractAddress"
-                fi
-                continue
-            fi
-    
-            verify_command="forge verify-contract $contractAddress $contractName --rpc-url \"$DEPLOYMENT_RPC_URL\" --verifier-url \"$VERIFIER_URL\" --etherscan-api-key \"$VERIFIER_API_KEY\" --skip-is-verified-check --watch"
-    
-            echo "Verifying $contractName: $contractAddress"
-            result=$(eval $verify_command --flatten --force 2>&1)
-
-            if [[ "$result" == *"Contract successfully verified"* ]]; then
-                echo "Success"
-            else
-                result=$(eval $verify_command 2>&1)
-
-                if [[ "$result" == *"Contract successfully verified"* ]]; then
-                    echo "Success"
-                else
-                    echo "Failure"
-                fi
-            fi
-        done
+        ./script/utils/verify.sh "./broadcast/$broadcastFileName/$chainId/run-latest.json"
     fi
 }
 
@@ -103,21 +75,6 @@ then
     exit 1
 fi
 
-echo "Compiling the smart contracts..."
-forge compile
-if [ $? -ne 0 ]; then
-    echo "Compilation failed, retrying..."
-    forge compile
-    if [ $? -ne 0 ]; then
-        echo "Compilation failed again, please check the errors and try again."
-        exit 1
-    else
-        echo "Compilation successful on retry."
-    fi
-else
-    echo "Compilation successful."
-fi
-
 if [[ ! -d "$(pwd)/script" ]]; then
     echo "Error: script directory does not exist in the current directory."
     echo "Please ensure this script is run from the top project directory."
@@ -126,18 +83,9 @@ fi
 
 if [[ -f .env ]]; then
     source .env
-    echo ".env file loaded successfully."
 else
     echo "Error: .env file does not exist. Please create it and try again."
     exit 1
-fi
-
-# Check if DEPLOYMENT_RPC_URL environment variable is set
-if [ -z "$DEPLOYMENT_RPC_URL" ]; then
-    echo "Error: DEPLOYMENT_RPC_URL environment variable is not set. Please set it and try again."
-    exit 1
-else
-    echo "DEPLOYMENT_RPC_URL is set to: $DEPLOYMENT_RPC_URL"
 fi
 
 echo ""
@@ -155,6 +103,11 @@ if [[ $local_fork == "y" ]]; then
         echo "anvil --fork-url ${FORK_RPC_URL}"
         exit 1
     fi  
+fi
+
+if [ -z "$DEPLOYMENT_RPC_URL" ]; then
+    echo "Error: DEPLOYMENT_RPC_URL environment variable is not set. Please set it and try again."
+    exit 1
 fi
 
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
@@ -615,6 +568,6 @@ while true; do
             ;;
     esac
 
-    execute_forge_command $scriptFileName $verify_contracts
+    execute_forge_script $scriptFileName $verify_contracts
     backup_and_restore_script_files $scriptJsonFileName $tempScriptJsonFileName "$deployment_name"
 done

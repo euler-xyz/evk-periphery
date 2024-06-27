@@ -8,25 +8,9 @@ fi
 
 if [[ -f .env ]]; then
     source .env
-    echo ".env file loaded successfully."
 else
     echo "Error: .env file does not exist. Please create it and try again."
     exit 1
-fi
-
-echo "Compiling the smart contracts..."
-forge compile
-if [ $? -ne 0 ]; then
-    echo "Compilation failed, retrying..."
-    forge compile
-    if [ $? -ne 0 ]; then
-        echo "Compilation failed again, please check the errors and try again."
-        exit 1
-    else
-        echo "Compilation successful on retry."
-    fi
-else
-    echo "Compilation successful."
 fi
 
 echo ""
@@ -44,14 +28,11 @@ if [[ $local_fork == "y" ]]; then
         echo "anvil --fork-url ${FORK_RPC_URL}"
         exit 1
     fi
-else
-    # Check if DEPLOYMENT_RPC_URL environment variable is set
-    if [ -z "$DEPLOYMENT_RPC_URL" ]; then
-        echo "Error: DEPLOYMENT_RPC_URL environment variable is not set. Please set it and try again."
-        exit 1
-    else
-        echo "DEPLOYMENT_RPC_URL is set to: $DEPLOYMENT_RPC_URL"
-    fi
+fi
+
+if [ -z "$DEPLOYMENT_RPC_URL" ]; then
+    echo "Error: DEPLOYMENT_RPC_URL environment variable is not set. Please set it and try again."
+    exit 1
 fi
 
 while true; do
