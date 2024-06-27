@@ -38,6 +38,7 @@ contract EulerDefaultClusterPerspective is DefaultClusterPerspective {
         recognizedCollateralPerspectives.push(address(0));
     }
 
+    /// @inheritdoc BasePerspective
     function name() public pure override returns (string memory) {
         return "Euler Default Cluster Perspective";
     }

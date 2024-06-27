@@ -50,6 +50,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
     }
 
+    /// @inheritdoc BasePerspective
     function perspectiveVerifyInternal(address vault) internal override {
         // the vault must be deployed by recognized factory
         testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
@@ -104,6 +105,9 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         // Verify the full pricing configuration for asset/unitOfAccount in the router.
         verifyAssetPricing(oracle, asset, unitOfAccount);
 
+        // verify that the exchange rate is acceptable
+        testProperty(verifyConversion(vault), ERROR__CONVERSION_SELF);
+
         // cluster vaults must have collaterals set up
         address[] memory ltvList = IEVault(vault).LTVList();
         uint256 ltvListLength = ltvList.length;
@@ -115,6 +119,9 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
             // Verify the full pricing configuration for collateral/unitOfAccount in the router.
             verifyCollateralPricing(oracle, collateral, unitOfAccount);
+
+            // verify that the exchange rate is acceptable for all collaterals
+            testProperty(verifyConversion(collateral), ERROR__CONVERSION_COLLATERAL);
 
             // cluster vaults collaterals must have the LTVs set in range with LTV separation provided
             (uint16 borrowLTV, uint16 liquidationLTV,, uint48 targetTimestamp, uint32 rampDuration) =
@@ -150,6 +157,17 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
             testProperty(recognized, ERROR__LTV_COLLATERAL_RECOGNITION);
         }
+    }
+
+    /// @inheritdoc BasePerspective
+    function perspectivePostVerifyInternal(address vault) internal view override returns (bool) {
+        address[] memory ltvList = IEVault(vault).LTVList();
+        uint256 ltvListLength = ltvList.length;
+        for (uint256 i = 0; i < ltvListLength; ++i) {
+            if (!verifyConversion(ltvList[i])) return false;
+        }
+
+        return verifyConversion(vault);
     }
 
     /// @notice Validate the EulerRouter configuration of a collateral vault.
@@ -209,6 +227,15 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             address adapter = EulerRouter(router).getConfiguredOracle(base, unitOfAccount);
             testProperty(adapterRegistry.isValid(adapter, block.timestamp), ERROR__ORACLE_INVALID_ADAPTER);
         }
+    }
+
+    /// @notice Verifies the conversion of shares to assets for a given vault is within an acceptable range.
+    /// @param vault The address of the vault to verify.
+    /// @return A boolean indicating whether the assets converted from shares are within an acceptable range.
+    function verifyConversion(address vault) internal view returns (bool) {
+        uint256 shares = 10 ** IEVault(vault).decimals();
+        uint256 assets = IEVault(vault).convertToAssets(shares);
+        return assets >= shares && assets <= 10 * shares;
     }
 
     /// @notice Resolves the recognized perspective address.

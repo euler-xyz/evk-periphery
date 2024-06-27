@@ -50,8 +50,11 @@ abstract contract BasePerspective is IPerspective, PerspectiveErrors {
             if eq(tload(transientVerifiedHash), true) { return(0, 0) }
         }
 
-        // if already verified, return
-        if (verified.contains(vault)) return;
+        // if already verified, perform an additional post-verification and return or revert if not
+        if (verified.contains(vault)) {
+            if (perspectivePostVerifyInternal(vault)) return;
+            revert PerspectivePanic();
+        }
 
         address _vault;
         bool _failEarly;
@@ -88,17 +91,32 @@ abstract contract BasePerspective is IPerspective, PerspectiveErrors {
 
     /// @inheritdoc IPerspective
     function isVerified(address vault) public view virtual returns (bool) {
-        return verified.contains(vault);
+        return verified.contains(vault) && perspectivePostVerifyInternal(vault);
     }
 
     /// @inheritdoc IPerspective
     function verifiedLength() public view virtual returns (uint256) {
-        return verified.length();
+        return verifiedArray().length;
     }
 
     /// @inheritdoc IPerspective
     function verifiedArray() public view virtual returns (address[] memory) {
-        return verified.values();
+        address[] memory vaults = verified.values();
+        address[] memory verifiedVaults = new address[](vaults.length);
+        uint256 index;
+
+        for (uint256 i = 0; i < vaults.length; ++i) {
+            if (perspectivePostVerifyInternal(vaults[i])) {
+                verifiedVaults[index++] = vaults[i];
+            }
+        }
+
+        assembly {
+            // Set the length of the verifiedVaults to index
+            mstore(verifiedVaults, index)
+        }
+
+        return verifiedVaults;
     }
 
     /// @notice Internal function to perform verification of a vault.
@@ -106,6 +124,12 @@ abstract contract BasePerspective is IPerspective, PerspectiveErrors {
     /// @dev This function should use the testProperty function to test the properties of the vault.
     /// @param vault The address of the vault to verify.
     function perspectiveVerifyInternal(address vault) internal virtual;
+
+    /// @notice Internal function to perform additional verification on a vault that is already considered verified.
+    /// @dev This function must be defined in derived contracts to implement specific additional verification logic.
+    /// @param vault The address of the vault to perform the additional verification on.
+    /// @return A boolean indicating whether the additional verification was successful.
+    function perspectivePostVerifyInternal(address vault) internal view virtual returns (bool);
 
     /// @notice Tests a property condition and handles error based on the result.
     /// @param condition The boolean condition to test, typically a property of a vault. i.e governor == address(0)

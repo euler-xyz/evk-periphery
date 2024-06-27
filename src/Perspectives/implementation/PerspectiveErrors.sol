@@ -32,10 +32,12 @@ abstract contract PerspectiveErrors {
     uint256 internal constant ERROR__SYMBOL = 1 << 22;
     uint256 internal constant ERROR__LIQUIDATION_DISCOUNT = 1 << 23;
     uint256 internal constant ERROR__LIQUIDATION_COOL_OFF_TIME = 1 << 24;
-    uint256 internal constant ERROR__LTV_COLLATERAL_CONFIG_LENGTH = 1 << 25;
-    uint256 internal constant ERROR__LTV_COLLATERAL_CONFIG_SEPARATION = 1 << 26;
-    uint256 internal constant ERROR__LTV_COLLATERAL_CONFIG_BORROW = 1 << 27;
-    uint256 internal constant ERROR__LTV_COLLATERAL_CONFIG_LIQUIDATION = 1 << 28;
-    uint256 internal constant ERROR__LTV_COLLATERAL_RAMPING = 1 << 29;
-    uint256 internal constant ERROR__LTV_COLLATERAL_RECOGNITION = 1 << 30;
+    uint256 internal constant ERROR__CONVERSION_SELF = 1 << 25;
+    uint256 internal constant ERROR__CONVERSION_COLLATERAL = 1 << 26;
+    uint256 internal constant ERROR__LTV_COLLATERAL_CONFIG_LENGTH = 1 << 27;
+    uint256 internal constant ERROR__LTV_COLLATERAL_CONFIG_SEPARATION = 1 << 28;
+    uint256 internal constant ERROR__LTV_COLLATERAL_CONFIG_BORROW = 1 << 29;
+    uint256 internal constant ERROR__LTV_COLLATERAL_CONFIG_LIQUIDATION = 1 << 30;
+    uint256 internal constant ERROR__LTV_COLLATERAL_RAMPING = 1 << 31;
+    uint256 internal constant ERROR__LTV_COLLATERAL_RECOGNITION = 1 << 32;
 }

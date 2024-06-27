@@ -24,6 +24,11 @@ contract EulerFactoryPerspective is BasePerspective {
     }
 
     /// @inheritdoc BasePerspective
+    function perspectivePostVerifyInternal(address) internal pure override returns (bool) {
+        return true;
+    }
+
+    /// @inheritdoc BasePerspective
     function isVerified(address vault) public view virtual override returns (bool) {
         return vaultFactory.isProxy(vault);
     }

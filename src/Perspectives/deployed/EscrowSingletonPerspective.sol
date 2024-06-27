@@ -25,6 +25,7 @@ contract EscrowSingletonPerspective is BasePerspective {
         return "Escrow Singleton Perspective";
     }
 
+    /// @inheritdoc BasePerspective
     function perspectiveVerifyInternal(address vault) internal override {
         // the vault must be deployed by recognized factory
         testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
@@ -71,10 +72,27 @@ contract EscrowSingletonPerspective is BasePerspective {
         testProperty(IEVault(vault).maxLiquidationDiscount() == 0, ERROR__LIQUIDATION_DISCOUNT);
         testProperty(IEVault(vault).liquidationCoolOffTime() == 0, ERROR__LIQUIDATION_COOL_OFF_TIME);
 
+        // verify that the exchange rate is at default state
+        testProperty(verifyConversion(vault), ERROR__CONVERSION_SELF);
+
         // escrow vaults must not have any collateral set up
         testProperty(IEVault(vault).LTVList().length == 0, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
 
         // store in mapping so that one escrow vault per asset can be achieved
         assetLookup[asset] = vault;
+    }
+
+    /// @inheritdoc BasePerspective
+    function perspectivePostVerifyInternal(address vault) internal view override returns (bool) {
+        // verify for abundance of caution
+        return verifyConversion(vault);
+    }
+
+    /// @notice Verifies the conversion of shares to assets for a given vault is in default state
+    /// @param vault The address of the vault to verify.
+    /// @return A boolean indicating whether the assets converted from shares are in default state.
+    function verifyConversion(address vault) internal view returns (bool) {
+        uint256 shares = 10 ** IEVault(vault).decimals();
+        return IEVault(vault).convertToAssets(shares) == shares;
     }
 }
