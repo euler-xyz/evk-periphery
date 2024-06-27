@@ -245,7 +245,8 @@ contract Advanced is ScriptUtils {
         // deploy lenses
         {
             Lenses deployer = new Lenses();
-            (result.accountLens, result.oracleLens, result.vaultLens, result.utilsLens) = deployer.deploy();
+            (result.accountLens, result.oracleLens, result.vaultLens, result.utilsLens) =
+                deployer.deploy(result.oracleAdapterRegistry);
         }
         // deploy perspectives
         {

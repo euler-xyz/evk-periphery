@@ -509,6 +509,14 @@ while true; do
             scriptJsonFileName=$fileName.json
             tempScriptJsonFileName=temp_$scriptJsonFileName
             backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+            
+            read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+
+            jq -n \
+                --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                '{
+                    oracleAdapterRegistry: $oracleAdapterRegistry
+                }' --indent 4 > script/input/$scriptJsonFileName
             ;;
         9)
             echo "Deploying Perspectives..."

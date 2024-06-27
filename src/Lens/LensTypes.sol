@@ -82,6 +82,8 @@ struct VaultInfoSimple {
     AssetPriceInfo liabilityPriceInfo;
     AssetPriceInfo[] collateralPriceInfo;
     OracleDetailedInfo oracleInfo;
+    AssetPriceInfo backupPriceInfo;
+    OracleDetailedInfo backupOracleInfo;
 }
 
 struct VaultInfoFull {
@@ -128,6 +130,8 @@ struct VaultInfoFull {
     AssetPriceInfo liabilityPriceInfo;
     AssetPriceInfo[] collateralPriceInfo;
     OracleDetailedInfo oracleInfo;
+    AssetPriceInfo backupPriceInfo;
+    OracleDetailedInfo backupOracleInfo;
 }
 
 struct LTVInfo {

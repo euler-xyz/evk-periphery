@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {Utils} from "./Utils.sol";
+import {SnapshotRegistry} from "../OracleFactory/SnapshotRegistry.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
 import "./LensTypes.sol";
 
@@ -38,6 +39,12 @@ interface IOracle is IPriceOracle {
 }
 
 contract OracleLens is Utils {
+    SnapshotRegistry public immutable adapterRegistry;
+
+    constructor(address _adapterRegistry) {
+        adapterRegistry = SnapshotRegistry(_adapterRegistry);
+    }
+
     function getOracleInfo(address oracleAddress, address[] calldata bases, address unitOfAccount)
         public
         view
@@ -151,5 +158,9 @@ contract OracleLens is Utils {
         }
 
         return OracleDetailedInfo({name: name, oracleInfo: oracleInfo});
+    }
+
+    function getValidAdapters(address base, address quote) public view returns (address[] memory) {
+        return adapterRegistry.getValidAddresses(base, quote, block.timestamp);
     }
 }
