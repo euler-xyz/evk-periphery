@@ -117,19 +117,18 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             verifyCollateralPricing(oracle, collateral, unitOfAccount);
 
             // cluster vaults collaterals must have the LTVs set in range with LTV separation provided
-            (uint16 borrowLTV, uint16 liquidationLTV,,, uint32 rampDuration) = IEVault(vault).LTVFull(collateral);
+            (uint16 borrowLTV, uint16 liquidationLTV,, uint48 targetTimestamp, uint32 rampDuration) =
+                IEVault(vault).LTVFull(collateral);
             testProperty(borrowLTV != liquidationLTV, ERROR__LTV_COLLATERAL_CONFIG_SEPARATION);
             testProperty(borrowLTV > 0 && borrowLTV <= 0.85e4, ERROR__LTV_COLLATERAL_CONFIG_BORROW);
             testProperty(liquidationLTV > 0 && liquidationLTV <= 0.9e4, ERROR__LTV_COLLATERAL_CONFIG_LIQUIDATION);
-            testProperty(rampDuration == 0, ERROR__LTV_COLLATERAL_RAMPING);
+            testProperty(rampDuration == 0 || targetTimestamp <= block.timestamp, ERROR__LTV_COLLATERAL_RAMPING);
 
             // iterate over recognized collateral perspectives to check if the collateral is recognized
             bool recognized = false;
             uint256 recognizedCollateralPerspectivesLength = recognizedCollateralPerspectives.length;
             for (uint256 j = 0; j < recognizedCollateralPerspectivesLength; ++j) {
-                address perspective = recognizedCollateralPerspectives[j] == address(0)
-                    ? address(this)
-                    : recognizedCollateralPerspectives[j];
+                address perspective = resolveRecognizedPerspective(recognizedCollateralPerspectives[j]);
 
                 if (BasePerspective(perspective).isVerified(collateral)) {
                     recognized = true;
@@ -139,9 +138,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
 
             if (!recognized) {
                 for (uint256 j = 0; j < recognizedCollateralPerspectivesLength; ++j) {
-                    address perspective = recognizedCollateralPerspectives[j] == address(0)
-                        ? address(this)
-                        : recognizedCollateralPerspectives[j];
+                    address perspective = resolveRecognizedPerspective(recognizedCollateralPerspectives[j]);
 
                     try BasePerspective(perspective).perspectiveVerify(collateral, true) {
                         recognized = true;
@@ -170,6 +167,10 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             EulerRouter(router).getConfiguredOracle(vault, unitOfAccount) == address(0),
             ERROR__ORACLE_INVALID_ROUTER_CONFIG
         );
+        testProperty(
+            EulerRouter(router).getConfiguredOracle(vault, resolvedAsset) == address(0),
+            ERROR__ORACLE_INVALID_ROUTER_CONFIG
+        );
 
         verifyAssetPricing(router, resolvedAsset, unitOfAccount);
     }
@@ -181,14 +182,18 @@ abstract contract DefaultClusterPerspective is BasePerspective {
     /// @dev Valid configurations:
     /// 1. `asset/unitOfAccount` has a configured adapter, valid in `adapterRegistry`.
     /// 2. `asset` is configured as a resolved vault, valid in `externalVaultRegistry`.
-    /// IERC4626(asset).asset()/unitOfAccount` has a configured adapter, valid in `adapterRegistry`.
+    /// `IERC4626(asset).asset()/unitOfAccount` has a configured adapter, valid in `adapterRegistry`.
     /// The latter is done to accommodate ERC4626-based tokens e.g. sDai.
     function verifyAssetPricing(address router, address asset, address unitOfAccount) internal {
         // The asset must be either unresolved or a valid external vault.
         address unwrappedAsset = EulerRouter(router).resolvedVaults(asset);
         if (unwrappedAsset != address(0)) {
-            // If the asset is itself an ERC4626 resolved vault, verify that it is valid in `externalVaultRegistry`.
+            // The asset is itself an ERC4626 resolved vault. Perform a sanity check against `IERC4626.asset()`.
+            testProperty(IERC4626(asset).asset() == unwrappedAsset, ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+
+            // Verify that this vault valid in `externalVaultRegistry`.
             testProperty(externalVaultRegistry.isValid(asset, block.timestamp), ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+
             // Additionally, there must not be a short-circuiting adapter.
             testProperty(
                 EulerRouter(router).getConfiguredOracle(asset, unitOfAccount) == address(0),
@@ -196,10 +201,24 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             );
         }
 
-        // The final adapter must be valid according to the registry.
-        address adapter = EulerRouter(router).getConfiguredOracle(
-            unwrappedAsset == address(0) ? asset : unwrappedAsset, unitOfAccount
-        );
-        testProperty(adapterRegistry.isValid(adapter, block.timestamp), ERROR__ORACLE_INVALID_ADAPTER);
+        // Ignore the case where the underlying asset matches `unitOfAccount`, as the router handles that without
+        // calling an adapter.
+        address base = unwrappedAsset == address(0) ? asset : unwrappedAsset;
+        if (base != unitOfAccount) {
+            // The final adapter must be valid according to the registry.
+            address adapter = EulerRouter(router).getConfiguredOracle(base, unitOfAccount);
+            testProperty(adapterRegistry.isValid(adapter, block.timestamp), ERROR__ORACLE_INVALID_ADAPTER);
+        }
+    }
+
+    /// @notice Resolves the recognized perspective address.
+    /// @param perspective The input perspective address.
+    /// @return The resolved perspective address. If the input is the zero address, returns the current contract
+    /// address.
+    function resolveRecognizedPerspective(address perspective) internal view returns (address) {
+        if (perspective == address(0)) {
+            return address(this);
+        }
+        return perspective;
     }
 }
