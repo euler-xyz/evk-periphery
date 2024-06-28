@@ -10,6 +10,7 @@ import {LidoOracle} from "euler-price-oracle/adapter/lido/LidoOracle.sol";
 import {PythOracle} from "euler-price-oracle/adapter/pyth/PythOracle.sol";
 import {RedstoneCoreOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreOracle.sol";
 import {CrossAdapter as CrossOracle} from "euler-price-oracle/adapter/CrossAdapter.sol";
+import {UniswapV3Oracle} from "euler-price-oracle/adapter/uniswap/UniswapV3Oracle.sol";
 
 contract ChainlinkAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
@@ -153,9 +154,14 @@ contract RedstoneAdapter is ScriptUtils {
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
         address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
-        bytes32 feedId = abi.decode(vm.parseJson(json, ".feedId"), (bytes32));
+        bytes memory feed = bytes(abi.decode(vm.parseJson(json, ".feedId"), (string)));
         uint8 feedDecimals = abi.decode(vm.parseJson(json, ".feedDecimals"), (uint8));
         uint256 maxStaleness = abi.decode(vm.parseJson(json, ".maxStaleness"), (uint256));
+
+        bytes32 feedId;
+        assembly {
+            feedId := mload(add(feed, 32))
+        }
 
         adapter = execute(adapterRegistry, base, quote, feedId, feedDecimals, maxStaleness);
 
@@ -226,5 +232,46 @@ contract CrossAdapter is ScriptUtils {
     ) public returns (address adapter) {
         adapter = address(new CrossOracle(base, cross, quote, oracleBaseCross, oracleCrossQuote));
         SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
+    }
+}
+
+contract UniswapAdapter is ScriptUtils {
+    function run() public broadcast returns (address adapter) {
+        string memory json = getInputConfig("02_UniswapAdapter.json");
+        address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        address tokenA = abi.decode(vm.parseJson(json, ".tokenA"), (address));
+        address tokenB = abi.decode(vm.parseJson(json, ".tokenB"), (address));
+        uint24 fee = abi.decode(vm.parseJson(json, ".fee"), (uint24));
+        uint32 twapWindow = abi.decode(vm.parseJson(json, ".twapWindow"), (uint32));
+        address uniswapV3Factory = abi.decode(vm.parseJson(json, ".uniswapV3Factory"), (address));
+
+        adapter = execute(adapterRegistry, tokenA, tokenB, fee, twapWindow, uniswapV3Factory);
+
+        string memory object;
+        object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/02_UniswapAdapter.json"));
+    }
+
+    function deploy(
+        address adapterRegistry,
+        address tokenA,
+        address tokenB,
+        uint24 fee,
+        uint32 twapWindow,
+        address uniswapV3Factory
+    ) public broadcast returns (address adapter) {
+        adapter = execute(adapterRegistry, tokenA, tokenB, fee, twapWindow, uniswapV3Factory);
+    }
+
+    function execute(
+        address adapterRegistry,
+        address tokenA,
+        address tokenB,
+        uint24 fee,
+        uint32 twapWindow,
+        address uniswapV3Factory
+    ) public returns (address adapter) {
+        adapter = address(new UniswapV3Oracle(tokenA, tokenB, fee, twapWindow, uniswapV3Factory));
+        SnapshotRegistry(adapterRegistry).add(adapter, tokenA, tokenB);
     }
 }

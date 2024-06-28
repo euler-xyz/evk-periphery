@@ -197,7 +197,8 @@ while true; do
             echo "3. Pyth"
             echo "4. Redstone"
             echo "5. Cross"
-            read -p "Enter your choice (0-5): " adapter_choice
+            echo "6. Uniswap"
+            read -p "Enter your choice (0-6): " adapter_choice
 
             scriptFileName=02_OracleAdapters.s.sol
 
@@ -367,6 +368,37 @@ while true; do
                             cross: $cross,
                             oracleBaseCross: $oracleBaseCross,
                             oracleCrossQuote: $oracleCrossQuote
+                        }' --indent 4 > script/input/$scriptJsonFileName
+                    ;;
+                6)
+                    echo "Deploying Uniswap Adapter..."
+                    
+                    scriptFileName=$scriptFileName:UniswapAdapter
+                    scriptJsonFileName=02_UniswapAdapter.json
+                    tempScriptJsonFileName=temp_$scriptJsonFileName
+                    backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+
+                    read -p "Enter the Adapter Registry address: " adapter_registry
+                    read -p "Enter tokenA address: " token_a
+                    read -p "Enter tokenB address: " token_b
+                    read -p "Enter fee: " fee
+                    read -p "Enter twapWindow: " twap_window
+                    read -p "Enter uniswapV3Factory address: " uniswap_v3_factory
+
+                    jq -n \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg tokenA "$token_a" \
+                        --arg tokenB "$token_b" \
+                        --argjson fee "$fee" \
+                        --argjson twapWindow "$twap_window" \
+                        --arg uniswapV3Factory "$uniswap_v3_factory" \
+                        '{
+                            adapterRegistry: $adapterRegistry,
+                            tokenA: $tokenA,
+                            tokenB: $tokenB,
+                            fee: $fee,
+                            twapWindow: $twapWindow,
+                            uniswapV3Factory: $uniswapV3Factory
                         }' --indent 4 > script/input/$scriptJsonFileName
                     ;;
                 *)

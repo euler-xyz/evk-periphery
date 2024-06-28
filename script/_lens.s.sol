@@ -171,9 +171,13 @@ contract UseLens is ScriptUtils {
         object = vm.serializeString("vaultInfo", "collateralPriceInfo", "unknown");
 
         string memory object4;
+        object4 = vm.serializeAddress("oracleInfo", "oracle", result.oracleInfo.oracle);
         object4 = vm.serializeString("oracleInfo", "name", result.oracleInfo.name);
         object4 = vm.serializeBytes("oracleInfo", "oracleInfo", result.oracleInfo.oracleInfo);
         object = vm.serializeString("vaultInfo", "oracleInfo", object4);
+
+        object = vm.serializeString("vaultInfo", "backupAssetPriceInfo", "unknown");
+        object = vm.serializeString("vaultInfo", "backupAssetOracleInfo", "unknown");
 
         return object;
     }

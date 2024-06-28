@@ -57,7 +57,8 @@ for tx in $transactions; do
                 verify_contract $contractAddress EulerRouter
             elif [[ $contractName == "GenericFactory" ]]; then
                 if [[ $index -eq 0 ]]; then
-                    verify_contract $contractAddress BeaconProxy
+                    #verify_contract $contractAddress BeaconProxy
+                    true
                 elif [[ $index -eq 1 ]]; then
                     verify_contract $contractAddress DToken
                 fi

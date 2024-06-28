@@ -97,7 +97,7 @@ while true; do
                     read -p "Enter the Base address: " base_address
                     read -p "Enter the Quote address: " quote_address
 
-                    cast send $adapter_registry_address "addAdapter(address,address,address)" $oracle_adapter_address $base_address $quote_address --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
+                    cast send $adapter_registry_address "add(address,address,address)" $oracle_adapter_address $base_address $quote_address --private-key "$DEPLOYER_KEY" --rpc-url "$DEPLOYMENT_RPC_URL"
                     ;;
                 *)
                     echo "Invalid choice. Exiting."
