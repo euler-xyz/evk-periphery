@@ -71,11 +71,12 @@ contract VaultLens is Utils {
 
         if (result.oracle == address(0)) {
             address unitOfAccount = result.unitOfAccount == address(0) ? USD : result.unitOfAccount;
-            result.backupPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
+            result.backupAssetPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
 
             bases = new address[](1);
             bases[0] = result.asset;
-            result.backupOracleInfo = oracleLens.getOracleInfo(result.backupPriceInfo.oracle, bases, unitOfAccount);
+            result.backupAssetOracleInfo =
+                oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, unitOfAccount);
         }
 
         return result;
@@ -158,11 +159,12 @@ contract VaultLens is Utils {
 
         if (result.oracle == address(0)) {
             address unitOfAccount = result.unitOfAccount == address(0) ? USD : result.unitOfAccount;
-            result.backupPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
+            result.backupAssetPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
 
             bases = new address[](1);
             bases[0] = result.asset;
-            result.backupOracleInfo = oracleLens.getOracleInfo(result.backupPriceInfo.oracle, bases, unitOfAccount);
+            result.backupAssetOracleInfo =
+                oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, unitOfAccount);
         }
 
         return result;

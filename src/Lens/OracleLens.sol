@@ -51,7 +51,7 @@ contract OracleLens is Utils {
         returns (OracleDetailedInfo memory)
     {
         if (oracleAddress == address(0)) {
-            return OracleDetailedInfo({name: "", oracleInfo: ""});
+            return OracleDetailedInfo({oracle: address(0), name: "", oracleInfo: ""});
         }
 
         IOracle oracle = IOracle(oracleAddress);
@@ -140,7 +140,7 @@ contract OracleLens is Utils {
                     resolvedOraclesInfo[i] = getOracleInfo(resolvedOracle, bases, unitOfAccount);
                 } catch {
                     resolvedOracles[i] = address(0);
-                    resolvedOraclesInfo[i] = OracleDetailedInfo({name: "", oracleInfo: ""});
+                    resolvedOraclesInfo[i] = OracleDetailedInfo({oracle: address(0), name: "", oracleInfo: ""});
                 }
             }
 
@@ -157,7 +157,7 @@ contract OracleLens is Utils {
             );
         }
 
-        return OracleDetailedInfo({name: name, oracleInfo: oracleInfo});
+        return OracleDetailedInfo({oracle: oracleAddress, name: name, oracleInfo: oracleInfo});
     }
 
     function getValidAdapters(address base, address quote) public view returns (address[] memory) {
