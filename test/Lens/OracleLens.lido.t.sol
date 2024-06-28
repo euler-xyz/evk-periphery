@@ -13,7 +13,7 @@ contract OracleLensLidoTest is LidoOracleHelper {
     address constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
     function setUp() public {
-        lens = new OracleLens();
+        lens = new OracleLens(address(0));
     }
 
     function testLidoOracle(FuzzableState memory s) public {

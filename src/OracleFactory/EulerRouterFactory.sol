@@ -17,6 +17,7 @@ contract EulerRouterFactory is BaseFactory, IEulerRouterFactory {
     function deploy(address governor) external returns (address) {
         address router = address(new EulerRouter(governor));
         deploymentInfo[router] = DeploymentInfo(msg.sender, uint96(block.timestamp));
+        deployments.push(address(router));
         emit ContractDeployed(router, msg.sender, block.timestamp);
         return router;
     }

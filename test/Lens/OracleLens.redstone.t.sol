@@ -11,7 +11,7 @@ contract OracleLensRedstoneCoreTest is RedstoneCoreOracleHelper {
     OracleLens lens;
 
     function setUp() public {
-        lens = new OracleLens();
+        lens = new OracleLens(address(0));
     }
 
     function testRedstoneCoreOracle(FuzzableState memory s) public {

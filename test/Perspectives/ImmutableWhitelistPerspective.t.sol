@@ -29,7 +29,9 @@ contract ImmutableWhitelistPerspectiveTest is Test {
         assertEq(perspective.verifiedLength(), size);
 
         vm.expectRevert(
-            abi.encodeWithSelector(IPerspective.PerspectiveError.selector, address(perspective), address(1), 0)
+            abi.encodeWithSelector(
+                IPerspective.PerspectiveError.selector, address(perspective), address(1), type(uint256).max
+            )
         );
         perspective.perspectiveVerify(address(1), true);
     }

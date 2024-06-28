@@ -6,13 +6,14 @@ import {IRewardStreams} from "reward-streams/interfaces/IRewardStreams.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IIRM, IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {IPriceOracle} from "evk/interfaces/IPriceOracle.sol";
-import {IEulerRouter} from "../OracleFactory/interfaces/IEulerRouter.sol";
 import {OracleLens} from "./OracleLens.sol";
 import {Utils} from "./Utils.sol";
 import "evk/EVault/shared/types/AmountCap.sol";
 import "./LensTypes.sol";
 
 contract VaultLens is Utils {
+    address internal constant USD = address(840);
+
     OracleLens public immutable oracleLens;
 
     constructor(address _oracleLens) {
@@ -67,6 +68,16 @@ contract VaultLens is Utils {
         }
 
         result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, result.unitOfAccount);
+
+        if (result.oracle == address(0)) {
+            address unitOfAccount = result.unitOfAccount == address(0) ? USD : result.unitOfAccount;
+            result.backupAssetPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
+
+            bases = new address[](1);
+            bases[0] = result.asset;
+            result.backupAssetOracleInfo =
+                oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, unitOfAccount);
+        }
 
         return result;
     }
@@ -146,6 +157,16 @@ contract VaultLens is Utils {
 
         result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, result.unitOfAccount);
 
+        if (result.oracle == address(0)) {
+            address unitOfAccount = result.unitOfAccount == address(0) ? USD : result.unitOfAccount;
+            result.backupAssetPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
+
+            bases = new address[](1);
+            bases[0] = result.asset;
+            result.backupAssetOracleInfo =
+                oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, unitOfAccount);
+        }
+
         return result;
     }
 
@@ -169,7 +190,7 @@ contract VaultLens is Utils {
 
         result.epochDuration = IRewardStreams(result.balanceTracker).EPOCH_DURATION();
         result.currentEpoch = IRewardStreams(result.balanceTracker).currentEpoch();
-        result.totalRewardEligible = IRewardStreams(result.balanceTracker).totalRewardedEligible(vault, reward);
+        result.totalRewardedEligible = IRewardStreams(result.balanceTracker).totalRewardedEligible(vault, reward);
         result.totalRewardRegistered = IRewardStreams(result.balanceTracker).totalRewardRegistered(vault, reward);
         result.totalRewardClaimed = IRewardStreams(result.balanceTracker).totalRewardClaimed(vault, reward);
 
@@ -348,6 +369,41 @@ contract VaultLens is Utils {
             (result.amountOutBid, result.amountOutAsk) = abi.decode(data, (uint256, uint256));
         } else {
             result.queryFailure = true;
+        }
+
+        return result;
+    }
+
+    function getAssetPriceInfo(address asset, address unitOfAccount) public view returns (AssetPriceInfo memory) {
+        AssetPriceInfo memory result;
+
+        result.timestamp = block.timestamp;
+
+        result.asset = asset;
+        result.unitOfAccount = unitOfAccount;
+
+        result.amountIn = 10 ** _getDecimals(asset);
+
+        address[] memory adapters = oracleLens.getValidAdapters(asset, unitOfAccount);
+
+        if (adapters.length == 0) {
+            result.queryFailure = true;
+            return result;
+        }
+
+        for (uint256 i = 0; i < adapters.length; ++i) {
+            result.oracle = adapters[i];
+
+            (bool success, bytes memory data) =
+                result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (result.amountIn, asset, unitOfAccount)));
+
+            if (success && data.length >= 32) {
+                result.amountOutMid = result.amountOutBid = result.amountOutAsk = abi.decode(data, (uint256));
+            } else {
+                result.queryFailure = true;
+            }
+
+            if (!result.queryFailure) break;
         }
 
         return result;

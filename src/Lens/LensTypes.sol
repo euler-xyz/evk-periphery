@@ -82,6 +82,8 @@ struct VaultInfoSimple {
     AssetPriceInfo liabilityPriceInfo;
     AssetPriceInfo[] collateralPriceInfo;
     OracleDetailedInfo oracleInfo;
+    AssetPriceInfo backupAssetPriceInfo;
+    OracleDetailedInfo backupAssetOracleInfo;
 }
 
 struct VaultInfoFull {
@@ -128,6 +130,8 @@ struct VaultInfoFull {
     AssetPriceInfo liabilityPriceInfo;
     AssetPriceInfo[] collateralPriceInfo;
     OracleDetailedInfo oracleInfo;
+    AssetPriceInfo backupAssetPriceInfo;
+    OracleDetailedInfo backupAssetOracleInfo;
 }
 
 struct LTVInfo {
@@ -193,7 +197,7 @@ struct VaultRewardInfo {
     address balanceTracker;
     uint256 epochDuration;
     uint256 currentEpoch;
-    uint256 totalRewardEligible;
+    uint256 totalRewardedEligible;
     uint256 totalRewardRegistered;
     uint256 totalRewardClaimed;
     RewardAmountInfo[] epochInfoPrevious;
@@ -208,6 +212,7 @@ struct RewardAmountInfo {
 }
 
 struct OracleDetailedInfo {
+    address oracle;
     string name;
     bytes oracleInfo;
 }

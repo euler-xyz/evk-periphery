@@ -27,6 +27,6 @@ contract ImmutableWhitelistPerspective is BasePerspective {
     }
 
     function perspectiveVerifyInternal(address) internal virtual override {
-        testProperty(false, 0);
+        testProperty(false, type(uint256).max);
     }
 }

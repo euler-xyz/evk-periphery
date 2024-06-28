@@ -4,8 +4,6 @@ pragma solidity ^0.8.24;
 
 import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
-import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
-import {IERC20} from "evk/EVault/IEVault.sol";
 
 import {IPerspective} from "./interfaces/IPerspective.sol";
 import {PerspectiveErrors} from "./PerspectiveErrors.sol";
@@ -102,16 +100,17 @@ abstract contract BasePerspective is IPerspective, PerspectiveErrors {
     }
 
     /// @notice Internal function to perform verification of a vault.
-    /// @dev This function should be overridden in derived contracts to implement specific verification logic.
+    /// @dev This function must be defined in derived contracts to implement specific verification logic.
     /// @dev This function should use the testProperty function to test the properties of the vault.
     /// @param vault The address of the vault to verify.
-    function perspectiveVerifyInternal(address vault) internal virtual {}
+    function perspectiveVerifyInternal(address vault) internal virtual;
 
     /// @notice Tests a property condition and handles error based on the result.
     /// @param condition The boolean condition to test, typically a property of a vault. i.e governor == address(0)
     /// @param errorCode The error code to use if the condition fails.
     function testProperty(bool condition, uint256 errorCode) internal virtual {
         if (condition) return;
+        if (errorCode == 0) revert PerspectivePanic();
 
         bool failEarly;
         assembly {
