@@ -167,10 +167,6 @@ abstract contract DefaultClusterPerspective is BasePerspective {
             EulerRouter(router).getConfiguredOracle(vault, unitOfAccount) == address(0),
             ERROR__ORACLE_INVALID_ROUTER_CONFIG
         );
-        testProperty(
-            EulerRouter(router).getConfiguredOracle(vault, resolvedAsset) == address(0),
-            ERROR__ORACLE_INVALID_ROUTER_CONFIG
-        );
 
         verifyAssetPricing(router, resolvedAsset, unitOfAccount);
     }

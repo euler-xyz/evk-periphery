@@ -139,16 +139,6 @@ contract DefaultClusterPerspectivePricingTest is Test {
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exUSD, USD);
 
-        // Bad: exUSD is resolved. xUSD is resolved. An exUSD -> xUSD adapter is configured.
-        vm.revertTo(snapshot);
-        router.govSetResolvedVault(exUSD, true);
-        router.govSetResolvedVault(xUSD, true);
-        router.govSetConfig(exUSD, xUSD, stubAdapter);
-        adapterRegistry.add(stubAdapter, exUSD, xUSD);
-        externalVaultRegistry.add(xUSD, USD, xUSD);
-        vm.expectRevert();
-        perspective.verifyCollateralPricingHarness(address(router), exUSD, USD);
-
         // Bad: exUSD is resolved. xUSD is resolved. An exUSD -> USD adapter is configured.
         vm.revertTo(snapshot);
         router.govSetResolvedVault(exUSD, true);
