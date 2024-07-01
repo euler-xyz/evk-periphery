@@ -15,16 +15,16 @@ contract EulerDefaultClusterPerspectiveTest is ClusterSetupTest {
 
     function test_Perspective_EulerDefaultClusterPerspective_constructor() public {
         vm.expectRevert();
-        new EulerDefaultClusterPerspective(address(0), address(0), address(0), address(0), address(0));
+        new EulerDefaultClusterPerspective(address(0), address(0), address(0), address(0), address(0), address(0));
 
         vm.expectRevert();
         new EulerDefaultClusterPerspective(
-            address(0), address(0), address(0), address(0), address(defaultClusterPerspectiveInstance1)
+            address(0), address(0), address(0), address(0), address(0), address(defaultClusterPerspectiveInstance1)
         );
 
         // no revert
         new EulerDefaultClusterPerspective(
-            address(0), address(0), address(0), address(0), address(escrowSingletonPerspective)
+            address(0), address(0), address(0), address(0), address(0), address(escrowSingletonPerspective)
         );
     }
 

@@ -6,7 +6,6 @@ import {IRewardStreams} from "reward-streams/interfaces/IRewardStreams.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IIRM, IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {IPriceOracle} from "evk/interfaces/IPriceOracle.sol";
-import {IEulerRouter} from "../OracleFactory/interfaces/IEulerRouter.sol";
 import {OracleLens} from "./OracleLens.sol";
 import {Utils} from "./Utils.sol";
 import "evk/EVault/shared/types/AmountCap.sol";

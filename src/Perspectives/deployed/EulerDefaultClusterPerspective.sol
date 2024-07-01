@@ -15,9 +15,19 @@ contract EulerDefaultClusterPerspective is DefaultClusterPerspective {
         address vaultFactory_,
         address routerFactory_,
         address adapterRegistry_,
+        address externalVaultRegistry_,
         address irmFactory_,
         address escrowSingletonPerspective_
-    ) DefaultClusterPerspective(vaultFactory_, routerFactory_, adapterRegistry_, irmFactory_, new address[](0)) {
+    )
+        DefaultClusterPerspective(
+            vaultFactory_,
+            routerFactory_,
+            adapterRegistry_,
+            externalVaultRegistry_,
+            irmFactory_,
+            new address[](0)
+        )
+    {
         require(
             keccak256(bytes(BasePerspective(escrowSingletonPerspective_).name()))
                 == keccak256("Escrow Singleton Perspective"),
@@ -28,6 +38,7 @@ contract EulerDefaultClusterPerspective is DefaultClusterPerspective {
         recognizedCollateralPerspectives.push(address(0));
     }
 
+    /// @inheritdoc BasePerspective
     function name() public pure override returns (string memory) {
         return "Euler Default Cluster Perspective";
     }
