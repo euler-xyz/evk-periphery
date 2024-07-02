@@ -292,6 +292,7 @@ contract VaultLens is Utils {
 
             if (!success || data.length < 32) {
                 result.queryFailure = true;
+                result.queryFailureReason = data;
                 break;
             }
 
@@ -360,6 +361,7 @@ contract VaultLens is Utils {
             result.amountOutMid = abi.decode(data, (uint256));
         } else {
             result.queryFailure = true;
+            result.queryFailureReason = data;
         }
 
         (success, data) = result.oracle.staticcall(
@@ -402,6 +404,7 @@ contract VaultLens is Utils {
                 result.amountOutMid = result.amountOutBid = result.amountOutAsk = abi.decode(data, (uint256));
             } else {
                 result.queryFailure = true;
+                result.queryFailureReason = data;
             }
 
             if (!result.queryFailure) break;

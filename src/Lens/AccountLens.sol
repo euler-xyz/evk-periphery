@@ -125,6 +125,7 @@ contract AccountLens is Utils {
                 abi.decode(data, (uint256, uint256));
         } else {
             result.liquidityInfo.queryFailure = true;
+            result.liquidityInfo.queryFailureReason = data;
         }
 
         (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).accountLiquidity, (account, true)));
