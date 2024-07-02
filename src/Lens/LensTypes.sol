@@ -111,6 +111,7 @@ struct VaultInfoFull {
     uint256 protocolFeeShare;
     uint256 interestFee;
     uint256 hookedOperations;
+    uint256 configFlags;
     uint256 supplyCap;
     uint256 borrowCap;
     uint256 maxLiquidationDiscount;

@@ -116,6 +116,7 @@ contract VaultLens is Utils {
         result.interestFee = IEVault(vault).interestFee();
 
         (result.hookTarget, result.hookedOperations) = IEVault(vault).hookConfig();
+        result.configFlags = IEVault(vault).configFlags();
 
         result.maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
         result.liquidationCoolOffTime = IEVault(vault).liquidationCoolOffTime();
