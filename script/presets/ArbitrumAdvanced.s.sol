@@ -52,7 +52,7 @@ contract Advanced is ScriptUtils {
         address chainlinkAdapterUSDCUSD;
         address chainlinkAdapterLINKUSD;
         address pythAdapterUSDTUSD;
-        address redstoneAdapterUSDCUSD;
+        address redstoneAdapterDAIUSD;
         address uniwapAdapterUNIWETH;
         address crossAdapterWSTETHUSD;
         address crossAdapterUNIUSD;
@@ -154,8 +154,8 @@ contract Advanced is ScriptUtils {
         }
         {
             RedstoneAdapter deployer = new RedstoneAdapter();
-            result.redstoneAdapterUSDCUSD =
-                deployer.deploy(result.oracleAdapterRegistry, USDC, USD, bytes32("USDC"), 8, 300);
+            result.redstoneAdapterDAIUSD =
+                deployer.deploy(result.oracleAdapterRegistry, DAI, USD, bytes32("DAI"), 8, 300);
         }
         // deploy the default IRM
         {
@@ -234,7 +234,7 @@ contract Advanced is ScriptUtils {
             EulerRouter(result.oracleRouter).govSetConfig(USDC, USD, result.chainlinkAdapterUSDCUSD);
             EulerRouter(result.oracleRouter).govSetConfig(LINK, USD, result.chainlinkAdapterLINKUSD);
             EulerRouter(result.oracleRouter).govSetConfig(USDT, USD, result.pythAdapterUSDTUSD);
-            EulerRouter(result.oracleRouter).govSetConfig(DAI, USD, result.redstoneAdapterUSDCUSD);
+            EulerRouter(result.oracleRouter).govSetConfig(DAI, USD, result.redstoneAdapterDAIUSD);
             EulerRouter(result.oracleRouter).govSetConfig(UNI, WETH, result.uniwapAdapterUNIWETH);
             EulerRouter(result.oracleRouter).govSetConfig(wstETH, USD, result.crossAdapterWSTETHUSD);
             EulerRouter(result.oracleRouter).govSetConfig(UNI, USD, result.crossAdapterUNIUSD);
