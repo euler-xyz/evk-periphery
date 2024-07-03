@@ -340,6 +340,7 @@ contract Advanced is ScriptUtils {
                 amounts[i] = 100000e18;
             }
             TrackingRewardStreams(result.balanceTracker).registerReward(result.eVaultCluster[0], SHIB, 0, amounts);
+            stopBroadcast();
         }
 
         eVault = new address[](result.eVaultCluster.length + result.eVaultEscrow.length);
