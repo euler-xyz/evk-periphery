@@ -33,29 +33,31 @@ contract AccountLens is Utils {
         uint256 controllersLength = result.evcAccountInfo.enabledControllers.length;
         uint256 collateralsLength = result.evcAccountInfo.enabledCollaterals.length;
 
-        uint256 uniqueVaultsCounter = collateralsLength;
+        uint256 counter = collateralsLength;
         for (uint256 i = 0; i < controllersLength; ++i) {
             if (!IEVC(evc).isCollateralEnabled(account, result.evcAccountInfo.enabledControllers[i])) {
-                ++uniqueVaultsCounter;
+                ++counter;
             }
         }
 
-        result.vaultAccountInfo = new VaultAccountInfo[](uniqueVaultsCounter);
-        result.accountRewardInfo = new AccountRewardInfo[](uniqueVaultsCounter);
+        result.vaultAccountInfo = new VaultAccountInfo[](counter);
+        result.accountRewardInfo = new AccountRewardInfo[](counter);
 
         for (uint256 i = 0; i < controllersLength; ++i) {
             result.vaultAccountInfo[i] = getVaultAccountInfo(account, result.evcAccountInfo.enabledControllers[i]);
             result.accountRewardInfo[i] = getRewardAccountInfo(account, result.evcAccountInfo.enabledControllers[i]);
         }
 
+        counter = controllersLength;
         for (uint256 i = 0; i < collateralsLength; ++i) {
             VaultAccountInfo memory vaultAccountInfo =
                 getVaultAccountInfo(account, result.evcAccountInfo.enabledCollaterals[i]);
 
             if (!vaultAccountInfo.isController) {
-                result.vaultAccountInfo[controllersLength + i] = vaultAccountInfo;
-                result.accountRewardInfo[controllersLength + i] =
+                result.vaultAccountInfo[counter] = vaultAccountInfo;
+                result.accountRewardInfo[counter] =
                     getRewardAccountInfo(account, result.evcAccountInfo.enabledCollaterals[i]);
+                ++counter;
             }
         }
 
