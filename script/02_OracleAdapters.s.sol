@@ -9,6 +9,7 @@ import {ChronicleOracle} from "euler-price-oracle/adapter/chronicle/ChronicleOra
 import {LidoOracle} from "euler-price-oracle/adapter/lido/LidoOracle.sol";
 import {PythOracle} from "euler-price-oracle/adapter/pyth/PythOracle.sol";
 import {RedstoneCoreOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreOracle.sol";
+import {RedstoneCoreArbitrumOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreArbitrumOracle.sol";
 import {CrossAdapter as CrossOracle} from "euler-price-oracle/adapter/CrossAdapter.sol";
 import {UniswapV3Oracle} from "euler-price-oracle/adapter/uniswap/UniswapV3Oracle.sol";
 
@@ -189,7 +190,12 @@ contract RedstoneAdapter is ScriptUtils {
         uint8 feedDecimals,
         uint256 maxStaleness
     ) public returns (address adapter) {
-        adapter = address(new RedstoneCoreOracle(base, quote, feedId, feedDecimals, maxStaleness));
+        if (block.chainid == 42161) {
+            adapter = address(new RedstoneCoreArbitrumOracle(base, quote, feedId, feedDecimals, maxStaleness));
+        } else {
+            adapter = address(new RedstoneCoreOracle(base, quote, feedId, feedDecimals, maxStaleness));
+        }
+        
         SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
