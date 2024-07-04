@@ -125,7 +125,7 @@ contract Advanced is ScriptUtils {
             PythAdapter deployer = new PythAdapter();
             result.pythAdapterUSDTUSD = deployer.deploy(
                 result.oracleAdapterRegistry,
-                0xE4D5c6aE46ADFAF04313081e8C0052A30b6Dd724,
+                0xff1a0f4744e8582DF1aE09D5611b887B6a12925C,
                 USDT,
                 USD,
                 0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b,
