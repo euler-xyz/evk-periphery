@@ -195,7 +195,7 @@ contract RedstoneAdapter is ScriptUtils {
         } else {
             adapter = address(new RedstoneCoreOracle(base, quote, feedId, feedDecimals, maxStaleness));
         }
-        
+
         SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
