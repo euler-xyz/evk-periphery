@@ -310,27 +310,39 @@ contract VaultLens is Utils {
         return result;
     }
 
-    function getVaultKinkInterestRateModelInfo(address vault) public view returns (VaultInterestRateModelInfo memory) {
+    function getVaultKinkInterestRateModelInfo(address vault)
+        public
+        view
+        returns (VaultInterestRateModelInfo memory, KinkInterestRateModelInfo memory)
+    {
         address interestRateModel = IEVault(vault).interestRateModel();
 
         if (interestRateModel == address(0)) {
-            VaultInterestRateModelInfo memory result;
-            result.vault = vault;
-            return result;
+            VaultInterestRateModelInfo memory result1;
+            KinkInterestRateModelInfo memory result2;
+            result1.vault = vault;
+            return (result1, result2);
         }
+
+        KinkInterestRateModelInfo memory kinkIRMInfo = KinkInterestRateModelInfo({
+            interestRateModel: interestRateModel,
+            baseRate: IRMLinearKink(interestRateModel).baseRate(),
+            slope1: IRMLinearKink(interestRateModel).slope1(),
+            slope2: IRMLinearKink(interestRateModel).slope2(),
+            kink: IRMLinearKink(interestRateModel).kink()
+        });
 
         uint256[] memory cash = new uint256[](3);
         uint256[] memory borrows = new uint256[](3);
-        uint256 kink = IRMLinearKink(interestRateModel).kink();
 
         cash[0] = type(uint32).max;
-        cash[1] = type(uint32).max - kink;
+        cash[1] = type(uint32).max - kinkIRMInfo.kink;
         cash[2] = 0;
         borrows[0] = 0;
-        borrows[1] = kink;
+        borrows[1] = kinkIRMInfo.kink;
         borrows[2] = type(uint32).max;
 
-        return getVaultInterestRateModelInfo(vault, cash, borrows);
+        return (getVaultInterestRateModelInfo(vault, cash, borrows), kinkIRMInfo);
     }
 
     function getControllerAssetPriceInfo(address controller, address asset)

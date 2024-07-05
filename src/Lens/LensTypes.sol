@@ -175,6 +175,14 @@ struct InterestRateInfo {
     uint256 supplyAPY;
 }
 
+struct KinkInterestRateModelInfo {
+    address interestRateModel;
+    uint256 baseRate;
+    uint256 slope1;
+    uint256 slope2;
+    uint256 kink;
+}
+
 struct AccountRewardInfo {
     uint256 timestamp;
     address account;
