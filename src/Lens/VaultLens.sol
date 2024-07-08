@@ -48,7 +48,7 @@ contract VaultLens is Utils {
         uint256[] memory borrows = new uint256[](1);
         cash[0] = result.totalCash;
         borrows[0] = result.totalBorrowed;
-        result.irmInfo = _calculateVaultInterestRateModel(vault, cash, borrows);
+        result.irmInfo = _calculateVaultInterestRateModel(IEVault(vault).interestRateModel(), vault, cash, borrows);
 
         result.collateralLTVInfo = getRecognizedCollateralsLTVInfo(vault);
 
@@ -141,7 +141,7 @@ contract VaultLens is Utils {
         uint256[] memory borrows = new uint256[](1);
         cash[0] = result.totalCash;
         borrows[0] = result.totalBorrowed;
-        result.irmInfo = _calculateVaultInterestRateModel(vault, cash, borrows);
+        result.irmInfo = _calculateVaultInterestRateModel(IEVault(vault).interestRateModel(), vault, cash, borrows);
 
         result.collateralLTVInfo = getRecognizedCollateralsLTVInfo(vault);
 
@@ -271,7 +271,18 @@ contract VaultLens is Utils {
         returns (VaultInterestRateModelInfo memory, KinkInterestRateModelInfo memory)
     {
         address interestRateModel = IEVault(vault).interestRateModel();
-        return (_calculateVaultInterestRateModel(vault, cash, borrows), _getInterestRateModelData(interestRateModel));
+
+        if (interestRateModel == address(0)) {
+            VaultInterestRateModelInfo memory result1;
+            KinkInterestRateModelInfo memory result2;
+            result1.vault = vault;
+            return (result1, result2);
+        }
+
+        return (
+            _calculateVaultInterestRateModel(interestRateModel, vault, cash, borrows),
+            _getInterestRateModelData(interestRateModel)
+        );
     }
 
     function getVaultKinkInterestRateModelInfo(address vault)
@@ -300,7 +311,7 @@ contract VaultLens is Utils {
         borrows[1] = kinkIRMInfo.kink;
         borrows[2] = type(uint32).max;
 
-        return (_calculateVaultInterestRateModel(vault, cash, borrows), kinkIRMInfo);
+        return (_calculateVaultInterestRateModel(interestRateModel, vault, cash, borrows), kinkIRMInfo);
     }
 
     function getControllerAssetPriceInfo(address controller, address asset)
@@ -397,22 +408,22 @@ contract VaultLens is Utils {
         });
     }
 
-    function _calculateVaultInterestRateModel(address vault, uint256[] memory cash, uint256[] memory borrows)
-        internal
-        view
-        returns (VaultInterestRateModelInfo memory)
-    {
+    function _calculateVaultInterestRateModel(
+        address interestRateMode,
+        address vault,
+        uint256[] memory cash,
+        uint256[] memory borrows
+    ) internal view returns (VaultInterestRateModelInfo memory) {
         require(cash.length == borrows.length, "EVaultLens: invalid input");
 
         VaultInterestRateModelInfo memory result;
-
-        result.vault = vault;
-        result.interestRateModel = IEVault(vault).interestRateModel();
 
         if (result.interestRateModel == address(0)) {
             result.queryFailure = true;
             return result;
         }
+        result.vault = vault;
+        result.interestRateModel = interestRateMode;
 
         uint256 interestFee = IEVault(vault).interestFee();
         result.interestRateInfo = new InterestRateInfo[](cash.length);
