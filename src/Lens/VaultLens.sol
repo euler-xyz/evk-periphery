@@ -20,7 +20,9 @@ contract VaultLens is Utils {
         oracleLens = OracleLens(_oracleLens);
     }
 
-    function getVaultInfoSimple(address vault) public view returns (VaultInfoSimple memory) {
+    function getVaultInfoSimple(
+        address vault
+    ) public view returns (VaultInfoSimple memory) {
         VaultInfoSimple memory result;
 
         result.timestamp = block.timestamp;
@@ -48,41 +50,68 @@ contract VaultLens is Utils {
         uint256[] memory borrows = new uint256[](1);
         cash[0] = result.totalCash;
         borrows[0] = result.totalBorrowed;
-        result.irmInfo = getVaultInterestRateModelInfo(vault, cash, borrows);
+        result.irmInfo = _calculateVaultInterestRateModel(vault, cash, borrows);
 
         result.collateralLTVInfo = getRecognizedCollateralsLTVInfo(vault);
 
-        result.liabilityPriceInfo = getControllerAssetPriceInfo(vault, result.asset);
+        result.liabilityPriceInfo = getControllerAssetPriceInfo(
+            vault,
+            result.asset
+        );
 
-        result.collateralPriceInfo = new AssetPriceInfo[](result.collateralLTVInfo.length);
+        result.collateralPriceInfo = new AssetPriceInfo[](
+            result.collateralLTVInfo.length
+        );
 
         for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
-            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
+            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(
+                vault,
+                result.collateralLTVInfo[i].collateral
+            );
         }
 
-        address[] memory bases = new address[](result.collateralLTVInfo.length + 1);
+        address[] memory bases = new address[](
+            result.collateralLTVInfo.length + 1
+        );
         bases[0] = result.asset;
         for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
             bases[i + 1] = result.collateralLTVInfo[i].collateral;
-            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
+            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(
+                vault,
+                result.collateralLTVInfo[i].collateral
+            );
         }
 
-        result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, result.unitOfAccount);
+        result.oracleInfo = oracleLens.getOracleInfo(
+            result.oracle,
+            bases,
+            result.unitOfAccount
+        );
 
         if (result.oracle == address(0)) {
-            address unitOfAccount = result.unitOfAccount == address(0) ? USD : result.unitOfAccount;
-            result.backupAssetPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
+            address unitOfAccount = result.unitOfAccount == address(0)
+                ? USD
+                : result.unitOfAccount;
+            result.backupAssetPriceInfo = getAssetPriceInfo(
+                result.asset,
+                unitOfAccount
+            );
 
             bases = new address[](1);
             bases[0] = result.asset;
-            result.backupAssetOracleInfo =
-                oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, unitOfAccount);
+            result.backupAssetOracleInfo = oracleLens.getOracleInfo(
+                result.backupAssetPriceInfo.oracle,
+                bases,
+                unitOfAccount
+            );
         }
 
         return result;
     }
 
-    function getVaultInfoFull(address vault) public view returns (VaultInfoFull memory) {
+    function getVaultInfoFull(
+        address vault
+    ) public view returns (VaultInfoFull memory) {
         VaultInfoFull memory result;
 
         result.timestamp = block.timestamp;
@@ -93,13 +122,25 @@ contract VaultLens is Utils {
         result.vaultDecimals = IEVault(vault).decimals();
 
         result.asset = IEVault(vault).asset();
-        result.assetName = _getStringOrBytes32(result.asset, IEVault(vault).name.selector);
-        result.assetSymbol = _getStringOrBytes32(result.asset, IEVault(vault).symbol.selector);
+        result.assetName = _getStringOrBytes32(
+            result.asset,
+            IEVault(vault).name.selector
+        );
+        result.assetSymbol = _getStringOrBytes32(
+            result.asset,
+            IEVault(vault).symbol.selector
+        );
         result.assetDecimals = _getDecimals(result.asset);
 
         result.unitOfAccount = IEVault(vault).unitOfAccount();
-        result.unitOfAccountName = _getStringOrBytes32(result.unitOfAccount, IEVault(vault).name.selector);
-        result.unitOfAccountSymbol = _getStringOrBytes32(result.unitOfAccount, IEVault(vault).symbol.selector);
+        result.unitOfAccountName = _getStringOrBytes32(
+            result.unitOfAccount,
+            IEVault(vault).name.selector
+        );
+        result.unitOfAccountSymbol = _getStringOrBytes32(
+            result.unitOfAccount,
+            IEVault(vault).symbol.selector
+        );
         result.unitOfAccountDecimals = _getDecimals(result.unitOfAccount);
 
         result.totalShares = IEVault(vault).totalSupply();
@@ -115,15 +156,20 @@ contract VaultLens is Utils {
         result.protocolFeeShare = IEVault(vault).protocolFeeShare();
         result.interestFee = IEVault(vault).interestFee();
 
-        (result.hookTarget, result.hookedOperations) = IEVault(vault).hookConfig();
+        (result.hookTarget, result.hookedOperations) = IEVault(vault)
+            .hookConfig();
         result.configFlags = IEVault(vault).configFlags();
 
         result.maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
         result.liquidationCoolOffTime = IEVault(vault).liquidationCoolOffTime();
 
         (result.supplyCap, result.borrowCap) = IEVault(vault).caps();
-        result.supplyCap = AmountCapLib.toRawUint16(AmountCap.wrap(uint16(result.supplyCap)));
-        result.borrowCap = AmountCapLib.toRawUint16(AmountCap.wrap(uint16(result.borrowCap)));
+        result.supplyCap = AmountCapLib.toRawUint16(
+            AmountCap.wrap(uint16(result.supplyCap))
+        );
+        result.borrowCap = AmountCapLib.toRawUint16(
+            AmountCap.wrap(uint16(result.borrowCap))
+        );
 
         result.dToken = IEVault(vault).dToken();
         result.oracle = IEVault(vault).oracle();
@@ -141,59 +187,92 @@ contract VaultLens is Utils {
         uint256[] memory borrows = new uint256[](1);
         cash[0] = result.totalCash;
         borrows[0] = result.totalBorrowed;
-        result.irmInfo = getVaultInterestRateModelInfo(vault, cash, borrows);
+        result.irmInfo = _calculateVaultInterestRateModel(vault, cash, borrows);
 
         result.collateralLTVInfo = getRecognizedCollateralsLTVInfo(vault);
 
-        result.liabilityPriceInfo = getControllerAssetPriceInfo(vault, result.asset);
+        result.liabilityPriceInfo = getControllerAssetPriceInfo(
+            vault,
+            result.asset
+        );
 
-        result.collateralPriceInfo = new AssetPriceInfo[](result.collateralLTVInfo.length);
+        result.collateralPriceInfo = new AssetPriceInfo[](
+            result.collateralLTVInfo.length
+        );
 
-        address[] memory bases = new address[](result.collateralLTVInfo.length + 1);
+        address[] memory bases = new address[](
+            result.collateralLTVInfo.length + 1
+        );
         bases[0] = result.asset;
         for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
             bases[i + 1] = result.collateralLTVInfo[i].collateral;
-            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
+            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(
+                vault,
+                result.collateralLTVInfo[i].collateral
+            );
         }
 
-        result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, result.unitOfAccount);
+        result.oracleInfo = oracleLens.getOracleInfo(
+            result.oracle,
+            bases,
+            result.unitOfAccount
+        );
 
         if (result.oracle == address(0)) {
-            address unitOfAccount = result.unitOfAccount == address(0) ? USD : result.unitOfAccount;
-            result.backupAssetPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
+            address unitOfAccount = result.unitOfAccount == address(0)
+                ? USD
+                : result.unitOfAccount;
+            result.backupAssetPriceInfo = getAssetPriceInfo(
+                result.asset,
+                unitOfAccount
+            );
 
             bases = new address[](1);
             bases[0] = result.asset;
-            result.backupAssetOracleInfo =
-                oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, unitOfAccount);
+            result.backupAssetOracleInfo = oracleLens.getOracleInfo(
+                result.backupAssetPriceInfo.oracle,
+                bases,
+                unitOfAccount
+            );
         }
 
         return result;
     }
 
-    function getRewardVaultInfo(address vault, address reward, uint256 numberOfEpochs)
-        public
-        view
-        returns (VaultRewardInfo memory)
-    {
+    function getRewardVaultInfo(
+        address vault,
+        address reward,
+        uint256 numberOfEpochs
+    ) public view returns (VaultRewardInfo memory) {
         VaultRewardInfo memory result;
 
         result.timestamp = block.timestamp;
 
         result.vault = vault;
         result.reward = reward;
-        result.rewardName = _getStringOrBytes32(result.reward, IEVault(vault).name.selector);
-        result.rewardSymbol = _getStringOrBytes32(result.reward, IEVault(vault).symbol.selector);
+        result.rewardName = _getStringOrBytes32(
+            result.reward,
+            IEVault(vault).name.selector
+        );
+        result.rewardSymbol = _getStringOrBytes32(
+            result.reward,
+            IEVault(vault).symbol.selector
+        );
         result.rewardDecimals = _getDecimals(result.reward);
         result.balanceTracker = IEVault(vault).balanceTrackerAddress();
 
         if (result.balanceTracker == address(0)) return result;
 
-        result.epochDuration = IRewardStreams(result.balanceTracker).EPOCH_DURATION();
-        result.currentEpoch = IRewardStreams(result.balanceTracker).currentEpoch();
-        result.totalRewardedEligible = IRewardStreams(result.balanceTracker).totalRewardedEligible(vault, reward);
-        result.totalRewardRegistered = IRewardStreams(result.balanceTracker).totalRewardRegistered(vault, reward);
-        result.totalRewardClaimed = IRewardStreams(result.balanceTracker).totalRewardClaimed(vault, reward);
+        result.epochDuration = IRewardStreams(result.balanceTracker)
+            .EPOCH_DURATION();
+        result.currentEpoch = IRewardStreams(result.balanceTracker)
+            .currentEpoch();
+        result.totalRewardedEligible = IRewardStreams(result.balanceTracker)
+            .totalRewardedEligible(vault, reward);
+        result.totalRewardRegistered = IRewardStreams(result.balanceTracker)
+            .totalRewardRegistered(vault, reward);
+        result.totalRewardClaimed = IRewardStreams(result.balanceTracker)
+            .totalRewardClaimed(vault, reward);
 
         result.epochInfoPrevious = new RewardAmountInfo[](numberOfEpochs);
         result.epochInfoUpcoming = new RewardAmountInfo[](numberOfEpochs);
@@ -206,34 +285,42 @@ contract VaultLens is Utils {
 
                 result.epochInfoPrevious[index].epoch = epoch;
 
-                result.epochInfoPrevious[index].epochStart =
-                    IRewardStreams(result.balanceTracker).getEpochStartTimestamp(epoch);
+                result.epochInfoPrevious[index].epochStart = IRewardStreams(
+                    result.balanceTracker
+                ).getEpochStartTimestamp(epoch);
 
-                result.epochInfoPrevious[index].epochEnd =
-                    IRewardStreams(result.balanceTracker).getEpochEndTimestamp(epoch);
+                result.epochInfoPrevious[index].epochEnd = IRewardStreams(
+                    result.balanceTracker
+                ).getEpochEndTimestamp(epoch);
 
-                result.epochInfoPrevious[index].rewardAmount =
-                    IRewardStreams(result.balanceTracker).rewardAmount(vault, reward, epoch);
+                result.epochInfoPrevious[index].rewardAmount = IRewardStreams(
+                    result.balanceTracker
+                ).rewardAmount(vault, reward, epoch);
             } else {
                 uint256 index = i - numberOfEpochs;
 
                 result.epochInfoUpcoming[index].epoch = epoch;
 
-                result.epochInfoUpcoming[index].epochStart =
-                    IRewardStreams(result.balanceTracker).getEpochStartTimestamp(epoch);
+                result.epochInfoUpcoming[index].epochStart = IRewardStreams(
+                    result.balanceTracker
+                ).getEpochStartTimestamp(epoch);
 
-                result.epochInfoUpcoming[index].epochEnd =
-                    IRewardStreams(result.balanceTracker).getEpochEndTimestamp(epoch);
+                result.epochInfoUpcoming[index].epochEnd = IRewardStreams(
+                    result.balanceTracker
+                ).getEpochEndTimestamp(epoch);
 
-                result.epochInfoUpcoming[index].rewardAmount =
-                    IRewardStreams(result.balanceTracker).rewardAmount(vault, reward, epoch);
+                result.epochInfoUpcoming[index].rewardAmount = IRewardStreams(
+                    result.balanceTracker
+                ).rewardAmount(vault, reward, epoch);
             }
         }
 
         return result;
     }
 
-    function getRecognizedCollateralsLTVInfo(address vault) public view returns (LTVInfo[] memory) {
+    function getRecognizedCollateralsLTVInfo(
+        address vault
+    ) public view returns (LTVInfo[] memory) {
         address[] memory collaterals = IEVault(vault).LTVList();
         LTVInfo[] memory ltvInfo = new LTVInfo[](collaterals.length);
         uint256 numberOfRecognizedCollaterals = 0;
@@ -254,7 +341,9 @@ contract VaultLens is Utils {
             }
         }
 
-        LTVInfo[] memory collateralLTVInfo = new LTVInfo[](numberOfRecognizedCollaterals);
+        LTVInfo[] memory collateralLTVInfo = new LTVInfo[](
+            numberOfRecognizedCollaterals
+        );
 
         for (uint256 i = 0; i < collaterals.length; ++i) {
             if (ltvInfo[i].targetTimestamp != 0) {
@@ -265,55 +354,34 @@ contract VaultLens is Utils {
         return collateralLTVInfo;
     }
 
-    function getVaultInterestRateModelInfo(address vault, uint256[] memory cash, uint256[] memory borrows)
+    function getVaultInterestRateModelInfo(
+        address vault,
+        uint256[] memory cash,
+        uint256[] memory borrows
+    )
         public
         view
-        returns (VaultInterestRateModelInfo memory)
+        returns (
+            VaultInterestRateModelInfo memory,
+            KinkInterestRateModelInfo memory
+        )
     {
-        require(cash.length == borrows.length, "EVaultLens: invalid input");
-
-        VaultInterestRateModelInfo memory result;
-
-        result.vault = vault;
-        result.interestRateModel = IEVault(vault).interestRateModel();
-
-        if (result.interestRateModel == address(0)) {
-            result.queryFailure = true;
-            return result;
-        }
-
-        uint256 interestFee = IEVault(vault).interestFee();
-        result.interestRateInfo = new InterestRateInfo[](cash.length);
-
-        for (uint256 i = 0; i < cash.length; ++i) {
-            (bool success, bytes memory data) = result.interestRateModel.staticcall(
-                abi.encodeCall(IIRM.computeInterestRateView, (vault, cash[i], borrows[i]))
-            );
-
-            if (!success || data.length < 32) {
-                result.queryFailure = true;
-                result.queryFailureReason = data;
-                break;
-            }
-
-            result.interestRateInfo[i].cash = cash[i];
-            result.interestRateInfo[i].borrows = borrows[i];
-            result.interestRateInfo[i].borrowSPY = abi.decode(data, (uint256));
-
-            result.interestRateInfo[i].supplySPY =
-                _computeSupplySPY(result.interestRateInfo[i].borrowSPY, cash[i], borrows[i], interestFee);
-
-            (result.interestRateInfo[i].borrowAPY, result.interestRateInfo[i].supplyAPY) =
-                _computeAPYs(result.interestRateInfo[i].borrowSPY, result.interestRateInfo[i].supplySPY);
-        }
-
-        return result;
+        address interestRateModel = IEVault(vault).interestRateModel();
+        return (
+            _calculateVaultInterestRateModel(vault, cash, borrows),
+            _getInterestRateModelData(interestRateModel)
+        );
     }
 
-    function getVaultKinkInterestRateModelInfo(address vault)
+    function getVaultKinkInterestRateModelInfo(
+        address vault
+    )
         public
         view
-        returns (VaultInterestRateModelInfo memory, KinkInterestRateModelInfo memory)
+        returns (
+            VaultInterestRateModelInfo memory,
+            KinkInterestRateModelInfo memory
+        )
     {
         address interestRateModel = IEVault(vault).interestRateModel();
 
@@ -324,13 +392,8 @@ contract VaultLens is Utils {
             return (result1, result2);
         }
 
-        KinkInterestRateModelInfo memory kinkIRMInfo = KinkInterestRateModelInfo({
-            interestRateModel: interestRateModel,
-            baseRate: IRMLinearKink(interestRateModel).baseRate(),
-            slope1: IRMLinearKink(interestRateModel).slope1(),
-            slope2: IRMLinearKink(interestRateModel).slope2(),
-            kink: IRMLinearKink(interestRateModel).kink()
-        });
+        KinkInterestRateModelInfo
+            memory kinkIRMInfo = _getInterestRateModelData(interestRateModel);
 
         uint256[] memory cash = new uint256[](3);
         uint256[] memory borrows = new uint256[](3);
@@ -342,14 +405,16 @@ contract VaultLens is Utils {
         borrows[1] = kinkIRMInfo.kink;
         borrows[2] = type(uint32).max;
 
-        return (getVaultInterestRateModelInfo(vault, cash, borrows), kinkIRMInfo);
+        return (
+            _calculateVaultInterestRateModel(vault, cash, borrows),
+            kinkIRMInfo
+        );
     }
 
-    function getControllerAssetPriceInfo(address controller, address asset)
-        public
-        view
-        returns (AssetPriceInfo memory)
-    {
+    function getControllerAssetPriceInfo(
+        address controller,
+        address asset
+    ) public view returns (AssetPriceInfo memory) {
         AssetPriceInfo memory result;
 
         result.timestamp = block.timestamp;
@@ -366,7 +431,10 @@ contract VaultLens is Utils {
         }
 
         (bool success, bytes memory data) = result.oracle.staticcall(
-            abi.encodeCall(IPriceOracle.getQuote, (result.amountIn, asset, result.unitOfAccount))
+            abi.encodeCall(
+                IPriceOracle.getQuote,
+                (result.amountIn, asset, result.unitOfAccount)
+            )
         );
 
         if (success && data.length >= 32) {
@@ -377,11 +445,17 @@ contract VaultLens is Utils {
         }
 
         (success, data) = result.oracle.staticcall(
-            abi.encodeCall(IPriceOracle.getQuotes, (result.amountIn, asset, result.unitOfAccount))
+            abi.encodeCall(
+                IPriceOracle.getQuotes,
+                (result.amountIn, asset, result.unitOfAccount)
+            )
         );
 
         if (success && data.length >= 64) {
-            (result.amountOutBid, result.amountOutAsk) = abi.decode(data, (uint256, uint256));
+            (result.amountOutBid, result.amountOutAsk) = abi.decode(
+                data,
+                (uint256, uint256)
+            );
         } else {
             result.queryFailure = true;
         }
@@ -389,7 +463,10 @@ contract VaultLens is Utils {
         return result;
     }
 
-    function getAssetPriceInfo(address asset, address unitOfAccount) public view returns (AssetPriceInfo memory) {
+    function getAssetPriceInfo(
+        address asset,
+        address unitOfAccount
+    ) public view returns (AssetPriceInfo memory) {
         AssetPriceInfo memory result;
 
         result.timestamp = block.timestamp;
@@ -399,7 +476,10 @@ contract VaultLens is Utils {
 
         result.amountIn = 10 ** _getDecimals(asset);
 
-        address[] memory adapters = oracleLens.getValidAdapters(asset, unitOfAccount);
+        address[] memory adapters = oracleLens.getValidAdapters(
+            asset,
+            unitOfAccount
+        );
 
         if (adapters.length == 0) {
             result.queryFailure = true;
@@ -409,17 +489,93 @@ contract VaultLens is Utils {
         for (uint256 i = 0; i < adapters.length; ++i) {
             result.oracle = adapters[i];
 
-            (bool success, bytes memory data) =
-                result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (result.amountIn, asset, unitOfAccount)));
+            (bool success, bytes memory data) = result.oracle.staticcall(
+                abi.encodeCall(
+                    IPriceOracle.getQuote,
+                    (result.amountIn, asset, unitOfAccount)
+                )
+            );
 
             if (success && data.length >= 32) {
-                result.amountOutMid = result.amountOutBid = result.amountOutAsk = abi.decode(data, (uint256));
+                result.amountOutMid = result.amountOutBid = result
+                    .amountOutAsk = abi.decode(data, (uint256));
             } else {
                 result.queryFailure = true;
                 result.queryFailureReason = data;
             }
 
             if (!result.queryFailure) break;
+        }
+
+        return result;
+    }
+
+    function _getInterestRateModelData(
+        address _interestRateModel
+    ) internal view returns (KinkInterestRateModelInfo memory kinkIRMInfo) {
+        kinkIRMInfo = KinkInterestRateModelInfo({
+            interestRateModel: _interestRateModel,
+            baseRate: IRMLinearKink(_interestRateModel).baseRate(),
+            slope1: IRMLinearKink(_interestRateModel).slope1(),
+            slope2: IRMLinearKink(_interestRateModel).slope2(),
+            kink: IRMLinearKink(_interestRateModel).kink()
+        });
+    }
+
+    function _calculateVaultInterestRateModel(
+        address vault,
+        uint256[] memory cash,
+        uint256[] memory borrows
+    ) internal view returns (VaultInterestRateModelInfo memory) {
+        require(cash.length == borrows.length, "EVaultLens: invalid input");
+
+        VaultInterestRateModelInfo memory result;
+
+        result.vault = vault;
+        result.interestRateModel = IEVault(vault).interestRateModel();
+
+        if (result.interestRateModel == address(0)) {
+            result.queryFailure = true;
+            return result;
+        }
+
+        uint256 interestFee = IEVault(vault).interestFee();
+        result.interestRateInfo = new InterestRateInfo[](cash.length);
+
+        for (uint256 i = 0; i < cash.length; ++i) {
+            (bool success, bytes memory data) = result
+                .interestRateModel
+                .staticcall(
+                    abi.encodeCall(
+                        IIRM.computeInterestRateView,
+                        (vault, cash[i], borrows[i])
+                    )
+                );
+
+            if (!success || data.length < 32) {
+                result.queryFailure = true;
+                result.queryFailureReason = data;
+                break;
+            }
+
+            result.interestRateInfo[i].cash = cash[i];
+            result.interestRateInfo[i].borrows = borrows[i];
+            result.interestRateInfo[i].borrowSPY = abi.decode(data, (uint256));
+
+            result.interestRateInfo[i].supplySPY = _computeSupplySPY(
+                result.interestRateInfo[i].borrowSPY,
+                cash[i],
+                borrows[i],
+                interestFee
+            );
+
+            (
+                result.interestRateInfo[i].borrowAPY,
+                result.interestRateInfo[i].supplyAPY
+            ) = _computeAPYs(
+                result.interestRateInfo[i].borrowSPY,
+                result.interestRateInfo[i].supplySPY
+            );
         }
 
         return result;
