@@ -196,7 +196,7 @@ struct AccountRewardInfo {
 struct EnabledRewardInfo {
     address reward;
     uint256 earnedReward;
-    uint256 earnedRewardRecentForfeited;
+    uint256 earnedRewardRecentIgnored;
 }
 
 struct VaultRewardInfo {

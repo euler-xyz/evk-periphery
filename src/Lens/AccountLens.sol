@@ -221,7 +221,7 @@ contract AccountLens is Utils {
             result.enabledRewardsInfo[i].earnedReward =
                 IRewardStreams(result.balanceTracker).earnedReward(account, vault, enabledRewards[i], false);
 
-            result.enabledRewardsInfo[i].earnedRewardRecentForfeited =
+            result.enabledRewardsInfo[i].earnedRewardRecentIgnored =
                 IRewardStreams(result.balanceTracker).earnedReward(account, vault, enabledRewards[i], true);
         }
 
