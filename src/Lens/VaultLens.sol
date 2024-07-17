@@ -122,8 +122,8 @@ contract VaultLens is Utils {
         result.liquidationCoolOffTime = IEVault(vault).liquidationCoolOffTime();
 
         (result.supplyCap, result.borrowCap) = IEVault(vault).caps();
-        result.supplyCap = AmountCapLib.toRawUint16(AmountCap.wrap(uint16(result.supplyCap)));
-        result.borrowCap = AmountCapLib.toRawUint16(AmountCap.wrap(uint16(result.borrowCap)));
+        result.supplyCap = AmountCapLib.resolve(AmountCap.wrap(uint16(result.supplyCap)));
+        result.borrowCap = AmountCapLib.resolve(AmountCap.wrap(uint16(result.borrowCap)));
 
         result.dToken = IEVault(vault).dToken();
         result.oracle = IEVault(vault).oracle();
