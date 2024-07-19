@@ -26,7 +26,8 @@ contract ImmutableWhitelistPerspective is BasePerspective {
         return "Immutable Whitelist Perspective";
     }
 
+    /// @inheritdoc BasePerspective
     function perspectiveVerifyInternal(address) internal virtual override {
-        testProperty(false, 0);
+        testProperty(false, type(uint256).max);
     }
 }

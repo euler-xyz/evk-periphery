@@ -69,10 +69,28 @@ contract DefaultDefaultClusterPerspectiveInstanceTest is ClusterSetupTest {
         assertEq(defaultClusterPerspectiveInstance2.verifiedArray()[0], vaultCluster3);
         assertEq(escrowSingletonPerspective.assetLookup(address(assetTST)), vaultEscrow);
 
+        // verifies that the vault cluster 4 belongs to the cluster perspective 1.
+        // while verifying the vault cluster 4, the cluster perspective 1 will also verify the vault cluster 5 as they
+        // reference each other
+        vm.expectEmit(true, false, false, false, address(defaultClusterPerspectiveInstance1));
+        emit IPerspective.PerspectiveVerified(vaultCluster5xv);
+        vm.expectEmit(true, false, false, false, address(defaultClusterPerspectiveInstance1));
+        emit IPerspective.PerspectiveVerified(vaultCluster4xv);
+        defaultClusterPerspectiveInstance1.perspectiveVerify(vaultCluster4xv, true);
+        defaultClusterPerspectiveInstance1.perspectiveVerify(vaultCluster5xv, true);
+        assertTrue(defaultClusterPerspectiveInstance1.isVerified(vaultCluster4xv));
+        assertTrue(defaultClusterPerspectiveInstance1.isVerified(vaultCluster5xv));
+        assertEq(defaultClusterPerspectiveInstance1.verifiedArray()[0], vaultCluster2);
+        assertEq(defaultClusterPerspectiveInstance1.verifiedArray()[1], vaultCluster1);
+        assertEq(defaultClusterPerspectiveInstance1.verifiedArray()[2], vaultCluster5xv);
+        assertEq(defaultClusterPerspectiveInstance1.verifiedArray()[3], vaultCluster4xv);
+
         // verifies that all the cluster vaults cluster belong to the cluster perspective 3
         defaultClusterPerspectiveInstance3.perspectiveVerify(vaultCluster1, true);
         defaultClusterPerspectiveInstance3.perspectiveVerify(vaultCluster2, true);
         defaultClusterPerspectiveInstance3.perspectiveVerify(vaultCluster3, true);
+        defaultClusterPerspectiveInstance3.perspectiveVerify(vaultCluster4xv, true);
+        defaultClusterPerspectiveInstance3.perspectiveVerify(vaultCluster5xv, true);
 
         // revert to the initial state
         vm.revertTo(snapshot);
