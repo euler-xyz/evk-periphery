@@ -8,21 +8,18 @@ import "evk/EVault/shared/Constants.sol";
 
 import {BasePerspective} from "../implementation/BasePerspective.sol";
 
-/// @title EscrowSingletonPerspective
+/// @title EscrowPerspective
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice A contract that verifies whether a vault has properties of an escrow vault. It allows only one escrow vault
-/// per asset.
-contract EscrowSingletonPerspective is BasePerspective {
-    mapping(address => address) public assetLookup;
-
-    /// @notice Creates a new EscrowSingletonPerspective instance.
+/// @notice A contract that verifies whether a vault has properties of an escrow vault.
+contract EscrowPerspective is BasePerspective {
+    /// @notice Creates a new EscrowPerspective instance.
     /// @param vaultFactory_ The address of the GenericFactory contract.
     constructor(address vaultFactory_) BasePerspective(vaultFactory_) {}
 
     /// @inheritdoc BasePerspective
     function name() public pure virtual override returns (string memory) {
-        return "Escrow Singleton Perspective";
+        return "Escrow Perspective";
     }
 
     /// @inheritdoc BasePerspective
@@ -30,12 +27,8 @@ contract EscrowSingletonPerspective is BasePerspective {
         // the vault must be deployed by recognized factory
         testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
 
-        // there can be only one escrow vault per asset (singleton check)
-        address asset = IEVault(vault).asset();
-        testProperty(assetLookup[asset] == address(0), ERROR__SINGLETON);
-
         // escrow vaults must not be nested
-        testProperty(!vaultFactory.isProxy(asset), ERROR__NESTING);
+        testProperty(!vaultFactory.isProxy(IEVault(vault).asset()), ERROR__NESTING);
 
         // escrow vaults must not have an oracle or unit of account
         testProperty(IEVault(vault).oracle() == address(0), ERROR__ORACLE_INVALID_ROUTER);
@@ -68,8 +61,5 @@ contract EscrowSingletonPerspective is BasePerspective {
 
         // escrow vaults must not have any collateral set up
         testProperty(IEVault(vault).LTVList().length == 0, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
-
-        // store in mapping so that one escrow vault per asset can be achieved
-        assetLookup[asset] = vault;
     }
 }

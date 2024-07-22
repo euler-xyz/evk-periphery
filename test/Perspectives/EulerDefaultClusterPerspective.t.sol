@@ -24,7 +24,7 @@ contract EulerDefaultClusterPerspectiveTest is ClusterSetupTest {
 
         // no revert
         new EulerDefaultClusterPerspective(
-            address(0), address(0), address(0), address(0), address(0), address(escrowSingletonPerspective)
+            address(0), address(0), address(0), address(0), address(0), address(escrowPerspective)
         );
     }
 
@@ -57,14 +57,14 @@ contract EulerDefaultClusterPerspectiveTest is ClusterSetupTest {
         assertEq(eulerDefaultClusterPerspective.verifiedArray()[0], vaultCluster2);
         assertEq(eulerDefaultClusterPerspective.verifiedArray()[1], vaultCluster1);
 
-        vm.expectEmit(true, false, false, false, address(escrowSingletonPerspective));
+        vm.expectEmit(true, false, false, false, address(escrowPerspective));
         emit IPerspective.PerspectiveVerified(vaultEscrow);
         vm.expectEmit(true, false, false, false, address(eulerDefaultClusterPerspective));
         emit IPerspective.PerspectiveVerified(vaultCluster3);
         eulerDefaultClusterPerspective.perspectiveVerify(vaultCluster3, true);
-        assertTrue(escrowSingletonPerspective.isVerified(vaultEscrow));
+        assertTrue(escrowPerspective.isVerified(vaultEscrow));
         assertTrue(eulerDefaultClusterPerspective.isVerified(vaultCluster3));
-        assertEq(escrowSingletonPerspective.verifiedArray()[0], vaultEscrow);
+        assertEq(escrowPerspective.verifiedArray()[0], vaultEscrow);
         assertEq(eulerDefaultClusterPerspective.verifiedArray()[2], vaultCluster3);
 
         // revert to the initial state

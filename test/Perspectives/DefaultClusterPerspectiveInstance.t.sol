@@ -35,12 +35,12 @@ contract DefaultDefaultClusterPerspectiveInstanceTest is ClusterSetupTest {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IPerspective.PerspectiveError.selector,
-                address(escrowSingletonPerspective),
+                address(escrowPerspective),
                 vaultCluster3,
                 ERROR__ORACLE_INVALID_ROUTER
             )
         );
-        escrowSingletonPerspective.perspectiveVerify(vaultCluster3, true);
+        escrowPerspective.perspectiveVerify(vaultCluster3, true);
 
         // verifies that the vault cluster 1 belongs to the cluster perspective 1.
         // while verifying the vault cluster 1, the cluster perspective 1 will also verify the vault cluster 2 as they
@@ -58,16 +58,15 @@ contract DefaultDefaultClusterPerspectiveInstanceTest is ClusterSetupTest {
 
         // verifies that the vault cluster 3 belongs to the cluster perspective 2.
         // while verifying the vault cluster 3, the escrow perspective will also verify the vault escrow
-        vm.expectEmit(true, false, false, false, address(escrowSingletonPerspective));
+        vm.expectEmit(true, false, false, false, address(escrowPerspective));
         emit IPerspective.PerspectiveVerified(vaultEscrow);
         vm.expectEmit(true, false, false, false, address(defaultClusterPerspectiveInstance2));
         emit IPerspective.PerspectiveVerified(vaultCluster3);
         defaultClusterPerspectiveInstance2.perspectiveVerify(vaultCluster3, true);
-        assertTrue(escrowSingletonPerspective.isVerified(vaultEscrow));
+        assertTrue(escrowPerspective.isVerified(vaultEscrow));
         assertTrue(defaultClusterPerspectiveInstance2.isVerified(vaultCluster3));
-        assertEq(escrowSingletonPerspective.verifiedArray()[0], vaultEscrow);
+        assertEq(escrowPerspective.verifiedArray()[0], vaultEscrow);
         assertEq(defaultClusterPerspectiveInstance2.verifiedArray()[0], vaultCluster3);
-        assertEq(escrowSingletonPerspective.assetLookup(address(assetTST)), vaultEscrow);
 
         // verifies that the vault cluster 4 belongs to the cluster perspective 1.
         // while verifying the vault cluster 4, the cluster perspective 1 will also verify the vault cluster 5 as they
@@ -105,7 +104,7 @@ contract DefaultDefaultClusterPerspectiveInstanceTest is ClusterSetupTest {
 
         // meanwhile, other vaults got verified too
         assertTrue(defaultClusterPerspectiveInstance3.isVerified(vaultCluster3));
-        assertTrue(escrowSingletonPerspective.isVerified(vaultEscrow));
+        assertTrue(escrowPerspective.isVerified(vaultEscrow));
         assertTrue(defaultClusterPerspectiveInstance1.isVerified(vaultCluster1));
         assertTrue(defaultClusterPerspectiveInstance1.isVerified(vaultCluster2));
     }

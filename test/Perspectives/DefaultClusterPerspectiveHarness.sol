@@ -11,7 +11,7 @@ contract DefaultClusterPerspectiveHarness is DefaultClusterPerspective {
         address adapterRegistry_,
         address externalVaultRegistry_,
         address irmFactory_,
-        address escrowSingletonPerspective_
+        address escrowPerspective_
     )
         DefaultClusterPerspective(
             vaultFactory_,

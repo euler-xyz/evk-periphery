@@ -9,7 +9,7 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
 import {EulerDefaultClusterPerspective} from "../../src/Perspectives/deployed/EulerDefaultClusterPerspective.sol";
-import {EscrowSingletonPerspective} from "../../src/Perspectives/deployed/EscrowSingletonPerspective.sol";
+import {EscrowPerspective} from "../../src/Perspectives/deployed/EscrowPerspective.sol";
 import {DefaultClusterPerspective} from "../../src/Perspectives/implementation/DefaultClusterPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
 import {SnapshotRegistry} from "../../src/OracleFactory/SnapshotRegistry.sol";
@@ -55,7 +55,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
     SnapshotRegistry externalVaultRegistry;
     EulerKinkIRMFactory irmFactory;
 
-    EscrowSingletonPerspective escrowSingletonPerspective;
+    EscrowPerspective escrowPerspective;
     EulerDefaultClusterPerspective eulerDefaultClusterPerspective;
     DefaultClusterPerspectiveInstance defaultClusterPerspectiveInstance1;
     DefaultClusterPerspectiveInstance defaultClusterPerspectiveInstance2;
@@ -93,7 +93,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         address irmDefault = irmFactory.deploy(0, 1406417851, 19050045013, 2147483648);
 
         // deploy different perspectives
-        escrowSingletonPerspective = new EscrowSingletonPerspective(address(factory));
+        escrowPerspective = new EscrowPerspective(address(factory));
 
         eulerDefaultClusterPerspective = new EulerDefaultClusterPerspective(
             address(factory),
@@ -101,7 +101,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
             address(adapterRegistry),
             address(externalVaultRegistry),
             address(irmFactory),
-            address(escrowSingletonPerspective)
+            address(escrowPerspective)
         );
 
         address[] memory recognizedCollateralPerspectives = new address[](1);
@@ -115,7 +115,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
             recognizedCollateralPerspectives
         );
 
-        recognizedCollateralPerspectives[0] = address(escrowSingletonPerspective);
+        recognizedCollateralPerspectives[0] = address(escrowPerspective);
         defaultClusterPerspectiveInstance2 = new DefaultClusterPerspectiveInstance(
             address(factory),
             address(routerFactory),
@@ -126,7 +126,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         );
 
         recognizedCollateralPerspectives = new address[](2);
-        recognizedCollateralPerspectives[0] = address(escrowSingletonPerspective);
+        recognizedCollateralPerspectives[0] = address(escrowPerspective);
         recognizedCollateralPerspectives[1] = address(defaultClusterPerspectiveInstance1);
         defaultClusterPerspectiveInstance3 = new DefaultClusterPerspectiveInstance(
             address(factory),
@@ -222,7 +222,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         router.transferGovernance(address(0));
         vm.stopPrank();
 
-        vm.label(address(escrowSingletonPerspective), "escrowSingletonPerspective");
+        vm.label(address(escrowPerspective), "escrowPerspective");
         vm.label(address(eulerDefaultClusterPerspective), "eulerDefaultClusterPerspective");
         vm.label(address(defaultClusterPerspectiveInstance1), "defaultClusterPerspectiveInstance1");
         vm.label(address(defaultClusterPerspectiveInstance2), "defaultClusterPerspectiveInstance2");
