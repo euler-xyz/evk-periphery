@@ -8,9 +8,9 @@ import {TestERC20} from "evk-test/mocks/TestERC20.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {EulerDefaultClusterPerspective} from "../../src/Perspectives/deployed/EulerDefaultClusterPerspective.sol";
+import {EulerBasePerspective} from "../../src/Perspectives/deployed/EulerBasePerspective.sol";
 import {EscrowPerspective} from "../../src/Perspectives/deployed/EscrowPerspective.sol";
-import {DefaultClusterPerspective} from "../../src/Perspectives/implementation/DefaultClusterPerspective.sol";
+import {DefaultPerspective} from "../../src/Perspectives/implementation/DefaultPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
 import {SnapshotRegistry} from "../../src/OracleFactory/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
@@ -18,7 +18,7 @@ import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol
 import {StubPriceOracle} from "../utils/StubPriceOracle.sol";
 import {StubERC4626} from "../utils/StubERC4626.sol";
 
-contract DefaultClusterPerspectiveInstance is DefaultClusterPerspective {
+contract DefaultPerspectiveInstance is DefaultPerspective {
     constructor(
         address factory,
         address routerFactory,
@@ -27,7 +27,7 @@ contract DefaultClusterPerspectiveInstance is DefaultClusterPerspective {
         address irmFactory,
         address[] memory recognizedCollateralPerspectives
     )
-        DefaultClusterPerspective(
+        DefaultPerspective(
             factory,
             routerFactory,
             adapterRegistry,
@@ -38,11 +38,11 @@ contract DefaultClusterPerspectiveInstance is DefaultClusterPerspective {
     {}
 
     function name() public pure override returns (string memory) {
-        return "Default Cluster Perspective Instance";
+        return "Default Perspective Instance";
     }
 }
 
-contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
+contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
@@ -56,10 +56,10 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
     EulerKinkIRMFactory irmFactory;
 
     EscrowPerspective escrowPerspective;
-    EulerDefaultClusterPerspective eulerDefaultClusterPerspective;
-    DefaultClusterPerspectiveInstance defaultClusterPerspectiveInstance1;
-    DefaultClusterPerspectiveInstance defaultClusterPerspectiveInstance2;
-    DefaultClusterPerspectiveInstance defaultClusterPerspectiveInstance3;
+    EulerBasePerspective eulerBasePerspective;
+    DefaultPerspectiveInstance defaultPerspectiveInstance1;
+    DefaultPerspectiveInstance defaultPerspectiveInstance2;
+    DefaultPerspectiveInstance defaultPerspectiveInstance3;
 
     TestERC20 assetTST3;
     TestERC20 assetTST4;
@@ -67,11 +67,11 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
     StubERC4626 xvTST4;
 
     address vaultEscrow;
-    address vaultCluster1;
-    address vaultCluster2;
-    address vaultCluster3;
-    address vaultCluster4xv;
-    address vaultCluster5xv;
+    address vaultBase1;
+    address vaultBase2;
+    address vaultBase3;
+    address vaultBase4xv;
+    address vaultBase5xv;
 
     function setUp() public virtual override {
         super.setUp();
@@ -95,7 +95,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         // deploy different perspectives
         escrowPerspective = new EscrowPerspective(address(factory));
 
-        eulerDefaultClusterPerspective = new EulerDefaultClusterPerspective(
+        eulerBasePerspective = new EulerBasePerspective(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -106,7 +106,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
 
         address[] memory recognizedCollateralPerspectives = new address[](1);
         recognizedCollateralPerspectives[0] = address(0);
-        defaultClusterPerspectiveInstance1 = new DefaultClusterPerspectiveInstance(
+        defaultPerspectiveInstance1 = new DefaultPerspectiveInstance(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -116,7 +116,7 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         );
 
         recognizedCollateralPerspectives[0] = address(escrowPerspective);
-        defaultClusterPerspectiveInstance2 = new DefaultClusterPerspectiveInstance(
+        defaultPerspectiveInstance2 = new DefaultPerspectiveInstance(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -127,8 +127,8 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
 
         recognizedCollateralPerspectives = new address[](2);
         recognizedCollateralPerspectives[0] = address(escrowPerspective);
-        recognizedCollateralPerspectives[1] = address(defaultClusterPerspectiveInstance1);
-        defaultClusterPerspectiveInstance3 = new DefaultClusterPerspectiveInstance(
+        recognizedCollateralPerspectives[1] = address(defaultPerspectiveInstance1);
+        defaultPerspectiveInstance3 = new DefaultPerspectiveInstance(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -140,45 +140,45 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         // deploy example vaults and configure them
         vaultEscrow =
             factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), address(0), address(0)));
-        vaultCluster1 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), router, USD));
-        vaultCluster2 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST2), router, USD));
-        vaultCluster3 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST2), router, WETH));
-        vaultCluster4xv = factory.createProxy(address(0), false, abi.encodePacked(address(xvTST3), router, WETH));
-        vaultCluster5xv = factory.createProxy(address(0), false, abi.encodePacked(address(xvTST4), router, USD));
+        vaultBase1 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), router, USD));
+        vaultBase2 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST2), router, USD));
+        vaultBase3 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST2), router, WETH));
+        vaultBase4xv = factory.createProxy(address(0), false, abi.encodePacked(address(xvTST3), router, WETH));
+        vaultBase5xv = factory.createProxy(address(0), false, abi.encodePacked(address(xvTST4), router, USD));
 
         IEVault(vaultEscrow).setGovernorAdmin(address(0));
 
-        IEVault(vaultCluster1).setInterestRateModel(irmZero);
-        IEVault(vaultCluster1).setMaxLiquidationDiscount(0.1e4);
-        IEVault(vaultCluster1).setLiquidationCoolOffTime(1);
-        IEVault(vaultCluster1).setLTV(vaultCluster2, 0.1e4, 0.2e4, 0);
-        IEVault(vaultCluster1).setCaps(1, 2);
-        IEVault(vaultCluster1).setGovernorAdmin(address(0));
+        IEVault(vaultBase1).setInterestRateModel(irmZero);
+        IEVault(vaultBase1).setMaxLiquidationDiscount(0.1e4);
+        IEVault(vaultBase1).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase1).setLTV(vaultBase2, 0.1e4, 0.2e4, 0);
+        IEVault(vaultBase1).setCaps(1, 2);
+        IEVault(vaultBase1).setGovernorAdmin(address(0));
 
-        IEVault(vaultCluster2).setInterestRateModel(irmDefault);
-        IEVault(vaultCluster2).setMaxLiquidationDiscount(0.2e4);
-        IEVault(vaultCluster2).setLiquidationCoolOffTime(1);
-        IEVault(vaultCluster2).setLTV(vaultCluster1, 0.3e4, 0.4e4, 0);
-        IEVault(vaultCluster2).setGovernorAdmin(address(0));
+        IEVault(vaultBase2).setInterestRateModel(irmDefault);
+        IEVault(vaultBase2).setMaxLiquidationDiscount(0.2e4);
+        IEVault(vaultBase2).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase2).setLTV(vaultBase1, 0.3e4, 0.4e4, 0);
+        IEVault(vaultBase2).setGovernorAdmin(address(0));
 
-        IEVault(vaultCluster3).setInterestRateModel(irmDefault);
-        IEVault(vaultCluster3).setMaxLiquidationDiscount(0.2e4);
-        IEVault(vaultCluster3).setLiquidationCoolOffTime(1);
-        IEVault(vaultCluster3).setLTV(vaultEscrow, 0.5e4, 0.6e4, 0);
-        IEVault(vaultCluster3).setGovernorAdmin(address(0));
+        IEVault(vaultBase3).setInterestRateModel(irmDefault);
+        IEVault(vaultBase3).setMaxLiquidationDiscount(0.2e4);
+        IEVault(vaultBase3).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase3).setLTV(vaultEscrow, 0.5e4, 0.6e4, 0);
+        IEVault(vaultBase3).setGovernorAdmin(address(0));
 
-        IEVault(vaultCluster4xv).setInterestRateModel(irmDefault);
-        IEVault(vaultCluster4xv).setMaxLiquidationDiscount(0.2e4);
-        IEVault(vaultCluster4xv).setLiquidationCoolOffTime(1);
-        IEVault(vaultCluster4xv).setLTV(vaultCluster5xv, 0.3e4, 0.4e4, 0);
-        IEVault(vaultCluster4xv).setGovernorAdmin(address(0));
+        IEVault(vaultBase4xv).setInterestRateModel(irmDefault);
+        IEVault(vaultBase4xv).setMaxLiquidationDiscount(0.2e4);
+        IEVault(vaultBase4xv).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase4xv).setLTV(vaultBase5xv, 0.3e4, 0.4e4, 0);
+        IEVault(vaultBase4xv).setGovernorAdmin(address(0));
 
-        IEVault(vaultCluster5xv).setInterestRateModel(irmZero);
-        IEVault(vaultCluster5xv).setMaxLiquidationDiscount(0.1e4);
-        IEVault(vaultCluster5xv).setLiquidationCoolOffTime(1);
-        IEVault(vaultCluster5xv).setLTV(vaultCluster4xv, 0.1e4, 0.2e4, 0);
-        IEVault(vaultCluster5xv).setCaps(1, 2);
-        IEVault(vaultCluster5xv).setGovernorAdmin(address(0));
+        IEVault(vaultBase5xv).setInterestRateModel(irmZero);
+        IEVault(vaultBase5xv).setMaxLiquidationDiscount(0.1e4);
+        IEVault(vaultBase5xv).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase5xv).setLTV(vaultBase4xv, 0.1e4, 0.2e4, 0);
+        IEVault(vaultBase5xv).setCaps(1, 2);
+        IEVault(vaultBase5xv).setGovernorAdmin(address(0));
 
         // configure the oracle
         address stubAdapter_assetTST_USD = address(new StubPriceOracle());
@@ -204,11 +204,11 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
 
         vm.startPrank(routerGovernor);
         router.govSetResolvedVault(vaultEscrow, true);
-        router.govSetResolvedVault(vaultCluster1, true);
-        router.govSetResolvedVault(vaultCluster2, true);
-        router.govSetResolvedVault(vaultCluster3, true);
-        router.govSetResolvedVault(vaultCluster4xv, true);
-        router.govSetResolvedVault(vaultCluster5xv, true);
+        router.govSetResolvedVault(vaultBase1, true);
+        router.govSetResolvedVault(vaultBase2, true);
+        router.govSetResolvedVault(vaultBase3, true);
+        router.govSetResolvedVault(vaultBase4xv, true);
+        router.govSetResolvedVault(vaultBase5xv, true);
         router.govSetResolvedVault(address(xvTST3), true);
         router.govSetResolvedVault(address(xvTST4), true);
         router.govSetConfig(address(assetTST), USD, stubAdapter_assetTST_USD);
@@ -223,16 +223,16 @@ contract ClusterSetupTest is EVaultTestBase, PerspectiveErrors {
         vm.stopPrank();
 
         vm.label(address(escrowPerspective), "escrowPerspective");
-        vm.label(address(eulerDefaultClusterPerspective), "eulerDefaultClusterPerspective");
-        vm.label(address(defaultClusterPerspectiveInstance1), "defaultClusterPerspectiveInstance1");
-        vm.label(address(defaultClusterPerspectiveInstance2), "defaultClusterPerspectiveInstance2");
-        vm.label(address(defaultClusterPerspectiveInstance3), "defaultClusterPerspectiveInstance3");
+        vm.label(address(eulerBasePerspective), "eulerBasePerspective");
+        vm.label(address(defaultPerspectiveInstance1), "defaultPerspectiveInstance1");
+        vm.label(address(defaultPerspectiveInstance2), "defaultPerspectiveInstance2");
+        vm.label(address(defaultPerspectiveInstance3), "defaultPerspectiveInstance3");
         vm.label(vaultEscrow, "vaultEscrow");
-        vm.label(vaultCluster1, "vaultCluster1");
-        vm.label(vaultCluster2, "vaultCluster2");
-        vm.label(vaultCluster3, "vaultCluster3");
-        vm.label(vaultCluster4xv, "vaultCluster4xv");
-        vm.label(vaultCluster5xv, "vaultCluster5xv");
+        vm.label(vaultBase1, "vaultBase1");
+        vm.label(vaultBase2, "vaultBase2");
+        vm.label(vaultBase3, "vaultBase3");
+        vm.label(vaultBase4xv, "vaultBase4xv");
+        vm.label(vaultBase5xv, "vaultBase5xv");
         vm.label(address(assetTST3), "assetTST3");
         vm.label(address(assetTST4), "assetTST4");
         vm.label(address(xvTST3), "xvTST3");

@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.24;
 
-import {DefaultClusterPerspective} from "../../src/Perspectives/implementation/DefaultClusterPerspective.sol";
+import {DefaultPerspective} from "../../src/Perspectives/implementation/DefaultPerspective.sol";
 
-contract DefaultClusterPerspectiveHarness is DefaultClusterPerspective {
+contract DefaultPerspectiveHarness is DefaultPerspective {
     constructor(
         address vaultFactory_,
         address routerFactory_,
@@ -13,7 +13,7 @@ contract DefaultClusterPerspectiveHarness is DefaultClusterPerspective {
         address irmFactory_,
         address escrowPerspective_
     )
-        DefaultClusterPerspective(
+        DefaultPerspective(
             vaultFactory_,
             routerFactory_,
             adapterRegistry_,
@@ -32,7 +32,7 @@ contract DefaultClusterPerspectiveHarness is DefaultClusterPerspective {
     }
 
     function name() public pure override returns (string memory) {
-        return "DefaultClusterPerspectiveHarness";
+        return "DefaultPerspectiveHarness";
     }
 
     function testProperty(bool condition, uint256) internal pure override {

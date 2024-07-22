@@ -3,14 +3,14 @@
 pragma solidity ^0.8.24;
 
 import {BasePerspective} from "../implementation/BasePerspective.sol";
-import {DefaultClusterPerspective} from "../implementation/DefaultClusterPerspective.sol";
+import {DefaultPerspective} from "../implementation/DefaultPerspective.sol";
 
-/// @title EulerDefaultClusterPerspective
+/// @title EulerBasePerspective
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice A contract that verifies whether a vault has the properties of a cluster vault. It allows collaterals to be
-/// recognized by the cluster or escrow perspective.
-contract EulerDefaultClusterPerspective is DefaultClusterPerspective {
+/// @notice A contract that verifies whether a vault has the properties of a base default vault. It allows collaterals
+/// to be recognized by the default or the escrow perspective.
+contract EulerBasePerspective is DefaultPerspective {
     constructor(
         address vaultFactory_,
         address routerFactory_,
@@ -19,7 +19,7 @@ contract EulerDefaultClusterPerspective is DefaultClusterPerspective {
         address irmFactory_,
         address escrowPerspective_
     )
-        DefaultClusterPerspective(
+        DefaultPerspective(
             vaultFactory_,
             routerFactory_,
             adapterRegistry_,
@@ -39,6 +39,6 @@ contract EulerDefaultClusterPerspective is DefaultClusterPerspective {
 
     /// @inheritdoc BasePerspective
     function name() public pure override returns (string memory) {
-        return "Euler Default Cluster Perspective";
+        return "Euler Base Perspective";
     }
 }

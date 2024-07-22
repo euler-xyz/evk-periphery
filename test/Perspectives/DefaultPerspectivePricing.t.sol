@@ -7,14 +7,14 @@ import {Test} from "forge-std/Test.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {IEVault} from "euler-vault-kit/EVault/IEVault.sol";
 
-import {DefaultClusterPerspectiveHarness} from "./DefaultClusterPerspectiveHarness.sol";
+import {DefaultPerspectiveHarness} from "./DefaultPerspectiveHarness.sol";
 import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
 import {SnapshotRegistry} from "../../src/OracleFactory/SnapshotRegistry.sol";
 import {IPerspective} from "../../src/Perspectives/implementation/interfaces/IPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
 import {StubERC4626} from "../utils/StubERC4626.sol";
 
-contract DefaultClusterPerspectivePricingTest is Test {
+contract DefaultPerspectivePricingTest is Test {
     address internal constant USD = address(840);
     address internal constant BTC = address(0xb17c0111);
     address admin = makeAddr("admin");
@@ -24,14 +24,14 @@ contract DefaultClusterPerspectivePricingTest is Test {
     SnapshotRegistry adapterRegistry;
     SnapshotRegistry externalVaultRegistry;
 
-    DefaultClusterPerspectiveHarness perspective;
+    DefaultPerspectiveHarness perspective;
 
     function setUp() public {
         router = new EulerRouter(admin);
         adapterRegistry = new SnapshotRegistry(admin);
         externalVaultRegistry = new SnapshotRegistry(admin);
 
-        perspective = new DefaultClusterPerspectiveHarness(
+        perspective = new DefaultPerspectiveHarness(
             address(0), address(0), address(adapterRegistry), address(externalVaultRegistry), address(0), address(0)
         );
     }
