@@ -75,7 +75,7 @@ contract EscrowSingletonPerspectiveTest is EVaultTestBase, PerspectiveErrors {
         // verification of the third vault will fail right away due to upgradability
         vm.expectRevert(
             abi.encodeWithSelector(
-                IPerspective.PerspectiveError.selector, address(perspective), vault3, ERROR__UPGRADABILITY
+                IPerspective.PerspectiveError.selector, address(perspective), vault3, ERROR__SINGLETON
             )
         );
         perspective.perspectiveVerify(vault3, true);
@@ -86,9 +86,9 @@ contract EscrowSingletonPerspectiveTest is EVaultTestBase, PerspectiveErrors {
                 IPerspective.PerspectiveError.selector,
                 address(perspective),
                 vault3,
-                ERROR__UPGRADABILITY | ERROR__SINGLETON | ERROR__ORACLE_INVALID_ROUTER | ERROR__UNIT_OF_ACCOUNT
-                    | ERROR__GOVERNOR | ERROR__HOOKED_OPS | ERROR__LIQUIDATION_DISCOUNT
-                    | ERROR__LTV_COLLATERAL_CONFIG_LENGTH | ERROR__BORROW_CAP
+                ERROR__SINGLETON | ERROR__ORACLE_INVALID_ROUTER | ERROR__UNIT_OF_ACCOUNT | ERROR__GOVERNOR
+                    | ERROR__HOOKED_OPS | ERROR__LIQUIDATION_DISCOUNT | ERROR__LTV_COLLATERAL_CONFIG_LENGTH
+                    | ERROR__BORROW_CAP
             )
         );
         perspective.perspectiveVerify(vault3, false);

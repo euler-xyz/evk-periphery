@@ -55,12 +55,6 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         // the vault must be deployed by recognized factory
         testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
 
-        // verify vault configuration at the factory level
-        GenericFactory.ProxyConfig memory config = vaultFactory.getProxyConfig(vault);
-
-        // cluster vaults must not be upgradeable
-        testProperty(!config.upgradeable, ERROR__UPGRADABILITY);
-
         // cluster vaults must not be nested
         address asset = IEVault(vault).asset();
         testProperty(!vaultFactory.isProxy(asset), ERROR__NESTING);

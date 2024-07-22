@@ -30,12 +30,6 @@ contract EscrowSingletonPerspective is BasePerspective {
         // the vault must be deployed by recognized factory
         testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
 
-        // verify vault configuration at the factory level
-        GenericFactory.ProxyConfig memory config = vaultFactory.getProxyConfig(vault);
-
-        // escrow vaults must not be upgradeable
-        testProperty(!config.upgradeable, ERROR__UPGRADABILITY);
-
         // there can be only one escrow vault per asset (singleton check)
         address asset = IEVault(vault).asset();
         testProperty(assetLookup[asset] == address(0), ERROR__SINGLETON);
