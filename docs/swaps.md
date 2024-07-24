@@ -74,7 +74,7 @@ The swapper contract executes trades using external providers like 1Inch or Unis
 
 - Uniswap Auto Router handler
 
-  Only supports `exact input` mode. Executes payloads created with [Uniswap's Auto Router](https://github.com/Uniswap/smart-order-router) on [SwapRouter02](https://etherscan.io/address/0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45)
+  Supports `exact input` and `exact output` modes. Executes payloads created with [Uniswap's Auto Router](https://github.com/Uniswap/smart-order-router) on [SwapRouter02](https://etherscan.io/address/0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45). Payload is simply executed in both modes, so in exact output, the handler will not try to update the amount bought with balance already present in the swapper, as the other uniswap handlers.
 
 - Uniswap V2 handler
 
