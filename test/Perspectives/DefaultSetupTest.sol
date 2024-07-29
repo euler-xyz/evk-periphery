@@ -10,37 +10,12 @@ import "evk/EVault/shared/Constants.sol";
 
 import {EulerBasePerspective} from "../../src/Perspectives/deployed/EulerBasePerspective.sol";
 import {EscrowPerspective} from "../../src/Perspectives/deployed/EscrowPerspective.sol";
-import {DefaultPerspective} from "../../src/Perspectives/implementation/DefaultPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
 import {SnapshotRegistry} from "../../src/OracleFactory/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
 import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
 import {StubPriceOracle} from "../utils/StubPriceOracle.sol";
 import {StubERC4626} from "../utils/StubERC4626.sol";
-
-contract DefaultPerspectiveInstance is DefaultPerspective {
-    constructor(
-        address factory,
-        address routerFactory,
-        address adapterRegistry,
-        address externalVaultRegistry,
-        address irmFactory,
-        address[] memory recognizedCollateralPerspectives
-    )
-        DefaultPerspective(
-            factory,
-            routerFactory,
-            adapterRegistry,
-            externalVaultRegistry,
-            irmFactory,
-            recognizedCollateralPerspectives
-        )
-    {}
-
-    function name() public pure override returns (string memory) {
-        return "Default Perspective Instance";
-    }
-}
 
 contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
     address internal constant USD = address(840);
@@ -56,10 +31,9 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
     EulerKinkIRMFactory irmFactory;
 
     EscrowPerspective escrowPerspective;
-    EulerBasePerspective eulerBasePerspective;
-    DefaultPerspectiveInstance defaultPerspectiveInstance1;
-    DefaultPerspectiveInstance defaultPerspectiveInstance2;
-    DefaultPerspectiveInstance defaultPerspectiveInstance3;
+    EulerBasePerspective eulerBasePerspective1;
+    EulerBasePerspective eulerBasePerspective2;
+    EulerBasePerspective eulerBasePerspective3;
 
     TestERC20 assetTST3;
     TestERC20 assetTST4;
@@ -95,18 +69,9 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         // deploy different perspectives
         escrowPerspective = new EscrowPerspective(address(factory));
 
-        eulerBasePerspective = new EulerBasePerspective(
-            address(factory),
-            address(routerFactory),
-            address(adapterRegistry),
-            address(externalVaultRegistry),
-            address(irmFactory),
-            address(escrowPerspective)
-        );
-
         address[] memory recognizedCollateralPerspectives = new address[](1);
         recognizedCollateralPerspectives[0] = address(0);
-        defaultPerspectiveInstance1 = new DefaultPerspectiveInstance(
+        eulerBasePerspective1 = new EulerBasePerspective(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -116,7 +81,7 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         );
 
         recognizedCollateralPerspectives[0] = address(escrowPerspective);
-        defaultPerspectiveInstance2 = new DefaultPerspectiveInstance(
+        eulerBasePerspective2 = new EulerBasePerspective(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -127,8 +92,8 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
 
         recognizedCollateralPerspectives = new address[](2);
         recognizedCollateralPerspectives[0] = address(escrowPerspective);
-        recognizedCollateralPerspectives[1] = address(defaultPerspectiveInstance1);
-        defaultPerspectiveInstance3 = new DefaultPerspectiveInstance(
+        recognizedCollateralPerspectives[1] = address(eulerBasePerspective1);
+        eulerBasePerspective3 = new EulerBasePerspective(
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -223,10 +188,9 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         vm.stopPrank();
 
         vm.label(address(escrowPerspective), "escrowPerspective");
-        vm.label(address(eulerBasePerspective), "eulerBasePerspective");
-        vm.label(address(defaultPerspectiveInstance1), "defaultPerspectiveInstance1");
-        vm.label(address(defaultPerspectiveInstance2), "defaultPerspectiveInstance2");
-        vm.label(address(defaultPerspectiveInstance3), "defaultPerspectiveInstance3");
+        vm.label(address(eulerBasePerspective1), "eulerBasePerspective1");
+        vm.label(address(eulerBasePerspective2), "eulerBasePerspective2");
+        vm.label(address(eulerBasePerspective3), "eulerBasePerspective3");
         vm.label(vaultEscrow, "vaultEscrow");
         vm.label(vaultBase1, "vaultBase1");
         vm.label(vaultBase2, "vaultBase2");

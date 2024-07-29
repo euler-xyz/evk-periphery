@@ -6,96 +6,117 @@ import {DefaultSetupTest} from "./DefaultSetupTest.sol";
 import {IEVault} from "euler-vault-kit/EVault/IEVault.sol";
 import {IPerspective} from "../../src/Perspectives/implementation/interfaces/IPerspective.sol";
 
-import {EulerBasePerspective} from "../../src/Perspectives/deployed/EulerBasePerspective.sol";
-
 contract EulerBasePerspectiveTest is DefaultSetupTest {
     function setUp() public override {
         super.setUp();
     }
 
-    function test_Perspective_EulerBasePerspective_constructor() public {
-        vm.expectRevert();
-        new EulerBasePerspective(address(0), address(0), address(0), address(0), address(0), address(0));
-
-        vm.expectRevert();
-        new EulerBasePerspective(
-            address(0), address(0), address(0), address(0), address(0), address(defaultPerspectiveInstance1)
-        );
-
-        // no revert
-        new EulerBasePerspective(address(0), address(0), address(0), address(0), address(0), address(escrowPerspective));
-    }
-
     function test_Perspective_EulerBasePerspective_name() public view {
-        assertEq(eulerBasePerspective.name(), "Euler Base Perspective");
+        assertEq(eulerBasePerspective1.name(), "Euler Base Perspective");
+        assertEq(eulerBasePerspective2.name(), "Euler Base Perspective");
+        assertEq(eulerBasePerspective3.name(), "Euler Base Perspective");
     }
 
     function test_Perspective_EulerBasePerspective_general() public {
         uint256 snapshot = vm.snapshot();
 
-        // verifies that the escrow vault will fail right away if verified by the base perspective
+        // verifies that the escrow vault will fail right away if verified by the default perspective 1
         vm.expectRevert(
             abi.encodeWithSelector(
                 IPerspective.PerspectiveError.selector,
-                address(eulerBasePerspective),
+                address(eulerBasePerspective1),
                 vaultEscrow,
                 ERROR__INTEREST_RATE_MODEL
             )
         );
-        eulerBasePerspective.perspectiveVerify(vaultEscrow, true);
+        eulerBasePerspective1.perspectiveVerify(vaultEscrow, true);
 
-        vm.expectEmit(true, false, false, false, address(eulerBasePerspective));
+        // verifies that the vault base 3 will fail right away if verified by the escrow perspective
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IPerspective.PerspectiveError.selector,
+                address(escrowPerspective),
+                vaultBase3,
+                ERROR__ORACLE_INVALID_ROUTER
+            )
+        );
+        escrowPerspective.perspectiveVerify(vaultBase3, true);
+
+        // verifies that the vault base 1 belongs to the default perspective 1.
+        // while verifying the vault base 1, the default perspective 1 will also verify the vault base 2 as they
+        // reference each other
+        vm.expectEmit(true, false, false, false, address(eulerBasePerspective1));
         emit IPerspective.PerspectiveVerified(vaultBase2);
-        vm.expectEmit(true, false, false, false, address(eulerBasePerspective));
+        vm.expectEmit(true, false, false, false, address(eulerBasePerspective1));
         emit IPerspective.PerspectiveVerified(vaultBase1);
-        eulerBasePerspective.perspectiveVerify(vaultBase1, true);
-        eulerBasePerspective.perspectiveVerify(vaultBase2, true);
-        assertTrue(eulerBasePerspective.isVerified(vaultBase1));
-        assertTrue(eulerBasePerspective.isVerified(vaultBase2));
-        assertEq(eulerBasePerspective.verifiedArray()[0], vaultBase2);
-        assertEq(eulerBasePerspective.verifiedArray()[1], vaultBase1);
+        eulerBasePerspective1.perspectiveVerify(vaultBase1, true);
+        eulerBasePerspective1.perspectiveVerify(vaultBase2, true);
+        assertTrue(eulerBasePerspective1.isVerified(vaultBase1));
+        assertTrue(eulerBasePerspective1.isVerified(vaultBase2));
+        assertEq(eulerBasePerspective1.verifiedArray()[0], vaultBase2);
+        assertEq(eulerBasePerspective1.verifiedArray()[1], vaultBase1);
 
+        // verifies that the vault base 3 belongs to the default perspective 2.
+        // while verifying the vault base 3, the escrow perspective will also verify the vault escrow
         vm.expectEmit(true, false, false, false, address(escrowPerspective));
         emit IPerspective.PerspectiveVerified(vaultEscrow);
-        vm.expectEmit(true, false, false, false, address(eulerBasePerspective));
+        vm.expectEmit(true, false, false, false, address(eulerBasePerspective2));
         emit IPerspective.PerspectiveVerified(vaultBase3);
-        eulerBasePerspective.perspectiveVerify(vaultBase3, true);
+        eulerBasePerspective2.perspectiveVerify(vaultBase3, true);
         assertTrue(escrowPerspective.isVerified(vaultEscrow));
-        assertTrue(eulerBasePerspective.isVerified(vaultBase3));
+        assertTrue(eulerBasePerspective2.isVerified(vaultBase3));
         assertEq(escrowPerspective.verifiedArray()[0], vaultEscrow);
-        assertEq(eulerBasePerspective.verifiedArray()[2], vaultBase3);
+        assertEq(eulerBasePerspective2.verifiedArray()[0], vaultBase3);
+
+        // verifies that the vault base 4 belongs to the default perspective 1.
+        // while verifying the vault base 4, the default perspective 1 will also verify the vault base 5 as they
+        // reference each other
+        vm.expectEmit(true, false, false, false, address(eulerBasePerspective1));
+        emit IPerspective.PerspectiveVerified(vaultBase5xv);
+        vm.expectEmit(true, false, false, false, address(eulerBasePerspective1));
+        emit IPerspective.PerspectiveVerified(vaultBase4xv);
+        eulerBasePerspective1.perspectiveVerify(vaultBase4xv, true);
+        eulerBasePerspective1.perspectiveVerify(vaultBase5xv, true);
+        assertTrue(eulerBasePerspective1.isVerified(vaultBase4xv));
+        assertTrue(eulerBasePerspective1.isVerified(vaultBase5xv));
+        assertEq(eulerBasePerspective1.verifiedArray()[0], vaultBase2);
+        assertEq(eulerBasePerspective1.verifiedArray()[1], vaultBase1);
+        assertEq(eulerBasePerspective1.verifiedArray()[2], vaultBase5xv);
+        assertEq(eulerBasePerspective1.verifiedArray()[3], vaultBase4xv);
+
+        // verifies that all the base vaults base belong to the default perspective 3
+        eulerBasePerspective3.perspectiveVerify(vaultBase1, true);
+        eulerBasePerspective3.perspectiveVerify(vaultBase2, true);
+        eulerBasePerspective3.perspectiveVerify(vaultBase3, true);
+        eulerBasePerspective3.perspectiveVerify(vaultBase4xv, true);
+        eulerBasePerspective3.perspectiveVerify(vaultBase5xv, true);
 
         // revert to the initial state
         vm.revertTo(snapshot);
 
-        // impersonate the governor to modify vault base 1 by modifying the LTV in a way the base perspective will not
-        // be able to verify it anymore
+        // impersonate the governor to modify vault base 3 by adding a new collateral
         vm.prank(address(0));
-        IEVault(vaultBase1).setLTV(vaultBase2, 1e4, 1e4, 0);
+        IEVault(vaultBase3).setLTV(vaultBase2, 0.7e4, 0.8e4, 0);
 
-        // verifies that the vault 3 still belongs to the base perspective
-        eulerBasePerspective.perspectiveVerify(vaultBase3, true);
+        // verifies that the vault base 3 still belongs to the default perspective 3, even with an additional
+        // collateral
+        eulerBasePerspective3.perspectiveVerify(vaultBase3, true);
 
-        // however, the base perspective should not be able to verify the vault base 1 and 2
-        // as they reference each other
+        // meanwhile, other vaults got verified too
+        assertTrue(eulerBasePerspective3.isVerified(vaultBase3));
+        assertTrue(escrowPerspective.isVerified(vaultEscrow));
+        assertTrue(eulerBasePerspective1.isVerified(vaultBase1));
+        assertTrue(eulerBasePerspective1.isVerified(vaultBase2));
+    }
+
+    function test_Perspective_DefaultPerspectiveInstance_nesting() public {
+        address nestedVault =
+            factory.createProxy(address(0), false, abi.encodePacked(address(vaultBase1), address(0), address(0)));
         vm.expectRevert(
             abi.encodeWithSelector(
-                IPerspective.PerspectiveError.selector,
-                address(eulerBasePerspective),
-                vaultBase1,
-                ERROR__LTV_COLLATERAL_CONFIG_SEPARATION
+                IPerspective.PerspectiveError.selector, address(eulerBasePerspective1), nestedVault, ERROR__NESTING
             )
         );
-        eulerBasePerspective.perspectiveVerify(vaultBase1, true);
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IPerspective.PerspectiveError.selector,
-                address(eulerBasePerspective),
-                vaultBase2,
-                ERROR__LTV_COLLATERAL_RECOGNITION
-            )
-        );
-        eulerBasePerspective.perspectiveVerify(vaultBase2, true);
+        eulerBasePerspective1.perspectiveVerify(nestedVault, true);
     }
 }
