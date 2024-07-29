@@ -15,6 +15,7 @@ import {EVault} from "../07_EVault.s.sol";
 import {Lenses} from "../08_Lenses.s.sol";
 import {Perspectives} from "../09_Perspectives.s.sol";
 import {Swap} from "../10_Swap.s.sol";
+import {FeeFlow} from "../11_FeeFlow.s.sol";
 import {EscrowSingletonPerspective} from "../../src/Perspectives/deployed/EscrowSingletonPerspective.sol";
 import {EulerDefaultClusterPerspective} from "../../src/Perspectives/deployed/EulerDefaultClusterPerspective.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
@@ -30,6 +31,7 @@ import {Dispatch} from "evk/EVault/Dispatch.sol";
 import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {TrackingRewardStreams} from "reward-streams/TrackingRewardStreams.sol";
+import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
 contract Advanced is ScriptUtils {
     address internal USD = address(840);
@@ -76,6 +78,7 @@ contract Advanced is ScriptUtils {
         address eulerFactoryPerspective;
         address swapper;
         address swapVerifier;
+        address feeFlowController;
     }
 
     function run()
@@ -89,7 +92,8 @@ contract Advanced is ScriptUtils {
             address accountLens,
             address vaultLens,
             address swapper,
-            address swapVerifier
+            address swapVerifier,
+            address feeFlowController
         )
     {
         DeploymentInfo memory result;
@@ -327,6 +331,17 @@ contract Advanced is ScriptUtils {
                 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45
             );
         }
+        // deploy fee flow
+        {
+            FeeFlow deployer = new FeeFlow();
+            result.feeFlowController = deployer.deploy(result.evc, 1000, USDC, getDeployer(), 14 days, 2e18, 1000);
+        }
+        // set up the protocol config for the fee flow to receive fees
+        {
+            startBroadcast();
+            ProtocolConfig(result.protocolConfig).setFeeReceiver(result.feeFlowController);
+            stopBroadcast();
+        }
 
         eVault = new address[](result.eVaultCluster.length + result.eVaultEscrow.length);
         for (uint256 i = 0; i < result.eVaultCluster.length; i++) {
@@ -345,7 +360,8 @@ contract Advanced is ScriptUtils {
             result.accountLens,
             result.vaultLens,
             result.swapper,
-            result.swapVerifier
+            result.swapVerifier,
+            result.feeFlowController
         );
     }
 }

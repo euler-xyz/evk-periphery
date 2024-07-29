@@ -142,13 +142,8 @@ while true; do
     echo "8. Lenses"
     echo "9. Perspectives"
     echo "10. Swap"
-    echo "11. Exit"
+    echo "11. Fee Flow"
     read -p "Enter your choice (0-11): " choice
-
-    if [[ "$choice" == "11" ]]; then
-        echo "Exiting..."
-        break
-    fi
 
     case $choice in
         0)
@@ -601,6 +596,42 @@ while true; do
                     uniswapRouterV3: $uniswapRouterV3,
                     uniswapRouter02: $uniswapRouter02
                 }' --indent 4 > script/input/$scriptJsonFileName
+            ;;
+        11)
+            echo "Deploying Fee Flow..."
+
+            fileName=11_FeeFlow
+            scriptFileName=$fileName.s.sol
+            scriptJsonFileName=$fileName.json
+            tempScriptJsonFileName=temp_$scriptJsonFileName
+            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+
+            read -p "Enter the EVC address: " evc
+            read -p "Enter the init price: " init_price
+            read -p "Enter the payment token address: " payment_token
+            read -p "Enter the payment receiver address: " payment_receiver
+            read -p "Enter the epoch period: " epoch_period
+            read -p "Enter the price multiplier: " price_multiplier
+            read -p "Enter the min init price: " min_init_price
+
+            jq -n \
+                --arg evc "$evc" \
+                --argjson initPrice "$init_price" \
+                --arg paymentToken "$payment_token" \
+                --arg paymentReceiver "$payment_receiver" \
+                --argjson epochPeriod "$epoch_period" \
+                --argjson priceMultiplier "$price_multiplier" \
+                --argjson minInitPrice "$min_init_price" \
+                '{
+                    evc: $evc,
+                    initPrice: $initPrice,
+                    paymentToken: $paymentToken,
+                    paymentReceiver: $paymentReceiver,
+                    epochPeriod: $epochPeriod,
+                    priceMultiplier: $priceMultiplier,
+                    minInitPrice: $minInitPrice
+                }' --indent 4 > script/input/$scriptJsonFileName
+
             ;;
         *)
             echo "Invalid choice. Exiting."
