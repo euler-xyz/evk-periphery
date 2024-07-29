@@ -16,7 +16,7 @@ import {BasePerspective} from "../implementation/BasePerspective.sol";
 /// @title EulerBasePerspective
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice A contract that verifies whether a vault has the properties of a default vault. It allows collaterals to be
+/// @notice A contract that verifies whether a vault has the properties of a base vault. It allows collaterals to be
 /// recognized by any of the specified perspectives.
 contract EulerBasePerspective is BasePerspective {
     address[] public recognizedCollateralPerspectives;
@@ -27,7 +27,7 @@ contract EulerBasePerspective is BasePerspective {
     SnapshotRegistry internal immutable externalVaultRegistry;
     IEulerKinkIRMFactory internal immutable irmFactory;
 
-    /// @notice Creates a new DefaultPerspective instance.
+    /// @notice Creates a new EulerBasePerspective instance.
     /// @param vaultFactory_ The address of the GenericFactory contract.
     /// @param routerFactory_ The address of the EulerRouterFactory contract.
     /// @param adapterRegistry_ The address of the adapter registry contract.
@@ -60,38 +60,38 @@ contract EulerBasePerspective is BasePerspective {
         // the vault must be deployed by recognized factory
         testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
 
-        // default vaults must not be nested
+        // base vaults must not be nested
         address asset = IEVault(vault).asset();
         testProperty(!vaultFactory.isProxy(asset), ERROR__NESTING);
 
         // verify vault configuration at the governance level
-        // default vaults must not have a governor admin
+        // base vaults must not have a governor admin
         testProperty(IEVault(vault).governorAdmin() == address(0), ERROR__GOVERNOR);
 
-        // default vaults must have an interest fee in a certain range. lower bound is enforced by the vault itself
+        // base vaults must have an interest fee in a certain range. lower bound is enforced by the vault itself
         testProperty(IEVault(vault).interestFee() <= 0.5e4, ERROR__INTEREST_FEE);
 
-        // default vaults must point to a Kink IRM instance deployed by the factory
+        // base vaults must point to a Kink IRM instance deployed by the factory
         testProperty(irmFactory.isValidDeployment(IEVault(vault).interestRateModel()), ERROR__INTEREST_RATE_MODEL);
 
         {
-            // default vaults must not have a hook target nor any operations disabled
+            // base vaults must not have a hook target nor any operations disabled
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
             testProperty(hookTarget == address(0), ERROR__HOOK_TARGET);
             testProperty(hookedOps == 0, ERROR__HOOKED_OPS);
         }
 
-        // default vaults must not have any config flags set
+        // base vaults must not have any config flags set
         testProperty(IEVault(vault).configFlags() == 0, ERROR__CONFIG_FLAGS);
 
-        // default vaults must have liquidation discount in a certain range
+        // base vaults must have liquidation discount in a certain range
         uint16 maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
         testProperty(maxLiquidationDiscount >= 0.05e4 && maxLiquidationDiscount <= 0.2e4, ERROR__LIQUIDATION_DISCOUNT);
 
-        // default vaults must have certain liquidation cool off time
+        // base vaults must have certain liquidation cool off time
         testProperty(IEVault(vault).liquidationCoolOffTime() == 1, ERROR__LIQUIDATION_COOL_OFF_TIME);
 
-        // default vaults must point to an ungoverned EulerRouter instance deployed by the factory
+        // base vaults must point to an ungoverned EulerRouter instance deployed by the factory
         address oracle = IEVault(vault).oracle();
         testProperty(routerFactory.isValidDeployment(oracle), ERROR__ORACLE_INVALID_ROUTER);
         testProperty(EulerRouter(oracle).governor() == address(0), ERROR__ORACLE_GOVERNED_ROUTER);
@@ -104,19 +104,19 @@ contract EulerBasePerspective is BasePerspective {
         // Verify the full pricing configuration for asset/unitOfAccount in the router.
         verifyAssetPricing(oracle, asset, unitOfAccount);
 
-        // default vaults must have collaterals set up
+        // base vaults must have collaterals set up
         address[] memory ltvList = IEVault(vault).LTVList();
         uint256 ltvListLength = ltvList.length;
         testProperty(ltvListLength > 0 && ltvListLength <= 10, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
 
-        // default vaults must have recognized collaterals
+        // base vaults must have recognized collaterals
         for (uint256 i = 0; i < ltvListLength; ++i) {
             address collateral = ltvList[i];
 
             // Verify the full pricing configuration for collateral/unitOfAccount in the router.
             verifyCollateralPricing(oracle, collateral, unitOfAccount);
 
-            // default vaults collaterals must have the LTVs set in range with LTV separation provided
+            // base vaults collaterals must have the LTVs set in range with LTV separation provided
             (uint16 borrowLTV, uint16 liquidationLTV,, uint48 targetTimestamp, uint32 rampDuration) =
                 IEVault(vault).LTVFull(collateral);
             testProperty(liquidationLTV - borrowLTV >= 0.01e4, ERROR__LTV_COLLATERAL_CONFIG_SEPARATION);
