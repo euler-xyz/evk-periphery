@@ -50,6 +50,7 @@ abstract contract DefaultClusterPerspective is BasePerspective {
         recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
     }
 
+    /// @inheritdoc BasePerspective
     function perspectiveVerifyInternal(address vault) internal override {
         // the vault must be deployed by recognized factory
         testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
