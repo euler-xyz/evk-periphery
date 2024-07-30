@@ -15,11 +15,11 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
     /// @notice Role identifier for the guardian role.
     bytes32 public constant GUARDIAN = keccak256("GUARDIAN");
 
-    /// @notice The duration for which a vault remains paused.
+    /// @notice The duration after which the vault can be unpaused.
     uint256 public constant PAUSE_DURATION = 1 days;
 
     /// @notice The cooldown period before a vault can be paused again.
-    uint256 public constant PAUSE_COOLDOWN = 1 days;
+    uint256 public constant PAUSE_COOLDOWN = PAUSE_DURATION + 1 days;
 
     /// @notice Event emitted when a vault is paused.
     /// @param vault The vault that was paused.
@@ -53,8 +53,6 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
     }
 
     /// @notice Pauses the given vaults.
-    /// @dev The vault can only be paused if it is currently not paused AND if the cooldown period has passed since the
-    /// last pause AND if this contract is the governor admin of the vault.
     /// @param vaults The array of vault addresses to be paused.
     function pause(address[] calldata vaults) external nonReentrant onlyRole(GUARDIAN) {
         for (uint256 i = 0; i < vaults.length; ++i) {
@@ -73,10 +71,6 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
     }
 
     /// @notice Unpauses the given vaults.
-    /// @dev The vault can only be unpaused if it is currently paused AND if this contract is the governor admin of the
-    /// vault AND if:
-    /// - the guardian is calling the function, OR
-    /// - the pause duration has passed since the last pause
     /// @param vaults The array of vault addresses to be unpaused.
     function unpause(address[] calldata vaults) external nonReentrant {
         bool guardianCalling = hasRole(GUARDIAN, _msgSender());
@@ -88,7 +82,6 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
 
             address hookTarget = pauseDatas[vault].hookTarget;
             uint32 hookedOps = pauseDatas[vault].hookedOps;
-            pauseDatas[vault].lastPauseTimestamp = 0;
 
             IEVault(vault).setHookConfig(hookTarget, hookedOps);
 
@@ -97,9 +90,8 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
     }
 
     /// @notice Changes pause status of the selected operations for the given vaults.
-    /// @dev The vault can only have the pause status of the selected operations changed if it is currently paused AND
-    /// if this contract is the governor admin of the vault AND if the guardian is calling the function.
     /// @param vaults The array of vault addresses to be unpaused.
+    /// @param newHookedOps The new hooked operations bitmap.
     function changePauseStatus(address[] calldata vaults, uint32 newHookedOps)
         external
         nonReentrant
@@ -108,7 +100,7 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
         for (uint256 i = 0; i < vaults.length; ++i) {
             address vault = vaults[i];
 
-            if (!isUnpausable(vault, true)) continue;
+            if (!isPauseStatusChangeable(vault)) continue;
 
             IEVault(vault).setHookConfig(address(0), newHookedOps);
 
@@ -120,9 +112,7 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
     /// @param vault The address of the vault to check.
     /// @return bool True if the vault can be paused, false otherwise.
     function isPausable(address vault) public view returns (bool) {
-        uint256 lastPauseTimestamp = pauseDatas[vault].lastPauseTimestamp;
-
-        return lastPauseTimestamp == 0 && lastPauseTimestamp + PAUSE_DURATION + PAUSE_COOLDOWN < block.timestamp
+        return pauseDatas[vault].lastPauseTimestamp + PAUSE_COOLDOWN < block.timestamp
             && IEVault(vault).governorAdmin() == address(this);
     }
 
@@ -134,7 +124,17 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
         uint256 lastPauseTimestamp = pauseDatas[vault].lastPauseTimestamp;
 
         return lastPauseTimestamp != 0
-            && (guardianCalling || (!guardianCalling && lastPauseTimestamp + PAUSE_DURATION < block.timestamp))
+            && (
+                (guardianCalling && lastPauseTimestamp + PAUSE_DURATION >= block.timestamp)
+                    || lastPauseTimestamp + PAUSE_DURATION < block.timestamp
+            ) && IEVault(vault).governorAdmin() == address(this);
+    }
+
+    /// @notice Checks if the given vault is currently paused.
+    /// @param vault The address of the vault to check.
+    /// @return bool True if the vault is paused, false otherwise.
+    function isPauseStatusChangeable(address vault) public view returns (bool) {
+        return pauseDatas[vault].lastPauseTimestamp + PAUSE_DURATION >= block.timestamp
             && IEVault(vault).governorAdmin() == address(this);
     }
 }

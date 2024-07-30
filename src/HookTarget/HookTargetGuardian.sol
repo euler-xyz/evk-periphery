@@ -18,7 +18,7 @@ contract HookTargetGuardian is IHookTarget, AccessControl {
     uint256 public constant PAUSE_DURATION = 1 days;
 
     /// @notice The cooldown period before vaults can be paused again.
-    uint256 public constant PAUSE_COOLDOWN = 1 days;
+    uint256 public constant PAUSE_COOLDOWN = PAUSE_DURATION + 1 days;
 
     /// @notice Error thrown when the vault is paused.
     error HTG_VaultPaused();
@@ -29,8 +29,16 @@ contract HookTargetGuardian is IHookTarget, AccessControl {
     /// @notice Event emitted when the vaults are unpaused.
     event Unpaused();
 
-    /// @notice The timestamp of the last pause.
-    uint256 internal lastPauseTimestamp;
+    /// @notice Struct to store pause data.
+    /// @param wasUnpaused Indicates if the vaults were unpaused.
+    /// @param lastPauseTimestamp The timestamp of the last pause.
+    struct PauseData {
+        bool wasUnpaused;
+        uint48 lastPauseTimestamp;
+    }
+
+    /// @notice Variable to store the pause data.
+    PauseData internal pauseData;
 
     /// @notice Constructor to set the initial admin of the contract.
     /// @param admin The address of the initial admin.
@@ -49,43 +57,32 @@ contract HookTargetGuardian is IHookTarget, AccessControl {
     }
 
     /// @notice Pauses the vault operations.
-    /// @dev The vault can only be paused if it is currently not paused AND the cooldown period has passed since the
-    /// last pause.
     function pause() external onlyRole(GUARDIAN) {
         if (!isPausable()) return;
 
-        lastPauseTimestamp = block.timestamp;
+        pauseData = PauseData({wasUnpaused: false, lastPauseTimestamp: uint48(block.timestamp)});
+
         emit Paused();
     }
 
     /// @notice Unpauses the vault operations.
-    /// @dev The vault can only be unpaused if it is currently paused AND if:
-    /// - the guardian is calling the function, OR
-    /// - the pause duration has passed since the last pause
-    function unpause() external {
-        if (!isUnpausable(hasRole(GUARDIAN, _msgSender()))) return;
+    function unpause() external onlyRole(GUARDIAN) {
+        if (!isPaused()) return;
 
-        lastPauseTimestamp = 0;
+        pauseData.wasUnpaused = true;
+
         emit Unpaused();
-    }
-
-    /// @notice Checks if the vault using this hook target is currently paused.
-    /// @return bool True if the vault is paused, false otherwise.
-    function isPaused() public view returns (bool) {
-        return lastPauseTimestamp + PAUSE_DURATION >= block.timestamp;
     }
 
     /// @notice Checks if the vault using this hook target can be paused.
     /// @return bool True if the vault can be paused, false otherwise.
     function isPausable() public view returns (bool) {
-        return lastPauseTimestamp == 0 && lastPauseTimestamp + PAUSE_DURATION + PAUSE_COOLDOWN < block.timestamp;
+        return pauseData.lastPauseTimestamp + PAUSE_COOLDOWN < block.timestamp;
     }
 
-    /// @notice Checks if the vault using this hook target can be unpaused.
-    /// @param guardianCalling Whether the guardian is calling the function.
-    /// @return bool True if the vault can be unpaused, false otherwise.
-    function isUnpausable(bool guardianCalling) public view returns (bool) {
-        return lastPauseTimestamp != 0
-            && (guardianCalling || (!guardianCalling && lastPauseTimestamp + PAUSE_DURATION < block.timestamp));
+    /// @notice Checks if the vault using this hook target is currently paused.
+    /// @return bool True if the vault is paused, false otherwise.
+    function isPaused() public view returns (bool) {
+        return !pauseData.wasUnpaused && pauseData.lastPauseTimestamp + PAUSE_DURATION >= block.timestamp;
     }
 }
