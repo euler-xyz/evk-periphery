@@ -53,7 +53,6 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
         IEVault(vault3).setMaxLiquidationDiscount(1);
         IEVault(vault3).setHookConfig(address(0), 1);
         IEVault(vault3).setLTV(address(0), 0, 0, 0);
-        IEVault(vault3).setCaps(0, 1);
 
         // verification of the first vault is successful
         vm.expectEmit(true, false, false, false, address(perspective));
@@ -80,7 +79,7 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
                 address(perspective),
                 vault3,
                 ERROR__ORACLE_INVALID_ROUTER | ERROR__UNIT_OF_ACCOUNT | ERROR__GOVERNOR | ERROR__HOOKED_OPS
-                    | ERROR__LIQUIDATION_DISCOUNT | ERROR__LTV_COLLATERAL_CONFIG_LENGTH | ERROR__BORROW_CAP
+                    | ERROR__LIQUIDATION_DISCOUNT | ERROR__LTV_COLLATERAL_CONFIG_LENGTH
             )
         );
         perspective.perspectiveVerify(vault3, false);

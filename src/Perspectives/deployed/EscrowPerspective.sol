@@ -40,17 +40,10 @@ contract EscrowPerspective is BasePerspective {
         testProperty(IEVault(vault).feeReceiver() == address(0), ERROR__FEE_RECEIVER);
         testProperty(IEVault(vault).interestRateModel() == address(0), ERROR__INTEREST_RATE_MODEL);
 
-        {
-            // escrow vaults must not have supply or borrow caps
-            (uint32 supplyCap, uint32 borrowCap) = IEVault(vault).caps();
-            testProperty(supplyCap == 0, ERROR__SUPPLY_CAP);
-            testProperty(borrowCap == 0, ERROR__BORROW_CAP);
-
-            // escrow vaults must not have a hook target nor any operations disabled
-            (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
-            testProperty(hookTarget == address(0), ERROR__HOOK_TARGET);
-            testProperty(hookedOps == 0, ERROR__HOOKED_OPS);
-        }
+        // escrow vaults must not have a hook target nor any operations disabled
+        (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
+        testProperty(hookTarget == address(0), ERROR__HOOK_TARGET);
+        testProperty(hookedOps == 0, ERROR__HOOKED_OPS);
 
         // escrow vaults must not have any config flags set
         testProperty(IEVault(vault).configFlags() == 0, ERROR__CONFIG_FLAGS);
