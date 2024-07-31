@@ -124,9 +124,8 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         uint256 balance = setAllowanceForBalance(token, vault, amountMin);
         if (balance >= amountMin) {
             IEVault(vault).deposit(balance, account);
+            removeAllowance(token, vault);
         }
-
-        removeAllowance(token, vault);
     }
 
     function _repayAndDeposit(address token, address vault, uint256 repayAmount, address account) internal {
