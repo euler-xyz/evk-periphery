@@ -61,8 +61,31 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         router = EulerRouter(routerFactory.deploy(routerGovernor));
         adapterRegistry = new SnapshotRegistry(registryOwner);
         externalVaultRegistry = new SnapshotRegistry(registryOwner);
-        irmFactory = new EulerKinkIRMFactory();
 
+        // configure the oracle
+        address stubAdapter_assetTST_USD = address(new StubPriceOracle());
+        address stubAdapter_assetTST_WETH = address(new StubPriceOracle());
+        address stubAdapter_assetTST2_USD = address(new StubPriceOracle());
+        address stubAdapter_assetTST2_WETH = address(new StubPriceOracle());
+        address stubAdapter_assetTST3_USD = address(new StubPriceOracle());
+        address stubAdapter_assetTST3_WETH = address(new StubPriceOracle());
+        address stubAdapter_assetTST4_USD = address(new StubPriceOracle());
+        address stubAdapter_assetTST4_WETH = address(new StubPriceOracle());
+        vm.startPrank(registryOwner);
+        adapterRegistry.add(stubAdapter_assetTST_USD, address(assetTST), USD);
+        adapterRegistry.add(stubAdapter_assetTST_WETH, address(assetTST), WETH);
+        adapterRegistry.add(stubAdapter_assetTST2_USD, address(assetTST2), USD);
+        adapterRegistry.add(stubAdapter_assetTST2_WETH, address(assetTST2), WETH);
+        adapterRegistry.add(stubAdapter_assetTST3_USD, address(assetTST3), USD);
+        adapterRegistry.add(stubAdapter_assetTST3_WETH, address(assetTST3), WETH);
+        adapterRegistry.add(stubAdapter_assetTST4_USD, address(assetTST4), USD);
+        adapterRegistry.add(stubAdapter_assetTST4_WETH, address(assetTST4), WETH);
+        externalVaultRegistry.add(address(xvTST3), address(xvTST3), address(assetTST3));
+        externalVaultRegistry.add(address(xvTST4), address(xvTST4), address(assetTST4));
+        vm.stopPrank();
+
+        // deploy the IRMs
+        irmFactory = new EulerKinkIRMFactory();
         address irmZero = irmFactory.deploy(0, 0, 0, 0);
         address irmDefault = irmFactory.deploy(0, 1406417851, 19050045013, 2147483648);
 
@@ -111,62 +134,7 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         vaultBase4xv = factory.createProxy(address(0), false, abi.encodePacked(address(xvTST3), router, WETH));
         vaultBase5xv = factory.createProxy(address(0), false, abi.encodePacked(address(xvTST4), router, USD));
 
-        IEVault(vaultEscrow).setGovernorAdmin(address(0));
-
-        IEVault(vaultBase1).setInterestRateModel(irmZero);
-        IEVault(vaultBase1).setMaxLiquidationDiscount(0.1e4);
-        IEVault(vaultBase1).setLiquidationCoolOffTime(1);
-        IEVault(vaultBase1).setLTV(vaultBase2, 0.1e4, 0.2e4, 0);
-        IEVault(vaultBase1).setCaps(1, 2);
-        IEVault(vaultBase1).setGovernorAdmin(address(0));
-
-        IEVault(vaultBase2).setInterestRateModel(irmDefault);
-        IEVault(vaultBase2).setMaxLiquidationDiscount(0.2e4);
-        IEVault(vaultBase2).setLiquidationCoolOffTime(1);
-        IEVault(vaultBase2).setLTV(vaultBase1, 0.3e4, 0.4e4, 0);
-        IEVault(vaultBase2).setGovernorAdmin(address(0));
-
-        IEVault(vaultBase3).setInterestRateModel(irmDefault);
-        IEVault(vaultBase3).setMaxLiquidationDiscount(0.2e4);
-        IEVault(vaultBase3).setLiquidationCoolOffTime(1);
-        IEVault(vaultBase3).setLTV(vaultEscrow, 0.5e4, 0.6e4, 0);
-        IEVault(vaultBase3).setGovernorAdmin(address(0));
-
-        IEVault(vaultBase4xv).setInterestRateModel(irmDefault);
-        IEVault(vaultBase4xv).setMaxLiquidationDiscount(0.2e4);
-        IEVault(vaultBase4xv).setLiquidationCoolOffTime(1);
-        IEVault(vaultBase4xv).setLTV(vaultBase5xv, 0.3e4, 0.4e4, 0);
-        IEVault(vaultBase4xv).setGovernorAdmin(address(0));
-
-        IEVault(vaultBase5xv).setInterestRateModel(irmZero);
-        IEVault(vaultBase5xv).setMaxLiquidationDiscount(0.1e4);
-        IEVault(vaultBase5xv).setLiquidationCoolOffTime(1);
-        IEVault(vaultBase5xv).setLTV(vaultBase4xv, 0.1e4, 0.2e4, 0);
-        IEVault(vaultBase5xv).setCaps(1, 2);
-        IEVault(vaultBase5xv).setGovernorAdmin(address(0));
-
-        // configure the oracle
-        address stubAdapter_assetTST_USD = address(new StubPriceOracle());
-        address stubAdapter_assetTST_WETH = address(new StubPriceOracle());
-        address stubAdapter_assetTST2_USD = address(new StubPriceOracle());
-        address stubAdapter_assetTST2_WETH = address(new StubPriceOracle());
-        address stubAdapter_assetTST3_USD = address(new StubPriceOracle());
-        address stubAdapter_assetTST3_WETH = address(new StubPriceOracle());
-        address stubAdapter_assetTST4_USD = address(new StubPriceOracle());
-        address stubAdapter_assetTST4_WETH = address(new StubPriceOracle());
-        vm.startPrank(registryOwner);
-        adapterRegistry.add(stubAdapter_assetTST_USD, address(assetTST), USD);
-        adapterRegistry.add(stubAdapter_assetTST_WETH, address(assetTST), WETH);
-        adapterRegistry.add(stubAdapter_assetTST2_USD, address(assetTST2), USD);
-        adapterRegistry.add(stubAdapter_assetTST2_WETH, address(assetTST2), WETH);
-        adapterRegistry.add(stubAdapter_assetTST3_USD, address(assetTST3), USD);
-        adapterRegistry.add(stubAdapter_assetTST3_WETH, address(assetTST3), WETH);
-        adapterRegistry.add(stubAdapter_assetTST4_USD, address(assetTST4), USD);
-        adapterRegistry.add(stubAdapter_assetTST4_WETH, address(assetTST4), WETH);
-        externalVaultRegistry.add(address(xvTST3), address(xvTST3), address(assetTST3));
-        externalVaultRegistry.add(address(xvTST4), address(xvTST4), address(assetTST4));
-        vm.stopPrank();
-
+        // further configure the oracle
         vm.startPrank(routerGovernor);
         router.govSetResolvedVault(vaultEscrow, true);
         router.govSetResolvedVault(vaultBase1, true);
@@ -186,6 +154,47 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         router.govSetConfig(address(assetTST4), WETH, stubAdapter_assetTST4_WETH);
         router.transferGovernance(address(0));
         vm.stopPrank();
+
+        // configure the vaults
+        IEVault(vaultEscrow).setHookConfig(address(0), 0);
+        IEVault(vaultEscrow).setGovernorAdmin(address(0));
+
+        IEVault(vaultBase1).setInterestRateModel(irmZero);
+        IEVault(vaultBase1).setMaxLiquidationDiscount(0.1e4);
+        IEVault(vaultBase1).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase1).setLTV(vaultBase2, 0.1e4, 0.2e4, 0);
+        IEVault(vaultBase1).setCaps(1, 2);
+        IEVault(vaultBase1).setHookConfig(address(0), 0);
+        IEVault(vaultBase1).setGovernorAdmin(address(0));
+
+        IEVault(vaultBase2).setInterestRateModel(irmDefault);
+        IEVault(vaultBase2).setMaxLiquidationDiscount(0.2e4);
+        IEVault(vaultBase2).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase2).setLTV(vaultBase1, 0.3e4, 0.4e4, 0);
+        IEVault(vaultBase2).setHookConfig(address(0), 0);
+        IEVault(vaultBase2).setGovernorAdmin(address(0));
+
+        IEVault(vaultBase3).setInterestRateModel(irmDefault);
+        IEVault(vaultBase3).setMaxLiquidationDiscount(0.2e4);
+        IEVault(vaultBase3).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase3).setLTV(vaultEscrow, 0.5e4, 0.6e4, 0);
+        IEVault(vaultBase3).setHookConfig(address(0), 0);
+        IEVault(vaultBase3).setGovernorAdmin(address(0));
+
+        IEVault(vaultBase4xv).setInterestRateModel(irmDefault);
+        IEVault(vaultBase4xv).setMaxLiquidationDiscount(0.2e4);
+        IEVault(vaultBase4xv).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase4xv).setLTV(vaultBase5xv, 0.3e4, 0.4e4, 0);
+        IEVault(vaultBase4xv).setHookConfig(address(0), 0);
+        IEVault(vaultBase4xv).setGovernorAdmin(address(0));
+
+        IEVault(vaultBase5xv).setInterestRateModel(irmZero);
+        IEVault(vaultBase5xv).setMaxLiquidationDiscount(0.1e4);
+        IEVault(vaultBase5xv).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase5xv).setLTV(vaultBase4xv, 0.1e4, 0.2e4, 0);
+        IEVault(vaultBase5xv).setCaps(1, 2);
+        IEVault(vaultBase5xv).setHookConfig(address(0), 0);
+        IEVault(vaultBase5xv).setGovernorAdmin(address(0));
 
         vm.label(address(escrowPerspective), "escrowPerspective");
         vm.label(address(eulerBasePerspective1), "eulerBasePerspective1");
