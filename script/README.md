@@ -238,6 +238,7 @@ Outputs:
 ### Perspectives
 
 This command deploys:
+- Governable Whitelist Perspective
 - Escrow Perspective
 - Euler Base Perspective
 - Euler Factory Perspective

@@ -73,6 +73,7 @@ contract Advanced is ScriptUtils {
         address oracleLens;
         address vaultLens;
         address utilsLens;
+        address governableWhitelistPerspective;
         address escrowPerspective;
         address eulerBasePerspective;
         address eulerFactoryPerspective;
@@ -297,7 +298,12 @@ contract Advanced is ScriptUtils {
         // deploy perspectives
         {
             Perspectives deployer = new Perspectives();
-            (result.escrowPerspective, result.eulerBasePerspective, result.eulerFactoryPerspective) = deployer.deploy(
+            (
+                result.governableWhitelistPerspective,
+                result.escrowPerspective,
+                result.eulerBasePerspective,
+                result.eulerFactoryPerspective
+            ) = deployer.deploy(
                 result.eVaultFactory,
                 result.oracleRouterFactory,
                 result.oracleAdapterRegistry,
