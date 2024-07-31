@@ -13,6 +13,9 @@ import {BasePerspective} from "../implementation/BasePerspective.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A contract that verifies whether a vault has properties of an escrow vault.
 contract EscrowPerspective is BasePerspective {
+    /// @notice A mapping to look up the vault associated with a given asset.
+    mapping(address => address) public singletonLookup;
+
     /// @notice Creates a new EscrowPerspective instance.
     /// @param vaultFactory_ The address of the GenericFactory contract.
     constructor(address vaultFactory_) BasePerspective(vaultFactory_) {}
@@ -28,7 +31,8 @@ contract EscrowPerspective is BasePerspective {
         testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
 
         // escrow vaults must not be nested
-        testProperty(!vaultFactory.isProxy(IEVault(vault).asset()), ERROR__NESTING);
+        address asset = IEVault(vault).asset();
+        testProperty(!vaultFactory.isProxy(asset), ERROR__NESTING);
 
         // escrow vaults must not have an oracle or unit of account
         testProperty(IEVault(vault).oracle() == address(0), ERROR__ORACLE_INVALID_ROUTER);
@@ -40,10 +44,19 @@ contract EscrowPerspective is BasePerspective {
         testProperty(IEVault(vault).feeReceiver() == address(0), ERROR__FEE_RECEIVER);
         testProperty(IEVault(vault).interestRateModel() == address(0), ERROR__INTEREST_RATE_MODEL);
 
-        // escrow vaults must not have a hook target nor any operations disabled
-        (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
-        testProperty(hookTarget == address(0), ERROR__HOOK_TARGET);
-        testProperty(hookedOps == 0, ERROR__HOOKED_OPS);
+        {
+            // escrow vaults must be singletons if they don't have a supply cap
+            (uint32 supplyCap, uint32 borrowCap) = IEVault(vault).caps();
+            testProperty(supplyCap != 0 || singletonLookup[asset] == address(0), ERROR__SINGLETON);
+
+            // escrow vaults must not have borrow cap
+            testProperty(borrowCap == 0, ERROR__BORROW_CAP);
+
+            // escrow vaults must not have a hook target nor any operations disabled
+            (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
+            testProperty(hookTarget == address(0), ERROR__HOOK_TARGET);
+            testProperty(hookedOps == 0, ERROR__HOOKED_OPS);
+        }
 
         // escrow vaults must not have any config flags set
         testProperty(IEVault(vault).configFlags() == 0, ERROR__CONFIG_FLAGS);
@@ -54,5 +67,10 @@ contract EscrowPerspective is BasePerspective {
 
         // escrow vaults must not have any collateral set up
         testProperty(IEVault(vault).LTVList().length == 0, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
+
+        // store in mapping so that, if the vault has no supply cap, one escrow vault per asset can be achieved
+        if (singletonLookup[asset] == address(0)) {
+            singletonLookup[asset] = vault;
+        }
     }
 }

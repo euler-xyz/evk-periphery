@@ -35,6 +35,7 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
         perspective.perspectiveVerify(vault, true);
         assertTrue(perspective.isVerified(vault));
         assertEq(perspective.verifiedArray()[0], vault);
+        assertEq(perspective.singletonLookup(address(assetTST)), vault);
     }
 
     function test_Revert_Perspective_Escrow() public {
@@ -45,6 +46,8 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
             factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(0), address(0)));
         address vault3 =
             factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(1), address(2)));
+        address vault4 =
+            factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), address(0), address(0)));
 
         IEVault(vault1).setGovernorAdmin(address(0));
         IEVault(vault2).setGovernorAdmin(address(0));
@@ -53,24 +56,39 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
         IEVault(vault3).setMaxLiquidationDiscount(1);
         IEVault(vault3).setHookConfig(address(0), 1);
         IEVault(vault3).setLTV(address(0), 0, 0, 0);
+        IEVault(vault3).setCaps(1, 0);
+
+        // this vault will be okay because it has greater than zero supply cap, but zero borrow cap
+        IEVault(vault4).setCaps(1, 0);
+        IEVault(vault4).setGovernorAdmin(address(0));
 
         // verification of the first vault is successful
         vm.expectEmit(true, false, false, false, address(perspective));
         emit PerspectiveVerified(vault1);
         perspective.perspectiveVerify(vault1, true);
+        assertEq(perspective.singletonLookup(address(assetTST)), vault1);
 
-        // verification of the second vault is successful
-        vm.expectEmit(true, false, false, false, address(perspective));
-        emit PerspectiveVerified(vault2);
+        // verification of the second vault will fail due to the singleton rule
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IPerspective.PerspectiveError.selector, address(perspective), vault2, ERROR__SINGLETON
+            )
+        );
         perspective.perspectiveVerify(vault2, true);
 
-        // verification of the third vault will fail right away due to upgradability
+        // verification of the third vault will fail right away due to invalid oracle
         vm.expectRevert(
             abi.encodeWithSelector(
                 IPerspective.PerspectiveError.selector, address(perspective), vault3, ERROR__ORACLE_INVALID_ROUTER
             )
         );
         perspective.perspectiveVerify(vault3, true);
+
+        // verification of the fourth vault is successful
+        vm.expectEmit(true, false, false, false, address(perspective));
+        emit PerspectiveVerified(vault4);
+        perspective.perspectiveVerify(vault4, true);
+        assertEq(perspective.singletonLookup(address(assetTST)), vault1); // no override
 
         // if fail early not requested, the third vault verification will collect all the errors and fail at the end
         vm.expectRevert(
@@ -83,5 +101,13 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
             )
         );
         perspective.perspectiveVerify(vault3, false);
+
+        // if fail early not requested, the second vault verification will collect all the errors and fail at the end
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IPerspective.PerspectiveError.selector, address(perspective), vault2, ERROR__SINGLETON
+            )
+        );
+        perspective.perspectiveVerify(vault2, false);
     }
 }
