@@ -24,7 +24,7 @@ contract ReadOnlyProxy {
 
         (bool success, bytes memory data) = implementation.delegatecall(payload);
         if (!success) {
-            if (data.length == 0) revert ("contract is in read-only mode");
+            if (data.length == 0) revert("contract is in read-only mode");
             else RevertBytes.revertBytes(data);
         }
 
