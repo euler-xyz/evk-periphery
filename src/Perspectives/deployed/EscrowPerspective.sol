@@ -11,7 +11,8 @@ import {BasePerspective} from "../implementation/BasePerspective.sol";
 /// @title EscrowPerspective
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice A contract that verifies whether a vault has properties of an escrow vault.
+/// @notice A contract that verifies whether a vault has properties of an escrow vault. It allows only one escrow vault
+/// per asset if the vault has no supply cap configured.
 contract EscrowPerspective is BasePerspective {
     /// @notice A mapping to look up the vault associated with a given asset.
     mapping(address => address) public singletonLookup;
@@ -45,7 +46,7 @@ contract EscrowPerspective is BasePerspective {
         testProperty(IEVault(vault).interestRateModel() == address(0), ERROR__INTEREST_RATE_MODEL);
 
         {
-            // escrow vaults must be singletons if they don't have a supply cap
+            // escrow vaults must be singletons if they do not have a supply cap configured
             (uint32 supplyCap, uint32 borrowCap) = IEVault(vault).caps();
             testProperty(supplyCap != 0 || singletonLookup[asset] == address(0), ERROR__SINGLETON);
 
