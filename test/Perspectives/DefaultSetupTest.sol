@@ -57,7 +57,7 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         xvTST4 = new StubERC4626(address(assetTST4), 1.05e18);
 
         // deploy the oracle-related contracts
-        routerFactory = new EulerRouterFactory();
+        routerFactory = new EulerRouterFactory(address(evc));
         router = EulerRouter(routerFactory.deploy(routerGovernor));
         adapterRegistry = new SnapshotRegistry(registryOwner);
         externalVaultRegistry = new SnapshotRegistry(registryOwner);
