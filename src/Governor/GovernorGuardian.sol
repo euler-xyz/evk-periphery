@@ -129,7 +129,7 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
 
             if (!canPauseStatusChange(vault)) continue;
 
-            // Change the hook configuration.
+            // Change the hook configuration, i.e. by unpausing the selected operations.
             IEVault(vault).setHookConfig(address(0), newHookedOps);
 
             emit PauseStatusChanged(vault);
@@ -140,6 +140,7 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
     /// @param vault The address of the vault to check.
     /// @return bool True if the vault can be paused, false otherwise.
     function canBePaused(address vault) public view returns (bool) {
+        // The vault can be paused if the pause cooldown has passed since the last pause.
         return pauseDatas[vault].lastPauseTimestamp + PAUSE_COOLDOWN < block.timestamp
             && IEVault(vault).governorAdmin() == address(this);
     }
@@ -151,6 +152,8 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
     function canBeUnpaused(address vault, bool guardianCalling) public view returns (bool) {
         uint256 lastPauseTimestamp = pauseDatas[vault].lastPauseTimestamp;
 
+        // The vault can be unpaused if the guardian is calling the function or if the pause duration has passed.
+        // We must ensure that the hook config was previously cached by checking that the lastPauseTimestamp is not 0.
         return lastPauseTimestamp != 0 && (guardianCalling || lastPauseTimestamp + PAUSE_DURATION < block.timestamp)
             && IEVault(vault).governorAdmin() == address(this);
     }
@@ -161,6 +164,8 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
     function canPauseStatusChange(address vault) public view returns (bool) {
         PauseData memory pauseData = pauseDatas[vault];
 
+        // The pause status can be changed if the cached hook target is the zero address to prevent vault
+        // misconfiguration. Pause status can only be changed within the pause duration.
         return pauseData.hookTarget == address(0) && pauseData.lastPauseTimestamp + PAUSE_DURATION >= block.timestamp
             && IEVault(vault).governorAdmin() == address(this);
     }

@@ -86,6 +86,7 @@ contract HookTargetGuardian is IHookTarget, AccessControl {
     /// @notice Checks if the vault using this hook target can be paused.
     /// @return bool True if the vault can be paused, false otherwise.
     function canBePaused() public view returns (bool) {
+        // The vault can be paused if the pause cooldown has passed since the last pause.
         return lastPauseTimestamp + PAUSE_COOLDOWN < block.timestamp;
     }
 }
