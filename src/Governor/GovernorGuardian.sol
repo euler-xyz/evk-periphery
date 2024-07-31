@@ -52,6 +52,22 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
+    /// @notice Executes a call to a specified vault.
+    /// @param vault The address of the vault to call.
+    /// @param data The calldata to be called on the vault.
+    function adminCall(address vault, bytes calldata data) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        (bool success, bytes memory result) = vault.call(data);
+
+        if (!success) {
+            if (result.length != 0) {
+                assembly {
+                    revert(add(32, result), mload(result))
+                }
+            }
+            revert();
+        }
+    }
+
     /// @notice Pauses the given vaults.
     /// @param vaults The array of vault addresses to be paused.
     function pause(address[] calldata vaults) external nonReentrant onlyRole(GUARDIAN) {
