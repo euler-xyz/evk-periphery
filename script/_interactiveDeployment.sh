@@ -132,10 +132,10 @@ while true; do
     echo ""
     echo "Select an option to deploy:"
     echo "0. ERC20 mock token"
-    echo "1. Periphery factories (Oracle Router, Oracle Adapter Registry, Kink IRM Factory)"
-    echo "2. Oracle adapter"
-    echo "3. Kink IRM"
-    echo "4. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
+    echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
+    echo "2. Periphery factories (Oracle Router, Oracle Adapter Registry, Kink IRM Factory)"
+    echo "3. Oracle adapter"
+    echo "4. Kink IRM"
     echo "5. EVault implementation (modules and implementation contract)"
     echo "6. EVault factory"
     echo "7. EVault"
@@ -175,15 +175,24 @@ while true; do
                 }' --indent 4 > script/input/$scriptJsonFileName
             ;;
         1)
-            echo "Deploying periphery factories..."
-
-            fileName=01_PeripheryFactories
+            echo "Deploying intergrations..."
+            
+            fileName=01_Integrations
             scriptFileName=$fileName.s.sol
             scriptJsonFileName=$fileName.json
             tempScriptJsonFileName=temp_$scriptJsonFileName
             backup_script_files $scriptJsonFileName $tempScriptJsonFileName
             ;;
         2)
+            echo "Deploying periphery factories..."
+
+            fileName=02_PeripheryFactories
+            scriptFileName=$fileName.s.sol
+            scriptJsonFileName=$fileName.json
+            tempScriptJsonFileName=temp_$scriptJsonFileName
+            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+            ;;
+        3)
             echo "Deploying oracle adapter..."
             echo "Select the type of oracle adapter to deploy:"
             echo "0. Chainlink"
@@ -195,14 +204,14 @@ while true; do
             echo "6. Uniswap"
             read -p "Enter your choice (0-6): " adapter_choice
 
-            scriptFileName=02_OracleAdapters.s.sol
+            scriptFileName=03_OracleAdapters.s.sol
 
             case $adapter_choice in
                 0)
                     echo "Deploying Chainlink Adapter..."
                     
                     scriptFileName=$scriptFileName:ChainlinkAdapter
-                    scriptJsonFileName=02_ChainlinkAdapter.json
+                    scriptJsonFileName=03_ChainlinkAdapter.json
                     tempScriptJsonFileName=temp_$scriptJsonFileName
                     backup_script_files $scriptJsonFileName $tempScriptJsonFileName
 
@@ -229,7 +238,7 @@ while true; do
                 1)
                     echo "Deploying Chronicle Adapter..."
                     scriptFileName=$scriptFileName:ChronicleAdapter
-                    scriptJsonFileName=02_ChronicleAdapter.json
+                    scriptJsonFileName=03_ChronicleAdapter.json
                     tempScriptJsonFileName=temp_$scriptJsonFileName
                     backup_script_files $scriptJsonFileName $tempScriptJsonFileName
 
@@ -257,7 +266,7 @@ while true; do
                     echo "Deploying Lido Adapter..."
                     
                     scriptFileName=$scriptFileName:LidoAdapter
-                    scriptJsonFileName=02_LidoAdapter.json
+                    scriptJsonFileName=03_LidoAdapter.json
                     tempScriptJsonFileName=temp_$scriptJsonFileName
                     backup_script_files $scriptJsonFileName $tempScriptJsonFileName
 
@@ -273,7 +282,7 @@ while true; do
                     echo "Deploying Pyth Adapter..."
                     
                     scriptFileName=$scriptFileName:PythAdapter
-                    scriptJsonFileName=02_PythAdapter.json
+                    scriptJsonFileName=03_PythAdapter.json
                     tempScriptJsonFileName=temp_$scriptJsonFileName
                     backup_script_files $scriptJsonFileName $tempScriptJsonFileName
 
@@ -307,7 +316,7 @@ while true; do
                     echo "Deploying Redstone Adapter..."
                     
                     scriptFileName=$scriptFileName:RedstoneAdapter
-                    scriptJsonFileName=02_RedstoneAdapter.json
+                    scriptJsonFileName=03_RedstoneAdapter.json
                     tempScriptJsonFileName=temp_$scriptJsonFileName
                     backup_script_files $scriptJsonFileName $tempScriptJsonFileName
 
@@ -338,7 +347,7 @@ while true; do
                     echo "Deploying Cross Adapter..."
                     
                     scriptFileName=$scriptFileName:CrossAdapter
-                    scriptJsonFileName=02_CrossAdapter.json
+                    scriptJsonFileName=03_CrossAdapter.json
                     tempScriptJsonFileName=temp_$scriptJsonFileName
                     backup_script_files $scriptJsonFileName $tempScriptJsonFileName
 
@@ -369,7 +378,7 @@ while true; do
                     echo "Deploying Uniswap Adapter..."
                     
                     scriptFileName=$scriptFileName:UniswapAdapter
-                    scriptJsonFileName=02_UniswapAdapter.json
+                    scriptJsonFileName=03_UniswapAdapter.json
                     tempScriptJsonFileName=temp_$scriptJsonFileName
                     backup_script_files $scriptJsonFileName $tempScriptJsonFileName
 
@@ -402,7 +411,7 @@ while true; do
                     ;;
             esac            
             ;;
-        3)
+        4)
             echo "Deploying kink IRM..."
             
             fileName=03_KinkIRM
@@ -430,15 +439,6 @@ while true; do
                     slope2: $slope2,
                     kink: $kink
                 }' --indent 4 > script/input/$scriptJsonFileName
-            ;;
-        4)
-            echo "Deploying intergrations..."
-            
-            fileName=04_Integrations
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
             ;;
         5)
             echo "Deploying EVault implementation..."

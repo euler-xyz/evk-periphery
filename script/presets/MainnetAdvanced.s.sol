@@ -3,7 +3,8 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "../utils/ScriptUtils.s.sol";
-import {PeripheryFactories} from "../01_PeripheryFactories.s.sol";
+import {Integrations} from "../01_Integrations.s.sol";
+import {PeripheryFactories} from "../02_PeripheryFactories.s.sol";
 import {
     ChainlinkAdapter,
     LidoAdapter,
@@ -11,17 +12,16 @@ import {
     CrossAdapter,
     RedstoneAdapter,
     UniswapAdapter
-} from "../02_OracleAdapters.s.sol";
-import {KinkIRM} from "../03_KinkIRM.s.sol";
-import {Integrations} from "../04_Integrations.s.sol";
+} from "../03_OracleAdapters.s.sol";
+import {KinkIRM} from "../04_KinkIRM.s.sol";
 import {EVaultImplementation} from "../05_EVaultImplementation.s.sol";
 import {EVaultFactory} from "../06_EVaultFactory.s.sol";
 import {EVault} from "../07_EVault.s.sol";
 import {Lenses} from "../08_Lenses.s.sol";
 import {Perspectives} from "../09_Perspectives.s.sol";
 import {Swap} from "../10_Swap.s.sol";
-import {EscrowSingletonPerspective} from "../../src/Perspectives/deployed/EscrowSingletonPerspective.sol";
-import {EulerDefaultClusterPerspective} from "../../src/Perspectives/deployed/EulerDefaultClusterPerspective.sol";
+import {EscrowPerspective} from "../../src/Perspectives/deployed/EscrowPerspective.sol";
+import {EulerBasePerspective} from "../../src/Perspectives/deployed/EulerBasePerspective.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {BalanceForwarder} from "evk/EVault/modules/BalanceForwarder.sol";
 import {Borrowing} from "evk/EVault/modules/Borrowing.sol";
@@ -51,6 +51,11 @@ contract Advanced is ScriptUtils {
     address internal UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
 
     struct DeploymentInfo {
+        address evc;
+        address protocolConfig;
+        address sequenceRegistry;
+        address balanceTracker;
+        address permit2;
         address oracleRouterFactory;
         address oracleAdapterRegistry;
         address externalVaultRegistry;
@@ -65,11 +70,6 @@ contract Advanced is ScriptUtils {
         address uniwapAdapterCRVWETH;
         address redstoneAdapterLINKUSD;
         address defaultIRM;
-        address evc;
-        address protocolConfig;
-        address sequenceRegistry;
-        address balanceTracker;
-        address permit2;
         address eVaultImplementation;
         address eVaultFactory;
         address oracleRouter;
@@ -79,8 +79,8 @@ contract Advanced is ScriptUtils {
         address oracleLens;
         address vaultLens;
         address utilsLens;
-        address escrowSingletonPerspective;
-        address eulerDefaultClusterPerspective;
+        address escrowPerspective;
+        address eulerBasePerspective;
         address eulerFactoryPerspective;
         address swapper;
         address swapVerifier;
@@ -92,8 +92,8 @@ contract Advanced is ScriptUtils {
             address[] memory eVault,
             address evc,
             address balanceTracker,
-            address escrowSingletonPerspective,
-            address eulerDefaultClusterPerspective,
+            address escrowPerspective,
+            address eulerBasePerspective,
             address accountLens,
             address vaultLens,
             address swapper,
@@ -102,6 +102,12 @@ contract Advanced is ScriptUtils {
     {
         DeploymentInfo memory result;
 
+        // deply integrations
+        {
+            Integrations deployer = new Integrations();
+            (result.evc, result.protocolConfig, result.sequenceRegistry, result.balanceTracker, result.permit2) =
+                deployer.deploy();
+        }
         // deploy periphery factories
         {
             PeripheryFactories deployer = new PeripheryFactories();
@@ -110,7 +116,7 @@ contract Advanced is ScriptUtils {
                 result.oracleAdapterRegistry,
                 result.externalVaultRegistry,
                 result.kinkIRMFactory
-            ) = deployer.deploy();
+            ) = deployer.deploy(result.evc);
         }
 
         // deploy oracle adapters
@@ -170,12 +176,6 @@ contract Advanced is ScriptUtils {
         {
             KinkIRM deployer = new KinkIRM();
             result.defaultIRM = deployer.deploy(result.kinkIRMFactory, 0, 1406417851, 19050045013, 2147483648);
-        }
-        // deply integrations
-        {
-            Integrations deployer = new Integrations();
-            (result.evc, result.protocolConfig, result.sequenceRegistry, result.balanceTracker, result.permit2) =
-                deployer.deploy();
         }
         // deploy EVault implementation
         {
@@ -289,7 +289,7 @@ contract Advanced is ScriptUtils {
         // deploy perspectives
         {
             Perspectives deployer = new Perspectives();
-            (result.escrowSingletonPerspective, result.eulerDefaultClusterPerspective, result.eulerFactoryPerspective) =
+            (result.escrowPerspective, result.eulerBasePerspective, result.eulerFactoryPerspective) =
             deployer.deploy(
                 result.eVaultFactory,
                 result.oracleRouterFactory,
@@ -302,12 +302,12 @@ contract Advanced is ScriptUtils {
         {
             startBroadcast();
             for (uint256 i = 0; i < result.eVaultCluster.length; i++) {
-                EulerDefaultClusterPerspective(result.eulerDefaultClusterPerspective).perspectiveVerify(
+                EulerBasePerspective(result.eulerBasePerspective).perspectiveVerify(
                     result.eVaultCluster[i], true
                 );
             }
             for (uint256 i = 0; i < result.eVaultEscrow.length; i++) {
-                EscrowSingletonPerspective(result.escrowSingletonPerspective).perspectiveVerify(
+                EscrowPerspective(result.escrowPerspective).perspectiveVerify(
                     result.eVaultEscrow[i], true
                 );
             }
@@ -355,8 +355,8 @@ contract Advanced is ScriptUtils {
             eVault,
             result.evc,
             result.balanceTracker,
-            result.escrowSingletonPerspective,
-            result.eulerDefaultClusterPerspective,
+            result.escrowPerspective,
+            result.eulerBasePerspective,
             result.accountLens,
             result.vaultLens,
             result.swapper,

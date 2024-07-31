@@ -18,9 +18,11 @@ contract PeripheryFactories is ScriptUtils {
             address kinkIRMFactory
         )
     {
-        string memory scriptFileName = "01_PeripheryFactories.json";
+        string memory scriptFileName = "02_PeripheryFactories.json";
+        string memory json = getInputConfig(scriptFileName);
+        address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
 
-        (oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory) = execute();
+        (oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory) = execute(evc);
 
         string memory object;
         object = vm.serializeAddress("peripheryFactories", "oracleRouterFactory", oracleRouterFactory);
@@ -30,7 +32,7 @@ contract PeripheryFactories is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
     }
 
-    function deploy()
+    function deploy(address evc)
         public
         broadcast
         returns (
@@ -40,10 +42,10 @@ contract PeripheryFactories is ScriptUtils {
             address kinkIRMFactory
         )
     {
-        (oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory) = execute();
+        (oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory) = execute(evc);
     }
 
-    function execute()
+    function execute(address evc)
         public
         returns (
             address oracleRouterFactory,
@@ -52,7 +54,7 @@ contract PeripheryFactories is ScriptUtils {
             address kinkIRMFactory
         )
     {
-        oracleRouterFactory = address(new EulerRouterFactory());
+        oracleRouterFactory = address(new EulerRouterFactory(evc));
         oracleAdapterRegistry = address(new SnapshotRegistry(getDeployer()));
         externalVaultRegistry = address(new SnapshotRegistry(getDeployer()));
         kinkIRMFactory = address(new EulerKinkIRMFactory());

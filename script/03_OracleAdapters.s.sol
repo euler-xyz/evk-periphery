@@ -15,7 +15,7 @@ import {UniswapV3Oracle} from "euler-price-oracle/adapter/uniswap/UniswapV3Oracl
 
 contract ChainlinkAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
-        string memory json = getInputConfig("02_ChainlinkAdapter.json");
+        string memory json = getInputConfig("03_ChainlinkAdapter.json");
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
         address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
@@ -26,7 +26,7 @@ contract ChainlinkAdapter is ScriptUtils {
 
         string memory object;
         object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/02_ChainlinkAdapter.json"));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/03_ChainlinkAdapter.json"));
     }
 
     function deploy(address adapterRegistry, address base, address quote, address feed, uint256 maxStaleness)
@@ -48,7 +48,7 @@ contract ChainlinkAdapter is ScriptUtils {
 
 contract ChronicleAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
-        string memory scriptFileName = "02_ChronicleAdapter.json";
+        string memory scriptFileName = "03_ChronicleAdapter.json";
         string memory json = getInputConfig(scriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
@@ -82,7 +82,7 @@ contract ChronicleAdapter is ScriptUtils {
 
 contract LidoAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
-        string memory scriptFileName = "02_LidoAdapter.json";
+        string memory scriptFileName = "03_LidoAdapter.json";
         string memory json = getInputConfig(scriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
 
@@ -105,7 +105,7 @@ contract LidoAdapter is ScriptUtils {
 
 contract PythAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
-        string memory scriptFileName = "02_PythAdapter.json";
+        string memory scriptFileName = "03_PythAdapter.json";
         string memory json = getInputConfig(scriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
         address pyth = abi.decode(vm.parseJson(json, ".pyth"), (address));
@@ -150,7 +150,7 @@ contract PythAdapter is ScriptUtils {
 
 contract RedstoneAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
-        string memory scriptFileName = "02_RedstoneAdapter.json";
+        string memory scriptFileName = "03_RedstoneAdapter.json";
         string memory json = getInputConfig(scriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
@@ -202,7 +202,7 @@ contract RedstoneAdapter is ScriptUtils {
 
 contract CrossAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
-        string memory json = getInputConfig("02_CrossAdapter.json");
+        string memory json = getInputConfig("03_CrossAdapter.json");
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
         address cross = abi.decode(vm.parseJson(json, ".cross"), (address));
@@ -214,7 +214,7 @@ contract CrossAdapter is ScriptUtils {
 
         string memory object;
         object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/02_CrossAdapter.json"));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/03_CrossAdapter.json"));
     }
 
     function deploy(
@@ -243,7 +243,7 @@ contract CrossAdapter is ScriptUtils {
 
 contract UniswapAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
-        string memory json = getInputConfig("02_UniswapAdapter.json");
+        string memory json = getInputConfig("03_UniswapAdapter.json");
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
         address tokenA = abi.decode(vm.parseJson(json, ".tokenA"), (address));
         address tokenB = abi.decode(vm.parseJson(json, ".tokenB"), (address));
@@ -255,7 +255,7 @@ contract UniswapAdapter is ScriptUtils {
 
         string memory object;
         object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/02_UniswapAdapter.json"));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/03_UniswapAdapter.json"));
     }
 
     function deploy(

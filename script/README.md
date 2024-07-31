@@ -238,8 +238,8 @@ Outputs:
 ### Perspectives
 
 This command deploys:
-- Escrow Singleton Perspective
-- Euler Default Cluster Perspective
+- Escrow Perspective
+- Euler Base Perspective
 - Euler Factory Perspective
 
 Inputs:
@@ -267,3 +267,17 @@ source .env && forge script script/10_Swap.s.sol --rpc-url "$DEPLOYMENT_RPC_URL"
 
 Outputs:
 `script/output/10_Swap.json`
+
+### Fee Flow
+
+This command deploys Fee Flow Controller
+
+Inputs:
+`script/input/11_FeeFlow.json`
+
+```sh
+source .env && forge script script/11_FeeFlow.s.sol --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy
+```
+
+Outputs:
+`script/output/11_FeeFlow.json`

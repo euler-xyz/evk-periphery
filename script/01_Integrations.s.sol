@@ -17,7 +17,7 @@ contract Integrations is ScriptUtils {
         broadcast
         returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address permit2)
     {
-        string memory scriptFileName = "04_Integrations.json";
+        string memory scriptFileName = "01_Integrations.json";
 
         (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2) = execute();
 

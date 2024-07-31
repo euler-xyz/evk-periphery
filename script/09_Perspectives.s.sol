@@ -3,8 +3,8 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
-import {EscrowSingletonPerspective} from "../src/Perspectives/deployed/EscrowSingletonPerspective.sol";
-import {EulerDefaultClusterPerspective} from "../src/Perspectives/deployed/EulerDefaultClusterPerspective.sol";
+import {EscrowPerspective} from "../src/Perspectives/deployed/EscrowPerspective.sol";
+import {EulerBasePerspective} from "../src/Perspectives/deployed/EulerBasePerspective.sol";
 import {EulerFactoryPerspective} from "../src/Perspectives/deployed/EulerFactoryPerspective.sol";
 
 contract Perspectives is ScriptUtils {
@@ -12,8 +12,8 @@ contract Perspectives is ScriptUtils {
         public
         broadcast
         returns (
-            address escrowSingletonPerspective,
-            address eulerDefaultClusterPerspective,
+            address escrowPerspective,
+            address eulerBasePerspective,
             address eulerFactoryPespective
         )
     {
@@ -25,12 +25,12 @@ contract Perspectives is ScriptUtils {
         address externalVaultRegistry = abi.decode(vm.parseJson(json, ".externalVaultRegistry"), (address));
         address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
 
-        (escrowSingletonPerspective, eulerDefaultClusterPerspective, eulerFactoryPespective) =
+        (escrowPerspective, eulerBasePerspective, eulerFactoryPespective) =
             execute(eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory);
 
         string memory object;
-        object = vm.serializeAddress("perspectives", "escrowSingletonPerspective", escrowSingletonPerspective);
-        object = vm.serializeAddress("perspectives", "eulerDefaultClusterPerspective", eulerDefaultClusterPerspective);
+        object = vm.serializeAddress("perspectives", "escrowPerspective", escrowPerspective);
+        object = vm.serializeAddress("perspectives", "eulerBasePerspective", eulerBasePerspective);
         object = vm.serializeAddress("perspectives", "eulerFactoryPespective", eulerFactoryPespective);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
     }
@@ -45,12 +45,12 @@ contract Perspectives is ScriptUtils {
         public
         broadcast
         returns (
-            address escrowSingletonPerspective,
-            address eulerDefaultClusterPerspective,
+            address escrowPerspective,
+            address eulerBasePerspective,
             address eulerFactoryPespective
         )
     {
-        (escrowSingletonPerspective, eulerDefaultClusterPerspective, eulerFactoryPespective) =
+        (escrowPerspective, eulerBasePerspective, eulerFactoryPespective) =
             execute(eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory);
     }
 
@@ -63,20 +63,24 @@ contract Perspectives is ScriptUtils {
     )
         public
         returns (
-            address escrowSingletonPerspective,
-            address eulerDefaultClusterPerspective,
+            address escrowPerspective,
+            address eulerBasePerspective,
             address eulerFactoryPespective
         )
     {
-        escrowSingletonPerspective = address(new EscrowSingletonPerspective(eVaultFactory));
-        eulerDefaultClusterPerspective = address(
-            new EulerDefaultClusterPerspective(
+        address[] memory recognizedPerspectives = new address[](2);
+        escrowPerspective = address(new EscrowPerspective(eVaultFactory));
+
+        recognizedPerspectives[0] = escrowPerspective;
+        recognizedPerspectives[1] = address(0);
+        eulerBasePerspective = address(
+            new EulerBasePerspective(
                 eVaultFactory,
                 oracleRouterFactory,
                 oracleAdapterRegistry,
                 externalVaultRegistry,
                 kinkIRMFactory,
-                escrowSingletonPerspective
+                recognizedPerspectives
             )
         );
         eulerFactoryPespective = address(new EulerFactoryPerspective(eVaultFactory));
