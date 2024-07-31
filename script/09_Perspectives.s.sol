@@ -11,11 +11,7 @@ contract Perspectives is ScriptUtils {
     function run()
         public
         broadcast
-        returns (
-            address escrowPerspective,
-            address eulerBasePerspective,
-            address eulerFactoryPespective
-        )
+        returns (address escrowPerspective, address eulerBasePerspective, address eulerFactoryPespective)
     {
         string memory scriptFileName = "09_Perspectives.json";
         string memory json = getInputConfig(scriptFileName);
@@ -44,11 +40,7 @@ contract Perspectives is ScriptUtils {
     )
         public
         broadcast
-        returns (
-            address escrowPerspective,
-            address eulerBasePerspective,
-            address eulerFactoryPespective
-        )
+        returns (address escrowPerspective, address eulerBasePerspective, address eulerFactoryPespective)
     {
         (escrowPerspective, eulerBasePerspective, eulerFactoryPespective) =
             execute(eVaultFactory, oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory);
@@ -60,14 +52,7 @@ contract Perspectives is ScriptUtils {
         address oracleAdapterRegistry,
         address externalVaultRegistry,
         address kinkIRMFactory
-    )
-        public
-        returns (
-            address escrowPerspective,
-            address eulerBasePerspective,
-            address eulerFactoryPespective
-        )
-    {
+    ) public returns (address escrowPerspective, address eulerBasePerspective, address eulerFactoryPespective) {
         address[] memory recognizedPerspectives = new address[](2);
         escrowPerspective = address(new EscrowPerspective(eVaultFactory));
 

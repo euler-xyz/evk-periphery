@@ -289,8 +289,7 @@ contract Advanced is ScriptUtils {
         // deploy perspectives
         {
             Perspectives deployer = new Perspectives();
-            (result.escrowPerspective, result.eulerBasePerspective, result.eulerFactoryPerspective) =
-            deployer.deploy(
+            (result.escrowPerspective, result.eulerBasePerspective, result.eulerFactoryPerspective) = deployer.deploy(
                 result.eVaultFactory,
                 result.oracleRouterFactory,
                 result.oracleAdapterRegistry,
@@ -302,14 +301,10 @@ contract Advanced is ScriptUtils {
         {
             startBroadcast();
             for (uint256 i = 0; i < result.eVaultCluster.length; i++) {
-                EulerBasePerspective(result.eulerBasePerspective).perspectiveVerify(
-                    result.eVaultCluster[i], true
-                );
+                EulerBasePerspective(result.eulerBasePerspective).perspectiveVerify(result.eVaultCluster[i], true);
             }
             for (uint256 i = 0; i < result.eVaultEscrow.length; i++) {
-                EscrowPerspective(result.escrowPerspective).perspectiveVerify(
-                    result.eVaultEscrow[i], true
-                );
+                EscrowPerspective(result.escrowPerspective).perspectiveVerify(result.eVaultEscrow[i], true);
             }
             stopBroadcast();
         }

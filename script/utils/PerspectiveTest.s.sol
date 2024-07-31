@@ -9,11 +9,12 @@ import {PerspectiveErrors} from "../../src/Perspectives/implementation/Perspecti
 
 contract PerspectiveTest is Script, PerspectiveErrors {
     function run() public {
-        for (uint i = 0; i < 2; ++i) {
+        for (uint256 i = 0; i < 2; ++i) {
             console.log("");
-            
-            address perspective = i == 0 ? 0x5Dc3deE40528ae713D46105787bd6072Edf4e807 : 0xD85feb0d5200B23C4F6bBdc3dA0C9635dA49bA7f;
-            
+
+            address perspective =
+                i == 0 ? 0x5Dc3deE40528ae713D46105787bd6072Edf4e807 : 0xD85feb0d5200B23C4F6bBdc3dA0C9635dA49bA7f;
+
             (bool success, bytes memory ret) = perspective.call(
                 abi.encodeCall(BasePerspective.perspectiveVerify, (0xBB8e17AdF854302A1E3CCf1991DF58Ef8d361EBE, false))
             );
@@ -61,7 +62,9 @@ contract PerspectiveTest is Script, PerspectiveErrors {
             if (err & ERROR__LIQUIDATION_DISCOUNT != 0) console.log("ERROR__LIQUIDATION_DISCOUNT");
             if (err & ERROR__LIQUIDATION_COOL_OFF_TIME != 0) console.log("ERROR__LIQUIDATION_COOL_OFF_TIME");
             if (err & ERROR__LTV_COLLATERAL_CONFIG_LENGTH != 0) console.log("ERROR__LTV_COLLATERAL_CONFIG_LENGTH");
-            if (err & ERROR__LTV_COLLATERAL_CONFIG_SEPARATION != 0) console.log("ERROR__LTV_COLLATERAL_CONFIG_SEPARATION");
+            if (err & ERROR__LTV_COLLATERAL_CONFIG_SEPARATION != 0) {
+                console.log("ERROR__LTV_COLLATERAL_CONFIG_SEPARATION");
+            }
             if (err & ERROR__LTV_COLLATERAL_CONFIG_BORROW != 0) console.log("ERROR__LTV_COLLATERAL_CONFIG_BORROW");
             if (err & ERROR__LTV_COLLATERAL_CONFIG_LIQUIDATION != 0) {
                 console.log("ERROR__LTV_COLLATERAL_CONFIG_LIQUIDATION");
