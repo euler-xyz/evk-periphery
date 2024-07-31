@@ -2,18 +2,17 @@
 
 pragma solidity ^0.8.24;
 
-import {DefaultClusterPerspective} from "../../src/Perspectives/implementation/DefaultClusterPerspective.sol";
+import {EulerBasePerspective} from "../../src/Perspectives/deployed/EulerBasePerspective.sol";
 
-contract DefaultClusterPerspectiveHarness is DefaultClusterPerspective {
+contract EulerBasePerspectiveHarness is EulerBasePerspective {
     constructor(
         address vaultFactory_,
         address routerFactory_,
         address adapterRegistry_,
         address externalVaultRegistry_,
-        address irmFactory_,
-        address escrowSingletonPerspective_
+        address irmFactory_
     )
-        DefaultClusterPerspective(
+        EulerBasePerspective(
             vaultFactory_,
             routerFactory_,
             adapterRegistry_,
@@ -29,10 +28,6 @@ contract DefaultClusterPerspectiveHarness is DefaultClusterPerspective {
 
     function verifyAssetPricingHarness(address router, address asset, address unitOfAccount) external {
         verifyAssetPricing(router, asset, unitOfAccount);
-    }
-
-    function name() public pure override returns (string memory) {
-        return "DefaultClusterPerspectiveHarness";
     }
 
     function testProperty(bool condition, uint256) internal pure override {

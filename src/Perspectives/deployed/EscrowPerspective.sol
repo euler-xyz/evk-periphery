@@ -8,21 +8,22 @@ import "evk/EVault/shared/Constants.sol";
 
 import {BasePerspective} from "../implementation/BasePerspective.sol";
 
-/// @title EscrowSingletonPerspective
+/// @title EscrowPerspective
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A contract that verifies whether a vault has properties of an escrow vault. It allows only one escrow vault
-/// per asset.
-contract EscrowSingletonPerspective is BasePerspective {
-    mapping(address => address) public assetLookup;
+/// per asset if the vault has no supply cap configured.
+contract EscrowPerspective is BasePerspective {
+    /// @notice A mapping to look up the vault associated with a given asset.
+    mapping(address => address) public singletonLookup;
 
-    /// @notice Creates a new EscrowSingletonPerspective instance.
+    /// @notice Creates a new EscrowPerspective instance.
     /// @param vaultFactory_ The address of the GenericFactory contract.
     constructor(address vaultFactory_) BasePerspective(vaultFactory_) {}
 
     /// @inheritdoc BasePerspective
     function name() public pure virtual override returns (string memory) {
-        return "Escrow Singleton Perspective";
+        return "Escrow Perspective";
     }
 
     /// @inheritdoc BasePerspective
@@ -30,17 +31,8 @@ contract EscrowSingletonPerspective is BasePerspective {
         // the vault must be deployed by recognized factory
         testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
 
-        // verify vault configuration at the factory level
-        GenericFactory.ProxyConfig memory config = vaultFactory.getProxyConfig(vault);
-
-        // escrow vaults must not be upgradeable
-        testProperty(!config.upgradeable, ERROR__UPGRADABILITY);
-
-        // there can be only one escrow vault per asset (singleton check)
-        address asset = IEVault(vault).asset();
-        testProperty(assetLookup[asset] == address(0), ERROR__SINGLETON);
-
         // escrow vaults must not be nested
+        address asset = IEVault(vault).asset();
         testProperty(!vaultFactory.isProxy(asset), ERROR__NESTING);
 
         // escrow vaults must not have an oracle or unit of account
@@ -54,9 +46,11 @@ contract EscrowSingletonPerspective is BasePerspective {
         testProperty(IEVault(vault).interestRateModel() == address(0), ERROR__INTEREST_RATE_MODEL);
 
         {
-            // escrow vaults must not have supply or borrow caps
+            // escrow vaults must be singletons if they do not have a supply cap configured
             (uint32 supplyCap, uint32 borrowCap) = IEVault(vault).caps();
-            testProperty(supplyCap == 0, ERROR__SUPPLY_CAP);
+            testProperty(supplyCap != 0 || singletonLookup[asset] == address(0), ERROR__SINGLETON);
+
+            // escrow vaults must not have borrow cap
             testProperty(borrowCap == 0, ERROR__BORROW_CAP);
 
             // escrow vaults must not have a hook target nor any operations disabled
@@ -75,7 +69,9 @@ contract EscrowSingletonPerspective is BasePerspective {
         // escrow vaults must not have any collateral set up
         testProperty(IEVault(vault).LTVList().length == 0, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
 
-        // store in mapping so that one escrow vault per asset can be achieved
-        assetLookup[asset] = vault;
+        // store in mapping so that, if the vault has no supply cap, one escrow vault per asset can be achieved
+        if (singletonLookup[asset] == address(0)) {
+            singletonLookup[asset] = vault;
+        }
     }
 }
