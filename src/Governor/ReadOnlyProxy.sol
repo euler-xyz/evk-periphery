@@ -9,9 +9,9 @@ import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice This contract is read-only proxy to the configured implementation contract
 contract ReadOnlyProxy {
-    address immutable implementation;
+    address internal immutable implementation;
 
-    /// @notice Constructor to set the implementation address to proxy to.
+    /// @notice Constructor to set the implementation address to proxy to
     /// @param _implementation Old implementation contract to proxy to
     constructor(address _implementation) {
         implementation = _implementation;
@@ -19,11 +19,12 @@ contract ReadOnlyProxy {
 
     /// @dev Callable only by fallback, delegate calls original payload in a static frame,
     /// which means any state mutation will cause a revert
-    function proxyDelegateView(bytes memory payload) external returns (bytes memory) {
+    function roProxyDelegateView(bytes memory payload) external returns (bytes memory) {
         require(msg.sender == address(this), "unauthorized");
 
         (bool success, bytes memory data) = implementation.delegatecall(payload);
         if (!success) {
+            // assume the empty error is a result of state mutation in a static call
             if (data.length == 0) revert("contract is in read-only mode");
             else RevertBytes.revertBytes(data);
         }
@@ -33,14 +34,20 @@ contract ReadOnlyProxy {
         }
     }
 
-    /// @dev Fallback functions forwards the calldata in a static frame to `proxyDelegateView` which in turn
-    /// delegate calls into the proxied implementation, with guarantee that any state mutation will revert the tx.
+    /// @dev Fallback function forwards the calldata in a staticcall frame to `proxyDelegateView` which in turn
+    /// delegate calls into the proxied implementation, with guarantee that any state mutation will revert the tx
     fallback() external {
-        (bool success, bytes memory data) = address(this).staticcall(abi.encodeCall(this.proxyDelegateView, (msg.data)));
+        (bool success, bytes memory data) =
+            address(this).staticcall(abi.encodeCall(this.roProxyDelegateView, (msg.data)));
         if (!success) RevertBytes.revertBytes(data);
 
         assembly {
             return(add(32, data), mload(data))
         }
+    }
+
+    /// @notice retrieve the implementation contract to which calls are forwarded
+    function roProxyImplementation() external view returns (address) {
+        return implementation;
     }
 }

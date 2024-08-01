@@ -2,15 +2,17 @@
 
 pragma solidity ^0.8.23;
 
-import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
+import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
-import {IEVault, IERC4626, IERC20} from "evk/EVault/IEVault.sol";
-
 import {FactoryGovernor} from "../../src/Governor/FactoryGovernor.sol";
+import {ReadOnlyProxy} from "../../src/Governor/ReadOnlyProxy.sol";
+
+import {Errors} from "evk/EVault/shared/Errors.sol";
 
 contract FactoryGovernorTests is EVaultTestBase {
     address depositor;
     address guardian;
+    address guardian2;
 
     FactoryGovernor factoryGovernor;
 
@@ -19,6 +21,7 @@ contract FactoryGovernorTests is EVaultTestBase {
 
         depositor = makeAddr("depositor");
         guardian = makeAddr("guardian");
+        guardian2 = makeAddr("guardian2");
 
         startHoax(depositor);
 
@@ -30,32 +33,181 @@ contract FactoryGovernorTests is EVaultTestBase {
 
         address[] memory guardians = new address[](1);
         guardians[0] = guardian;
-        factoryGovernor = new FactoryGovernor(address(this), guardians);
+        factoryGovernor = new FactoryGovernor(admin, guardians);
 
         vm.prank(admin);
         factory.setUpgradeAdmin(address(factoryGovernor));
     }
 
-    function test_triggerEmergencyByGuardian() external {
+    function test_FactoryGovernor_triggerEmergencyByGuardian() external {
+        address oldImplementation = factory.implementation();
+
         uint256 balance = eTST.balanceOf(depositor);
         assertEq(balance, 100e18);
 
+        vm.prank(depositor);
+        eTST.deposit(1e18, depositor);
+
         uint256 totalSupply = eTST.totalSupply();
-        assertEq(totalSupply, 100e18);
+        assertEq(totalSupply, 101e18);
 
         vm.prank(guardian);
+        vm.expectEmit();
+        emit FactoryGovernor.Paused(address(factory));
         factoryGovernor.pause(address(factory));
 
         // balanceOf is embedded in EVault
         balance = eTST.balanceOf(depositor);
-        assertEq(balance, 100e18);
+        assertEq(balance, 101e18);
 
         // totalSupply is forwarded to an EVault module
         totalSupply = eTST.totalSupply();
-        assertEq(totalSupply, 100e18);
+        assertEq(totalSupply, 101e18);
 
+        // state mutation is not allowed
         vm.prank(depositor);
         vm.expectRevert("contract is in read-only mode");
         eTST.deposit(1e18, depositor);
+
+        // admin can roll back changes
+        vm.prank(admin);
+        factoryGovernor.adminCall(address(factory), abi.encodeCall(factory.setImplementation, (oldImplementation)));
+
+        vm.prank(depositor);
+        eTST.deposit(1e18, depositor);
+        assertEq(eTST.balanceOf(depositor), 102e18);
+    }
+
+    function test_FactoryGovernor_triggerEmergencyByAdmin() external {
+        uint256 balance = eTST.balanceOf(depositor);
+        assertEq(balance, 100e18);
+
+        vm.prank(depositor);
+        eTST.deposit(1e18, depositor);
+
+        uint256 totalSupply = eTST.totalSupply();
+        assertEq(totalSupply, 101e18);
+
+        vm.prank(admin);
+        vm.expectEmit();
+        emit FactoryGovernor.Paused(address(factory));
+        factoryGovernor.pause(address(factory));
+
+        // balanceOf is embedded in EVault
+        balance = eTST.balanceOf(depositor);
+        assertEq(balance, 101e18);
+
+        // totalSupply is forwarded to an EVault module
+        totalSupply = eTST.totalSupply();
+        assertEq(totalSupply, 101e18);
+
+        // state mutation is not allowed
+        vm.prank(depositor);
+        vm.expectRevert("contract is in read-only mode");
+        eTST.deposit(1e18, depositor);
+    }
+
+    function test_FactoryGovernor_adminCanUpgradeImplementation() external {
+        address newImplementation = address(1);
+        // admin can't call factory directly
+        vm.prank(admin);
+        vm.expectRevert();
+        factory.setImplementation(newImplementation);
+
+        // but can set implementation through FactoryGovernor
+        vm.prank(admin);
+        factoryGovernor.adminCall(address(factory), abi.encodeCall(factory.setImplementation, (newImplementation)));
+
+        assertEq(factory.implementation(), newImplementation);
+    }
+
+    function test_FactoryGovernor_adminCanChangeTheFactoryAdmin() external {
+        address newFactoryAdmin = makeAddr("newFactoryAdmin");
+
+        vm.prank(admin);
+        factoryGovernor.adminCall(address(factory), abi.encodeCall(factory.setUpgradeAdmin, (newFactoryAdmin)));
+
+        assertEq(factory.upgradeAdmin(), newFactoryAdmin);
+
+        // factory governor has no rights now
+
+        vm.prank(guardian);
+        vm.expectRevert(Errors.E_Unauthorized.selector);
+        factoryGovernor.pause(address(factory));
+    }
+
+    function test_FactoryGovernor_onlyAdminCanDoAdminCall() external {
+        address newImplementation = address(1);
+
+        // but can set implementation through FactoryGovernor
+        vm.prank(guardian);
+        vm.expectRevert();
+        factoryGovernor.adminCall(address(factory), abi.encodeCall(factory.setImplementation, (newImplementation)));
+
+        // install new factory governor admin
+
+        address newAdmin = makeAddr("newAdmin");
+        bytes32 adminRole = factoryGovernor.DEFAULT_ADMIN_ROLE();
+
+        vm.prank(admin);
+        factoryGovernor.grantRole(adminRole, newAdmin);
+        vm.prank(newAdmin);
+        factoryGovernor.revokeRole(adminRole, admin);
+
+        // old admin has no access
+        vm.prank(admin);
+        vm.expectRevert();
+        factoryGovernor.adminCall(address(factory), abi.encodeCall(factory.setImplementation, (newImplementation)));
+
+        vm.prank(newAdmin);
+        factoryGovernor.adminCall(address(factory), abi.encodeCall(factory.setImplementation, (newImplementation)));
+
+        assertEq(factory.implementation(), newImplementation);
+    }
+
+    function test_FactoryGovernor_addGuardians() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, guardian2, factoryGovernor.GUARDIAN_ROLE()
+            )
+        );
+        vm.prank(guardian2);
+        factoryGovernor.pause(address(factory));
+
+        vm.prank(admin);
+        factoryGovernor.grantRole(factoryGovernor.GUARDIAN_ROLE(), guardian2);
+
+        vm.prank(guardian2);
+        factoryGovernor.pause(address(factory));
+    }
+
+    function test_FactoryGovernor_removeGuardians() external {
+        vm.prank(admin);
+        factoryGovernor.revokeRole(factoryGovernor.GUARDIAN_ROLE(), guardian);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, guardian, factoryGovernor.GUARDIAN_ROLE()
+            )
+        );
+        vm.prank(guardian);
+        factoryGovernor.pause(address(factory));
+    }
+
+    function test_FactoryGovernor_proxyDelegateViewIsNotCallableExternally() external {
+        vm.prank(guardian);
+        factoryGovernor.pause(address(factory));
+
+        (bool success, bytes memory data) = address(eTST).call(abi.encodeCall(ReadOnlyProxy.roProxyDelegateView, ("")));
+        assertFalse(success);
+        assertEq(keccak256(data), keccak256(abi.encodeWithSignature("Error(string)", "unauthorized")));
+    }
+
+    function test_FactoryGovernor_roProxyImplementation() external {
+        address oldImplementation = factory.implementation();
+        vm.prank(guardian);
+        factoryGovernor.pause(address(factory));
+
+        assertEq(oldImplementation, ReadOnlyProxy(factory.implementation()).roProxyImplementation());
     }
 }
