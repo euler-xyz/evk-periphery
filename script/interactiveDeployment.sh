@@ -1,70 +1,34 @@
 #!/bin/bash
 
-function backup_script_files {
-    local scriptFileName=$1
-    local tempScriptFileName=$2
-    
-    if [[ -f script/input/$scriptFileName ]]; then
-        cp script/input/$scriptFileName script/input/$tempScriptFileName
-    fi
-
-    if [[ -f script/output/$scriptFileName ]]; then
-        cp script/output/$scriptFileName script/output/$tempScriptFileName
-    fi
-}
-
-function backup_and_restore_script_files {
-    local scriptFileName=$1
-    local tempScriptFileName=$2
-    local deployment_name=$3
-    local deployment_dir="script/deployments/$deployment_name"
-
-    mkdir -p "$deployment_dir/input" "$deployment_dir/output"
-
-    if [[ -f "$deployment_dir/input/$scriptFileName" ]]; then
-        is_array=$(jq 'if (type == "array") then true else false end' < "$deployment_dir/input/$scriptFileName")
-
-        if [[ $is_array == "true" ]]; then
-            jq -s '.[0] + [.[1]]' "$deployment_dir/input/$scriptFileName" "script/input/$scriptFileName" > "$deployment_dir/input/temp_$scriptFileName"
-            jq -s '.[0] + [.[1]]' "$deployment_dir/output/$scriptFileName" "script/output/$scriptFileName" > "$deployment_dir/output/temp_$scriptFileName"
-        else
-            jq -s '[.[0]] + [.[1]]' "$deployment_dir/input/$scriptFileName" "script/input/$scriptFileName" > "$deployment_dir/input/temp_$scriptFileName"
-            jq -s '[.[0]] + [.[1]]' "$deployment_dir/output/$scriptFileName" "script/output/$scriptFileName" > "$deployment_dir/output/temp_$scriptFileName"
-        fi
-        
-        mv "$deployment_dir/input/temp_$scriptFileName" "$deployment_dir/input/$scriptFileName"
-        mv "$deployment_dir/output/temp_$scriptFileName" "$deployment_dir/output/$scriptFileName"
-    else
-        cp "script/input/$scriptFileName" "$deployment_dir/input/$scriptFileName"
-        cp "script/output/$scriptFileName" "$deployment_dir/output/$scriptFileName"
-    fi
-
-    if [[ -f script/input/$tempScriptFileName ]]; then
-        cp script/input/$tempScriptFileName script/input/$scriptFileName
-        rm script/input/$tempScriptFileName
-    else
-        rm script/input/$scriptFileName
-    fi
-
-    if [[ -f script/output/$tempScriptFileName ]]; then
-        cp script/output/$tempScriptFileName script/output/$scriptFileName
-        rm script/output/$tempScriptFileName
-    else
-        rm script/output/$scriptFileName
-    fi
-}
-
 function execute_forge_script {
-    local scriptFileName=$1
+    local scriptName=$1
     local shouldVerify=$2
 
-    forge script script/$scriptFileName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --slow
+    forge script script/$scriptName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --slow
 
     if [[ $shouldVerify == "y" ]]; then
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-        broadcastFileName=${scriptFileName%%:*}
+        broadcastFileName=${scriptName%%:*}
 
-        ./script/utils/verify.sh "./broadcast/$broadcastFileName/$chainId/run-latest.json"
+        ./script/utils/verifyContracts.sh "./broadcast/$broadcastFileName/$chainId/run-latest.json"
+    fi
+}
+
+function save_results {
+    local jsonName=$1
+    local deployment_name=$2
+    local deployment_dir="script/deployments/$deployment_name"
+    local timestamp=$(date +%s)
+    local chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+
+    mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broadcast"
+
+    if [[ -f "script/${jsonName}_output.json" ]]; then
+        mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${timestamp}.json"
+        mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${timestamp}.json"
+        mv "./broadcast/${jsonName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${timestamp}.json"
+    else
+        rm "script/${jsonName}_input.json"
     fi
 }
 
@@ -149,11 +113,9 @@ while true; do
         0)
             echo "Deploying ERC20 mock token..."
 
-            fileName=00_MockERC20
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+            baseName=00_MockERC20
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
 
             read -p "Enter token name (default: MockERC20): " token_name
             token_name=${token_name:-MockERC20}
@@ -172,25 +134,29 @@ while true; do
                     name: $name,
                     symbol: $symbol,
                     decimals: $decimals
-                }' --indent 4 > script/input/$scriptJsonFileName
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         1)
             echo "Deploying intergrations..."
-            
-            fileName=01_Integrations
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+        
+            baseName=01_Integrations
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
             ;;
         2)
             echo "Deploying periphery factories..."
+            
+            baseName=02_PeripheryFactories
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
 
-            fileName=02_PeripheryFactories
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+            read -p "Enter the EVC address: " evc
+
+            jq -n \
+                --arg evc "$evc" \
+                '{
+                    evc: $evc
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         3)
             echo "Deploying oracle adapter..."
@@ -204,16 +170,14 @@ while true; do
             echo "6. Uniswap"
             read -p "Enter your choice (0-6): " adapter_choice
 
-            scriptFileName=03_OracleAdapters.s.sol
+            baseName=03_OracleAdapters
 
             case $adapter_choice in
                 0)
                     echo "Deploying Chainlink Adapter..."
                     
-                    scriptFileName=$scriptFileName:ChainlinkAdapter
-                    scriptJsonFileName=03_ChainlinkAdapter.json
-                    tempScriptJsonFileName=temp_$scriptJsonFileName
-                    backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+                    scriptName=${baseName}.s.sol:ChainlinkAdapter
+                    jsonName=03_ChainlinkAdapter
 
                     read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
@@ -233,14 +197,13 @@ while true; do
                             quote: $quote,
                             feed: $feed,
                             maxStaleness: $maxStaleness
-                        }' --indent 4 > script/input/$scriptJsonFileName
+                        }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 1)
                     echo "Deploying Chronicle Adapter..."
-                    scriptFileName=$scriptFileName:ChronicleAdapter
-                    scriptJsonFileName=03_ChronicleAdapter.json
-                    tempScriptJsonFileName=temp_$scriptJsonFileName
-                    backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+
+                    scriptName=${baseName}.s.sol:ChronicleAdapter
+                    jsonName=03_ChronicleAdapter
 
                     read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
@@ -260,15 +223,13 @@ while true; do
                             quote: $quote,
                             feed: $feed,
                             maxStaleness: $maxStaleness
-                        }' --indent 4 > script/input/$scriptJsonFileName
+                        }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 2)
                     echo "Deploying Lido Adapter..."
                     
-                    scriptFileName=$scriptFileName:LidoAdapter
-                    scriptJsonFileName=03_LidoAdapter.json
-                    tempScriptJsonFileName=temp_$scriptJsonFileName
-                    backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+                    scriptName=${baseName}.s.sol:LidoAdapter
+                    jsonName=03_LidoAdapter
 
                     read -p "Enter the Adapter Registry address: " adapter_registry
 
@@ -276,15 +237,13 @@ while true; do
                         --arg adapterRegistry "$adapter_registry" \
                         '{
                             adapterRegistry: $adapterRegistry
-                        }' --indent 4 > script/input/$scriptJsonFileName
+                        }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 3)
                     echo "Deploying Pyth Adapter..."
                     
-                    scriptFileName=$scriptFileName:PythAdapter
-                    scriptJsonFileName=03_PythAdapter.json
-                    tempScriptJsonFileName=temp_$scriptJsonFileName
-                    backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+                    scriptName=${baseName}.s.sol:PythAdapter
+                    jsonName=03_PythAdapter
 
                     read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter Pyth address: " pyth
@@ -310,15 +269,13 @@ while true; do
                             feedId: $feedId,
                             maxStaleness: $maxStaleness,
                             maxConfWidth: $maxConfWidth
-                        }' --indent 4 > script/input/$scriptJsonFileName
+                        }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 4)
                     echo "Deploying Redstone Adapter..."
                     
-                    scriptFileName=$scriptFileName:RedstoneAdapter
-                    scriptJsonFileName=03_RedstoneAdapter.json
-                    tempScriptJsonFileName=temp_$scriptJsonFileName
-                    backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+                    scriptName=${baseName}.s.sol:RedstoneAdapter
+                    jsonName=03_RedstoneAdapter
 
                     read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
@@ -341,15 +298,13 @@ while true; do
                             feedId: $feedId,
                             feedDecimals: $feedDecimals,
                             maxStaleness: $maxStaleness
-                        }' --indent 4 > script/input/$scriptJsonFileName
+                        }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 5)
                     echo "Deploying Cross Adapter..."
                     
-                    scriptFileName=$scriptFileName:CrossAdapter
-                    scriptJsonFileName=03_CrossAdapter.json
-                    tempScriptJsonFileName=temp_$scriptJsonFileName
-                    backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+                    scriptName=${baseName}.s.sol:CrossAdapter
+                    jsonName=03_CrossAdapter
 
                     read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
@@ -372,15 +327,13 @@ while true; do
                             cross: $cross,
                             oracleBaseCross: $oracleBaseCross,
                             oracleCrossQuote: $oracleCrossQuote
-                        }' --indent 4 > script/input/$scriptJsonFileName
+                        }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 6)
                     echo "Deploying Uniswap Adapter..."
                     
-                    scriptFileName=$scriptFileName:UniswapAdapter
-                    scriptJsonFileName=03_UniswapAdapter.json
-                    tempScriptJsonFileName=temp_$scriptJsonFileName
-                    backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+                    scriptName=${baseName}.s.sol:UniswapAdapter
+                    jsonName=03_UniswapAdapter
 
                     read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter tokenA address: " token_a
@@ -403,7 +356,7 @@ while true; do
                             fee: $fee,
                             twapWindow: $twapWindow,
                             uniswapV3Factory: $uniswapV3Factory
-                        }' --indent 4 > script/input/$scriptJsonFileName
+                        }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
                     echo "Invalid adapter choice. Exiting."
@@ -414,11 +367,9 @@ while true; do
         4)
             echo "Deploying kink IRM..."
             
-            fileName=03_KinkIRM
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+            baseName=04_KinkIRM
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
 
             read -p "Enter the IRM Factory address: " irm_factory
             read -p "Enter base rate SPY: " base_rate
@@ -438,16 +389,14 @@ while true; do
                     slope1: $slope1,
                     slope2: $slope2,
                     kink: $kink
-                }' --indent 4 > script/input/$scriptJsonFileName
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         5)
             echo "Deploying EVault implementation..."
-            
-            fileName=05_EVaultImplementation
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+
+            baseName=05_EVaultImplementation
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
 
             read -p "Enter the EVC address: " evc
             read -p "Enter the Protocol Config address: " protocol_config
@@ -467,16 +416,14 @@ while true; do
                     sequenceRegistry: $sequenceRegistry,
                     balanceTracker: $balanceTracker,
                     permit2: $permit2
-                }' --indent 4 > script/input/$scriptJsonFileName
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         6)
             echo "Deploying EVault factory..."
 
-            fileName=06_EVaultFactory
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+            baseName=06_EVaultFactory
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
 
             read -p "Enter the EVault implementation address: " evault_implementation
 
@@ -484,16 +431,14 @@ while true; do
                 --arg eVaultImplementation "$evault_implementation" \
                 '{
                     eVaultImplementation: $eVaultImplementation
-                }' --indent 4 > script/input/$scriptJsonFileName
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         7)
             echo "Deploying EVault..."
-            
-            fileName=07_EVault
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+
+            baseName=07_EVault
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
 
             read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle
             deploy_router_for_oracle=${deploy_router_for_oracle:-y}
@@ -526,16 +471,14 @@ while true; do
                     asset: $asset,
                     oracle: $oracle,
                     unitOfAccount: $unitOfAccount
-                }' --indent 4 > script/input/$scriptJsonFileName
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         8)
             echo "Deploying lenses..."
             
-            fileName=08_Lenses
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+            baseName=08_Lenses
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
             
             read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
 
@@ -543,16 +486,14 @@ while true; do
                 --arg oracleAdapterRegistry "$oracle_adapter_registry" \
                 '{
                     oracleAdapterRegistry: $oracleAdapterRegistry
-                }' --indent 4 > script/input/$scriptJsonFileName
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         9)
             echo "Deploying Perspectives..."
             
-            fileName=09_Perspectives
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+            baseName=09_Perspectives
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
 
             read -p "Enter the EVault Factory address: " evault_factory
             read -p "Enter the Oracle Router Factory address: " oracle_router_factory
@@ -569,16 +510,14 @@ while true; do
                     oracleRouterFactory: $oracleRouterFactory,
                     oracleAdapterRegistry: $oracleAdapterRegistry,
                     kinkIRMFactory: $kinkIRMFactory
-                }' --indent 4 > script/input/$scriptJsonFileName
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         10)
             echo "Deploying Swapper..."
             
-            fileName=10_Swap
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+            baseName=10_Swap
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
 
             read -p "Enter the OneInch Aggregator address: " oneinch_aggregator
             read -p "Enter the Uniswap Router V2 address: " uniswap_router_v2
@@ -595,16 +534,14 @@ while true; do
                     uniswapRouterV2: $uniswapRouterV2,
                     uniswapRouterV3: $uniswapRouterV3,
                     uniswapRouter02: $uniswapRouter02
-                }' --indent 4 > script/input/$scriptJsonFileName
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         11)
             echo "Deploying Fee Flow..."
 
-            fileName=11_FeeFlow
-            scriptFileName=$fileName.s.sol
-            scriptJsonFileName=$fileName.json
-            tempScriptJsonFileName=temp_$scriptJsonFileName
-            backup_script_files $scriptJsonFileName $tempScriptJsonFileName
+            baseName=11_FeeFlow
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
 
             read -p "Enter the EVC address: " evc
             read -p "Enter the init price: " init_price
@@ -630,7 +567,7 @@ while true; do
                     epochPeriod: $epochPeriod,
                     priceMultiplier: $priceMultiplier,
                     minInitPrice: $minInitPrice
-                }' --indent 4 > script/input/$scriptJsonFileName
+                }' --indent 4 > script/${jsonName}_input.json
 
             ;;
         *)
@@ -639,6 +576,6 @@ while true; do
             ;;
     esac
 
-    execute_forge_script $scriptFileName $verify_contracts
-    backup_and_restore_script_files $scriptJsonFileName $tempScriptJsonFileName "$deployment_name"
+    execute_forge_script $scriptName $verify_contracts
+    save_results $jsonName "$deployment_name"
 done

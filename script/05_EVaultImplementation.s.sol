@@ -32,8 +32,9 @@ contract EVaultImplementation is ScriptUtils {
         )
     {
         Base.Integrations memory integrations;
-        string memory scriptFileName = "05_EVaultImplementation.json";
-        string memory json = getInputConfig(scriptFileName);
+        string memory inputScriptFileName = "05_EVaultImplementation_input.json";
+        string memory outputScriptFileName = "05_EVaultImplementation_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
         integrations.evc = abi.decode(vm.parseJson(json, ".evc"), (address));
         integrations.protocolConfig = abi.decode(vm.parseJson(json, ".protocolConfig"), (address));
         integrations.sequenceRegistry = abi.decode(vm.parseJson(json, ".sequenceRegistry"), (address));
@@ -65,7 +66,7 @@ contract EVaultImplementation is ScriptUtils {
 
         vm.writeJson(
             vm.serializeString("", "modules", object),
-            string.concat(vm.projectRoot(), "/script/output/", scriptFileName)
+            string.concat(vm.projectRoot(), "/script/", outputScriptFileName)
         );
     }
 

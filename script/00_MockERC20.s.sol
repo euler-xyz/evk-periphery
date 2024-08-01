@@ -6,8 +6,9 @@ import {ScriptUtils, ERC20Mintable} from "./utils/ScriptUtils.s.sol";
 
 contract MockERC20 is ScriptUtils {
     function run() public broadcast returns (address mockERC20) {
-        string memory scriptFileName = "00_MockERC20.json";
-        string memory json = getInputConfig(scriptFileName);
+        string memory inputScriptFileName = "00_MockERC20_input.json";
+        string memory outputScriptFileName = "00_MockERC20_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
         string memory name = abi.decode(vm.parseJson(json, ".name"), (string));
         string memory symbol = abi.decode(vm.parseJson(json, ".symbol"), (string));
         uint8 decimals = abi.decode(vm.parseJson(json, ".decimals"), (uint8));
@@ -16,7 +17,7 @@ contract MockERC20 is ScriptUtils {
 
         string memory object;
         object = vm.serializeAddress("mock", "mockERC20", mockERC20);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
     function deploy(string memory name, string memory symbol, uint8 decimals)

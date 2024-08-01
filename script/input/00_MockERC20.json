@@ -1,5 +1,0 @@
-{ 
-    "name": "MockERC20", 
-    "symbol": "MOCK", 
-    "decimals": 18 
-}

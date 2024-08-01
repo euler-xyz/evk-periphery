@@ -19,8 +19,9 @@ contract Perspectives is ScriptUtils {
             address eulerFactoryPespective
         )
     {
-        string memory scriptFileName = "09_Perspectives.json";
-        string memory json = getInputConfig(scriptFileName);
+        string memory inputScriptFileName = "09_Perspectives_input.json";
+        string memory outputScriptFileName = "09_Perspectives_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
         address eVaultFactory = abi.decode(vm.parseJson(json, ".eVaultFactory"), (address));
         address oracleRouterFactory = abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address));
         address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
@@ -35,7 +36,7 @@ contract Perspectives is ScriptUtils {
         object = vm.serializeAddress("perspectives", "escrowPerspective", escrowPerspective);
         object = vm.serializeAddress("perspectives", "eulerBasePerspective", eulerBasePerspective);
         object = vm.serializeAddress("perspectives", "eulerFactoryPespective", eulerFactoryPespective);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
     function deploy(

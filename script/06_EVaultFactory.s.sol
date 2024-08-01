@@ -7,8 +7,9 @@ import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 
 contract EVaultFactory is ScriptUtils {
     function run() public broadcast returns (address eVaultFactory) {
-        string memory scriptFileName = "06_EVaultFactory.json";
-        string memory json = getInputConfig(scriptFileName);
+        string memory inputScriptFileName = "06_EVaultFactory_input.json";
+        string memory outputScriptFileName = "06_EVaultFactory_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
         address eVaultImplementation = abi.decode(vm.parseJson(json, ".eVaultImplementation"), (address));
 
         eVaultFactory = execute(eVaultImplementation);
@@ -16,7 +17,7 @@ contract EVaultFactory is ScriptUtils {
         string memory object;
         object = vm.serializeAddress("factory", "eVaultFactory", eVaultFactory);
 
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
     function deploy(address eVaultImplementation) public broadcast returns (address eVaultFactory) {

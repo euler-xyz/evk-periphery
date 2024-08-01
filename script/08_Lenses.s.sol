@@ -14,8 +14,9 @@ contract Lenses is ScriptUtils {
         broadcast
         returns (address accountLens, address oracleLens, address vaultLens, address utilsLens)
     {
-        string memory scriptFileName = "08_Lenses.json";
-        string memory json = getInputConfig(scriptFileName);
+        string memory inputScriptFileName = "08_Lenses_input.json";
+        string memory outputScriptFileName = "08_Lenses_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
         address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
 
         (accountLens, oracleLens, vaultLens, utilsLens) = execute(oracleAdapterRegistry);
@@ -25,7 +26,7 @@ contract Lenses is ScriptUtils {
         object = vm.serializeAddress("lenses", "oracleLens", oracleLens);
         object = vm.serializeAddress("lenses", "vaultLens", vaultLens);
         object = vm.serializeAddress("lenses", "utilsLens", utilsLens);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
     function deploy(address oracleAdapterRegistry)

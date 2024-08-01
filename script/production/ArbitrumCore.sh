@@ -19,10 +19,6 @@ else
     exit 1
 fi
 
-echo ""
-echo "Welcome to the Euler Core Deployment script!"
-echo "This script will deploy the Euler core smart contracts."
-
 if [ -z "$DEPLOYMENT_RPC_URL" ]; then
     echo "Error: DEPLOYMENT_RPC_URL environment variable is not set. Please set it and try again."
     exit 1
@@ -55,4 +51,4 @@ fi
 
 # Verify the deployed smart contracts
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-./script/utils/verify.sh "./broadcast/$scriptName/$chainId/run-latest.json"
+./script/utils/verifyContracts.sh "./broadcast/$scriptName/$chainId/run-latest.json"

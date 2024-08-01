@@ -7,8 +7,9 @@ import {FeeFlowController} from "fee-flow/FeeFlowController.sol";
 
 contract FeeFlow is ScriptUtils {
     function run() public broadcast returns (address feeFlowController) {
-        string memory scriptFileName = "11_FeeFlow.json";
-        string memory json = getInputConfig(scriptFileName);
+        string memory inputScriptFileName = "11_FeeFlow_input.json";
+        string memory outputScriptFileName = "11_FeeFlow_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
         address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
         uint256 initPrice = abi.decode(vm.parseJson(json, ".initPrice"), (uint256));
         address paymentToken = abi.decode(vm.parseJson(json, ".paymentToken"), (address));
@@ -22,7 +23,7 @@ contract FeeFlow is ScriptUtils {
 
         string memory object;
         object = vm.serializeAddress("feeFlow", "feeFlowController", feeFlowController);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
     function deploy(

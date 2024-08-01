@@ -55,4 +55,4 @@ fi
 
 # Verify the deployed smart contracts
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-./script/utils/verify.sh "./broadcast/$scriptName/$chainId/run-latest.json"
+./script/utils/verifyContracts.sh "./broadcast/$scriptName/$chainId/run-latest.json"

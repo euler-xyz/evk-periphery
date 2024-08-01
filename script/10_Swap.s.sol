@@ -12,8 +12,9 @@ import {UniswapAutoRouterHandler} from "../src/Swaps/handlers/UniswapAutoRouterH
 
 contract Swap is ScriptUtils {
     function run() public broadcast returns (address swapper, address swapVerifier) {
-        string memory scriptFileName = "10_Swap.json";
-        string memory json = getInputConfig(scriptFileName);
+        string memory inputScriptFileName = "10_Swap_input.json";
+        string memory outputScriptFileName = "10_Swap_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
         address oneInchAggregator = abi.decode(vm.parseJson(json, ".oneInchAggregator"), (address));
         address uniswapRouterV2 = abi.decode(vm.parseJson(json, ".uniswapRouterV2"), (address));
         address uniswapRouterV3 = abi.decode(vm.parseJson(json, ".uniswapRouterV3"), (address));
@@ -24,7 +25,7 @@ contract Swap is ScriptUtils {
         string memory object;
         object = vm.serializeAddress("swap", "swapper", swapper);
         object = vm.serializeAddress("swap", "swapVerifier", swapVerifier);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
     function deploy(

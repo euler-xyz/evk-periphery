@@ -28,7 +28,7 @@ contract ScriptUtils is Script {
 
     function getInputConfig(string memory jsonFile) internal view returns (string memory) {
         string memory root = vm.projectRoot();
-        string memory configPath = string.concat(root, "/script/input/", jsonFile);
+        string memory configPath = string.concat(root, "/script/", jsonFile);
         return vm.readFile(configPath);
     }
 }

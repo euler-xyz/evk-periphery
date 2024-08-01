@@ -7,8 +7,9 @@ import {EulerKinkIRMFactory} from "../src/IRMFactory/EulerKinkIRMFactory.sol";
 
 contract KinkIRM is ScriptUtils {
     function run() public broadcast returns (address irm) {
-        string memory scriptFileName = "04_KinkIRM.json";
-        string memory json = getInputConfig(scriptFileName);
+        string memory inputScriptFileName = "04_KinkIRM_input.json";
+        string memory outputScriptFileName = "04_KinkIRM_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
         address irmFactory = abi.decode(vm.parseJson(json, ".irmFactory"), (address));
         uint256 baseRate = abi.decode(vm.parseJson(json, ".baseRate"), (uint256));
         uint256 slope1 = abi.decode(vm.parseJson(json, ".slope1"), (uint256));
@@ -19,7 +20,7 @@ contract KinkIRM is ScriptUtils {
 
         string memory object;
         object = vm.serializeAddress("irm", "irm", irm);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
     function deploy(address irmFactory, uint256 baseRate, uint256 slope1, uint256 slope2, uint32 kink)

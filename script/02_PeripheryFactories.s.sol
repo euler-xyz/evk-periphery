@@ -18,8 +18,9 @@ contract PeripheryFactories is ScriptUtils {
             address kinkIRMFactory
         )
     {
-        string memory scriptFileName = "02_PeripheryFactories.json";
-        string memory json = getInputConfig(scriptFileName);
+        string memory inputScriptFileName = "02_PeripheryFactories_input.json";
+        string memory outputScriptFileName = "02_PeripheryFactories_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
         address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
 
         (oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory) = execute(evc);
@@ -29,7 +30,7 @@ contract PeripheryFactories is ScriptUtils {
         object = vm.serializeAddress("peripheryFactories", "oracleAdapterRegistry", oracleAdapterRegistry);
         object = vm.serializeAddress("peripheryFactories", "externalVaultRegistry", externalVaultRegistry);
         object = vm.serializeAddress("peripheryFactories", "kinkIRMFactory", kinkIRMFactory);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
     function deploy(address evc)

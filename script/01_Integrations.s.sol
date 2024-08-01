@@ -17,7 +17,7 @@ contract Integrations is ScriptUtils {
         broadcast
         returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address permit2)
     {
-        string memory scriptFileName = "01_Integrations.json";
+        string memory outputScriptFileName = "01_Integrations_output.json";
 
         (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2) = execute();
 
@@ -27,7 +27,7 @@ contract Integrations is ScriptUtils {
         object = vm.serializeAddress("integrations", "sequenceRegistry", sequenceRegistry);
         object = vm.serializeAddress("integrations", "balanceTracker", balanceTracker);
         object = vm.serializeAddress("integrations", "permit2", permit2);
-        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/output/", scriptFileName));
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
     function deploy()
