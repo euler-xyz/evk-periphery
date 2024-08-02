@@ -4,19 +4,22 @@ function execute_forge_script {
     local scriptName=$1
     local shouldVerify=$2
 
-    forge script script/$scriptName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --slow
+    if ! forge script script/$scriptName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --slow; then
+        exit 1
+    fi
 
     if [[ $shouldVerify == "y" ]]; then
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
         broadcastFileName=${scriptName%%:*}
 
-        ./script/utils/verifyContracts.sh "./broadcast/$broadcastFileName/$chainId/run-latest.json"
+        ./script/utils/verifyContracts.sh "broadcast/$broadcastFileName/$chainId/run-latest.json"
     fi
 }
 
 function save_results {
-    local jsonName=$1
-    local deployment_name=$5
+    local scriptName=$1
+    local jsonName=$2
+    local deployment_name=$6
     local deployment_dir="script/deployments/$deployment_name"
     local adaptersList="$deployment_dir/output/adaptersList.txt"
     local timestamp=$(date +%s)
@@ -29,11 +32,11 @@ function save_results {
     fi
 
     if [[ -f "script/${jsonName}_output.json" ]]; then
-        echo "$2,$3,$4,$(jq -r '.adapter' "script/${jsonName}_output.json")" >> "$adaptersList"
+        echo "$3,$4,$5,$(jq -r '.adapter' "script/${jsonName}_output.json")" >> "$adaptersList"
         
         mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${timestamp}.json"
         mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${timestamp}.json"
-        mv "./broadcast/${jsonName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${timestamp}.json"
+        cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${timestamp}.json"
     else
         rm "script/${jsonName}_input.json"
     fi
@@ -227,14 +230,15 @@ while IFS=, read -r -a columns; do
             '{
                 adapterRegistry: $adapterRegistry,
                 base: $base,
+                cross: $cross,
                 quote: $quote,
-                feed: $feed,
-                maxStaleness: $maxStaleness
+                oracleBaseCross: $oracleBaseCross,
+                oracleCrossQuote: $oracleCrossQuote
             }' --indent 4 > script/${jsonName}_input.json
     else
         echo "Error!"
     fi
 
     execute_forge_script $scriptName $verify_contracts
-    save_results "$jsonName" "${columns[0]}" "${columns[1]}" "${columns[2]}" "$deployment_name"
+    save_results "${baseName}.s.sol" "$jsonName" "${columns[0]}" "${columns[1]}" "${columns[2]}" "$deployment_name"
 done < "$csv_file"

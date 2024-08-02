@@ -111,13 +111,13 @@ contract Advanced is ScriptUtils {
             FeeFlow deployer = new FeeFlow();
             // TODO figure out the parameters
             result.feeFlowController = deployer.deploy(
-                result.evc, 1e3, 0xaf88d065e77c8cC2239327C5EDb3A432268e5831, getDeployer(), 14 days, 2e18, 1e3
+                result.evc, 1e6, 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1, getDeployer(), 14 days, 2e18, 1e6
             );
         }
         // TODO configure the core contracts
         {
             startBroadcast();
-            //ProtocolConfig(result.protocolConfig).setFeeReceiver(result.feeFlowController);
+            ProtocolConfig(result.protocolConfig).setFeeReceiver(result.feeFlowController);
 
             // set fee receiver in the protocol config and transfer the ownership
             // transfer the ownership of the adapter and external vault registry
