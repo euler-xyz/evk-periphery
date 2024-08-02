@@ -24,10 +24,11 @@ contract AllowList {
         bool state5;
     }
 
-    /// @notice A record of permissions for each entityId determining if they are allowed. One indexed, since 0 is the default value for all addresses
+    /// @notice A record of permissions for each entityId determining if they are allowed. One indexed, since 0 is the
+    /// default value for all addresses
     mapping(uint256 => Permission) public permissions;
 
-    /// @notice A record of entityIds associated with each address. Setting to 0 removes the address from the allowList. 
+    /// @notice A record of entityIds associated with each address. Setting to 0 removes the address from the allowList.
     mapping(address => uint256) public addressEntityIds;
 
     /// @notice An event emitted when an entityId's permission status is changed
@@ -45,7 +46,8 @@ contract AllowList {
     /// @dev Thrown when the input is already equivalent to the storage being set
     error AlreadySet();
 
-    /// @dev Default value for the addressEntityIds mapping is 0, so entityIds are 1 indexed and setting permissions for 0 is not allowed
+    /// @dev Default value for the addressEntityIds mapping is 0, so entityIds are 1 indexed and setting permissions for
+    /// 0 is not allowed
     error ZeroEntityIdNotAllowed();
 
     /// @dev An address's entityId can not be changed once set, it can only be unset and then set to a new value
@@ -80,7 +82,10 @@ contract AllowList {
      * @param currentPermission The Permission currently written to storage
      * @param newPermission The new Permission passed in to change currentPermission's storage to
      */
-    function _comparePermissionStructs(Permission memory currentPermission, Permission memory newPermission) internal pure {
+    function _comparePermissionStructs(Permission memory currentPermission, Permission memory newPermission)
+        internal
+        pure
+    {
         bytes32 currentHash = keccak256(abi.encode(currentPermission));
         bytes32 newHash = keccak256(abi.encode(newPermission));
         if (currentHash == newHash) revert AlreadySet();
@@ -133,9 +138,11 @@ contract AllowList {
     function setEntityIdForMultipleAddresses(uint256 entityId, address[] calldata addresses) external {
         _requireAuthorized();
 
-        for (uint256 i = 0; i < addresses.length; ) {
+        for (uint256 i = 0; i < addresses.length;) {
             _setEntityAddressInternal(entityId, addresses[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -164,19 +171,25 @@ contract AllowList {
         _setPermissionInternal(entityId, permission);
     }
 
-    /** 
+    /**
      * @notice Sets entity for an array of addresses and sets permissions for an entity
      * @param entityId The entityId to be updated
      * @param addresses The addresses to associate with an entityId
      * @param permission The permissions to set
      */
-    function setEntityPermissionAndAddresses(uint256 entityId, address[] calldata addresses, Permission calldata permission) external {
+    function setEntityPermissionAndAddresses(
+        uint256 entityId,
+        address[] calldata addresses,
+        Permission calldata permission
+    ) external {
         _requireAuthorized();
         _setPermissionInternal(entityId, permission);
 
-        for (uint256 i = 0; i < addresses.length; ) {
+        for (uint256 i = 0; i < addresses.length;) {
             _setEntityAddressInternal(entityId, addresses[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -220,7 +233,11 @@ contract AllowList {
      * @param index The index of the permission to update
      * @param value The status to set
      */
-    function _setPermissionAtIndex(Permission memory perms, uint256 index, bool value) internal pure returns (Permission memory) {
+    function _setPermissionAtIndex(Permission memory perms, uint256 index, bool value)
+        internal
+        pure
+        returns (Permission memory)
+    {
         if (index == 0) {
             _comparePermissionBooleans(perms.isAllowed, value);
             perms.isAllowed = value;

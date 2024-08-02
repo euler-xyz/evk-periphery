@@ -6,38 +6,38 @@ import {AllowList} from "./interfaces/AllowList.sol";
 import {BaseHook} from "./BaseHook.sol";
 
 contract HookTargetSuperStateAllowList is BaseHook {
-
     AllowList public immutable allowList;
+
     error E_notAllowed();
 
     constructor(AllowList _allowList) {
         allowList = _allowList;
     }
 
-    function transfer(address to, uint256) external view returns(bool) {
+    function transfer(address to, uint256) external view returns (bool) {
         address msgSender = getAddressFromMsgData();
 
         // Check from
-        if(!allowList.getPermission(msgSender).isAllowed) {
+        if (!allowList.getPermission(msgSender).isAllowed) {
             revert E_notAllowed();
         }
 
         // Check to
-        if(!allowList.getPermission(to).isAllowed) {
+        if (!allowList.getPermission(to).isAllowed) {
             revert E_notAllowed();
         }
 
         return true;
     }
 
-    function transferFrom(address from, address to, uint256) external view returns(bool) {
+    function transferFrom(address from, address to, uint256) external view returns (bool) {
         // Check from
-        if(!allowList.getPermission(from).isAllowed) {
+        if (!allowList.getPermission(from).isAllowed) {
             revert E_notAllowed();
         }
 
         // Check to
-        if(!allowList.getPermission(to).isAllowed) {
+        if (!allowList.getPermission(to).isAllowed) {
             revert E_notAllowed();
         }
 
@@ -48,12 +48,12 @@ contract HookTargetSuperStateAllowList is BaseHook {
         address msgSender = getAddressFromMsgData();
 
         // Check from
-        if(!allowList.getPermission(msgSender).isAllowed) {
+        if (!allowList.getPermission(msgSender).isAllowed) {
             revert E_notAllowed();
         }
 
         // Check to
-        if(!allowList.getPermission(receiver).isAllowed) {
+        if (!allowList.getPermission(receiver).isAllowed) {
             revert E_notAllowed();
         }
 
@@ -64,12 +64,12 @@ contract HookTargetSuperStateAllowList is BaseHook {
         address msgSender = getAddressFromMsgData();
 
         // Check from
-        if(!allowList.getPermission(msgSender).isAllowed) {
+        if (!allowList.getPermission(msgSender).isAllowed) {
             revert E_notAllowed();
         }
 
         // Check to
-        if(!allowList.getPermission(receiver).isAllowed) {
+        if (!allowList.getPermission(receiver).isAllowed) {
             revert E_notAllowed();
         }
 
@@ -78,12 +78,12 @@ contract HookTargetSuperStateAllowList is BaseHook {
 
     function withdraw(uint256, address receiver, address owner) external view returns (uint256) {
         // Check from
-        if(!allowList.getPermission(owner).isAllowed) {
+        if (!allowList.getPermission(owner).isAllowed) {
             revert E_notAllowed();
         }
 
         // Check to
-        if(!allowList.getPermission(receiver).isAllowed) {
+        if (!allowList.getPermission(receiver).isAllowed) {
             revert E_notAllowed();
         }
 
@@ -92,12 +92,12 @@ contract HookTargetSuperStateAllowList is BaseHook {
 
     function redeem(uint256, address receiver, address owner) external view returns (uint256) {
         // Check from
-        if(!allowList.getPermission(owner).isAllowed) {
+        if (!allowList.getPermission(owner).isAllowed) {
             revert E_notAllowed();
         }
 
         // Check to
-        if(!allowList.getPermission(receiver).isAllowed) {
+        if (!allowList.getPermission(receiver).isAllowed) {
             revert E_notAllowed();
         }
 
@@ -108,12 +108,12 @@ contract HookTargetSuperStateAllowList is BaseHook {
         address msgSender = getAddressFromMsgData();
 
         // Check from
-        if(!allowList.getPermission(msgSender).isAllowed) {
+        if (!allowList.getPermission(msgSender).isAllowed) {
             revert E_notAllowed();
         }
 
         // Check to
-        if(!allowList.getPermission(receiver).isAllowed) {
+        if (!allowList.getPermission(receiver).isAllowed) {
             revert E_notAllowed();
         }
 
@@ -123,14 +123,13 @@ contract HookTargetSuperStateAllowList is BaseHook {
     function liquidate(address violator, address collateral, uint256, uint256) external view {
         address msgSender = getAddressFromMsgData();
         // Check from
-        if(!allowList.getPermission(violator).isAllowed) {
+        if (!allowList.getPermission(violator).isAllowed) {
             revert E_notAllowed();
         }
 
         // Check to
-        if(!allowList.getPermission(msgSender).isAllowed) {
+        if (!allowList.getPermission(msgSender).isAllowed) {
             revert E_notAllowed();
         }
     }
-
 }
