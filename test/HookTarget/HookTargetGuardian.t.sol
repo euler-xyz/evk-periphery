@@ -139,10 +139,6 @@ contract HookTargetGuardianTests is EVaultTestBase {
     }
 
     function expectAccessControlRevert(address account, bytes32 role) internal {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, account, role
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, account, role));
     }
 }

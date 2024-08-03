@@ -116,14 +116,14 @@ contract GovernorGuardianTests is EVaultTestBase {
         startHoax(admin);
         governorGuardian.adminCall(vaults[0], data);
 
-        (address hook, ) = IEVault(vaults[0]).hookConfig();
+        (address hook,) = IEVault(vaults[0]).hookConfig();
         assertEq(hook, address(mockTargetHook));
 
         assertEq(governorGuardian.canPauseStatusChange(vaults[0]), false);
 
         data = abi.encodeWithSelector(IEVault(vaults[0]).setHookConfig.selector, address(0), 0);
         governorGuardian.adminCall(vaults[0], data);
-        (hook, ) = IEVault(vaults[0]).hookConfig();
+        (hook,) = IEVault(vaults[0]).hookConfig();
         assertEq(hook, address(0));
 
         assertEq(governorGuardian.canPauseStatusChange(vaults[0]), true);
@@ -138,11 +138,11 @@ contract GovernorGuardianTests is EVaultTestBase {
         startHoax(depositor);
         expectAccessControlRevert(depositor, governorGuardian.GUARDIAN_ROLE());
         governorGuardian.pause(vaults);
-        
+
         startHoax(admin);
         expectAccessControlRevert(admin, governorGuardian.GUARDIAN_ROLE());
         governorGuardian.pause(vaults);
-        
+
         startHoax(guardian);
         governorGuardian.pause(vaults);
     }
@@ -187,7 +187,7 @@ contract GovernorGuardianTests is EVaultTestBase {
         assertEq(governorGuardian.canBePaused(address(eTST)), false);
 
         skip(200);
-        
+
         assertEq(governorGuardian.canBePaused(address(eTST)), true);
 
         startHoax(guardian);
@@ -206,7 +206,6 @@ contract GovernorGuardianTests is EVaultTestBase {
         assertEq(governorGuardian.canBeUnpaused(address(eTST), true), false);
         assertEq(governorGuardian.canBeUnpaused(address(eTST), false), false);
     }
-
 
     function test_GovernorGuardian_pauseUntilCooldown() external {
         assertEq(IEVault(vaults[0]).governorAdmin(), address(governorGuardian));
@@ -285,11 +284,11 @@ contract GovernorGuardianTests is EVaultTestBase {
         startHoax(depositor);
         expectAccessControlRevert(depositor, governorGuardian.GUARDIAN_ROLE());
         governorGuardian.changePauseStatus(vaults, OP_DEPOSIT);
-        
+
         startHoax(admin);
         expectAccessControlRevert(admin, governorGuardian.GUARDIAN_ROLE());
         governorGuardian.changePauseStatus(vaults, OP_DEPOSIT);
-        
+
         startHoax(guardian);
         governorGuardian.changePauseStatus(vaults, OP_DEPOSIT);
     }
@@ -312,13 +311,13 @@ contract GovernorGuardianTests is EVaultTestBase {
 
         vm.stopPrank();
         governorGuardian.unpause(vaults);
-        
+
         vm.expectRevert(Errors.E_OperationDisabled.selector);
         doDeposit(depositor, vaults[0], 1e18);
 
         startHoax(guardian);
         governorGuardian.unpause(vaults);
-        
+
         doDeposit(depositor, vaults[0], 1e18);
     }
 
@@ -342,7 +341,7 @@ contract GovernorGuardianTests is EVaultTestBase {
 
         vm.stopPrank();
         governorGuardian.unpause(vaults);
-        
+
         doDeposit(depositor, vaults[0], 1e18);
     }
 
@@ -356,7 +355,7 @@ contract GovernorGuardianTests is EVaultTestBase {
 
         assertEq(governorGuardian.canBePaused(vaults[0]), true);
 
-        (address hook, ) = IEVault(vaults[0]).hookConfig();
+        (address hook,) = IEVault(vaults[0]).hookConfig();
         assertEq(hook, address(0));
 
         startHoax(guardian);
@@ -381,12 +380,12 @@ contract GovernorGuardianTests is EVaultTestBase {
 
         doDeposit(depositor, vaults[0], 1e18);
         assertEq(IEVault(vaults[0]).balanceOf(depositor), 1e18);
-        
+
         skip(200);
 
         assertEq(governorGuardian.canBePaused(vaults[0]), true);
 
-        (address hook, ) = IEVault(vaults[0]).hookConfig();
+        (address hook,) = IEVault(vaults[0]).hookConfig();
         assertEq(hook, address(0));
 
         startHoax(guardian);
@@ -413,7 +412,7 @@ contract GovernorGuardianTests is EVaultTestBase {
 
         doDeposit(depositor, vaults[0], 1e18);
         assertEq(IEVault(vaults[0]).balanceOf(depositor), 1e18);
-        
+
         skip(200);
 
         assertEq(governorGuardian.canBePaused(vaults[0]), true);
@@ -423,7 +422,7 @@ contract GovernorGuardianTests is EVaultTestBase {
 
         startHoax(admin);
         governorGuardian.adminCall(vaults[0], data);
-        (address hook, ) = IEVault(vaults[0]).hookConfig();
+        (address hook,) = IEVault(vaults[0]).hookConfig();
         assertNotEq(hook, address(0));
 
         startHoax(guardian);
@@ -444,17 +443,12 @@ contract GovernorGuardianTests is EVaultTestBase {
     }
 
     function expectAccessControlRevert(address account, bytes32 role) internal {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, account, role
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, account, role));
     }
 
-    function doDeposit(address account, address vault, uint amount) internal {
+    function doDeposit(address account, address vault, uint256 amount) internal {
         startHoax(account);
         IEVault(vault).deposit(amount, account);
         vm.stopPrank();
     }
-
 }
