@@ -65,8 +65,7 @@ contract EVaultImplementation is ScriptUtils {
         object = vm.serializeAddress("modules", "vault", modules.vault);
 
         vm.writeJson(
-            vm.serializeString("", "modules", object),
-            string.concat(vm.projectRoot(), "/script/", outputScriptFileName)
+            vm.serializeString("", "modules", object), string.concat(vm.projectRoot(), "/script/", outputScriptFileName)
         );
     }
 

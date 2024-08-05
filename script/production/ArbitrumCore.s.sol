@@ -15,7 +15,7 @@ import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
 contract Advanced is ScriptUtils {
-    struct DeploymentInfo {
+    struct CoreInfo {
         address evc;
         address protocolConfig;
         address sequenceRegistry;
@@ -40,7 +40,7 @@ contract Advanced is ScriptUtils {
         address feeFlowController;
     }
 
-    function run() public returns (DeploymentInfo memory result) {
+    function run() public returns (CoreInfo memory result) {
         // deply integrations
         {
             Integrations deployer = new Integrations();

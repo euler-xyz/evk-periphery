@@ -7,7 +7,7 @@ read -p "Provide the deployment name used to save results (default: default): " 
 deployment_name=${deployment_name:-default}
 
 source .env
-scriptName="ArbitrumCore.s.sol"
+scriptName="ArbitrumGovernedVaults.s.sol"
 
 if ! script/utils/checkEnvironment.sh $verify_contracts; then
     echo "Environment check failed. Exiting."
