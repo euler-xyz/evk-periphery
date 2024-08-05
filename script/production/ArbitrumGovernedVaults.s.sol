@@ -42,16 +42,12 @@ contract ArbitrumGovernedVaults is ScriptUtils {
     address internal constant wstETH = 0x5979D7b546E38E414F7E9822514be443A4800529;
     address internal constant WBTC = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
     address internal constant USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
-    address internal constant DAI = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1;
-    address internal constant sDAI = 0x0000000000000000000000000000000000000000;
     address internal constant USDT = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
 
     address internal constant WETHUSD = 0xb70977986f38c74aB22D8ffaa0B7E13A7d574dD2;
     address internal constant wstETHUSD = 0x92a31a99ae3d754c6880fCc9eaEe502f5205624E;
     address internal constant WBTCUSD = 0x30Dcb2c78a01B9AD67c8cB8853D09EAEF1842594;
     address internal constant USDCUSD = 0x862b1042f653AE74880D0d3EBf0DDEe90aB8601D;
-    address internal constant DAIUSD = 0xd85b1A6fC91E835F15c7C67E33514EB608C6683B;
-    address internal constant sDAIUSD = 0x0000000000000000000000000000000000000000; // TODO
     address internal constant USDTUSD = 0x53aC2d35D724fc32BdabF1b92Be5B326b76c1205;
 
     mapping(address => address) internal escrowVaults;
@@ -101,57 +97,47 @@ contract ArbitrumGovernedVaults is ScriptUtils {
         });
 
         riskOnEscrowLTVs = [
-            [0, 0.97e4, 0.89e4, 0.89e4, 0.89e4, /*0.89e4,*/ 0.89e4],
-            [0.97e4, 0, 0.86e4, 0.86e4, 0.86e4, /*0.86e4,*/ 0.86e4],
-            [0.81e4, 0.81e4, 0, 0.81e4, 0.81e4, /*0.81e4,*/ 0.81e4],
-            [0.82e4, 0.82e4, 0.82e4, 0, 0.95e4, /*0.95e4,*/ 0.95e4],
-            [0.86e4, 0.86e4, 0.86e4, 0.95e4, 0, /*0.95e4,*/ 0.95e4],
-            //[0.86e4, 0.86e4, 0.86e4, 0.86e4, 0.95e4, 0, 0.95e4],
-            [0.82e4, 0.82e4, 0.82e4, 0.95e4, 0.95e4, /*0.95e4,*/ 0]
+            [0, 0.96e4, 0.9e4, 0.9e4, 0.87e4],
+            [0.96e4, 0, 0.87e4, 0.87e4, 0.84e4],
+            [0.82e4, 0.82e4, 0, 0.82e4, 0.79e4],
+            [0.83e4, 0.83e4, 0.83e4, 0, 0.91e4],
+            [0.83e4, 0.83e4, 0.83e4, 0.94e4, 0]
         ];
 
         riskOnRiskOnLTVs = [
-            [0, 0.93e4, 0.85e4, 0.85e4, 0.85e4, /*0.85e4,*/ 0.85e4],
-            [0.93e4, 0, 0.82e4, 0.82e4, 0.82e4, /*0.82e4,*/ 0.82e4],
-            [0.77e4, 0.77e4, 0, 0.77e4, 0.77e4, /*0.77e4,*/ 0.77e4],
-            [0.78e4, 0.78e4, 0.78e4, 0, 0.91e4, /*0.91e4,*/ 0.91e4],
-            [0.82e4, 0.82e4, 0.82e4, 0.91e4, 0, /*0.91e4,*/ 0.91e4],
-            //[0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.91e4, 0, 0.91e4],
-            [0.78e4, 0.78e4, 0.78e4, 0.91e4, 0.91e4, /*0.91e4,*/ 0]
+            [0, 0.93e4, 0.87e4, 0.87e4, 0.87e4],
+            [0.93e4, 0, 0.84e4, 0.84e4, 0.84e4],
+            [0.79e4, 0.79e4, 0, 0.79e4, 0.79e4],
+            [0.8e4, 0.8e4, 0.8e4, 0, 0.91e4],
+            [0.8e4, 0.8e4, 0.8e4, 0.91e4, 0]
         ];
 
         riskOnRiskOffLTVs = [
-            [0, 0.95e4, 0.87e4, 0.87e4, 0.87e4, /*0.87e4,*/ 0.87e4],
-            [0.95e4, 0, 0.84e4, 0.84e4, 0.84e4, /*0.84e4,*/ 0.84e4],
-            [0.79e4, 0.79e4, 0, 0.79e4, 0.79e4, /*0.79e4,*/ 0.79e4],
-            [0.8e4, 0.8e4, 0.8e4, 0, 0.93e4, /*0.93e4,*/ 0.93e4],
-            [0.84e4, 0.84e4, 0.84e4, 0.93e4, 0, /*0.93e4,*/ 0.93e4],
-            //[0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.93e4, 0, 0.93e4],
-            [0.8e4, 0.8e4, 0.8e4, 0.93e4, 0.93e4, /*0.93e4,*/ 0]
+            [0, 0.95e4, 0.89e4, 0.89e4, 0.9e4],
+            [0.95e4, 0, 0.86e4, 0.86e4, 0.87e4],
+            [0.81e4, 0.81e4, 0, 0.81e4, 0.82e4],
+            [0.82e4, 0.82e4, 0.82e4, 0, 0.94e4],
+            [0.82e4, 0.82e4, 0.82e4, 0.93e4, 0]
         ];
 
         riskOffEscrowLTVs = [
-            [0, 0.89e4, 0.81e4, 0.81e4, 0.81e4, /*0.81e4,*/ 0.81e4],
-            [0.89e4, 0, 0.78e4, 0.78e4, 0.78e4, /*0.78e4,*/ 0.78e4],
-            [0.73e4, 0.73e4, 0, 0.73e4, 0.73e4, /*0.73e4,*/ 0.73e4],
-            [0.74e4, 0.74e4, 0.74e4, 0, 0.87e4, /*0.87e4,*/ 0.87e4],
-            [0.78e4, 0.78e4, 0.78e4, 0.87e4, 0, /*0.87e4,*/ 0.87e4],
-            //[0.78e4, 0.78e4, 0.78e4, 0.78e4, 0.87e4, 0, 0.87e4],
-            [0.74e4, 0.74e4, 0.74e4, 0.87e4, 0.87e4, /*0.87e4,*/ 0]
+            [0, 0.89e4, 0.83e4, 0.83e4, 0.83e4],
+            [0.89e4, 0, 0.8e4, 0.8e4, 0.8e4],
+            [0.75e4, 0.75e4, 0, 0.75e4, 0.75e4],
+            [0.76e4, 0.76e4, 0.76e4, 0, 0.87e4],
+            [0.76e4, 0.76e4, 0.76e4, 0.87e4, 0]
         ];
 
         riskOffRiskOffLTVs = [
-            [0, 0.87e4, 0.79e4, 0.79e4, 0.79e4, /*0.79e4,*/ 0.79e4],
-            [0.87e4, 0, 0.76e4, 0.76e4, 0.76e4, /*0.76e4,*/ 0.76e4],
-            [0.71e4, 0.71e4, 0, 0.71e4, 0.71e4, /*0.71e4,*/ 0.71e4],
-            [0.72e4, 0.72e4, 0.72e4, 0, 0.85e4, /*0.85e4,*/ 0.85e4],
-            [0.76e4, 0.76e4, 0.76e4, 0.85e4, 0, /*0.85e4,*/ 0.85e4],
-            //[0.76e4, 0.76e4, 0.76e4, 0.85e4, 0.85e4, 0, 0.85e4],
-            [0.72e4, 0.72e4, 0.72e4, 0.85e4, 0.85e4, /*0.85e4,*/ 0]
+            [0, 0.87e4, 0.81e4, 0.81e4, 0.81e4],
+            [0.87e4, 0, 0.78e4, 0.78e4, 0.78e4],
+            [0.73e4, 0.73e4, 0, 0.73e4, 0.73e4],
+            [0.74e4, 0.74e4, 0.74e4, 0, 0.85e4],
+            [0.74e4, 0.74e4, 0.74e4, 0.85e4, 0]
         ];
 
-        assetsList = [WETH, wstETH, WBTC, USDC, DAI, /*sDAI,*/ USDT];
-        oracleAdaptersList = [WETHUSD, wstETHUSD, WBTCUSD, USDCUSD, DAIUSD, /*sDAIUSD,*/ USDTUSD];
+        assetsList = [WETH, wstETH, WBTC, USDC, USDT];
+        oracleAdaptersList = [WETHUSD, wstETHUSD, WBTCUSD, USDCUSD, USDTUSD];
     }
 
     function run() public returns (address[] memory) {
@@ -163,7 +149,7 @@ contract ArbitrumGovernedVaults is ScriptUtils {
         // TODO
         // deploy the IRMs
         defaultIRM = (new KinkIRM()).deploy(coreInfo.kinkIRMFactory, 0, 1406417851, 19050045013, 2147483648);
-        IRMList = [defaultIRM, defaultIRM, defaultIRM, defaultIRM, defaultIRM, /*defaultIRM,*/ defaultIRM];
+        IRMList = [defaultIRM, defaultIRM, defaultIRM, defaultIRM, defaultIRM];
 
         // deploy the vaults
         EVault deployer = new EVault();
