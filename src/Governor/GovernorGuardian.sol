@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {ReentrancyGuard} from "openzeppelin-contracts/utils/ReentrancyGuard.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
+import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
@@ -62,22 +63,21 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
     /// @notice Executes a call to a specified vault.
     /// @param vault The address of the vault to call.
     /// @param data The calldata to be called on the vault.
-    function adminCall(address vault, bytes calldata data) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    /// @return result The result of the call.
+    function adminCall(address vault, bytes calldata data)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        returns (bytes memory)
+    {
         (bool success, bytes memory result) = vault.call(data);
-
-        if (!success) {
-            if (result.length != 0) {
-                assembly {
-                    revert(add(32, result), mload(result))
-                }
-            }
-            revert();
-        }
+        if (!success) RevertBytes.revertBytes(result);
 
         // If the call is a setHookConfig call, update the pause data.
         if (bytes4(data) == IEVault(vault).setHookConfig.selector) {
             (pauseDatas[vault].hookTarget, pauseDatas[vault].hookedOps) = IEVault(vault).hookConfig();
         }
+
+        return result;
     }
 
     /// @notice Pauses the given vaults.
