@@ -23,19 +23,14 @@ contract FactoryGovernor is AccessControl {
 
     /// @notice Constructor to set the initial admin of the contract.
     /// @param admin The address of the initial admin.
-    /// @param guardians The addresses of the initial guardians.
-    constructor(address admin, address[] memory guardians) {
+    constructor(address admin) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(GUARDIAN_ROLE, admin);
-
-        for (uint256 i; i < guardians.length; i++) {
-            _grantRole(GUARDIAN_ROLE, guardians[i]);
-        }
     }
 
     /// @notice Executes a call to a specified factory.
     /// @param factory The address of the factory to call.
     /// @param data The calldata to be called on the factory.
+    /// @return Return data of the factory call.
     function adminCall(address factory, bytes calldata data)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -43,7 +38,7 @@ contract FactoryGovernor is AccessControl {
     {
         (bool success, bytes memory result) = factory.call(data);
         if (!success) RevertBytes.revertBytes(result);
-        return data;
+        return result;
     }
 
     /// @notice Pauses all upgradeable vaults by installing a new implementation,

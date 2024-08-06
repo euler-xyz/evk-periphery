@@ -31,9 +31,11 @@ contract FactoryGovernorTests is EVaultTestBase {
 
         vm.stopPrank();
 
-        address[] memory guardians = new address[](1);
-        guardians[0] = guardian;
-        factoryGovernor = new FactoryGovernor(admin, guardians);
+        factoryGovernor = new FactoryGovernor(admin);
+
+        bytes32 guardianRole = factoryGovernor.GUARDIAN_ROLE();
+        vm.prank(admin);
+        factoryGovernor.grantRole(guardianRole, guardian);
 
         vm.prank(admin);
         factory.setUpgradeAdmin(address(factoryGovernor));
@@ -90,6 +92,10 @@ contract FactoryGovernorTests is EVaultTestBase {
 
         uint256 totalSupply = eTST.totalSupply();
         assertEq(totalSupply, 101e18);
+
+        bytes32 guardianRole = factoryGovernor.GUARDIAN_ROLE();
+        vm.prank(admin);
+        factoryGovernor.grantRole(guardianRole, admin);
 
         vm.prank(admin);
         vm.expectEmit();
