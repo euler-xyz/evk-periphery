@@ -129,6 +129,10 @@ contract HookTargetGuardianTests is EVaultTestBase {
         //unpause by time
         skip(101);
 
+        startHoax(depositor);
+        eTST.deposit(1e18, depositor);
+        assertEq(eTST.balanceOf(depositor), 2e18);
+
         assertEq(hookTarget.isPaused(), false);
         assertEq(hookTarget.canBePaused(), false);
 
