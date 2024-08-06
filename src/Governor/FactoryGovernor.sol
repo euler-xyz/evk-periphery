@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
+import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 
@@ -13,7 +13,7 @@ import {ReadOnlyProxy} from "./ReadOnlyProxy.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Governor for the EVK beacon (factory), allowing pause guardians to upgrade the implementation to read only
 /// proxy
-contract FactoryGovernor is AccessControl {
+contract FactoryGovernor is AccessControlEnumerable {
     /// @notice Role identifier for the guardian role.
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 

@@ -2,8 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ReentrancyGuard} from "openzeppelin-contracts/utils/ReentrancyGuard.sol";
-import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
+import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
 import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
@@ -13,7 +12,7 @@ import "evk/EVault/shared/Constants.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A limited EVault governor contract that allows to pause vault operations. Operations can be unpaused by the
 /// guardian or after the pause duration.
-contract GovernorGuardian is ReentrancyGuard, AccessControl {
+contract GovernorGuardian is AccessControlEnumerable {
     /// @notice Struct to store pause data for a vault.
     /// @param hookTarget The cached target address for the hook configuration.
     /// @param hookedOps The cached bitmap of the operations that are hooked.
@@ -82,7 +81,7 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
 
     /// @notice Pauses the given vaults.
     /// @param vaults The array of vault addresses to be paused.
-    function pause(address[] calldata vaults) external nonReentrant onlyRole(GUARDIAN_ROLE) {
+    function pause(address[] calldata vaults) external onlyRole(GUARDIAN_ROLE) {
         for (uint256 i = 0; i < vaults.length; ++i) {
             address vault = vaults[i];
 
@@ -101,7 +100,7 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
 
     /// @notice Unpauses the given vaults.
     /// @param vaults The array of vault addresses to be unpaused.
-    function unpause(address[] calldata vaults) external nonReentrant {
+    function unpause(address[] calldata vaults) external {
         bool guardianCalling = hasRole(GUARDIAN_ROLE, _msgSender());
 
         for (uint256 i = 0; i < vaults.length; ++i) {
@@ -119,11 +118,7 @@ contract GovernorGuardian is ReentrancyGuard, AccessControl {
     /// @notice Changes pause status of the selected operations for the given vaults.
     /// @param vaults The array of vault addresses to be unpaused.
     /// @param newHookedOps The new hooked operations bitmap.
-    function changePauseStatus(address[] calldata vaults, uint32 newHookedOps)
-        external
-        nonReentrant
-        onlyRole(GUARDIAN_ROLE)
-    {
+    function changePauseStatus(address[] calldata vaults, uint32 newHookedOps) external onlyRole(GUARDIAN_ROLE) {
         for (uint256 i = 0; i < vaults.length; ++i) {
             address vault = vaults[i];
 
