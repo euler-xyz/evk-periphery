@@ -36,6 +36,10 @@ In order to allow selective re-enabling of methods, guardians can invoke a `chan
 
 ## HookTargetGuardian
 
-Similar to `GovernorGuardian`, this contract can associated with one or more vaults. Instead of being installed as a governor however, instances of this contract are installed as hook targets.
+Similar to `GovernorGuardian`, this contract can be associated with one or more vaults. Instead of being installed as a governor however, instances of this contract are installed as hook targets.
 
 The advantage of using a hook target guardian is that multiple vaults can be instantly paused by one invocation of the hook guardian, as opposed to individually pausing multiple vaults. The guardian may not even know about all the different vaults it is pausing. However, the hook target guardian adds an extra gas overhead for normal operations on the vault.
+
+Similarly to `GovernorGuardian`, there is an `unpause()` function. Although it can only be called by the guardian, the operations get unpaused automatically after a `PAUSE_DURATION` amount of time.
+
+Same as for `GovernorGuardian`, a `PAUSE_COOLDOWN` parameter prevents a guardian from continually pausing a vault: They must wait until a certain amount of time has elapsed after the previous pause.
