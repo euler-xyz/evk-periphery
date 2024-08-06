@@ -166,29 +166,29 @@ contract FactoryGovernorTests is EVaultTestBase {
     }
 
     function test_FactoryGovernor_addGuardians() external {
+        bytes32 guardianRole = factoryGovernor.GUARDIAN_ROLE();
+
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, guardian2, factoryGovernor.GUARDIAN_ROLE()
-            )
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, guardian2, guardianRole)
         );
         vm.prank(guardian2);
         factoryGovernor.pause(address(factory));
 
         vm.prank(admin);
-        factoryGovernor.grantRole(factoryGovernor.GUARDIAN_ROLE(), guardian2);
+        factoryGovernor.grantRole(guardianRole, guardian2);
 
         vm.prank(guardian2);
         factoryGovernor.pause(address(factory));
     }
 
     function test_FactoryGovernor_removeGuardians() external {
+        bytes32 guardianRole = factoryGovernor.GUARDIAN_ROLE();
+
         vm.prank(admin);
-        factoryGovernor.revokeRole(factoryGovernor.GUARDIAN_ROLE(), guardian);
+        factoryGovernor.revokeRole(guardianRole, guardian);
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, guardian, factoryGovernor.GUARDIAN_ROLE()
-            )
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, guardian, guardianRole)
         );
         vm.prank(guardian);
         factoryGovernor.pause(address(factory));
