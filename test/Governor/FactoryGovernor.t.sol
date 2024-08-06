@@ -64,6 +64,9 @@ contract FactoryGovernorTests is EVaultTestBase {
         totalSupply = eTST.totalSupply();
         assertEq(totalSupply, 101e18);
 
+        string memory name = eTST.name();
+        assertEq(keccak256(bytes(name)), keccak256("EVK Vault eTST-1"));
+
         // state mutation is not allowed
         vm.prank(depositor);
         vm.expectRevert("contract is in read-only mode");
