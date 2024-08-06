@@ -132,11 +132,11 @@ contract FactoryGovernorTests is EVaultTestBase {
         vm.prank(guardian);
         factoryGovernor.pause(address(factory));
 
-        // balanceOf is embedded in EVault
+        // balanceOf is embedded in EVault but is not allowed
         vm.expectRevert();
         eTST.balanceOf(depositor);
 
-        // totalSupply is forwarded to an EVault module
+        // totalSupply is forwarded to an EVault module but is not allowed
         vm.expectRevert();
         eTST.totalSupply();
 
@@ -144,9 +144,9 @@ contract FactoryGovernorTests is EVaultTestBase {
         eTST.name();
 
         // state mutation is not allowed
-        //vm.prank(depositor);
-        //vm.expectRevert("contract is in read-only mode");
-        //eTST.deposit(1e18, depositor);
+        vm.prank(depositor);
+        vm.expectRevert();
+        eTST.deposit(1e18, depositor);
     }
 
     function test_FactoryGovernor_adminCanUpgradeImplementation() external {
