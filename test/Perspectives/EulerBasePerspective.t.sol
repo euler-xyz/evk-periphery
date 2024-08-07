@@ -68,28 +68,36 @@ contract EulerBasePerspectiveTest is DefaultSetupTest {
         assertEq(escrowPerspective.verifiedArray()[0], vaultEscrow);
         assertEq(eulerBasePerspective2.verifiedArray()[0], vaultBase3);
 
-        // verifies that the vault base 4 belongs to the default perspective 1.
-        // while verifying the vault base 4, the default perspective 1 will also verify the vault base 5 as they
+        // verification of the vault base 4 fails due to lack of upgradability
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IPerspective.PerspectiveError.selector, address(eulerBasePerspective1), vaultBase4, ERROR__UPGRADABILITY
+            )
+        );
+        eulerBasePerspective1.perspectiveVerify(vaultBase4, true);
+
+        // verifies that the vault belongs to the default perspective 1.
+        // while verifying the vault, the default perspective 1 will also verify the vault base 5 as they
         // reference each other
         vm.expectEmit(true, false, false, false, address(eulerBasePerspective1));
-        emit IPerspective.PerspectiveVerified(vaultBase5xv);
+        emit IPerspective.PerspectiveVerified(vaultBase6xv);
         vm.expectEmit(true, false, false, false, address(eulerBasePerspective1));
-        emit IPerspective.PerspectiveVerified(vaultBase4xv);
-        eulerBasePerspective1.perspectiveVerify(vaultBase4xv, true);
+        emit IPerspective.PerspectiveVerified(vaultBase5xv);
         eulerBasePerspective1.perspectiveVerify(vaultBase5xv, true);
-        assertTrue(eulerBasePerspective1.isVerified(vaultBase4xv));
+        eulerBasePerspective1.perspectiveVerify(vaultBase6xv, true);
         assertTrue(eulerBasePerspective1.isVerified(vaultBase5xv));
+        assertTrue(eulerBasePerspective1.isVerified(vaultBase6xv));
         assertEq(eulerBasePerspective1.verifiedArray()[0], vaultBase2);
         assertEq(eulerBasePerspective1.verifiedArray()[1], vaultBase1);
-        assertEq(eulerBasePerspective1.verifiedArray()[2], vaultBase5xv);
-        assertEq(eulerBasePerspective1.verifiedArray()[3], vaultBase4xv);
+        assertEq(eulerBasePerspective1.verifiedArray()[2], vaultBase6xv);
+        assertEq(eulerBasePerspective1.verifiedArray()[3], vaultBase5xv);
 
         // verifies that all the base vaults base belong to the default perspective 3
         eulerBasePerspective3.perspectiveVerify(vaultBase1, true);
         eulerBasePerspective3.perspectiveVerify(vaultBase2, true);
         eulerBasePerspective3.perspectiveVerify(vaultBase3, true);
-        eulerBasePerspective3.perspectiveVerify(vaultBase4xv, true);
         eulerBasePerspective3.perspectiveVerify(vaultBase5xv, true);
+        eulerBasePerspective3.perspectiveVerify(vaultBase6xv, true);
 
         // revert to the initial state
         vm.revertTo(snapshot);
@@ -111,7 +119,7 @@ contract EulerBasePerspectiveTest is DefaultSetupTest {
 
     function test_Perspective_DefaultPerspectiveInstance_nesting() public {
         address nestedVault =
-            factory.createProxy(address(0), false, abi.encodePacked(address(vaultBase1), address(0), address(0)));
+            factory.createProxy(address(0), true, abi.encodePacked(address(vaultBase1), address(0), address(0)));
         vm.expectRevert(
             abi.encodeWithSelector(
                 IPerspective.PerspectiveError.selector, address(eulerBasePerspective1), nestedVault, ERROR__NESTING
