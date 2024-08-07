@@ -117,36 +117,14 @@ contract FactoryGovernorTests is EVaultTestBase {
     }
 
     function test_FactoryGovernor_triggerEmergencyMultipleTimes() external {
-        uint256 balance = eTST.balanceOf(depositor);
-        assertEq(balance, 100e18);
-
-        vm.prank(depositor);
-        eTST.deposit(1e18, depositor);
-
-        uint256 totalSupply = eTST.totalSupply();
-        assertEq(totalSupply, 101e18);
-        
         vm.prank(guardian);
+        vm.expectEmit();
+        emit FactoryGovernor.Paused(address(factory));
         factoryGovernor.pause(address(factory));
 
         vm.prank(guardian);
+        vm.expectRevert("already paused");
         factoryGovernor.pause(address(factory));
-
-        // balanceOf is embedded in EVault but is not allowed
-        vm.expectRevert();
-        eTST.balanceOf(depositor);
-
-        // totalSupply is forwarded to an EVault module but is not allowed
-        vm.expectRevert();
-        eTST.totalSupply();
-
-        vm.expectRevert();
-        eTST.name();
-
-        // state mutation is not allowed
-        vm.prank(depositor);
-        vm.expectRevert();
-        eTST.deposit(1e18, depositor);
     }
 
     function test_FactoryGovernor_adminCanUpgradeImplementation() external {

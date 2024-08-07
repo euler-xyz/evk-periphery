@@ -46,9 +46,18 @@ contract FactoryGovernor is AccessControlEnumerable {
     /// @param factory Address of the factory to pause.
     function pause(address factory) external onlyRole(GUARDIAN_ROLE) {
         address oldImplementation = GenericFactory(factory).implementation();
-        address readOnlyProxy = address(new ReadOnlyProxy(oldImplementation));
-        GenericFactory(factory).setImplementation(readOnlyProxy);
 
-        emit Paused(factory);
+        // Not to pause twice, check if the old implementation already is a read only proxy
+        (bool success, bytes memory result) =
+            oldImplementation.staticcall(abi.encodeCall(ReadOnlyProxy.roProxyImplementation, ()));
+
+        if (!success || result.length < 32) {
+            address readOnlyProxy = address(new ReadOnlyProxy(oldImplementation));
+            GenericFactory(factory).setImplementation(readOnlyProxy);
+
+            emit Paused(factory);
+        } else {
+            revert("already paused");
+        }
     }
 }
