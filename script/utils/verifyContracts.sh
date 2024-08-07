@@ -11,7 +11,6 @@ function verify_contract {
 
     if [[ "$result" != *"Contract successfully verified"* ]]; then
         result=$(eval $verify_command 2>&1)
-
         if [[ "$result" != *"Contract successfully verified"* ]]; then
             echo "Failure"
         fi
