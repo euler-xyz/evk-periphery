@@ -44,8 +44,9 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
     address vaultBase1;
     address vaultBase2;
     address vaultBase3;
-    address vaultBase4xv;
+    address vaultBase4;
     address vaultBase5xv;
+    address vaultBase6xv;
 
     function setUp() public virtual override {
         super.setUp();
@@ -103,13 +104,13 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         );
 
         // deploy example vaults and configure them
-        vaultEscrow =
-            factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), address(0), address(0)));
-        vaultBase1 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), router, USD));
-        vaultBase2 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST2), router, USD));
-        vaultBase3 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST2), router, WETH));
-        vaultBase4xv = factory.createProxy(address(0), false, abi.encodePacked(address(xvTST3), router, WETH));
-        vaultBase5xv = factory.createProxy(address(0), false, abi.encodePacked(address(xvTST4), router, USD));
+        vaultEscrow = factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(0), address(0)));
+        vaultBase1 = factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), router, USD));
+        vaultBase2 = factory.createProxy(address(0), true, abi.encodePacked(address(assetTST2), router, USD));
+        vaultBase3 = factory.createProxy(address(0), true, abi.encodePacked(address(assetTST2), router, WETH));
+        vaultBase4 = factory.createProxy(address(0), false, abi.encodePacked(address(assetTST2), router, WETH));
+        vaultBase5xv = factory.createProxy(address(0), true, abi.encodePacked(address(xvTST3), router, WETH));
+        vaultBase6xv = factory.createProxy(address(0), true, abi.encodePacked(address(xvTST4), router, USD));
 
         IEVault(vaultEscrow).setGovernorAdmin(address(0));
 
@@ -132,18 +133,24 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         IEVault(vaultBase3).setLTV(vaultEscrow, 0.5e4, 0.6e4, 0);
         IEVault(vaultBase3).setGovernorAdmin(address(0));
 
-        IEVault(vaultBase4xv).setInterestRateModel(irmDefault);
-        IEVault(vaultBase4xv).setMaxLiquidationDiscount(0.2e4);
-        IEVault(vaultBase4xv).setLiquidationCoolOffTime(1);
-        IEVault(vaultBase4xv).setLTV(vaultBase5xv, 0.3e4, 0.4e4, 0);
-        IEVault(vaultBase4xv).setGovernorAdmin(address(0));
+        IEVault(vaultBase4).setInterestRateModel(irmDefault);
+        IEVault(vaultBase4).setMaxLiquidationDiscount(0.2e4);
+        IEVault(vaultBase4).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase4).setLTV(vaultEscrow, 0.7e4, 0.8e4, 0);
+        IEVault(vaultBase4).setGovernorAdmin(address(0));
 
-        IEVault(vaultBase5xv).setInterestRateModel(irmZero);
-        IEVault(vaultBase5xv).setMaxLiquidationDiscount(0.1e4);
+        IEVault(vaultBase5xv).setInterestRateModel(irmDefault);
+        IEVault(vaultBase5xv).setMaxLiquidationDiscount(0.2e4);
         IEVault(vaultBase5xv).setLiquidationCoolOffTime(1);
-        IEVault(vaultBase5xv).setLTV(vaultBase4xv, 0.1e4, 0.2e4, 0);
-        IEVault(vaultBase5xv).setCaps(1, 2);
+        IEVault(vaultBase5xv).setLTV(vaultBase6xv, 0.3e4, 0.4e4, 0);
         IEVault(vaultBase5xv).setGovernorAdmin(address(0));
+
+        IEVault(vaultBase6xv).setInterestRateModel(irmZero);
+        IEVault(vaultBase6xv).setMaxLiquidationDiscount(0.1e4);
+        IEVault(vaultBase6xv).setLiquidationCoolOffTime(1);
+        IEVault(vaultBase6xv).setLTV(vaultBase5xv, 0.1e4, 0.2e4, 0);
+        IEVault(vaultBase6xv).setCaps(1, 2);
+        IEVault(vaultBase6xv).setGovernorAdmin(address(0));
 
         // configure the oracle
         address stubAdapter_assetTST_USD = address(new StubPriceOracle());
@@ -172,8 +179,8 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         router.govSetResolvedVault(vaultBase1, true);
         router.govSetResolvedVault(vaultBase2, true);
         router.govSetResolvedVault(vaultBase3, true);
-        router.govSetResolvedVault(vaultBase4xv, true);
         router.govSetResolvedVault(vaultBase5xv, true);
+        router.govSetResolvedVault(vaultBase6xv, true);
         router.govSetResolvedVault(address(xvTST3), true);
         router.govSetResolvedVault(address(xvTST4), true);
         router.govSetConfig(address(assetTST), USD, stubAdapter_assetTST_USD);
@@ -195,8 +202,9 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         vm.label(vaultBase1, "vaultBase1");
         vm.label(vaultBase2, "vaultBase2");
         vm.label(vaultBase3, "vaultBase3");
-        vm.label(vaultBase4xv, "vaultBase4xv");
+        vm.label(vaultBase4, "vaultBase4");
         vm.label(vaultBase5xv, "vaultBase5xv");
+        vm.label(vaultBase6xv, "vaultBase6xv");
         vm.label(address(assetTST3), "assetTST3");
         vm.label(address(assetTST4), "assetTST4");
         vm.label(address(xvTST3), "xvTST3");
