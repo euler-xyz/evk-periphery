@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 /// @notice Arithmetic library with operations for fixed-point numbers.
 /// @custom:security-contact security@euler.xyz
-/// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/utils/FixedPointMathLib.sol)
+/// @author Solady (https://github.com/Vectorized/solady/blob/main/src/utils/FixedPointMathLib.sol)
 library ExpWad {
     /// @dev Returns `exp(x)`, denominated in `WAD`.
     /// Credit to Remco Bloemen under MIT license: https://2π.com/22/exp-ln
