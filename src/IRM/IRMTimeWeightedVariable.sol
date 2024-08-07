@@ -4,11 +4,11 @@ pragma solidity ^0.8.0;
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IIRM} from "evk/InterestRateModels/IIRM.sol";
 
-/// @title IRMTimeWeighedVariable
+/// @title IRMTimeWeightedVariable
 /// @author Euler Labs (https://www.eulerlabs.com/).
 /// @author Inspired by Frax (https://docs.frax.finance/fraxlend/advanced-concepts/interest-rates).
 /// @custom:contact security@euler.xyz
-contract IRMTimeWeighedVariable is IIRM {
+contract IRMTimeWeightedVariable is IIRM {
     /// @dev Unit for internal precision.
     uint256 internal constant WAD = 1e18;
     /// @notice The lower bound of the utilization range where the interest rate does not adjust.
@@ -35,9 +35,13 @@ contract IRMTimeWeighedVariable is IIRM {
         uint32 lastUpdate;
     }
 
+    /// @notice Get the cached state of a vault's irm.
+    /// @return rate The current rate.
+    /// @return lastUpdate The last update timestamp.
+    /// @dev Note that this state may be outdated. Use `computeInterestRateView` for the latest interest rate.
     mapping(address => IRState) public irState;
 
-    /// @notice Deploy IRMTimeWeighedVariable.
+    /// @notice Deploy IRMTimeWeightedVariable.
     /// @param _targetUtilizationLower The lower bound of the utilization range where the interest rate does not adjust.
     /// @param _targetUtilizationUpper The upper bound of the utilization range where the interest rate does not adjust.
     /// @param _minRate The minimum interest rate for the model.
@@ -88,6 +92,8 @@ contract IRMTimeWeighedVariable is IIRM {
         // Calculate utilization rate.
         uint256 totalAssets = cash + borrows;
         uint256 utilization = totalAssets == 0 ? 0 : borrows * WAD / totalAssets;
+
+        // Calculate time
         uint256 deltaTime = block.timestamp - state.lastUpdate;
 
         if (utilization < targetUtilizationLower) {

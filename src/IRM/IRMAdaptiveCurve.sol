@@ -37,6 +37,10 @@ contract IRMAdaptiveCurve is IIRM {
         uint32 lastUpdate;
     }
 
+    /// @notice Get the cached state of a vault's irm.
+    /// @return kinkRate The current kink rate.
+    /// @return lastUpdate The last update timestamp.
+    /// @dev Note that this state may be outdated. Use `computeInterestRateView` for the latest interest rate.
     mapping(address => IRState) public irState;
 
     /// @notice Deploy IRMAdaptiveCurve
