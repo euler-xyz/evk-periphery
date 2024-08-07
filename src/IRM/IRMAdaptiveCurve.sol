@@ -91,11 +91,11 @@ contract IRMAdaptiveCurve is IIRM {
 
         // Calculate utilization rate.
         uint256 totalAssets = cash + borrows;
-        int256 utilization = totalAssets == 0 ? int256(0) : int256(borrows * 1e18 / totalAssets);
+        int256 utilization = totalAssets == 0 ? int256(0) : int256(borrows) * WAD / int256(totalAssets);
 
         // Calculate the deviation of the current utilization wrt. the target utilization.
         int256 errNormFactor = utilization > kink ? WAD - kink : kink;
-        int256 err = (utilization - kink) * 1e18 / errNormFactor;
+        int256 err = (utilization - kink) * WAD / errNormFactor;
 
         int256 startKinkRate = state.kinkRate;
 
