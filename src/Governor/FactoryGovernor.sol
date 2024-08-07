@@ -51,13 +51,13 @@ contract FactoryGovernor is AccessControlEnumerable {
         (bool success, bytes memory result) =
             oldImplementation.staticcall(abi.encodeCall(ReadOnlyProxy.roProxyImplementation, ()));
 
-        if (!success || result.length < 32) {
+        if (success && result.length >= 32) {
+            revert("already paused");
+        } else {
             address readOnlyProxy = address(new ReadOnlyProxy(oldImplementation));
             GenericFactory(factory).setImplementation(readOnlyProxy);
 
             emit Paused(factory);
-        } else {
-            revert("already paused");
         }
     }
 }
