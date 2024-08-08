@@ -68,6 +68,11 @@ contract Swaps1Inch is EVaultTestBase {
         eSTETH = IEVault(factory.createProxy(address(0), true, abi.encodePacked(STETH, address(oracle), unitOfAccount)));
         eUSDT = IEVault(factory.createProxy(address(0), true, abi.encodePacked(USDT, address(oracle), unitOfAccount)));
 
+        eGRT.setHookConfig(address(0), 0);
+        eUSDC.setHookConfig(address(0), 0);
+        eSTETH.setHookConfig(address(0), 0);
+        eUSDT.setHookConfig(address(0), 0);
+
         if (forBorrow) {
             eUSDC.setLTV(address(eGRT), 0.97e4, 0.97e4, 0);
             eSTETH.setLTV(address(eUSDT), 0.97e4, 0.97e4, 0);
