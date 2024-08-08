@@ -14,7 +14,7 @@ import "./Payloads.sol";
 
 import "forge-std/Test.sol";
 
-/// @notice The tests operate on a fork. Create a .env file with MAINNET_RPC_URL as per fondry docs
+/// @notice The tests operate on a fork. Create a .env file with FORK_RPC_URL as per fondry docs
 contract Swaps1Inch is EVaultTestBase {
     uint256 mainnetFork;
     Swapper swapper;
@@ -35,7 +35,7 @@ contract Swaps1Inch is EVaultTestBase {
     uint256 internal constant MODE_TARGET_DEBT = 2;
     uint256 internal constant MODE_INVALID = 3;
 
-    string MAINNET_RPC_URL = vm.envOr("MAINNET_RPC_URL", string(""));
+    string FORK_RPC_URL = vm.envOr("FORK_RPC_URL", string(""));
 
     address user;
     address user2;
@@ -54,19 +54,24 @@ contract Swaps1Inch is EVaultTestBase {
         swapper = new Swapper(oneInchAggregatorV5, uniswapRouterV2, uniswapRouterV3, uniswapRouter02);
         swapVerifier = new SwapVerifier();
 
-        if (bytes(MAINNET_RPC_URL).length != 0) {
-            mainnetFork = vm.createSelectFork(MAINNET_RPC_URL);
+        if (bytes(FORK_RPC_URL).length != 0) {
+            mainnetFork = vm.createSelectFork(FORK_RPC_URL);
         }
     }
 
     function setupFork(uint256 blockNumber, bool forBorrow) internal {
-        vm.skip(bytes(MAINNET_RPC_URL).length == 0);
+        vm.skip(bytes(FORK_RPC_URL).length == 0);
         vm.rollFork(blockNumber);
 
         eGRT = IEVault(factory.createProxy(address(0), true, abi.encodePacked(GRT, address(oracle), unitOfAccount)));
         eUSDC = IEVault(factory.createProxy(address(0), true, abi.encodePacked(USDC, address(oracle), unitOfAccount)));
         eSTETH = IEVault(factory.createProxy(address(0), true, abi.encodePacked(STETH, address(oracle), unitOfAccount)));
         eUSDT = IEVault(factory.createProxy(address(0), true, abi.encodePacked(USDT, address(oracle), unitOfAccount)));
+
+        eGRT.setHookConfig(address(0), 0);
+        eUSDC.setHookConfig(address(0), 0);
+        eSTETH.setHookConfig(address(0), 0);
+        eUSDT.setHookConfig(address(0), 0);
 
         if (forBorrow) {
             eUSDC.setLTV(address(eGRT), 0.97e4, 0.97e4, 0);
