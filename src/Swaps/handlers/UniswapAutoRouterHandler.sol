@@ -3,22 +3,25 @@
 pragma solidity ^0.8.0;
 
 import {BaseHandler} from "./BaseHandler.sol";
-import {RevertBytes} from "euler-vault-kit/EVault/shared/lib/RevertBytes.sol";
+import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 
+/// @title UniswapAutoRouterHandler
+/// @custom:security-contact security@euler.xyz
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice Swap handler executing trades encoded by Uniswap's Auto Router
 abstract contract UniswapAutoRouterHandler is BaseHandler {
-    address public immutable uniSwapRouter02;
+    address public immutable uniswapRouter02;
 
-    constructor(address _uniSwapRouter02) {
-        uniSwapRouter02 = _uniSwapRouter02;
+    constructor(address _uniswapRouter02) {
+        uniswapRouter02 = _uniswapRouter02;
     }
 
-    function swap(SwapParams memory params) public virtual override {
-        // TODO why wasn't it handling repays?
-        if (params.mode == SWAPMODE_TARGET_DEBT) revert Swapper_UnsupportedMode();
+    function swapAutoRouter(SwapParams memory params) internal virtual {
+        if (params.mode == MODE_TARGET_DEBT) revert Swapper_UnsupportedMode();
 
-        setMaxAllowance(params.tokenIn, uniSwapRouter02);
+        setMaxAllowance(params.tokenIn, uniswapRouter02);
 
-        (bool success, bytes memory result) = uniSwapRouter02.call(params.data);
+        (bool success, bytes memory result) = uniswapRouter02.call(params.data);
         if (!success) RevertBytes.revertBytes(result);
     }
 }
