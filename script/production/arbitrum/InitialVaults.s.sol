@@ -114,7 +114,7 @@ contract InitialVaults is ScriptUtils, CoreInfoLib {
             BasePerspective(coreInfo.escrowPerspective).perspectiveVerify(escrowVaults[asset], true);
 
             // configure the riskOff vaults and verify them by the whitelist perspective
-            IEVault(riskOffVaults[asset]).setMaxLiquidationDiscount(0.1e4);
+            IEVault(riskOffVaults[asset]).setMaxLiquidationDiscount(0.15e4);
             IEVault(riskOffVaults[asset]).setLiquidationCoolOffTime(1);
             IEVault(riskOffVaults[asset]).setInterestRateModel(IRMList[i]);
             IEVault(riskOffVaults[asset]).setInterestFee(0.05e4);
