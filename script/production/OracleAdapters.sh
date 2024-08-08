@@ -23,7 +23,7 @@ read -p "Enter the Adapter Registry address: " adapter_registry
 
 source .env
 deployment_dir="script/deployments/$deployment_name"
-adaptersList="$deployment_dir/output/adaptersList.txt"
+adaptersList="$deployment_dir/output/adaptersList.csv"
 timestamp=$(date +%s)
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 
@@ -41,25 +41,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         continue
     fi
 
-    if [[ "$provider_index" == "API3" ]]; then
-        baseName=03_OracleAdapters
-        scriptName=${baseName}.s.sol:ChainlinkAdapter
-        jsonName=03_ChainlinkAdapter
-
-        jq -n \
-            --arg adapterRegistry "$adapter_registry" \
-            --arg base "${columns[9]}" \
-            --arg quote "${columns[10]}" \
-            --arg feed "${columns[11]}" \
-            --argjson maxStaleness "${columns[12]}" \
-            '{
-                adapterRegistry: $adapterRegistry,
-                base: $base,
-                quote: $quote,
-                feed: $feed,
-                maxStaleness: $maxStaleness
-            }' --indent 4 > script/${jsonName}_input.json
-    elif [[ "$provider_index" == "Chainlink" ]]; then
+    if [[ "$provider_index" == "Chainlink" ]]; then
         baseName=03_OracleAdapters
         scriptName=${baseName}.s.sol:ChainlinkAdapter
         jsonName=03_ChainlinkAdapter
