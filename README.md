@@ -28,18 +28,18 @@ Directory: [src/IRMFactory](src/IRMFactory)
 
 This is an immutable factory contract for deploying Linear Kink IRM instances, used by EVK vaults. It does some basic parameter validation and tracks the addresses of created IRMs, so that the deployment provenance of IRM instances can be verified by perspectives. Linear Kink IRMs are immutable and stateless.
 
-### OracleFactory
+### EulerRouterFactory
 
-Directory: [src/OracleFactory](src/OracleFactory)
-
-#### EulerRouterFactory
+Directory: [src/EulerRouterFactory](src/EulerRouterFactory)
 
 This is an immutable contract that can be used to deploy instances of `EulerRouter`. It allows the deployment provenance of router instances to be verified by perspectives.
 
 * Although the factory (and implementation) is immutable, the routers themselves are created with a user-specifiable address as the governor so that adapters can be installed. If a perspective wishes for the routers to be immutable, it must also confirm this governor has been changed to `address(0)`.
 * Routers can have fallbacks specified. If present, these must also be verified to be safe.
 
-#### SnapshotRegistry
+### SnapshotRegistry
+
+Directory: [src/SnapshotRegistry](src/SnapshotRegistry)
 
 Although the root of trust of a router can be verified through `OracleFactory`, individual adapters cannot. Because of the large variety of adapters, and also because it is difficult to determine the safety of various adapter parameters on-chain, the root of trust of adapters is difficult to verify. The adapter registry is one possible solution to this. It is a governed whitelist contract, where a governor can add new adapters and revoke existing ones. Perspectives who trust the governor of the registry can verify that each adapter was added there.
 
@@ -47,6 +47,8 @@ Although the root of trust of a router can be verified through `OracleFactory`, 
 * After revoking, an adapter can never be added back again. Instead, simply deploy an identical one at a new address.
 
 SnapshotRegistry can also be used as a whitelist for external ERC4626 vaults that can be configured as internally resolved vaults in `EulerRouter`. Practically speaking this allows a perspective to recognize ERC4626 yield-bearing tokens as collateral or liability.
+
+SnapshotRegistry can also be used as a whitelist for and other smart contracts (i.e. IRMs).
 
 ### Swaps
 
