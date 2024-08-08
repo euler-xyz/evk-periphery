@@ -8,7 +8,7 @@ import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {IEVault} from "euler-vault-kit/EVault/IEVault.sol";
 
 import {EulerBasePerspectiveHarness} from "./EulerBasePerspectiveHarness.sol";
-import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
+import {EulerRouterFactory} from "../../src/EulerRouterFactory/EulerRouterFactory.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {IPerspective} from "../../src/Perspectives/implementation/interfaces/IPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";

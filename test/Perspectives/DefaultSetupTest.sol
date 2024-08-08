@@ -14,7 +14,7 @@ import {EscrowPerspective} from "../../src/Perspectives/deployed/EscrowPerspecti
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
-import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
+import {EulerRouterFactory} from "../../src/EulerRouterFactory/EulerRouterFactory.sol";
 import {StubPriceOracle} from "../utils/StubPriceOracle.sol";
 import {StubERC4626} from "../utils/StubERC4626.sol";
 

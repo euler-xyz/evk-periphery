@@ -8,7 +8,7 @@ import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {IEulerRouterFactory} from "../../OracleFactory/interfaces/IEulerRouterFactory.sol";
+import {IEulerRouterFactory} from "../../EulerRouterFactory/interfaces/IEulerRouterFactory.sol";
 import {IEulerKinkIRMFactory} from "../../IRMFactory/interfaces/IEulerKinkIRMFactory.sol";
 import {SnapshotRegistry} from "../../SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../implementation/BasePerspective.sol";
