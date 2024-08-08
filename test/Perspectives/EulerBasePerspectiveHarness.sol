@@ -8,16 +8,16 @@ contract EulerBasePerspectiveHarness is EulerBasePerspective {
     constructor(
         address vaultFactory_,
         address routerFactory_,
+        address irmFactory_,
         address adapterRegistry_,
-        address externalVaultRegistry_,
-        address irmFactory_
+        address auxiliaryRegistry_
     )
         EulerBasePerspective(
             vaultFactory_,
             routerFactory_,
-            adapterRegistry_,
-            externalVaultRegistry_,
             irmFactory_,
+            adapterRegistry_,
+            auxiliaryRegistry_,
             new address[](0)
         )
     {}

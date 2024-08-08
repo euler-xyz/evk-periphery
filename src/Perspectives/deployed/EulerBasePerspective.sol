@@ -9,8 +9,8 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
 import {IEulerRouterFactory} from "../../OracleFactory/interfaces/IEulerRouterFactory.sol";
-import {SnapshotRegistry} from "../../OracleFactory/SnapshotRegistry.sol";
 import {IEulerKinkIRMFactory} from "../../IRMFactory/interfaces/IEulerKinkIRMFactory.sol";
+import {SnapshotRegistry} from "../../SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../implementation/BasePerspective.sol";
 
 /// @title EulerBasePerspective
@@ -24,29 +24,29 @@ contract EulerBasePerspective is BasePerspective {
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     IEulerRouterFactory internal immutable routerFactory;
     SnapshotRegistry internal immutable adapterRegistry;
-    SnapshotRegistry internal immutable externalVaultRegistry;
+    SnapshotRegistry internal immutable auxiliaryRegistry;
     IEulerKinkIRMFactory internal immutable irmFactory;
 
     /// @notice Creates a new EulerBasePerspective instance.
     /// @param vaultFactory_ The address of the GenericFactory contract.
     /// @param routerFactory_ The address of the EulerRouterFactory contract.
-    /// @param adapterRegistry_ The address of the adapter registry contract.
-    /// @param externalVaultRegistry_ The address of the external vault registry contract.
     /// @param irmFactory_ The address of the EulerKinkIRMFactory contract.
+    /// @param adapterRegistry_ The address of the adapter registry contract.
+    /// @param auxiliaryRegistry_ The address of the auxiliary registry for external vaults and whitelisted IRMs
     /// @param recognizedCollateralPerspectives_ The addresses of the recognized collateral perspectives. address(0) for
     /// self.
     constructor(
         address vaultFactory_,
         address routerFactory_,
-        address adapterRegistry_,
-        address externalVaultRegistry_,
         address irmFactory_,
+        address adapterRegistry_,
+        address auxiliaryRegistry_,
         address[] memory recognizedCollateralPerspectives_
     ) BasePerspective(vaultFactory_) {
         routerFactory = IEulerRouterFactory(routerFactory_);
-        adapterRegistry = SnapshotRegistry(adapterRegistry_);
-        externalVaultRegistry = SnapshotRegistry(externalVaultRegistry_);
         irmFactory = IEulerKinkIRMFactory(irmFactory_);
+        adapterRegistry = SnapshotRegistry(adapterRegistry_);
+        auxiliaryRegistry = SnapshotRegistry(auxiliaryRegistry_);
         recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
     }
 
@@ -74,8 +74,12 @@ contract EulerBasePerspective is BasePerspective {
         // base vaults must have an interest fee in a certain range. lower bound is enforced by the vault itself
         testProperty(IEVault(vault).interestFee() <= 0.5e4, ERROR__INTEREST_FEE);
 
-        // base vaults must point to a Kink IRM instance deployed by the factory
-        testProperty(irmFactory.isValidDeployment(IEVault(vault).interestRateModel()), ERROR__INTEREST_RATE_MODEL);
+        // base vaults must point to a Kink IRM instance deployed by the factory or be valid in `auxiliaryRegistry`
+        address irm = IEVault(vault).interestRateModel();
+        testProperty(
+            irmFactory.isValidDeployment(irm) || auxiliaryRegistry.isValid(irm, block.timestamp),
+            ERROR__INTEREST_RATE_MODEL
+        );
 
         {
             // base vaults must not have a hook target nor any operations disabled
@@ -180,7 +184,7 @@ contract EulerBasePerspective is BasePerspective {
     /// @param unitOfAccount The unit of account of the liability vault.
     /// @dev Valid configurations:
     /// 1. `asset/unitOfAccount` has a configured adapter, valid in `adapterRegistry`.
-    /// 2. `asset` is configured as a resolved vault, valid in `externalVaultRegistry`.
+    /// 2. `asset` is configured as a resolved vault, valid in `auxiliaryRegistry`.
     /// `IERC4626(asset).asset()/unitOfAccount` has a configured adapter, valid in `adapterRegistry`.
     /// The latter is done to accommodate ERC4626-based tokens e.g. sDai.
     function verifyAssetPricing(address router, address asset, address unitOfAccount) internal {
@@ -190,8 +194,8 @@ contract EulerBasePerspective is BasePerspective {
             // The asset is itself an ERC4626 resolved vault. Perform a sanity check against `IERC4626.asset()`.
             testProperty(IERC4626(asset).asset() == unwrappedAsset, ERROR__ORACLE_INVALID_ROUTER_CONFIG);
 
-            // Verify that this vault valid in `externalVaultRegistry`.
-            testProperty(externalVaultRegistry.isValid(asset, block.timestamp), ERROR__ORACLE_INVALID_ROUTER_CONFIG);
+            // Verify that this vault valid in `auxiliaryRegistry`.
+            testProperty(auxiliaryRegistry.isValid(asset, block.timestamp), ERROR__ORACLE_INVALID_ROUTER_CONFIG);
 
             // Additionally, there must not be a short-circuiting adapter.
             testProperty(

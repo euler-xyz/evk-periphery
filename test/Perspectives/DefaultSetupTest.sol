@@ -5,13 +5,14 @@ pragma solidity ^0.8.24;
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {TestERC20} from "evk-test/mocks/TestERC20.sol";
+import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
 import {EulerBasePerspective} from "../../src/Perspectives/deployed/EulerBasePerspective.sol";
 import {EscrowPerspective} from "../../src/Perspectives/deployed/EscrowPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
-import {SnapshotRegistry} from "../../src/OracleFactory/SnapshotRegistry.sol";
+import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
 import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
 import {StubPriceOracle} from "../utils/StubPriceOracle.sol";
@@ -27,7 +28,7 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
     EulerRouterFactory routerFactory;
     EulerRouter router;
     SnapshotRegistry adapterRegistry;
-    SnapshotRegistry externalVaultRegistry;
+    SnapshotRegistry auxiliaryRegistry;
     EulerKinkIRMFactory irmFactory;
 
     EscrowPerspective escrowPerspective;
@@ -61,11 +62,13 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         routerFactory = new EulerRouterFactory();
         router = EulerRouter(routerFactory.deploy(routerGovernor));
         adapterRegistry = new SnapshotRegistry(registryOwner);
-        externalVaultRegistry = new SnapshotRegistry(registryOwner);
+        auxiliaryRegistry = new SnapshotRegistry(registryOwner);
         irmFactory = new EulerKinkIRMFactory();
 
         address irmZero = irmFactory.deploy(0, 0, 0, 0);
         address irmDefault = irmFactory.deploy(0, 1406417851, 19050045013, 2147483648);
+        address irmCustom1 = address(new IRMLinearKink(0, 1, 2, 3));
+        address irmCustom2 = address(new IRMLinearKink(0, 4, 5, 6));
 
         // deploy different perspectives
         escrowPerspective = new EscrowPerspective(address(factory));
@@ -75,9 +78,9 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         eulerBasePerspective1 = new EulerBasePerspective(
             address(factory),
             address(routerFactory),
-            address(adapterRegistry),
-            address(externalVaultRegistry),
             address(irmFactory),
+            address(adapterRegistry),
+            address(auxiliaryRegistry),
             recognizedCollateralPerspectives
         );
 
@@ -85,9 +88,9 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         eulerBasePerspective2 = new EulerBasePerspective(
             address(factory),
             address(routerFactory),
-            address(adapterRegistry),
-            address(externalVaultRegistry),
             address(irmFactory),
+            address(adapterRegistry),
+            address(auxiliaryRegistry),
             recognizedCollateralPerspectives
         );
 
@@ -97,9 +100,9 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         eulerBasePerspective3 = new EulerBasePerspective(
             address(factory),
             address(routerFactory),
-            address(adapterRegistry),
-            address(externalVaultRegistry),
             address(irmFactory),
+            address(adapterRegistry),
+            address(auxiliaryRegistry),
             recognizedCollateralPerspectives
         );
 
@@ -127,13 +130,13 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         IEVault(vaultBase2).setLTV(vaultBase1, 0.3e4, 0.4e4, 0);
         IEVault(vaultBase2).setGovernorAdmin(address(0));
 
-        IEVault(vaultBase3).setInterestRateModel(irmDefault);
+        IEVault(vaultBase3).setInterestRateModel(irmCustom1);
         IEVault(vaultBase3).setMaxLiquidationDiscount(0.2e4);
         IEVault(vaultBase3).setLiquidationCoolOffTime(1);
         IEVault(vaultBase3).setLTV(vaultEscrow, 0.5e4, 0.6e4, 0);
         IEVault(vaultBase3).setGovernorAdmin(address(0));
 
-        IEVault(vaultBase4).setInterestRateModel(irmDefault);
+        IEVault(vaultBase4).setInterestRateModel(irmCustom2);
         IEVault(vaultBase4).setMaxLiquidationDiscount(0.2e4);
         IEVault(vaultBase4).setLiquidationCoolOffTime(1);
         IEVault(vaultBase4).setLTV(vaultEscrow, 0.7e4, 0.8e4, 0);
@@ -170,8 +173,13 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         adapterRegistry.add(stubAdapter_assetTST3_WETH, address(assetTST3), WETH);
         adapterRegistry.add(stubAdapter_assetTST4_USD, address(assetTST4), USD);
         adapterRegistry.add(stubAdapter_assetTST4_WETH, address(assetTST4), WETH);
-        externalVaultRegistry.add(address(xvTST3), address(xvTST3), address(assetTST3));
-        externalVaultRegistry.add(address(xvTST4), address(xvTST4), address(assetTST4));
+
+        // add the external vaults to the registry
+        auxiliaryRegistry.add(address(xvTST3), address(xvTST3), address(assetTST3));
+        auxiliaryRegistry.add(address(xvTST4), address(xvTST4), address(assetTST4));
+
+        // add the custom IRM to the registry
+        auxiliaryRegistry.add(address(irmCustom1), address(0), address(0));
         vm.stopPrank();
 
         vm.startPrank(routerGovernor);

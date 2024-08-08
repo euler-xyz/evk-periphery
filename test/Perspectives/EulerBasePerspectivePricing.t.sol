@@ -9,7 +9,7 @@ import {IEVault} from "euler-vault-kit/EVault/IEVault.sol";
 
 import {EulerBasePerspectiveHarness} from "./EulerBasePerspectiveHarness.sol";
 import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
-import {SnapshotRegistry} from "../../src/OracleFactory/SnapshotRegistry.sol";
+import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {IPerspective} from "../../src/Perspectives/implementation/interfaces/IPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
 import {StubERC4626} from "../utils/StubERC4626.sol";
@@ -22,17 +22,17 @@ contract EulerBasePerspectivePricingTest is Test {
 
     EulerRouter router;
     SnapshotRegistry adapterRegistry;
-    SnapshotRegistry externalVaultRegistry;
+    SnapshotRegistry auxiliaryRegistry;
 
     EulerBasePerspectiveHarness perspective;
 
     function setUp() public {
         router = new EulerRouter(admin);
         adapterRegistry = new SnapshotRegistry(admin);
-        externalVaultRegistry = new SnapshotRegistry(admin);
+        auxiliaryRegistry = new SnapshotRegistry(admin);
 
         perspective = new EulerBasePerspectiveHarness(
-            address(0), address(0), address(adapterRegistry), address(externalVaultRegistry), address(0)
+            address(0), address(0), address(0), address(adapterRegistry), address(auxiliaryRegistry)
         );
     }
 
@@ -105,13 +105,13 @@ contract EulerBasePerspectivePricingTest is Test {
         vm.revertTo(snapshot);
         router.govSetResolvedVault(exUSD, true);
         router.govSetResolvedVault(xUSD, true);
-        externalVaultRegistry.add(xUSD, USD, xUSD);
+        auxiliaryRegistry.add(xUSD, USD, xUSD);
         perspective.verifyCollateralPricingHarness(address(router), exUSD, USD);
 
         // Bad: exUSD is resolved. xUSD is not resolved.
         vm.revertTo(snapshot);
         router.govSetResolvedVault(exUSD, true);
-        externalVaultRegistry.add(xUSD, USD, xUSD);
+        auxiliaryRegistry.add(xUSD, USD, xUSD);
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exUSD, USD);
 
@@ -125,7 +125,7 @@ contract EulerBasePerspectivePricingTest is Test {
         // Bad: exUSD is not resolved. xUSD is resolved.
         vm.revertTo(snapshot);
         router.govSetResolvedVault(xUSD, true);
-        externalVaultRegistry.add(xUSD, USD, xUSD);
+        auxiliaryRegistry.add(xUSD, USD, xUSD);
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exUSD, USD);
 
@@ -135,7 +135,7 @@ contract EulerBasePerspectivePricingTest is Test {
         router.govSetResolvedVault(xUSD, true);
         router.govSetConfig(xUSD, USD, stubAdapter);
         adapterRegistry.add(stubAdapter, xUSD, USD);
-        externalVaultRegistry.add(xUSD, USD, xUSD);
+        auxiliaryRegistry.add(xUSD, USD, xUSD);
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exUSD, USD);
 
@@ -145,7 +145,7 @@ contract EulerBasePerspectivePricingTest is Test {
         router.govSetResolvedVault(xUSD, true);
         router.govSetConfig(exUSD, USD, stubAdapter);
         adapterRegistry.add(stubAdapter, exUSD, USD);
-        externalVaultRegistry.add(xUSD, USD, xUSD);
+        auxiliaryRegistry.add(xUSD, USD, xUSD);
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exUSD, USD);
     }
@@ -165,8 +165,8 @@ contract EulerBasePerspectivePricingTest is Test {
         router.govSetResolvedVault(xUSD, true);
         router.govSetResolvedVault(xxUSD, true);
         router.govSetResolvedVault(exxUSD, true);
-        externalVaultRegistry.add(xUSD, USD, xUSD);
-        externalVaultRegistry.add(xxUSD, xUSD, xxUSD);
+        auxiliaryRegistry.add(xUSD, USD, xUSD);
+        auxiliaryRegistry.add(xxUSD, xUSD, xxUSD);
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exxUSD, USD);
     }
@@ -233,7 +233,7 @@ contract EulerBasePerspectivePricingTest is Test {
         router.govSetResolvedVault(exBTC, true);
         router.govSetResolvedVault(xBTC, true);
         router.govSetConfig(BTC, USD, stubAdapter);
-        externalVaultRegistry.add(xBTC, BTC, xBTC);
+        auxiliaryRegistry.add(xBTC, BTC, xBTC);
         adapterRegistry.add(stubAdapter, BTC, USD);
         perspective.verifyCollateralPricingHarness(address(router), exBTC, USD);
 
@@ -251,7 +251,7 @@ contract EulerBasePerspectivePricingTest is Test {
         vm.revertTo(snapshot);
         router.govSetResolvedVault(exBTC, true);
         router.govSetConfig(BTC, USD, stubAdapter);
-        externalVaultRegistry.add(xBTC, BTC, xBTC);
+        auxiliaryRegistry.add(xBTC, BTC, xBTC);
         adapterRegistry.add(stubAdapter, BTC, USD);
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exBTC, USD);
@@ -260,7 +260,7 @@ contract EulerBasePerspectivePricingTest is Test {
         vm.revertTo(snapshot);
         router.govSetResolvedVault(xBTC, true);
         router.govSetConfig(BTC, USD, stubAdapter);
-        externalVaultRegistry.add(xBTC, BTC, xBTC);
+        auxiliaryRegistry.add(xBTC, BTC, xBTC);
         adapterRegistry.add(stubAdapter, BTC, USD);
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exBTC, USD);
@@ -271,7 +271,7 @@ contract EulerBasePerspectivePricingTest is Test {
         router.govSetResolvedVault(exBTC, true);
         router.govSetResolvedVault(xBTC, true);
         router.govSetConfig(BTC, USD, stubAdapter);
-        externalVaultRegistry.add(xBTC, BTC, xBTC);
+        auxiliaryRegistry.add(xBTC, BTC, xBTC);
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exBTC, USD);
 
@@ -280,7 +280,7 @@ contract EulerBasePerspectivePricingTest is Test {
         vm.revertTo(snapshot);
         router.govSetResolvedVault(exBTC, true);
         router.govSetResolvedVault(xBTC, true);
-        externalVaultRegistry.add(xBTC, BTC, xBTC);
+        auxiliaryRegistry.add(xBTC, BTC, xBTC);
         adapterRegistry.add(stubAdapter, BTC, USD);
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exBTC, USD);
@@ -292,8 +292,8 @@ contract EulerBasePerspectivePricingTest is Test {
         router.govSetResolvedVault(xBTC, true);
         router.govSetConfig(BTC, USD, stubAdapter);
         router.govSetConfig(exBTC, USD, stubAdapter);
-        externalVaultRegistry.add(xBTC, BTC, xBTC);
-        externalVaultRegistry.add(exBTC, BTC, xBTC);
+        auxiliaryRegistry.add(xBTC, BTC, xBTC);
+        auxiliaryRegistry.add(exBTC, BTC, xBTC);
         adapterRegistry.add(stubAdapter, exBTC, BTC);
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exBTC, USD);
@@ -305,8 +305,8 @@ contract EulerBasePerspectivePricingTest is Test {
         router.govSetResolvedVault(xBTC, true);
         router.govSetConfig(BTC, USD, stubAdapter);
         router.govSetConfig(xBTC, USD, stubAdapter);
-        externalVaultRegistry.add(xBTC, BTC, xBTC);
-        externalVaultRegistry.add(exBTC, BTC, xBTC);
+        auxiliaryRegistry.add(xBTC, BTC, xBTC);
+        auxiliaryRegistry.add(exBTC, BTC, xBTC);
         adapterRegistry.add(stubAdapter, xBTC, BTC);
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exBTC, USD);
