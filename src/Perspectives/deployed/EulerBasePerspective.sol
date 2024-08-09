@@ -34,7 +34,7 @@ contract EulerBasePerspective is BasePerspective {
     /// @param adapterRegistry_ The address of the adapter registry contract.
     /// @param externalVaultRegistry_ The address of the external vault registry contract.
     /// @param irmFactory_ The address of the EulerKinkIRMFactory contract.
-    /// @param irmRegistry_ The address of an additional IRM registry contract.
+    /// @param irmRegistry_ The address of the IRM registry contract.
     /// @param recognizedCollateralPerspectives_ The addresses of the recognized collateral perspectives. address(0) for
     /// self.
     constructor(
