@@ -13,9 +13,6 @@ contract EulerKinkIRMFactory is BaseFactory {
     // corresponds to 1000% APY
     uint256 internal constant MAX_ALLOWED_INTEREST_RATE = 75986279153383989049;
 
-    /// @notice Error thrown when the kink value is incorrect.
-    error IRMFactory_IncorrectKinkValue();
-
     /// @notice Error thrown when the computed interest rate exceeds the maximum allowed limit.
     error IRMFactory_ExcessiveInterestRate();
 
@@ -25,9 +22,7 @@ contract EulerKinkIRMFactory is BaseFactory {
     /// @param slope2 Slope of the function after the kink
     /// @param kink Utilization at which the slope of the interest rate function changes. In type(uint32).max scale
     /// @return The deployment address.
-    function deploy(uint256 baseRate, uint256 slope1, uint256 slope2, uint256 kink) external returns (address) {
-        if (kink > type(uint32).max) revert IRMFactory_IncorrectKinkValue();
-
+    function deploy(uint256 baseRate, uint256 slope1, uint256 slope2, uint32 kink) external returns (address) {
         IRMLinearKink irm = new IRMLinearKink(baseRate, slope1, slope2, kink);
 
         // verify if the IRM is functional

@@ -28,6 +28,7 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
         // deploy and configure the vault
         address vault =
             factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(0), address(0)));
+        IEVault(vault).setHookConfig(address(0), 0);
         IEVault(vault).setGovernorAdmin(address(0));
 
         vm.expectEmit(true, false, false, false, address(perspective));
@@ -49,7 +50,10 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
         address vault4 =
             factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(0), address(0)));
 
+        IEVault(vault1).setHookConfig(address(0), 0);
         IEVault(vault1).setGovernorAdmin(address(0));
+
+        IEVault(vault2).setHookConfig(address(0), 0);
         IEVault(vault2).setGovernorAdmin(address(0));
 
         // this vault will violate some rules
@@ -60,6 +64,7 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
 
         // this vault will be okay because it has greater than zero supply cap, but zero borrow cap
         IEVault(vault4).setCaps(1, 0);
+        IEVault(vault4).setHookConfig(address(0), 0);
         IEVault(vault4).setGovernorAdmin(address(0));
 
         // verification of the first vault is successful

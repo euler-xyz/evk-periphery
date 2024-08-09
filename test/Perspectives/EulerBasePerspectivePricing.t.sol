@@ -27,7 +27,7 @@ contract EulerBasePerspectivePricingTest is Test {
     EulerBasePerspectiveHarness perspective;
 
     function setUp() public {
-        router = new EulerRouter(admin);
+        router = new EulerRouter(address(1), admin);
         adapterRegistry = new SnapshotRegistry(admin);
         externalVaultRegistry = new SnapshotRegistry(admin);
 

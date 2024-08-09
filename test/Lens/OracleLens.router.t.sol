@@ -26,7 +26,7 @@ contract OracleLensEulerRouterTest is Test {
     address usdtVault;
 
     function setUp() public {
-        lens = new OracleLens();
+        lens = new OracleLens(address(0));
     }
 
     function testEulerRouter() public {
@@ -52,8 +52,8 @@ contract OracleLensEulerRouterTest is Test {
         ChainlinkOracle usdcUsdOracle = new ChainlinkOracle(USDC, USD, CHAINLINK_USDC_USD_FEED, 24 hours);
         ChainlinkOracle usdtUsdOracle = new ChainlinkOracle(USDT, USD, CHAINLINK_USDT_USD_FEED, 24 hours);
 
-        EulerRouter router = new EulerRouter(address(this));
-        EulerRouter fallbackRouter = new EulerRouter(address(this));
+        EulerRouter router = new EulerRouter(address(1), address(this));
+        EulerRouter fallbackRouter = new EulerRouter(address(1), address(this));
         router.govSetResolvedVault(wethVault, true);
         router.govSetResolvedVault(wbtcVault, true);
         router.govSetConfig(WETH, USD, address(ethUsdOracle));
