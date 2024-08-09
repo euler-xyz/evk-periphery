@@ -24,7 +24,6 @@ read -p "Enter the Adapter Registry address: " adapter_registry
 source .env
 deployment_dir="script/deployments/$deployment_name"
 adaptersList="$deployment_dir/output/adaptersList.csv"
-timestamp=$(date +%s)
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 
 mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broadcast"
@@ -164,9 +163,20 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     if script/utils/executeForgeScript.sh $scriptName $verify_contracts; then
         echo "${columns[0]},${columns[1]},${columns[2]},$(jq -r '.adapter' "script/${jsonName}_output.json")" >> "$adaptersList"
         
-        mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${timestamp}.json"
-        mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${timestamp}.json"
-        cp "broadcast/${baseName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${timestamp}.json"
+        get_new_filename() {
+            local base_file="$1"
+            local counter=0
+            local new_file="${base_file%.*}_${counter}.${base_file##*.}"
+            while [[ -e "$new_file" ]]; do
+                ((counter++))
+                new_file="${base_file%.*}_${counter}.${base_file##*.}"
+            done
+            echo "$new_file"
+        }
+
+        mv "script/${jsonName}_input.json" $(get_new_filename "$deployment_dir/input/${jsonName}.json")
+        mv "script/${jsonName}_output.json" $(get_new_filename "$deployment_dir/output/${jsonName}.json")
+        cp "broadcast/${baseName}.s.sol/$chainId/run-latest.json" $(get_new_filename "$deployment_dir/broadcast/${jsonName}.json")
     else
         rm "script/${jsonName}_input.json"
     fi
