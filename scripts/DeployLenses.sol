@@ -9,14 +9,12 @@ import {OracleLens} from "../src/Lens/OracleLens.sol";
 import {UtilsLens} from "../src/Lens/UtilsLens.sol";
 import {VaultLens} from "../src/Lens/VaultLens.sol";
 
-
-
 contract DeployLenses is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.deriveKey(vm.envString("MNEMONIC"), 0);
 
         vm.startBroadcast(deployerPrivateKey);
-        
+
         AccountLens accountLens = new AccountLens();
         OracleLens oracleLens = new OracleLens();
         UtilsLens utilsLens = new UtilsLens();

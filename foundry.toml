@@ -1,5 +1,6 @@
 [profile.default]
 src = "src"
+script = "scripts"
 out = "out"
 libs = ["lib"]
 
@@ -7,7 +8,7 @@ evm_version = "cancun"
 optimizer = true
 optimizer_runs = 20_000
 
-fs_permissions = [{ access = "read-write", path = "./"}]
+fs_permissions = [{ access = "read-write", path = "./" }]
 
 gas_reports = ["*"]
 

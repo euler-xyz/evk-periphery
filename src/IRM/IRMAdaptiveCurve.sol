@@ -89,69 +89,54 @@ contract IRMAdaptiveCurve is IIRM {
         view
         returns (uint256, int256)
     {
-        // Initialize rate if this is the first call.
         IRState memory state = irState[vault];
+        // Initialize rate if this is the first interaction.
         if (state.lastUpdate == 0) return (uint256(initialKinkRate), initialKinkRate);
 
         // Calculate utilization rate.
         uint256 totalAssets = cash + borrows;
         int256 utilization = totalAssets == 0 ? int256(0) : int256(borrows) * WAD / int256(totalAssets);
 
-        // Calculate the deviation of the current utilization wrt. the target utilization.
+        // Calculate the normalized error of current utilization wrt. target utilization.
         int256 errNormFactor = utilization > kink ? WAD - kink : kink;
         int256 err = (utilization - kink) * WAD / errNormFactor;
 
-        int256 startKinkRate = state.kinkRate;
+        // The speed is assumed constant between two updates, but it is in fact not constant because of interest.
+        // So the rate is always underestimated.
+        int256 speed = adjustmentSpeed * err / WAD;
+        // market.lastUpdate != 0 because it is not the first interaction with this market.
+        // Safe "unchecked" cast because block.timestamp - market.lastUpdate <= block.timestamp <= type(int256).max.
+        int256 elapsed = int256(block.timestamp - state.lastUpdate);
+        int256 linearAdaptation = speed * elapsed;
 
-        int256 avgKinkRate;
-        int256 endKinkRate;
+        // If linearAdaptation == 0, avgKinkRate = endKinkRate = startKinkRate;
+        if (linearAdaptation == 0) return (calcRateOnCurve(state.kinkRate, err), state.kinkRate);
 
-        if (startKinkRate == 0) {
-            // First interaction.
-            avgKinkRate = initialKinkRate;
-            endKinkRate = initialKinkRate;
-        } else {
-            // The speed is assumed constant between two updates, but it is in fact not constant because of interest.
-            // So the rate is always underestimated.
-            int256 speed = adjustmentSpeed * err / WAD;
-            // market.lastUpdate != 0 because it is not the first interaction with this market.
-            // Safe "unchecked" cast because block.timestamp - market.lastUpdate <= block.timestamp <= type(int256).max.
-            int256 elapsed = int256(block.timestamp - state.lastUpdate);
-            int256 linearAdaptation = speed * elapsed;
+        // Formula of the average rate that should be returned:
+        // avg = 1/T * ∫_0^T curve(state.kinkRate*exp(speed*x), err) dx
+        // The integral is approximated with the trapezoidal rule:
+        // avg ~= 1/T * Σ_i=1^N [curve(f((i-1) * T/N), err) + curve(f(i * T/N), err)] / 2 * T/N
+        // Where f(x) = state.kinkRate*exp(speed*x)
+        // avg ~= Σ_i=1^N [curve(f((i-1) * T/N), err) + curve(f(i * T/N), err)] / (2 * N)
+        // As curve is linear in its first argument:
+        // avg ~= curve([Σ_i=1^N [f((i-1) * T/N) + f(i * T/N)] / (2 * N), err)
+        // avg ~= curve([(f(0) + f(T))/2 + Σ_i=1^(N-1) f(i * T/N)] / N, err)
+        // avg ~= curve([(state.kinkRate + endKinkRate)/2 + Σ_i=1^(N-1) f(i * T/N)] / N, err)
+        // With N = 2:
+        // avg ~= curve([(state.kinkRate + endKinkRate)/2 + state.kinkRate*exp(speed*T/2)] / 2, err)
+        // avg ~= curve([state.kinkRate + endKinkRate + 2*state.kinkRate*exp(speed*T/2)] / 4, err)
+        int256 endKinkRate = calcNewKinkRate(state.kinkRate, linearAdaptation);
+        int256 midKinkRate = calcNewKinkRate(state.kinkRate, linearAdaptation / 2);
+        int256 avgKinkRate = (state.kinkRate + endKinkRate + 2 * midKinkRate) / 4;
 
-            if (linearAdaptation == 0) {
-                // If linearAdaptation == 0, avgKinkRate = endKinkRate = startKinkRate;
-                avgKinkRate = startKinkRate;
-                endKinkRate = startKinkRate;
-            } else {
-                // Formula of the average rate that should be returned:
-                // avg = 1/T * ∫_0^T curve(startKinkRate*exp(speed*x), err) dx
-                // The integral is approximated with the trapezoidal rule:
-                // avg ~= 1/T * Σ_i=1^N [curve(f((i-1) * T/N), err) + curve(f(i * T/N), err)] / 2 * T/N
-                // Where f(x) = startKinkRate*exp(speed*x)
-                // avg ~= Σ_i=1^N [curve(f((i-1) * T/N), err) + curve(f(i * T/N), err)] / (2 * N)
-                // As curve is linear in its first argument:
-                // avg ~= curve([Σ_i=1^N [f((i-1) * T/N) + f(i * T/N)] / (2 * N), err)
-                // avg ~= curve([(f(0) + f(T))/2 + Σ_i=1^(N-1) f(i * T/N)] / N, err)
-                // avg ~= curve([(startKinkRate + endKinkRate)/2 + Σ_i=1^(N-1) f(i * T/N)] / N, err)
-                // With N = 2:
-                // avg ~= curve([(startKinkRate + endKinkRate)/2 + startKinkRate*exp(speed*T/2)] / 2, err)
-                // avg ~= curve([startKinkRate + endKinkRate + 2*startKinkRate*exp(speed*T/2)] / 4, err)
-                endKinkRate = _newKinkRate(startKinkRate, linearAdaptation);
-                int256 midKinkRate = _newKinkRate(startKinkRate, linearAdaptation / 2);
-                avgKinkRate = (startKinkRate + endKinkRate + 2 * midKinkRate) / 4;
-            }
-        }
-
-        // Safe "unchecked" cast because avgKinkRate >= 0.
-        return (uint256(_curve(avgKinkRate, err)), endKinkRate);
+        return (calcRateOnCurve(avgKinkRate, err), endKinkRate);
     }
 
-    /// @dev Returns the rate for a given `_kinkRate` and an `err`.
+    /// @dev Returns the rate for a given `kinkRate` and an `err`.
     /// The formula of the curve is the following:
     /// r = ((1-1/C)*err + 1) * kinkRate if err < 0
     ///     ((C-1)*err + 1) * kinkRate else.
-    function _curve(int256 _kinkRate, int256 err) internal view returns (int256) {
+    function calcRateOnCurve(int256 kinkRate, int256 err) internal view returns (uint256) {
         // Non negative because 1 - 1/C >= 0, C - 1 >= 0.
         int256 coeff;
         if (err < 0) {
@@ -159,13 +144,12 @@ contract IRMAdaptiveCurve is IIRM {
         } else {
             coeff = slope - WAD;
         }
-        // Non negative if _kinkRate >= 0 because if err < 0, coeff <= 1.
-        return ((coeff * err / WAD) + WAD) * int256(_kinkRate) / WAD;
+        // Non negative if kinkRate >= 0 because if err < 0, coeff <= 1.
+        return uint256(((coeff * err / WAD) + WAD) * kinkRate / WAD);
     }
 
     /// @dev Returns the new rate at target, for a given `startKinkRate` and a given `linearAdaptation`.
-    /// The formula is: max(min(startKinkRate * exp(linearAdaptation), maxKinkRate), minKinkRate).
-    function _newKinkRate(int256 startKinkRate, int256 linearAdaptation) internal view returns (int256) {
+    function calcNewKinkRate(int256 startKinkRate, int256 linearAdaptation) internal view returns (int256) {
         // Non negative because minKinkRate > 0.
         int256 rate = startKinkRate * ExpWad.expWad(linearAdaptation) / WAD;
         if (rate < minKinkRate) return minKinkRate;
