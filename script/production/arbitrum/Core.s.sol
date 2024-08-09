@@ -117,9 +117,7 @@ contract Core is ScriptUtils, CoreInfoLib {
         }
 
         // save results
-        vm.writeJson(
-            serializeCoreInfo(coreInfo), string.concat(vm.projectRoot(), "/script/CoreInfo.json")
-        );
+        vm.writeJson(serializeCoreInfo(coreInfo), string.concat(vm.projectRoot(), "/script/CoreInfo.json"));
 
         return coreInfo;
     }

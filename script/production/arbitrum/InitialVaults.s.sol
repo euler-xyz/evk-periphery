@@ -35,7 +35,7 @@ contract InitialVaults is ScriptUtils, CoreInfoLib {
 
     uint16[][] internal riskOffEscrowLTVs;
     uint16[][] internal riskOffRiskOffLTVs;
-    address[] internal IRMList;
+    address[] internal irmList;
 
     constructor() {
         assetsList = [WETH, wstETH, WBTC, USDC, USDT];
@@ -59,30 +59,47 @@ contract InitialVaults is ScriptUtils, CoreInfoLib {
     }
 
     function run() public returns (address[] memory) {
-        CoreInfo memory coreInfo = deserializeCoreInfo(
-            vm.readFile(string.concat(vm.projectRoot(), "/script/CoreInfo.json"))
-        );
+        CoreInfo memory coreInfo =
+            deserializeCoreInfo(vm.readFile(string.concat(vm.projectRoot(), "/script/CoreInfo.json")));
 
         // deploy the oracle router
         startBroadcast();
         address oracleRouter = EulerRouterFactory(coreInfo.oracleRouterFactory).deploy(getDeployer());
         stopBroadcast();
 
-        // TODO
-        // deploy the IRMs
-        address defaultIRM = (new KinkIRM()).deploy(coreInfo.kinkIRMFactory, 0, 1406417851, 19050045013, 2147483648);
-        IRMList = [defaultIRM, defaultIRM, defaultIRM, defaultIRM, defaultIRM];
+        {
+            KinkIRM deployer = new KinkIRM();
+
+            // Base=0% APY  Kink(90%)=2.7% APY  Max=82.7% APY
+            address irmWETH = deployer.deploy(coreInfo.kinkIRMFactory, 0, 218407859, 42500370385, 3865470566);
+
+            // Base=0% APY  Kink(45%)=4.75% APY  Max=84.75% APY
+            address irmWstETH = deployer.deploy(coreInfo.kinkIRMFactory, 0, 760869530, 7611888145, 1932735283);
+
+            // Base=0% APY  Kink(45%)=4% APY  Max=304% APY
+            address irmWBTC = deployer.deploy(coreInfo.kinkIRMFactory, 0, 643054912, 18204129717, 1932735283);
+
+            // Base=0% APY  Kink(92%)=6.5% APY  Max=66.5% APY
+            address irmUSDC = deployer.deploy(coreInfo.kinkIRMFactory, 0, 505037995, 41211382066, 3951369912);
+
+            // Base=0% APY  Kink(92%)=6.5% APY  Max=81.5% APY
+            address irmUSDT = deployer.deploy(coreInfo.kinkIRMFactory, 0, 505037995, 49166860226, 3951369912);
+
+            irmList = [irmWETH, irmWstETH, irmWBTC, irmUSDC, irmUSDT];
+        }
 
         // deploy the vaults
-        EVault deployer = new EVault();
-        for (uint256 i = 0; i < assetsList.length; ++i) {
-            address asset = assetsList[i];
+        {
+            EVault deployer = new EVault();
+            for (uint256 i = 0; i < assetsList.length; ++i) {
+                address asset = assetsList[i];
 
-            (, escrowVaults[asset]) =
-                deployer.deploy(address(0), false, coreInfo.eVaultFactory, true, asset, address(0), address(0));
+                (, escrowVaults[asset]) =
+                    deployer.deploy(address(0), false, coreInfo.eVaultFactory, true, asset, address(0), address(0));
 
-            (, riskOffVaults[asset]) =
-                deployer.deploy(address(0), false, coreInfo.eVaultFactory, true, asset, oracleRouter, USD);
+                (, riskOffVaults[asset]) =
+                    deployer.deploy(address(0), false, coreInfo.eVaultFactory, true, asset, oracleRouter, USD);
+            }
         }
 
         // configure the oracle router
@@ -116,7 +133,7 @@ contract InitialVaults is ScriptUtils, CoreInfoLib {
             // configure the riskOff vaults and verify them by the whitelist perspective
             IEVault(riskOffVaults[asset]).setMaxLiquidationDiscount(0.15e4);
             IEVault(riskOffVaults[asset]).setLiquidationCoolOffTime(1);
-            IEVault(riskOffVaults[asset]).setInterestRateModel(IRMList[i]);
+            IEVault(riskOffVaults[asset]).setInterestRateModel(irmList[i]);
             IEVault(riskOffVaults[asset]).setInterestFee(0.05e4);
             IEVault(riskOffVaults[asset]).setHookConfig(address(0), 0);
             IEVault(riskOffVaults[asset]).setGovernorAdmin(RISK_OFF_VAULTS_GOVERNOR);

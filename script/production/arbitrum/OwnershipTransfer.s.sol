@@ -16,9 +16,8 @@ contract OwnershipTransfer is ScriptUtils, CoreInfoLib {
     address internal constant GOVERNABLE_WHITELIST_PERSPECTIVE_OWNER = 0x0000000000000000000000000000000000000000; // TODO
 
     function run() public {
-        CoreInfo memory coreInfo = deserializeCoreInfo(
-            vm.readFile(string.concat(vm.projectRoot(), "/script/CoreInfo.json"))
-        );
+        CoreInfo memory coreInfo =
+            deserializeCoreInfo(vm.readFile(string.concat(vm.projectRoot(), "/script/CoreInfo.json")));
 
         startBroadcast();
         ProtocolConfig(coreInfo.protocolConfig).setAdmin(PROTOCOL_CONFIG_ADMIN);
