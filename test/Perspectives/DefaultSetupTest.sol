@@ -28,8 +28,9 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
     EulerRouterFactory routerFactory;
     EulerRouter router;
     SnapshotRegistry adapterRegistry;
-    SnapshotRegistry auxiliaryRegistry;
+    SnapshotRegistry externalVaultRegistry;
     EulerKinkIRMFactory irmFactory;
+    SnapshotRegistry irmRegistry;
 
     EscrowPerspective escrowPerspective;
     EulerBasePerspective eulerBasePerspective1;
@@ -62,8 +63,9 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         routerFactory = new EulerRouterFactory();
         router = EulerRouter(routerFactory.deploy(routerGovernor));
         adapterRegistry = new SnapshotRegistry(registryOwner);
-        auxiliaryRegistry = new SnapshotRegistry(registryOwner);
+        externalVaultRegistry = new SnapshotRegistry(registryOwner);
         irmFactory = new EulerKinkIRMFactory();
+        irmRegistry = new SnapshotRegistry(registryOwner);
 
         address irmZero = irmFactory.deploy(0, 0, 0, 0);
         address irmDefault = irmFactory.deploy(0, 1406417851, 19050045013, 2147483648);
@@ -78,9 +80,10 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         eulerBasePerspective1 = new EulerBasePerspective(
             address(factory),
             address(routerFactory),
-            address(irmFactory),
             address(adapterRegistry),
-            address(auxiliaryRegistry),
+            address(externalVaultRegistry),
+            address(irmFactory),
+            address(irmRegistry),
             recognizedCollateralPerspectives
         );
 
@@ -88,9 +91,10 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         eulerBasePerspective2 = new EulerBasePerspective(
             address(factory),
             address(routerFactory),
-            address(irmFactory),
             address(adapterRegistry),
-            address(auxiliaryRegistry),
+            address(externalVaultRegistry),
+            address(irmFactory),
+            address(irmRegistry),
             recognizedCollateralPerspectives
         );
 
@@ -100,9 +104,10 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         eulerBasePerspective3 = new EulerBasePerspective(
             address(factory),
             address(routerFactory),
-            address(irmFactory),
             address(adapterRegistry),
-            address(auxiliaryRegistry),
+            address(externalVaultRegistry),
+            address(irmFactory),
+            address(irmRegistry),
             recognizedCollateralPerspectives
         );
 
@@ -173,13 +178,8 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         adapterRegistry.add(stubAdapter_assetTST3_WETH, address(assetTST3), WETH);
         adapterRegistry.add(stubAdapter_assetTST4_USD, address(assetTST4), USD);
         adapterRegistry.add(stubAdapter_assetTST4_WETH, address(assetTST4), WETH);
-
-        // add the external vaults to the registry
-        auxiliaryRegistry.add(address(xvTST3), address(xvTST3), address(assetTST3));
-        auxiliaryRegistry.add(address(xvTST4), address(xvTST4), address(assetTST4));
-
-        // add the custom IRM to the registry
-        auxiliaryRegistry.add(address(irmCustom1), address(0), address(0));
+        externalVaultRegistry.add(address(xvTST3), address(xvTST3), address(assetTST3));
+        externalVaultRegistry.add(address(xvTST4), address(xvTST4), address(assetTST4));
         vm.stopPrank();
 
         vm.startPrank(routerGovernor);
@@ -200,6 +200,11 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         router.govSetConfig(address(assetTST4), USD, stubAdapter_assetTST4_USD);
         router.govSetConfig(address(assetTST4), WETH, stubAdapter_assetTST4_WETH);
         router.transferGovernance(address(0));
+        vm.stopPrank();
+
+        // add the custom IRM to the registry
+        vm.startPrank(registryOwner);
+        irmRegistry.add(address(irmCustom1), address(0), address(0));
         vm.stopPrank();
 
         vm.label(address(escrowPerspective), "escrowPerspective");
