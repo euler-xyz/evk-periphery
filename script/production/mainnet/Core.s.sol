@@ -48,7 +48,8 @@ contract Core is ScriptUtils, CoreInfoLib {
                 coreInfo.oracleRouterFactory,
                 coreInfo.oracleAdapterRegistry,
                 coreInfo.externalVaultRegistry,
-                coreInfo.kinkIRMFactory
+                coreInfo.kinkIRMFactory,
+                coreInfo.irmRegistry
             ) = deployer.deploy(coreInfo.evc);
         }
         // deploy EVault implementation
@@ -87,7 +88,8 @@ contract Core is ScriptUtils, CoreInfoLib {
                 coreInfo.oracleRouterFactory,
                 coreInfo.oracleAdapterRegistry,
                 coreInfo.externalVaultRegistry,
-                coreInfo.kinkIRMFactory
+                coreInfo.kinkIRMFactory,
+                coreInfo.irmRegistry
             );
         }
         // deploy swapper
