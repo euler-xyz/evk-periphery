@@ -5,8 +5,8 @@ pragma solidity ^0.8.23;
 import {Test} from "forge-std/Test.sol";
 import {EthereumVaultConnector} from "evc/EthereumVaultConnector.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
-import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
-import {IEulerRouterFactory, IFactory} from "../../src/OracleFactory/interfaces/IEulerRouterFactory.sol";
+import {EulerRouterFactory} from "../../src/EulerRouterFactory/EulerRouterFactory.sol";
+import {IEulerRouterFactory, IFactory} from "../../src/EulerRouterFactory/interfaces/IEulerRouterFactory.sol";
 
 contract EulerRouterFactoryTest is Test {
     address internal OWNER;

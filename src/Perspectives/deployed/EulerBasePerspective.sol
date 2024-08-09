@@ -8,9 +8,9 @@ import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {IEulerRouterFactory} from "../../OracleFactory/interfaces/IEulerRouterFactory.sol";
-import {SnapshotRegistry} from "../../OracleFactory/SnapshotRegistry.sol";
+import {IEulerRouterFactory} from "../../EulerRouterFactory/interfaces/IEulerRouterFactory.sol";
 import {IEulerKinkIRMFactory} from "../../IRMFactory/interfaces/IEulerKinkIRMFactory.sol";
+import {SnapshotRegistry} from "../../SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../implementation/BasePerspective.sol";
 
 /// @title EulerBasePerspective
@@ -25,6 +25,7 @@ contract EulerBasePerspective is BasePerspective {
     IEulerRouterFactory internal immutable routerFactory;
     SnapshotRegistry internal immutable adapterRegistry;
     SnapshotRegistry internal immutable externalVaultRegistry;
+    SnapshotRegistry internal immutable irmRegistry;
     IEulerKinkIRMFactory internal immutable irmFactory;
 
     /// @notice Creates a new EulerBasePerspective instance.
@@ -33,6 +34,7 @@ contract EulerBasePerspective is BasePerspective {
     /// @param adapterRegistry_ The address of the adapter registry contract.
     /// @param externalVaultRegistry_ The address of the external vault registry contract.
     /// @param irmFactory_ The address of the EulerKinkIRMFactory contract.
+    /// @param irmRegistry_ The address of the IRM registry contract.
     /// @param recognizedCollateralPerspectives_ The addresses of the recognized collateral perspectives. address(0) for
     /// self.
     constructor(
@@ -41,12 +43,14 @@ contract EulerBasePerspective is BasePerspective {
         address adapterRegistry_,
         address externalVaultRegistry_,
         address irmFactory_,
+        address irmRegistry_,
         address[] memory recognizedCollateralPerspectives_
     ) BasePerspective(vaultFactory_) {
         routerFactory = IEulerRouterFactory(routerFactory_);
         adapterRegistry = SnapshotRegistry(adapterRegistry_);
         externalVaultRegistry = SnapshotRegistry(externalVaultRegistry_);
         irmFactory = IEulerKinkIRMFactory(irmFactory_);
+        irmRegistry = SnapshotRegistry(irmRegistry_);
         recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
     }
 
@@ -74,8 +78,11 @@ contract EulerBasePerspective is BasePerspective {
         // base vaults must have an interest fee in a certain range. lower bound is enforced by the vault itself
         testProperty(IEVault(vault).interestFee() <= 0.5e4, ERROR__INTEREST_FEE);
 
-        // base vaults must point to a Kink IRM instance deployed by the factory
-        testProperty(irmFactory.isValidDeployment(IEVault(vault).interestRateModel()), ERROR__INTEREST_RATE_MODEL);
+        // base vaults must point to a Kink IRM instance deployed by the factory or be valid in `irmRegistry`
+        address irm = IEVault(vault).interestRateModel();
+        testProperty(
+            irmFactory.isValidDeployment(irm) || irmRegistry.isValid(irm, block.timestamp), ERROR__INTEREST_RATE_MODEL
+        );
 
         {
             // base vaults must not have a hook target nor any operations disabled

@@ -68,13 +68,16 @@ contract EulerBasePerspectiveTest is DefaultSetupTest {
         assertEq(escrowPerspective.verifiedArray()[0], vaultEscrow);
         assertEq(eulerBasePerspective2.verifiedArray()[0], vaultBase3);
 
-        // verification of the vault base 4 fails due to lack of upgradability
+        // verification of the vault base 4 fails
         vm.expectRevert(
             abi.encodeWithSelector(
-                IPerspective.PerspectiveError.selector, address(eulerBasePerspective1), vaultBase4, ERROR__UPGRADABILITY
+                IPerspective.PerspectiveError.selector,
+                address(eulerBasePerspective2),
+                vaultBase4,
+                ERROR__UPGRADABILITY | ERROR__INTEREST_RATE_MODEL
             )
         );
-        eulerBasePerspective1.perspectiveVerify(vaultBase4, true);
+        eulerBasePerspective2.perspectiveVerify(vaultBase4, false);
 
         // verifies that the vault belongs to the default perspective 1.
         // while verifying the vault, the default perspective 1 will also verify the vault base 5 as they

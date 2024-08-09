@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {Utils} from "./Utils.sol";
-import {SnapshotRegistry} from "../OracleFactory/SnapshotRegistry.sol";
+import {SnapshotRegistry} from "../SnapshotRegistry/SnapshotRegistry.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
 import "./LensTypes.sol";
 
