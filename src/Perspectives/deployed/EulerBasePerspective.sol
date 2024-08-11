@@ -60,6 +60,9 @@ contract EulerBasePerspective is BasePerspective {
         // the vault must be deployed by recognized factory
         testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
 
+        // escrow vaults must be upgradeable
+        testProperty(vaultFactory.getProxyConfig(vault).upgradeable, ERROR__UPGRADABILITY);
+
         // base vaults must not be nested
         address asset = IEVault(vault).asset();
         testProperty(!vaultFactory.isProxy(asset), ERROR__NESTING);

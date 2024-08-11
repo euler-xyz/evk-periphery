@@ -3,9 +3,9 @@ pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
 import {IIRM} from "evk/InterestRateModels/IIRM.sol";
-import {IRMAdaptiveCurve} from "../../src/IRM/IRMAdaptiveCurve.sol";
+import {IRMAdaptiveLinearKink} from "../../src/IRM/IRMAdaptiveLinearKink.sol";
 
-contract IRMAdaptiveCurveTest is Test {
+contract IRMAdaptiveLinearKinkTest is Test {
     address constant VAULT = address(0x1234);
 
     /// @dev 90%
@@ -21,10 +21,10 @@ contract IRMAdaptiveCurveTest is Test {
     /// @dev 50%
     int256 constant adjustmentSpeed = 50 ether / int256(365 days);
 
-    IRMAdaptiveCurve irm;
+    IRMAdaptiveLinearKink irm;
 
     function setUp() public {
-        irm = new IRMAdaptiveCurve(kink, initialKinkRate, minKinkRate, maxKinkRate, slope, adjustmentSpeed);
+        irm = new IRMAdaptiveLinearKink(kink, initialKinkRate, minKinkRate, maxKinkRate, slope, adjustmentSpeed);
         vm.startPrank(VAULT);
     }
 

@@ -3,16 +3,19 @@
 pragma solidity ^0.8.23;
 
 import {Test} from "forge-std/Test.sol";
+import {EthereumVaultConnector} from "evc/EthereumVaultConnector.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
 import {IEulerRouterFactory, IFactory} from "../../src/OracleFactory/interfaces/IEulerRouterFactory.sol";
 
 contract EulerRouterFactoryTest is Test {
     address internal OWNER;
+    EthereumVaultConnector internal evc;
     IEulerRouterFactory internal factory;
 
     function setUp() public {
-        factory = new EulerRouterFactory();
+        evc = new EthereumVaultConnector();
+        factory = new EulerRouterFactory(address(evc));
     }
 
     /// @dev Factory allows anyone to deploy an instance EulerRouter.
@@ -51,7 +54,7 @@ contract EulerRouterFactoryTest is Test {
     function testDeployIsEulerRouter(address governor) public {
         vm.assume(governor != address(0));
         address factoryDeployment = factory.deploy(governor);
-        address directDeployment = address(new EulerRouter(governor));
+        address directDeployment = address(new EulerRouter(address(evc), governor));
         assertEq(factoryDeployment.codehash, directDeployment.codehash);
     }
 }

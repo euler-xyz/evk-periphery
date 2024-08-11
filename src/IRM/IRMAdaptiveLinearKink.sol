@@ -5,12 +5,14 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import {IIRM} from "evk/InterestRateModels/IIRM.sol";
 import {ExpWad} from "./lib/ExpWad.sol";
 
-/// @title IRMAdaptiveCurve
-/// @author Morpho Labs
-/// (https://github.com/morpho-org/morpho-blue-irm/blob/main/src/adaptive-curve-irm/AdaptiveCurveIrm.sol)
-/// @author Modified by Euler Labs (https://www.eulerlabs.com/).
+/// @title IRMAdaptiveLinearKink
+/// @notice A Linear Kink IRM with an additional adaptive mechanism.
+/// If utilization persists below/above the kink the entire model is translated downward/upward.
+/// This mechanism adapts the interest rates to external changes in market rates and demand.
+/// @author Euler Labs (https://www.eulerlabs.com/).
+/// @author Inspired by Morpho Labs (https://github.com/morpho-org/morpho-blue-irm/blob/main/src/adaptive-curve-irm/AdaptiveCurveIrm.sol).
 /// @custom:contact security@euler.xyz
-contract IRMAdaptiveCurve is IIRM {
+contract IRMAdaptiveLinearKink is IIRM {
     /// @dev Unit for internal precision.
     int256 internal constant WAD = 1e18;
     /// @notice The utilization rate targeted by the interest rate model.
@@ -43,7 +45,7 @@ contract IRMAdaptiveCurve is IIRM {
     /// @dev Note that this state may be outdated. Use `computeInterestRateView` for the latest interest rate.
     mapping(address => IRState) public irState;
 
-    /// @notice Deploy IRMAdaptiveCurve
+    /// @notice Deploy IRMAdaptiveLinearKink
     /// @param _kink The utilization rate targeted by the interest rate model.
     /// @param _initialKinkRate The initial interest rate at the kink level.
     /// @param _minKinkRate The minimum interest rate at the kink level that the model can adjust to.
@@ -97,19 +99,19 @@ contract IRMAdaptiveCurve is IIRM {
         uint256 totalAssets = cash + borrows;
         int256 utilization = totalAssets == 0 ? int256(0) : int256(borrows) * WAD / int256(totalAssets);
 
-        // Calculate the normalized error of current utilization wrt. target utilization.
+        // Calculate the normalized distance between current utilization wrt. target utilization (kink).
+        // `err` is normalized to [-1,+1] where -1 is 0% util, 0 is `kink` and +1 is 100% util.
         int256 errNormFactor = utilization > kink ? WAD - kink : kink;
         int256 err = (utilization - kink) * WAD / errNormFactor;
 
         // The speed is assumed constant between two updates, but it is in fact not constant because of interest.
         // So the rate is always underestimated.
         int256 speed = adjustmentSpeed * err / WAD;
-        // market.lastUpdate != 0 because it is not the first interaction with this market.
-        // Safe "unchecked" cast because block.timestamp - market.lastUpdate <= block.timestamp <= type(int256).max.
+        // Safe "unchecked" cast because block.timestamp - state.lastUpdate <= block.timestamp <= type(int256).max.
         int256 elapsed = int256(block.timestamp - state.lastUpdate);
         int256 linearAdaptation = speed * elapsed;
 
-        // If linearAdaptation == 0, avgKinkRate = endKinkRate = startKinkRate;
+        // If linearAdaptation == 0, avgKinkRate = endKinkRate = state.kinkRate;
         if (linearAdaptation == 0) return (calcRateOnCurve(state.kinkRate, err), state.kinkRate);
 
         // Formula of the average rate that should be returned:
@@ -137,7 +139,7 @@ contract IRMAdaptiveCurve is IIRM {
     /// r = ((1-1/C)*err + 1) * kinkRate if err < 0
     ///     ((C-1)*err + 1) * kinkRate else.
     function calcRateOnCurve(int256 kinkRate, int256 err) internal view returns (uint256) {
-        // Non negative because 1 - 1/C >= 0, C - 1 >= 0.
+        // Non-negative because slope > 1.
         int256 coeff;
         if (err < 0) {
             coeff = WAD - WAD * WAD / slope;

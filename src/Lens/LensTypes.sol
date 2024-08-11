@@ -48,6 +48,7 @@ struct VaultAccountInfo {
 
 struct AccountLiquidityInfo {
     bool queryFailure;
+    bytes queryFailureReason;
     int256 timeToLiquidation;
     uint256 liabilityValue;
     uint256 collateralValueBorrowing;
@@ -82,6 +83,8 @@ struct VaultInfoSimple {
     AssetPriceInfo liabilityPriceInfo;
     AssetPriceInfo[] collateralPriceInfo;
     OracleDetailedInfo oracleInfo;
+    AssetPriceInfo backupAssetPriceInfo;
+    OracleDetailedInfo backupAssetOracleInfo;
 }
 
 struct VaultInfoFull {
@@ -109,6 +112,7 @@ struct VaultInfoFull {
     uint256 protocolFeeShare;
     uint256 interestFee;
     uint256 hookedOperations;
+    uint256 configFlags;
     uint256 supplyCap;
     uint256 borrowCap;
     uint256 maxLiquidationDiscount;
@@ -128,6 +132,8 @@ struct VaultInfoFull {
     AssetPriceInfo liabilityPriceInfo;
     AssetPriceInfo[] collateralPriceInfo;
     OracleDetailedInfo oracleInfo;
+    AssetPriceInfo backupAssetPriceInfo;
+    OracleDetailedInfo backupAssetOracleInfo;
 }
 
 struct LTVInfo {
@@ -141,6 +147,7 @@ struct LTVInfo {
 
 struct AssetPriceInfo {
     bool queryFailure;
+    bytes queryFailureReason;
     uint256 timestamp;
     address oracle;
     address asset;
@@ -153,6 +160,7 @@ struct AssetPriceInfo {
 
 struct VaultInterestRateModelInfo {
     bool queryFailure;
+    bytes queryFailureReason;
     address vault;
     address interestRateModel;
     InterestRateInfo[] interestRateInfo;
@@ -165,6 +173,14 @@ struct InterestRateInfo {
     uint256 supplySPY;
     uint256 borrowAPY;
     uint256 supplyAPY;
+}
+
+struct KinkInterestRateModelInfo {
+    address interestRateModel;
+    uint256 baseRate;
+    uint256 slope1;
+    uint256 slope2;
+    uint256 kink;
 }
 
 struct AccountRewardInfo {
@@ -180,7 +196,7 @@ struct AccountRewardInfo {
 struct EnabledRewardInfo {
     address reward;
     uint256 earnedReward;
-    uint256 earnedRewardRecentForfeited;
+    uint256 earnedRewardRecentIgnored;
 }
 
 struct VaultRewardInfo {
@@ -193,7 +209,7 @@ struct VaultRewardInfo {
     address balanceTracker;
     uint256 epochDuration;
     uint256 currentEpoch;
-    uint256 totalRewardEligible;
+    uint256 totalRewardedEligible;
     uint256 totalRewardRegistered;
     uint256 totalRewardClaimed;
     RewardAmountInfo[] epochInfoPrevious;
@@ -208,6 +224,7 @@ struct RewardAmountInfo {
 }
 
 struct OracleDetailedInfo {
+    address oracle;
     string name;
     bytes oracleInfo;
 }

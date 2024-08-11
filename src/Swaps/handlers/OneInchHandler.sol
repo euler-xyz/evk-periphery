@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import {BaseHandler} from "./BaseHandler.sol";
 import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
-import {ISwapper} from "../ISwapper.sol";
 
 /// @title OneInchHandler
 /// @custom:security-contact security@euler.xyz

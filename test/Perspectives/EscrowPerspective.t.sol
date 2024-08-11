@@ -27,7 +27,8 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
     function test_EscrowPerspective_general() public {
         // deploy and configure the vault
         address vault =
-            factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), address(0), address(0)));
+            factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(0), address(0)));
+        IEVault(vault).setHookConfig(address(0), 0);
         IEVault(vault).setGovernorAdmin(address(0));
 
         vm.expectEmit(true, false, false, false, address(perspective));
@@ -41,15 +42,18 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
     function test_Revert_Perspective_Escrow() public {
         // deploy and configure the vaults
         address vault1 =
-            factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), address(0), address(0)));
+            factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(0), address(0)));
         address vault2 =
             factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(0), address(0)));
         address vault3 =
-            factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(1), address(2)));
+            factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), address(1), address(2)));
         address vault4 =
-            factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), address(0), address(0)));
+            factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(0), address(0)));
 
+        IEVault(vault1).setHookConfig(address(0), 0);
         IEVault(vault1).setGovernorAdmin(address(0));
+
+        IEVault(vault2).setHookConfig(address(0), 0);
         IEVault(vault2).setGovernorAdmin(address(0));
 
         // this vault will violate some rules
@@ -60,6 +64,7 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
 
         // this vault will be okay because it has greater than zero supply cap, but zero borrow cap
         IEVault(vault4).setCaps(1, 0);
+        IEVault(vault4).setHookConfig(address(0), 0);
         IEVault(vault4).setGovernorAdmin(address(0));
 
         // verification of the first vault is successful
@@ -76,10 +81,10 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
         );
         perspective.perspectiveVerify(vault2, true);
 
-        // verification of the third vault will fail right away due to invalid oracle
+        // verification of the third vault will fail right away due to lack of upgradability
         vm.expectRevert(
             abi.encodeWithSelector(
-                IPerspective.PerspectiveError.selector, address(perspective), vault3, ERROR__ORACLE_INVALID_ROUTER
+                IPerspective.PerspectiveError.selector, address(perspective), vault3, ERROR__UPGRADABILITY
             )
         );
         perspective.perspectiveVerify(vault3, true);
@@ -96,8 +101,8 @@ contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
                 IPerspective.PerspectiveError.selector,
                 address(perspective),
                 vault3,
-                ERROR__ORACLE_INVALID_ROUTER | ERROR__UNIT_OF_ACCOUNT | ERROR__GOVERNOR | ERROR__HOOKED_OPS
-                    | ERROR__LIQUIDATION_DISCOUNT | ERROR__LTV_COLLATERAL_CONFIG_LENGTH
+                ERROR__UPGRADABILITY | ERROR__ORACLE_INVALID_ROUTER | ERROR__UNIT_OF_ACCOUNT | ERROR__GOVERNOR
+                    | ERROR__HOOKED_OPS | ERROR__LIQUIDATION_DISCOUNT | ERROR__LTV_COLLATERAL_CONFIG_LENGTH
             )
         );
         perspective.perspectiveVerify(vault3, false);
