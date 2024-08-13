@@ -35,8 +35,11 @@ contract IRMAdaptiveLinearKink is IIRM {
     /// @dev In WAD units per second e.g. 1e18 / 365 days = 100%.
     int256 public immutable adjustmentSpeed;
 
+    /// @notice Cached state of the interest rate model.
     struct IRState {
+        /// @dev The current kink rate.
         int208 kinkRate;
+        /// @dev The timestamp of the last update to the model.
         uint48 lastUpdate;
     }
 
@@ -108,12 +111,13 @@ contract IRMAdaptiveLinearKink is IIRM {
         // The speed is assumed constant between two updates, but it is in fact not constant because of interest.
         // So the rate is always underestimated.
         int256 speed = adjustmentSpeed * err / WAD;
+
         // Safe "unchecked" cast because block.timestamp - state.lastUpdate <= block.timestamp <= type(int256).max.
         int256 elapsed = int256(block.timestamp - state.lastUpdate);
         int256 linearAdaptation = speed * elapsed;
 
-        // If linearAdaptation == 0, avgKinkRate = endKinkRate = state.kinkRate;
-        if (linearAdaptation == 0) return (calcRateOnCurve(state.kinkRate, err), state.kinkRate);
+        // If linearAdaptation == 0, avgKinkRate = endKinkRate = state.kinkRate.
+        if (linearAdaptation == 0) return (calcLinearKinkRate(state.kinkRate, err), state.kinkRate);
 
         // Formula of the average rate that should be returned:
         // avg = 1/T * ∫_0^T curve(state.kinkRate*exp(speed*x), err) dx
@@ -132,15 +136,17 @@ contract IRMAdaptiveLinearKink is IIRM {
         int256 midKinkRate = calcNewKinkRate(state.kinkRate, linearAdaptation / 2);
         int256 avgKinkRate = (state.kinkRate + endKinkRate + 2 * midKinkRate) / 4;
 
-        return (calcRateOnCurve(avgKinkRate, err), endKinkRate);
+        return (calcLinearKinkRate(avgKinkRate, err), endKinkRate);
     }
 
-    /// @dev Returns the rate for a given `kinkRate` and an `err`.
-    /// The formula of the curve is the following:
-    /// r = ((1-1/C)*err + 1) * kinkRate if err < 0
-    ///     ((C-1)*err + 1) * kinkRate else.
-    function calcRateOnCurve(int256 kinkRate, int256 err) internal view returns (uint256) {
-        // Non-negative because slope > 1.
+    /// @notice Calculate the rate according to the linear kink model.
+    /// @param kinkRate The current kink rate.
+    /// @param err The distance between the current rate and thekink normalized to `[-1,1]`.
+    /// @dev `err < 0` means below kink, `err > 0` means above kink.
+    /// rate = kinkRate * ((1 - 1/slope) * err + 1) if err < 0
+    ///        kinkRate * ((slope - 1) * err + 1) else.
+    /// @return The current rate.
+    function calcLinearKinkRate(int256 kinkRate, int256 err) internal view returns (uint256) {
         int256 coeff;
         if (err < 0) {
             coeff = WAD - WAD * WAD / slope;
@@ -148,36 +154,28 @@ contract IRMAdaptiveLinearKink is IIRM {
             coeff = slope - WAD;
         }
         // Non negative if kinkRate >= 0 because if err < 0, coeff <= 1.
-        uint256 res = uint256(((coeff * err / WAD) + WAD) * kinkRate / WAD);
-        return res;
+        return uint256(((coeff * err / WAD) + WAD) * kinkRate / WAD);
     }
 
-    // /// @dev Returns the rate for a given `_rateAtTarget` and an `err`.
-    // /// The formula of the curve is the following:
-    // /// r = ((1-1/C)*err + 1) * rateAtTarget if err < 0
-    // ///     ((C-1)*err + 1) * rateAtTarget else.
-    // function _curve(int256 _rateAtTarget, int256 err) private pure returns (int256) {
-    //     // Non negative because 1 - 1/C >= 0, C - 1 >= 0.
-    //     int256 coeff = err < 0 ? WAD - WAD.wDivToZero(ConstantsLib.CURVE_STEEPNESS) : ConstantsLib.CURVE_STEEPNESS -
-    // WAD;
-    //     // Non negative if _rateAtTarget >= 0 because if err < 0, coeff <= 1.
-    //     return (coeff.wMulToZero(err) + WAD).wMulToZero(int256(_rateAtTarget));
-    // }
-
-    /// @dev Returns the new rate at target, for a given `startKinkRate` and a given `linearAdaptation`.
-    function calcNewKinkRate(int256 startKinkRate, int256 linearAdaptation) internal view returns (int256) {
+    /// @notice Calculate the new kink rate for a given `kinkRate` and `linearAdaptation`.
+    /// @param kinkRate The current kink rate.
+    /// @param linearAdaptation The adaptation coefficient.
+    /// @dev `newKinkRate = kinkRate * e^linearAdaptation` bounded to `[minKinkRate, maxKinkRate]`.
+    /// @return The new kink rate.
+    function calcNewKinkRate(int256 kinkRate, int256 linearAdaptation) internal view returns (int256) {
         // Non negative because minKinkRate > 0.
         unchecked {
+            // Calculate newKinkRate = kinkRate * expWad(linearAdaptation) / WAD
+            // `expWad` is modified to saturate on overflow.
             int256 expTerm = ExpWad.expWad(linearAdaptation);
-            int256 numerator = startKinkRate * expTerm;
-            if (numerator / startKinkRate != expTerm) {
-                // overflow detected
-                return maxKinkRate;
-            }
-            int256 rate = numerator / WAD;
-            if (rate < minKinkRate) return minKinkRate;
-            if (rate > maxKinkRate) return maxKinkRate;
-            return rate;
+            // Detect overflow, in which case return `maxKinkRate`.
+            int256 numerator = kinkRate * expTerm;
+            if (numerator / kinkRate != expTerm) return maxKinkRate;
+            // Bound `kinkRate` to `[minKinkRate, maxKinkRate]`.
+            int256 newKinkRate = numerator / WAD;
+            if (newKinkRate < minKinkRate) return minKinkRate;
+            if (newKinkRate > maxKinkRate) return maxKinkRate;
+            return newKinkRate;
         }
     }
 }
