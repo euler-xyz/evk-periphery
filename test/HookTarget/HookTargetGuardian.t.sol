@@ -88,17 +88,20 @@ contract HookTargetGuardianTests is EVaultTestBase {
         eTST.deposit(1e18, depositor);
         assertEq(eTST.balanceOf(depositor), 1e18);
 
+        assertEq(hookTarget.remainingPauseDuration(), 0);
         assertEq(hookTarget.isPaused(), false);
         assertEq(hookTarget.canBePaused(), false);
 
         skip(200);
 
+        assertEq(hookTarget.remainingPauseDuration(), 0);
         assertEq(hookTarget.isPaused(), false);
         assertEq(hookTarget.canBePaused(), true);
 
         startHoax(guardian);
         hookTarget.pause();
 
+        assertEq(hookTarget.remainingPauseDuration(), 100);
         assertEq(hookTarget.isPaused(), true);
         assertEq(hookTarget.canBePaused(), false);
 
@@ -116,28 +119,40 @@ contract HookTargetGuardianTests is EVaultTestBase {
         eTST.deposit(1e18, depositor);
         assertEq(eTST.balanceOf(depositor), 2e18);
 
+        assertEq(hookTarget.remainingPauseDuration(), 0);
         assertEq(hookTarget.isPaused(), false);
         assertEq(hookTarget.canBePaused(), false);
 
         skip(201);
 
+        assertEq(hookTarget.remainingPauseDuration(), 0);
         assertEq(hookTarget.isPaused(), false);
         assertEq(hookTarget.canBePaused(), true);
 
         vm.revertTo(snapshot);
 
         //unpause by time
-        skip(101);
+        assertEq(hookTarget.remainingPauseDuration(), 100);
+
+        skip(50);
+
+        assertEq(hookTarget.remainingPauseDuration(), 50);
+
+        skip(51);
+
+        assertEq(hookTarget.remainingPauseDuration(), 0);
 
         startHoax(depositor);
         eTST.deposit(1e18, depositor);
         assertEq(eTST.balanceOf(depositor), 2e18);
 
+        assertEq(hookTarget.remainingPauseDuration(), 0);
         assertEq(hookTarget.isPaused(), false);
         assertEq(hookTarget.canBePaused(), false);
 
         skip(100);
 
+        assertEq(hookTarget.remainingPauseDuration(), 0);
         assertEq(hookTarget.isPaused(), false);
         assertEq(hookTarget.canBePaused(), true);
     }

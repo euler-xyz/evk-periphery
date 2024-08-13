@@ -89,4 +89,13 @@ contract HookTargetGuardian is IHookTarget, AccessControlEnumerable {
         // The vault can be paused if the pause cooldown has passed since the last pause.
         return lastPauseTimestamp + PAUSE_COOLDOWN < block.timestamp;
     }
+
+    /// @notice Calculates the remaining duration of the current pause period.
+    /// @return The remaining pause duration in seconds.
+    function remainingPauseDuration() public view returns (uint256) {
+        if (!isPaused()) return 0;
+
+        uint256 endTime = lastPauseTimestamp + PAUSE_DURATION;
+        return endTime > block.timestamp ? endTime - block.timestamp : 0;
+    }
 }

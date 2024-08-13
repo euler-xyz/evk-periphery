@@ -176,4 +176,16 @@ contract GovernorGuardian is AccessControlEnumerable {
         return pauseData.hookTarget == address(0) && pauseData.lastPauseTimestamp + PAUSE_DURATION >= block.timestamp
             && IEVault(vault).governorAdmin() == address(this);
     }
+
+    /// @notice Calculates the remaining duration of the current pause period for a specific vault.
+    /// @param vault The address of the vault to check.
+    /// @return The remaining pause duration in seconds.
+    function remainingPauseDuration(address vault) public view returns (uint256) {
+        PauseData memory pauseData = pauseDatas[vault];
+
+        if (!pauseData.paused) return 0;
+
+        uint256 endTime = pauseData.lastPauseTimestamp + PAUSE_DURATION;
+        return endTime > block.timestamp ? endTime - block.timestamp : 0;
+    }
 }

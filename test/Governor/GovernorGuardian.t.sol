@@ -168,16 +168,21 @@ contract GovernorGuardianTests is EVaultTestBase {
 
         skip(200);
 
+        assertEq(governorGuardian.remainingPauseDuration(address(eTST)), 0);
         assertEq(governorGuardian.canBePaused(address(eTST)), true);
 
         startHoax(guardian);
         governorGuardian.pause(vaults);
 
+        assertEq(governorGuardian.remainingPauseDuration(address(eTST)), 100);
         assertEq(governorGuardian.canBeUnpaused(address(eTST), true), true);
         assertEq(governorGuardian.canBeUnpaused(address(eTST), false), false);
 
-        skip(101);
+        skip(50);
+        assertEq(governorGuardian.remainingPauseDuration(address(eTST)), 50);
 
+        skip(51);
+        assertEq(governorGuardian.remainingPauseDuration(address(eTST)), 0);
         assertEq(governorGuardian.canBeUnpaused(address(eTST), true), true);
         assertEq(governorGuardian.canBeUnpaused(address(eTST), false), true);
     }
@@ -353,6 +358,7 @@ contract GovernorGuardianTests is EVaultTestBase {
 
         skip(200);
 
+        assertEq(governorGuardian.remainingPauseDuration(vaults[0]), 0);
         assertEq(governorGuardian.canBePaused(vaults[0]), true);
 
         (address hook,) = IEVault(vaults[0]).hookConfig();
@@ -360,12 +366,14 @@ contract GovernorGuardianTests is EVaultTestBase {
 
         startHoax(guardian);
         governorGuardian.pause(vaults);
+        assertEq(governorGuardian.remainingPauseDuration(vaults[0]), 100);
 
         vm.expectRevert(Errors.E_OperationDisabled.selector);
         doDeposit(depositor, vaults[0], 1e18);
 
         startHoax(guardian);
         governorGuardian.changePauseStatus(vaults, OP_WITHDRAW);
+        assertEq(governorGuardian.remainingPauseDuration(vaults[0]), 100);
 
         doDeposit(depositor, vaults[0], 1e18);
         assertEq(IEVault(vaults[0]).balanceOf(depositor), 2e18);
@@ -507,6 +515,7 @@ contract GovernorGuardianTests is EVaultTestBase {
 
         startHoax(admin);
         governorGuardian.adminCall(vaults[0], data);
+        assertEq(governorGuardian.remainingPauseDuration(vaults[0]), 0);
         (hook, hooked) = IEVault(vaults[0]).hookConfig();
         assertEq(hook, mockTargetHook);
         assertEq(hooked, 2);
