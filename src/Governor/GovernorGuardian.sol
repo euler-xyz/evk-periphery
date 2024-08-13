@@ -60,6 +60,9 @@ contract GovernorGuardian is AccessControlEnumerable {
     }
 
     /// @notice Executes a call to a specified vault.
+    /// @dev For the `setHookConfig` call to be correctly intercepted by this function, do not nest those calls within
+    /// calls to the EVC, i.e. `call` or `batch`. Failure to do so may allow the GUARDIAN_ROLE to misconfigure the hook
+    /// config of the vault.
     /// @param vault The address of the vault to call.
     /// @param data The calldata to be called on the vault.
     /// @return result The result of the call.
