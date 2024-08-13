@@ -10,7 +10,8 @@ import {ExpWad} from "./lib/ExpWad.sol";
 /// If utilization persists below/above the kink the entire model is translated downward/upward.
 /// This mechanism adapts the interest rates to external changes in market rates and demand.
 /// @author Euler Labs (https://www.eulerlabs.com/).
-/// @author Inspired by Morpho Labs (https://github.com/morpho-org/morpho-blue-irm/blob/main/src/adaptive-curve-irm/AdaptiveCurveIrm.sol).
+/// @author Inspired by Morpho Labs
+/// (https://github.com/morpho-org/morpho-blue-irm/blob/main/src/adaptive-curve-irm/AdaptiveCurveIrm.sol).
 /// @custom:contact security@euler.xyz
 contract IRMAdaptiveLinearKink is IIRM {
     /// @dev Unit for internal precision.
@@ -35,8 +36,8 @@ contract IRMAdaptiveLinearKink is IIRM {
     int256 public immutable adjustmentSpeed;
 
     struct IRState {
-        int224 kinkRate;
-        uint32 lastUpdate;
+        int208 kinkRate;
+        uint48 lastUpdate;
     }
 
     /// @notice Get the cached state of a vault's irm.
@@ -72,7 +73,7 @@ contract IRMAdaptiveLinearKink is IIRM {
     function computeInterestRate(address vault, uint256 cash, uint256 borrows) external returns (uint256) {
         if (msg.sender != vault) revert E_IRMUpdateUnauthorized();
         (uint256 avgRate, int256 endKinkRate) = computeInterestRateInternal(vault, cash, borrows);
-        irState[vault] = IRState(int224(endKinkRate), uint32(block.timestamp));
+        irState[vault] = IRState(int208(endKinkRate), uint48(block.timestamp));
         return avgRate;
     }
 
@@ -147,15 +148,36 @@ contract IRMAdaptiveLinearKink is IIRM {
             coeff = slope - WAD;
         }
         // Non negative if kinkRate >= 0 because if err < 0, coeff <= 1.
-        return uint256(((coeff * err / WAD) + WAD) * kinkRate / WAD);
+        uint256 res = uint256(((coeff * err / WAD) + WAD) * kinkRate / WAD);
+        return res;
     }
+
+    // /// @dev Returns the rate for a given `_rateAtTarget` and an `err`.
+    // /// The formula of the curve is the following:
+    // /// r = ((1-1/C)*err + 1) * rateAtTarget if err < 0
+    // ///     ((C-1)*err + 1) * rateAtTarget else.
+    // function _curve(int256 _rateAtTarget, int256 err) private pure returns (int256) {
+    //     // Non negative because 1 - 1/C >= 0, C - 1 >= 0.
+    //     int256 coeff = err < 0 ? WAD - WAD.wDivToZero(ConstantsLib.CURVE_STEEPNESS) : ConstantsLib.CURVE_STEEPNESS -
+    // WAD;
+    //     // Non negative if _rateAtTarget >= 0 because if err < 0, coeff <= 1.
+    //     return (coeff.wMulToZero(err) + WAD).wMulToZero(int256(_rateAtTarget));
+    // }
 
     /// @dev Returns the new rate at target, for a given `startKinkRate` and a given `linearAdaptation`.
     function calcNewKinkRate(int256 startKinkRate, int256 linearAdaptation) internal view returns (int256) {
         // Non negative because minKinkRate > 0.
-        int256 rate = startKinkRate * ExpWad.expWad(linearAdaptation) / WAD;
-        if (rate < minKinkRate) return minKinkRate;
-        if (rate > maxKinkRate) return maxKinkRate;
-        return rate;
+        unchecked {
+            int256 expTerm = ExpWad.expWad(linearAdaptation);
+            int256 numerator = startKinkRate * expTerm;
+            if (numerator / startKinkRate != expTerm) {
+                // overflow detected
+                return maxKinkRate;
+            }
+            int256 rate = numerator / WAD;
+            if (rate < minKinkRate) return minKinkRate;
+            if (rate > maxKinkRate) return maxKinkRate;
+            return rate;
+        }
     }
 }

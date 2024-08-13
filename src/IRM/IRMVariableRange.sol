@@ -41,9 +41,9 @@ contract IRMVariableRange is IIRM {
     uint256 public immutable kinkRatePercent;
 
     struct IRState {
-        uint112 rate;
-        uint112 fullRate;
-        uint32 lastUpdate;
+        uint104 rate;
+        uint104 fullRate;
+        uint48 lastUpdate;
     }
 
     /// @notice Get the cached state of a vault's irm.
@@ -92,7 +92,7 @@ contract IRMVariableRange is IIRM {
     function computeInterestRate(address vault, uint256 cash, uint256 borrows) external returns (uint256) {
         if (msg.sender != vault) revert E_IRMUpdateUnauthorized();
         (uint256 rate, uint256 fullRate) = computeInterestRateInternal(vault, cash, borrows);
-        irState[vault] = IRState(uint112(rate), uint112(fullRate), uint32(block.timestamp));
+        irState[vault] = IRState(uint104(rate), uint104(fullRate), uint48(block.timestamp));
         return rate;
     }
 

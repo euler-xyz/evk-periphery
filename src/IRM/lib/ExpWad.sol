@@ -3,26 +3,21 @@ pragma solidity ^0.8.0;
 
 /// @notice Arithmetic library with operations for fixed-point numbers.
 /// @custom:security-contact security@euler.xyz
-/// @author Solady (https://github.com/Vectorized/solady/blob/main/src/utils/FixedPointMathLib.sol)
+/// @author Euler Labs (https://www.eulerlabs.com/).
+/// @author Modified from Solady (https://github.com/Vectorized/solady/blob/main/src/utils/FixedPointMathLib.sol)
 library ExpWad {
     /// @dev Returns `exp(x)`, denominated in `WAD`.
     /// Credit to Remco Bloemen under MIT license: https://2π.com/22/exp-ln
     /// Note: This function is an approximation. Monotonically increasing.
+    /// Modified to saturate on overflow (return `type(int256).max`) instead of reverting.
     function expWad(int256 x) internal pure returns (int256 r) {
         unchecked {
             // When the result is less than 0.5 we return zero.
             // This happens when `x <= (log(1e-18) * 1e18) ~ -4.15e19`.
             if (x <= -41446531673892822313) return r;
-
-            /// @solidity memory-safe-assembly
-            assembly {
-                // When the result is greater than `(2**255 - 1) / 1e18` we can not represent it as
-                // an int. This happens when `x >= floor(log((2**255 - 1) / 1e18) * 1e18) ≈ 135`.
-                if iszero(slt(x, 135305999368893231589)) {
-                    mstore(0x00, 0xa37bfec9) // `ExpOverflow()`.
-                    revert(0x1c, 0x04)
-                }
-            }
+            // When the result is greater than `(2**255 - 1) / 1e18` we can not represent it as
+            // an int. This happens when `x >= floor(log((2**255 - 1) / 1e18) * 1e18) ≈ 135`.
+            if (x >= 135305999368893231589) return type(int256).max;
 
             // `x` is now in the range `(-42, 136) * 1e18`. Convert to `(-42, 136) * 2**96`
             // for more intermediate precision and a binary basis. This base conversion

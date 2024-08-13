@@ -16,15 +16,15 @@ contract DeployLenses is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         AccountLens accountLens = new AccountLens();
-        OracleLens oracleLens = new OracleLens();
+        // OracleLens oracleLens = new OracleLens();
         UtilsLens utilsLens = new UtilsLens();
-        VaultLens vaultLens = new VaultLens(address(oracleLens));
+        // VaultLens vaultLens = new VaultLens(address(oracleLens));
 
         vm.stopBroadcast();
 
         console.log("AccountLens deployed at: ", address(accountLens));
-        console.log("OracleLens deployed at: ", address(oracleLens));
+        // console.log("OracleLens deployed at: ", address(oracleLens));
         console.log("UtilsLens deployed at: ", address(utilsLens));
-        console.log("VaultLens deployed at: ", address(vaultLens));
+        // console.log("VaultLens deployed at: ", address(vaultLens));
     }
 }

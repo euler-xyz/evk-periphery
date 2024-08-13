@@ -31,8 +31,8 @@ contract IRMTimeWeightedVariable is IIRM {
     uint256 public immutable halfLife;
 
     struct IRState {
-        uint224 rate;
-        uint32 lastUpdate;
+        uint208 rate;
+        uint48 lastUpdate;
     }
 
     /// @notice Get the cached state of a vault's irm.
@@ -67,7 +67,7 @@ contract IRMTimeWeightedVariable is IIRM {
     function computeInterestRate(address vault, uint256 cash, uint256 borrows) external returns (uint256) {
         if (msg.sender != vault) revert E_IRMUpdateUnauthorized();
         uint256 rate = computeInterestRateInternal(vault, cash, borrows);
-        irState[vault] = IRState(uint224(rate), uint32(block.timestamp));
+        irState[vault] = IRState(uint208(rate), uint48(block.timestamp));
         return rate;
     }
 
