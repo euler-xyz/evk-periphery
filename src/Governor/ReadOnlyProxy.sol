@@ -19,6 +19,7 @@ contract ReadOnlyProxy {
 
     /// @dev Callable only by fallback, delegate calls original payload in a static frame,
     /// which means any state mutation will cause a revert
+    /// @dev It should be ensured that the function signature has no collision with the target contract
     function roProxyDelegateView(bytes memory payload) external returns (bytes memory) {
         require(msg.sender == address(this), "unauthorized");
 
@@ -47,6 +48,7 @@ contract ReadOnlyProxy {
     }
 
     /// @notice retrieve the implementation contract to which calls are forwarded
+    /// @dev It should be ensured that the function signature has no collision with the target contract
     function roProxyImplementation() external view returns (address) {
         return implementation;
     }
