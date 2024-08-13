@@ -147,14 +147,14 @@ contract GovernorGuardianTests is EVaultTestBase {
         governorGuardian.pause(vaults);
     }
 
-    function test_GovernorGuardian_canBePause_IfNoSetGovernorAdmin() external {
+    function test_GovernorGuardian_canBePaused_IfNoSetGovernorAdmin() external {
         assertEq(eTST2.governorAdmin(), address(this));
         assertEq(governorGuardian.canBePaused(address(eTST2)), false);
         skip(200);
         assertEq(governorGuardian.canBePaused(address(eTST2)), false);
     }
 
-    function test_GovernorGuardian_canBePause_IfSetGovernorAdmin() external {
+    function test_GovernorGuardian_canBePaused_IfSetGovernorAdmin() external {
         assertEq(eTST.governorAdmin(), address(governorGuardian));
         assertEq(governorGuardian.canBePaused(address(eTST)), false);
         skip(200);
@@ -440,6 +440,90 @@ contract GovernorGuardianTests is EVaultTestBase {
         startHoax(depositor);
         vm.expectRevert(Errors.E_OperationDisabled.selector);
         IEVault(vaults[0]).withdraw(1e18, depositor, depositor);
+    }
+
+    function test_GovernorGuardian_hookConfigCaching() external {
+        skip(200);
+
+        address mockTargetHook = address(new MockTargetHook());
+        bytes memory data = abi.encodeWithSelector(IEVault(vaults[0]).setHookConfig.selector, mockTargetHook, 1);
+
+        startHoax(admin);
+        governorGuardian.adminCall(vaults[0], data);
+        (address hook, uint32 hooked) = IEVault(vaults[0]).hookConfig();
+        assertEq(hook, mockTargetHook);
+        assertEq(hooked, 1);
+
+        startHoax(guardian);
+        assertEq(governorGuardian.canBePaused(vaults[0]), true);
+        governorGuardian.pause(vaults);
+
+        (hook, hooked) = IEVault(vaults[0]).hookConfig();
+        assertEq(hook, address(0));
+        assertEq(hooked, OP_MAX_VALUE - 1);
+
+        // unpausing brings back cached config
+        uint256 snapshot = vm.snapshot();
+        governorGuardian.unpause(vaults);
+
+        (hook, hooked) = IEVault(vaults[0]).hookConfig();
+        assertEq(hook, mockTargetHook);
+        assertEq(hooked, 1);
+
+        // pausing and unpausing again brings back cached config too
+        skip(201);
+        assertEq(governorGuardian.canBePaused(vaults[0]), true);
+        governorGuardian.pause(vaults);
+
+        (hook, hooked) = IEVault(vaults[0]).hookConfig();
+        assertEq(hook, address(0));
+        assertEq(hooked, OP_MAX_VALUE - 1);
+
+        governorGuardian.unpause(vaults);
+        (hook, hooked) = IEVault(vaults[0]).hookConfig();
+        assertEq(hook, mockTargetHook);
+        assertEq(hooked, 1);
+
+        // pausing twice and unpausing brings back cached config correctly
+        vm.revertTo(snapshot);
+        skip(201);
+        assertEq(governorGuardian.canBePaused(vaults[0]), true);
+        governorGuardian.pause(vaults);
+
+        (hook, hooked) = IEVault(vaults[0]).hookConfig();
+        assertEq(hook, address(0));
+        assertEq(hooked, OP_MAX_VALUE - 1);
+
+        governorGuardian.unpause(vaults);
+        (hook, hooked) = IEVault(vaults[0]).hookConfig();
+        assertEq(hook, mockTargetHook);
+        assertEq(hooked, 1);
+
+        // admin config change is equivalent to unpause from the hook config caching standpoint.
+        // hence, even if paused twice and unpaused, the cached config is brought back correctly
+        vm.revertTo(snapshot);
+        mockTargetHook = address(new MockTargetHook());
+        data = abi.encodeWithSelector(IEVault(vaults[0]).setHookConfig.selector, mockTargetHook, 2);
+
+        startHoax(admin);
+        governorGuardian.adminCall(vaults[0], data);
+        (hook, hooked) = IEVault(vaults[0]).hookConfig();
+        assertEq(hook, mockTargetHook);
+        assertEq(hooked, 2);
+
+        skip(201);
+        startHoax(guardian);
+        assertEq(governorGuardian.canBePaused(vaults[0]), true);
+        governorGuardian.pause(vaults);
+
+        (hook, hooked) = IEVault(vaults[0]).hookConfig();
+        assertEq(hook, address(0));
+        assertEq(hooked, OP_MAX_VALUE - 1);
+
+        governorGuardian.unpause(vaults);
+        (hook, hooked) = IEVault(vaults[0]).hookConfig();
+        assertEq(hook, mockTargetHook);
+        assertEq(hooked, 2);
     }
 
     function expectAccessControlRevert(address account, bytes32 role) internal {

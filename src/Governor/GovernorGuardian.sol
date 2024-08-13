@@ -14,13 +14,15 @@ import "evk/EVault/shared/Constants.sol";
 /// guardian or after the pause duration.
 contract GovernorGuardian is AccessControlEnumerable {
     /// @notice Struct to store pause data for a vault.
+    /// @param paused Boolean indicating whether the vault is currently paused.
+    /// @param lastPauseTimestamp The timestamp of the last pause.
     /// @param hookTarget The cached target address for the hook configuration.
     /// @param hookedOps The cached bitmap of the operations that are hooked.
-    /// @param lastPauseTimestamp The timestamp of the last pause.
     struct PauseData {
+        bool paused;
+        uint48 lastPauseTimestamp;
         address hookTarget;
         uint32 hookedOps;
-        uint48 lastPauseTimestamp;
     }
 
     /// @notice Mapping to store pause data for each vault.
@@ -76,6 +78,7 @@ contract GovernorGuardian is AccessControlEnumerable {
 
         // If the call is a setHookConfig call, update the pause data.
         if (bytes4(data) == IEVault(vault).setHookConfig.selector) {
+            pauseDatas[vault].paused = false;
             (pauseDatas[vault].hookTarget, pauseDatas[vault].hookedOps) = IEVault(vault).hookConfig();
         }
 
@@ -90,9 +93,13 @@ contract GovernorGuardian is AccessControlEnumerable {
 
             if (!canBePaused(vault)) continue;
 
-            // Cache the hook configuration.
-            (pauseDatas[vault].hookTarget, pauseDatas[vault].hookedOps) = IEVault(vault).hookConfig();
+            pauseDatas[vault].paused = true;
             pauseDatas[vault].lastPauseTimestamp = uint48(block.timestamp);
+
+            // Cache the hook configuration only if the vault wasn't previously paused or was explicitly unpaused.
+            if (!pauseDatas[vault].paused) {
+                (pauseDatas[vault].hookTarget, pauseDatas[vault].hookedOps) = IEVault(vault).hookConfig();
+            }
 
             // Disable all operations.
             IEVault(vault).setHookConfig(address(0), (OP_MAX_VALUE - 1));
@@ -110,6 +117,8 @@ contract GovernorGuardian is AccessControlEnumerable {
             address vault = vaults[i];
 
             if (!canBeUnpaused(vault, guardianCalling)) continue;
+
+            pauseDatas[vault].paused = false;
 
             // Restore the hook configuration.
             IEVault(vault).setHookConfig(pauseDatas[vault].hookTarget, pauseDatas[vault].hookedOps);
