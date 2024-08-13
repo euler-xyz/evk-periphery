@@ -19,7 +19,8 @@ contract FactoryGovernor is AccessControlEnumerable {
 
     /// @notice Event emitted when a factory is paused.
     /// @param factory The factory that was paused.
-    event Paused(address indexed factory);
+    /// @param roProxy Address of the read-only proxy which was installed
+    event Paused(address indexed factory, address indexed roProxy);
 
     /// @notice Constructor to set the initial admin of the contract.
     /// @param admin The address of the initial admin.
@@ -57,7 +58,7 @@ contract FactoryGovernor is AccessControlEnumerable {
             address readOnlyProxy = address(new ReadOnlyProxy(oldImplementation));
             GenericFactory(factory).setImplementation(readOnlyProxy);
 
-            emit Paused(factory);
+            emit Paused(factory, readOnlyProxy);
         }
     }
 }
