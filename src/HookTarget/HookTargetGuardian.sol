@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
+import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
 import {IHookTarget} from "evk/interfaces/IHookTarget.sol";
 
 /// @title HookTargetGuardian
@@ -11,7 +11,7 @@ import {IHookTarget} from "evk/interfaces/IHookTarget.sol";
 /// @notice A contract that allows to pause operations that are hooked for the vaults that have this contract installed
 /// as a hook target. The operations remain paused temporarily until either the PAUSE_DURATION elapses or the guardian
 /// calls the unpause function, whichever occurs first.
-contract HookTargetGuardian is IHookTarget, AccessControl {
+contract HookTargetGuardian is IHookTarget, AccessControlEnumerable {
     /// @notice Indicates whether the vault operations are currently paused.
     bool paused;
 
