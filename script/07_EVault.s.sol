@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
-import {EulerRouterFactory} from "../src/OracleFactory/EulerRouterFactory.sol";
+import {EulerRouterFactory} from "../src/EulerRouterFactory/EulerRouterFactory.sol";
 
 contract EVault is ScriptUtils {
     function run() public broadcast returns (address oracleRouter, address eVault) {

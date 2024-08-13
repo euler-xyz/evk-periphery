@@ -499,17 +499,20 @@ while true; do
             read -p "Enter the Oracle Router Factory address: " oracle_router_factory
             read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
             read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+            read -p "Enter the IRM Registry address: " irm_registry
 
             jq -n \
                 --arg eVaultFactory "$evault_factory" \
                 --arg oracleRouterFactory "$oracle_router_factory" \
                 --arg oracleAdapterRegistry "$oracle_adapter_registry" \
                 --arg kinkIRMFactory "$kink_irm_factory" \
+                --arg irmRegistry "$irm_registry" \
                 '{
                     eVaultFactory: $eVaultFactory,
                     oracleRouterFactory: $oracleRouterFactory,
                     oracleAdapterRegistry: $oracleAdapterRegistry,
                     kinkIRMFactory: $kinkIRMFactory
+                    irmRegistry: $irmRegistry
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         10)

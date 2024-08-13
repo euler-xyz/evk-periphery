@@ -63,6 +63,7 @@ contract CoreInfoLib is Script {
         address oracleAdapterRegistry;
         address externalVaultRegistry;
         address kinkIRMFactory;
+        address irmRegistry;
         address eVaultImplementation;
         address eVaultFactory;
         address accountLens;
@@ -88,6 +89,7 @@ contract CoreInfoLib is Script {
         result = vm.serializeAddress("coreInfo", "oracleAdapterRegistry", info.oracleAdapterRegistry);
         result = vm.serializeAddress("coreInfo", "externalVaultRegistry", info.externalVaultRegistry);
         result = vm.serializeAddress("coreInfo", "kinkIRMFactory", info.kinkIRMFactory);
+        result = vm.serializeAddress("coreInfo", "irmRegistry", info.irmRegistry);
         result = vm.serializeAddress("coreInfo", "eVaultImplementation", info.eVaultImplementation);
         result = vm.serializeAddress("coreInfo", "eVaultFactory", info.eVaultFactory);
         result = vm.serializeAddress("coreInfo", "accountLens", info.accountLens);
@@ -114,6 +116,7 @@ contract CoreInfoLib is Script {
             oracleAdapterRegistry: abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address)),
             externalVaultRegistry: abi.decode(vm.parseJson(json, ".externalVaultRegistry"), (address)),
             kinkIRMFactory: abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address)),
+            irmRegistry: abi.decode(vm.parseJson(json, ".irmRegistry"), (address)),
             eVaultImplementation: abi.decode(vm.parseJson(json, ".eVaultImplementation"), (address)),
             eVaultFactory: abi.decode(vm.parseJson(json, ".eVaultFactory"), (address)),
             accountLens: abi.decode(vm.parseJson(json, ".accountLens"), (address)),

@@ -10,7 +10,8 @@ contract EulerBasePerspectiveHarness is EulerBasePerspective {
         address routerFactory_,
         address adapterRegistry_,
         address externalVaultRegistry_,
-        address irmFactory_
+        address irmFactory_,
+        address irmRegistry
     )
         EulerBasePerspective(
             vaultFactory_,
@@ -18,6 +19,7 @@ contract EulerBasePerspectiveHarness is EulerBasePerspective {
             adapterRegistry_,
             externalVaultRegistry_,
             irmFactory_,
+            irmRegistry,
             new address[](0)
         )
     {}

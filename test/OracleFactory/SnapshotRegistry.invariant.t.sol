@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import {Test} from "forge-std/Test.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {SnapshotRegistry} from "../../src/OracleFactory/SnapshotRegistry.sol";
+import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 
 uint160 constant ADDRESS_ORDER = 10;
 

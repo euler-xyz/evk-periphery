@@ -5,15 +5,16 @@ pragma solidity ^0.8.24;
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {TestERC20} from "evk-test/mocks/TestERC20.sol";
+import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
 import {EulerBasePerspective} from "../../src/Perspectives/deployed/EulerBasePerspective.sol";
 import {EscrowPerspective} from "../../src/Perspectives/deployed/EscrowPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
-import {SnapshotRegistry} from "../../src/OracleFactory/SnapshotRegistry.sol";
+import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
-import {EulerRouterFactory} from "../../src/OracleFactory/EulerRouterFactory.sol";
+import {EulerRouterFactory} from "../../src/EulerRouterFactory/EulerRouterFactory.sol";
 import {StubPriceOracle} from "../utils/StubPriceOracle.sol";
 import {StubERC4626} from "../utils/StubERC4626.sol";
 
@@ -29,6 +30,7 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
     SnapshotRegistry adapterRegistry;
     SnapshotRegistry externalVaultRegistry;
     EulerKinkIRMFactory irmFactory;
+    SnapshotRegistry irmRegistry;
 
     EscrowPerspective escrowPerspective;
     EulerBasePerspective eulerBasePerspective1;
@@ -62,33 +64,15 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         router = EulerRouter(routerFactory.deploy(routerGovernor));
         adapterRegistry = new SnapshotRegistry(registryOwner);
         externalVaultRegistry = new SnapshotRegistry(registryOwner);
-
-        // configure the oracle
-        address stubAdapter_assetTST_USD = address(new StubPriceOracle());
-        address stubAdapter_assetTST_WETH = address(new StubPriceOracle());
-        address stubAdapter_assetTST2_USD = address(new StubPriceOracle());
-        address stubAdapter_assetTST2_WETH = address(new StubPriceOracle());
-        address stubAdapter_assetTST3_USD = address(new StubPriceOracle());
-        address stubAdapter_assetTST3_WETH = address(new StubPriceOracle());
-        address stubAdapter_assetTST4_USD = address(new StubPriceOracle());
-        address stubAdapter_assetTST4_WETH = address(new StubPriceOracle());
-        vm.startPrank(registryOwner);
-        adapterRegistry.add(stubAdapter_assetTST_USD, address(assetTST), USD);
-        adapterRegistry.add(stubAdapter_assetTST_WETH, address(assetTST), WETH);
-        adapterRegistry.add(stubAdapter_assetTST2_USD, address(assetTST2), USD);
-        adapterRegistry.add(stubAdapter_assetTST2_WETH, address(assetTST2), WETH);
-        adapterRegistry.add(stubAdapter_assetTST3_USD, address(assetTST3), USD);
-        adapterRegistry.add(stubAdapter_assetTST3_WETH, address(assetTST3), WETH);
-        adapterRegistry.add(stubAdapter_assetTST4_USD, address(assetTST4), USD);
-        adapterRegistry.add(stubAdapter_assetTST4_WETH, address(assetTST4), WETH);
-        externalVaultRegistry.add(address(xvTST3), address(xvTST3), address(assetTST3));
-        externalVaultRegistry.add(address(xvTST4), address(xvTST4), address(assetTST4));
-        vm.stopPrank();
+        irmFactory = new EulerKinkIRMFactory();
+        irmRegistry = new SnapshotRegistry(registryOwner);
 
         // deploy the IRMs
         irmFactory = new EulerKinkIRMFactory();
         address irmZero = irmFactory.deploy(0, 0, 0, 0);
         address irmDefault = irmFactory.deploy(0, 1406417851, 19050045013, 2147483648);
+        address irmCustom1 = address(new IRMLinearKink(0, 1, 2, 3));
+        address irmCustom2 = address(new IRMLinearKink(0, 4, 5, 6));
 
         // deploy different perspectives
         escrowPerspective = new EscrowPerspective(address(factory));
@@ -101,6 +85,7 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
             address(adapterRegistry),
             address(externalVaultRegistry),
             address(irmFactory),
+            address(irmRegistry),
             recognizedCollateralPerspectives
         );
 
@@ -111,6 +96,7 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
             address(adapterRegistry),
             address(externalVaultRegistry),
             address(irmFactory),
+            address(irmRegistry),
             recognizedCollateralPerspectives
         );
 
@@ -123,6 +109,7 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
             address(adapterRegistry),
             address(externalVaultRegistry),
             address(irmFactory),
+            address(irmRegistry),
             recognizedCollateralPerspectives
         );
 
@@ -135,26 +122,55 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         vaultBase5xv = factory.createProxy(address(0), true, abi.encodePacked(address(xvTST3), router, WETH));
         vaultBase6xv = factory.createProxy(address(0), true, abi.encodePacked(address(xvTST4), router, USD));
 
-        // further configure the oracle
-        vm.startPrank(routerGovernor);
-        router.govSetResolvedVault(vaultEscrow, true);
-        router.govSetResolvedVault(vaultBase1, true);
-        router.govSetResolvedVault(vaultBase2, true);
-        router.govSetResolvedVault(vaultBase3, true);
-        router.govSetResolvedVault(vaultBase4, true);
-        router.govSetResolvedVault(vaultBase5xv, true);
-        router.govSetResolvedVault(vaultBase6xv, true);
-        router.govSetResolvedVault(address(xvTST3), true);
-        router.govSetResolvedVault(address(xvTST4), true);
-        router.govSetConfig(address(assetTST), USD, stubAdapter_assetTST_USD);
-        router.govSetConfig(address(assetTST), WETH, stubAdapter_assetTST_WETH);
-        router.govSetConfig(address(assetTST2), USD, stubAdapter_assetTST2_USD);
-        router.govSetConfig(address(assetTST2), WETH, stubAdapter_assetTST2_WETH);
-        router.govSetConfig(address(assetTST3), USD, stubAdapter_assetTST3_USD);
-        router.govSetConfig(address(assetTST3), WETH, stubAdapter_assetTST3_WETH);
-        router.govSetConfig(address(assetTST4), USD, stubAdapter_assetTST4_USD);
-        router.govSetConfig(address(assetTST4), WETH, stubAdapter_assetTST4_WETH);
-        router.transferGovernance(address(0));
+        {
+            // configure the oracle
+            address stubAdapter_assetTST_USD = address(new StubPriceOracle());
+            address stubAdapter_assetTST_WETH = address(new StubPriceOracle());
+            address stubAdapter_assetTST2_USD = address(new StubPriceOracle());
+            address stubAdapter_assetTST2_WETH = address(new StubPriceOracle());
+            address stubAdapter_assetTST3_USD = address(new StubPriceOracle());
+            address stubAdapter_assetTST3_WETH = address(new StubPriceOracle());
+            address stubAdapter_assetTST4_USD = address(new StubPriceOracle());
+            address stubAdapter_assetTST4_WETH = address(new StubPriceOracle());
+            vm.startPrank(registryOwner);
+            adapterRegistry.add(stubAdapter_assetTST_USD, address(assetTST), USD);
+            adapterRegistry.add(stubAdapter_assetTST_WETH, address(assetTST), WETH);
+            adapterRegistry.add(stubAdapter_assetTST2_USD, address(assetTST2), USD);
+            adapterRegistry.add(stubAdapter_assetTST2_WETH, address(assetTST2), WETH);
+            adapterRegistry.add(stubAdapter_assetTST3_USD, address(assetTST3), USD);
+            adapterRegistry.add(stubAdapter_assetTST3_WETH, address(assetTST3), WETH);
+            adapterRegistry.add(stubAdapter_assetTST4_USD, address(assetTST4), USD);
+            adapterRegistry.add(stubAdapter_assetTST4_WETH, address(assetTST4), WETH);
+            externalVaultRegistry.add(address(xvTST3), address(xvTST3), address(assetTST3));
+            externalVaultRegistry.add(address(xvTST4), address(xvTST4), address(assetTST4));
+            vm.stopPrank();
+
+            // further configure the oracle
+            vm.startPrank(routerGovernor);
+            router.govSetResolvedVault(vaultEscrow, true);
+            router.govSetResolvedVault(vaultBase1, true);
+            router.govSetResolvedVault(vaultBase2, true);
+            router.govSetResolvedVault(vaultBase3, true);
+            router.govSetResolvedVault(vaultBase4, true);
+            router.govSetResolvedVault(vaultBase5xv, true);
+            router.govSetResolvedVault(vaultBase6xv, true);
+            router.govSetResolvedVault(address(xvTST3), true);
+            router.govSetResolvedVault(address(xvTST4), true);
+            router.govSetConfig(address(assetTST), USD, stubAdapter_assetTST_USD);
+            router.govSetConfig(address(assetTST), WETH, stubAdapter_assetTST_WETH);
+            router.govSetConfig(address(assetTST2), USD, stubAdapter_assetTST2_USD);
+            router.govSetConfig(address(assetTST2), WETH, stubAdapter_assetTST2_WETH);
+            router.govSetConfig(address(assetTST3), USD, stubAdapter_assetTST3_USD);
+            router.govSetConfig(address(assetTST3), WETH, stubAdapter_assetTST3_WETH);
+            router.govSetConfig(address(assetTST4), USD, stubAdapter_assetTST4_USD);
+            router.govSetConfig(address(assetTST4), WETH, stubAdapter_assetTST4_WETH);
+            router.transferGovernance(address(0));
+            vm.stopPrank();
+        }
+
+        // add the custom IRM to the registry
+        vm.startPrank(registryOwner);
+        irmRegistry.add(address(irmCustom1), address(0), address(0));
         vm.stopPrank();
 
         // configure the vaults
@@ -176,14 +192,14 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         IEVault(vaultBase2).setHookConfig(address(0), 0);
         IEVault(vaultBase2).setGovernorAdmin(address(0));
 
-        IEVault(vaultBase3).setInterestRateModel(irmDefault);
+        IEVault(vaultBase3).setInterestRateModel(irmCustom1);
         IEVault(vaultBase3).setMaxLiquidationDiscount(0.2e4);
         IEVault(vaultBase3).setLiquidationCoolOffTime(1);
         IEVault(vaultBase3).setLTV(vaultEscrow, 0.5e4, 0.6e4, 0);
         IEVault(vaultBase3).setHookConfig(address(0), 0);
         IEVault(vaultBase3).setGovernorAdmin(address(0));
 
-        IEVault(vaultBase4).setInterestRateModel(irmDefault);
+        IEVault(vaultBase4).setInterestRateModel(irmCustom2);
         IEVault(vaultBase4).setMaxLiquidationDiscount(0.2e4);
         IEVault(vaultBase4).setLiquidationCoolOffTime(1);
         IEVault(vaultBase4).setLTV(vaultEscrow, 0.7e4, 0.8e4, 0);
