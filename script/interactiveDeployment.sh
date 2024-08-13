@@ -511,7 +511,7 @@ while true; do
                     eVaultFactory: $eVaultFactory,
                     oracleRouterFactory: $oracleRouterFactory,
                     oracleAdapterRegistry: $oracleAdapterRegistry,
-                    kinkIRMFactory: $kinkIRMFactory
+                    kinkIRMFactory: $kinkIRMFactory,
                     irmRegistry: $irmRegistry
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
