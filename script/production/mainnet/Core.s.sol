@@ -24,7 +24,7 @@ contract Core is ScriptUtils, CoreInfoLib {
 
     uint256 internal constant FEE_FLOW_INIT_PRICE = 1e18;
     address internal constant FEE_FLOW_PAYMENT_TOKEN = EUL;
-    address internal constant FEE_FLOW_PAYMENT_RECEIVER = 0x0000000000000000000000000000000000000000; // TODO
+    address internal constant FEE_FLOW_PAYMENT_RECEIVER = 0xcAD001c30E96765aC90307669d578219D4fb1DCe; // Euler DAO multi-sig
     uint256 internal constant FEE_FLOW_EPOCH_PERIOD = 14 days;
     uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18;
     uint256 internal constant FEE_FLOW_MIN_INIT_PRICE = 1e6;
