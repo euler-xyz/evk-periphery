@@ -118,7 +118,7 @@ contract PythAdapter is ScriptUtils {
         address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
         bytes32 feedId = abi.decode(vm.parseJson(json, ".feedId"), (bytes32));
         uint256 maxStaleness = abi.decode(vm.parseJson(json, ".maxStaleness"), (uint256));
-        uint256 maxConfWidth = abi.decode(vm.parseJson(json, ".maxStaleness"), (uint256));
+        uint256 maxConfWidth = abi.decode(vm.parseJson(json, ".maxConfWidth"), (uint256));
 
         adapter = execute(adapterRegistry, pyth, base, quote, feedId, maxStaleness, maxConfWidth);
 
