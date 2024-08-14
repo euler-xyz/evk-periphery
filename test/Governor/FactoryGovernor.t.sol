@@ -55,7 +55,7 @@ contract FactoryGovernorTests is EVaultTestBase {
 
         vm.prank(guardian);
         vm.expectEmit(true, false, false, false);
-        emit FactoryGovernor.Paused(address(factory), address(1));
+        emit FactoryGovernor.Paused(guardian, address(factory), address(1));
         factoryGovernor.pause(address(factory));
 
         // balanceOf is embedded in EVault
@@ -99,7 +99,7 @@ contract FactoryGovernorTests is EVaultTestBase {
 
         vm.prank(admin);
         vm.expectEmit(true, false, false, false);
-        emit FactoryGovernor.Paused(address(factory), address(1));
+        emit FactoryGovernor.Paused(admin, address(factory), address(1));
         factoryGovernor.pause(address(factory));
 
         // balanceOf is embedded in EVault
@@ -119,7 +119,7 @@ contract FactoryGovernorTests is EVaultTestBase {
     function test_FactoryGovernor_triggerEmergencyMultipleTimes() external {
         vm.prank(guardian);
         vm.expectEmit(true, false, false, false);
-        emit FactoryGovernor.Paused(address(factory), address(1));
+        emit FactoryGovernor.Paused(guardian, address(factory), address(1));
         factoryGovernor.pause(address(factory));
 
         vm.prank(guardian);

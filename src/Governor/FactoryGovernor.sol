@@ -17,10 +17,17 @@ contract FactoryGovernor is AccessControlEnumerable {
     /// @notice Role identifier for the guardian role.
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
+    /// @notice Event emitted when an admin call is made to a factory.
+    /// @param admin The address of the admin making the call.
+    /// @param factory The address of the factory being called.
+    /// @param data The calldata of the admin call.
+    event AdminCall(address indexed admin, address indexed factory, bytes data);
+
     /// @notice Event emitted when a factory is paused.
-    /// @param factory The factory that was paused.
-    /// @param roProxy Address of the read-only proxy which was installed
-    event Paused(address indexed factory, address indexed roProxy);
+    /// @param guardian The address of the guardian who paused the factory.
+    /// @param factory The address of the factory that was paused.
+    /// @param roProxy The address of the read-only proxy which was installed.
+    event Paused(address indexed guardian, address indexed factory, address indexed roProxy);
 
     /// @notice Constructor to set the initial admin of the contract.
     /// @param admin The address of the initial admin.
@@ -39,6 +46,7 @@ contract FactoryGovernor is AccessControlEnumerable {
     {
         (bool success, bytes memory result) = factory.call(data);
         if (!success) RevertBytes.revertBytes(result);
+        emit AdminCall(_msgSender(), factory, data);
         return result;
     }
 
@@ -58,7 +66,7 @@ contract FactoryGovernor is AccessControlEnumerable {
             address readOnlyProxy = address(new ReadOnlyProxy(oldImplementation));
             GenericFactory(factory).setImplementation(readOnlyProxy);
 
-            emit Paused(factory, readOnlyProxy);
+            emit Paused(_msgSender(), factory, readOnlyProxy);
         }
     }
 }

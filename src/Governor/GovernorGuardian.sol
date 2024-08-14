@@ -37,17 +37,26 @@ contract GovernorGuardian is AccessControlEnumerable {
     /// @notice The cooldown period before a vault can be paused again.
     uint256 public immutable PAUSE_COOLDOWN;
 
+    /// @notice Event emitted when an admin call is made to a vault.
+    /// @param admin The address of the admin making the call.
+    /// @param vault The address of the vault being called.
+    /// @param data The calldata of the admin call.
+    event AdminCall(address indexed admin, address indexed vault, bytes data);
+
     /// @notice Event emitted when a vault is paused.
-    /// @param vault The vault that was paused.
-    event Paused(address indexed vault);
+    /// @param guardian The address of the guardian who paused the vault.
+    /// @param vault The address of the vault that was paused.
+    event Paused(address indexed guardian, address indexed vault);
 
     /// @notice Event emitted when a vault is unpaused.
-    /// @param vault The vault that was unpaused.
-    event Unpaused(address indexed vault);
+    /// @param guardian The address of the guardian who unpaused the vault.
+    /// @param vault The address of the vault that was unpaused.
+    event Unpaused(address indexed guardian, address indexed vault);
 
     /// @notice Event emitted when the pause status of a vault changes.
+    /// @param guardian The address of the guardian who changed the pause status.
     /// @param vault The address of the vault whose pause status changed.
-    event PauseStatusChanged(address indexed vault);
+    event PauseStatusChanged(address indexed guardian, address indexed vault);
 
     /// @notice Constructor to initialize the contract with the given admin, pause duration, and pause cooldown.
     /// @param admin The address of the initial admin.
@@ -82,6 +91,8 @@ contract GovernorGuardian is AccessControlEnumerable {
             (pauseDatas[vault].hookTarget, pauseDatas[vault].hookedOps) = IEVault(vault).hookConfig();
         }
 
+        emit AdminCall(_msgSender(), vault, data);
+
         return result;
     }
 
@@ -104,7 +115,7 @@ contract GovernorGuardian is AccessControlEnumerable {
             // Disable all operations.
             IEVault(vault).setHookConfig(address(0), (OP_MAX_VALUE - 1));
 
-            emit Paused(vault);
+            emit Paused(_msgSender(), vault);
         }
     }
 
@@ -123,7 +134,7 @@ contract GovernorGuardian is AccessControlEnumerable {
             // Restore the hook configuration.
             IEVault(vault).setHookConfig(pauseDatas[vault].hookTarget, pauseDatas[vault].hookedOps);
 
-            emit Unpaused(vault);
+            emit Unpaused(_msgSender(), vault);
         }
     }
 
@@ -139,7 +150,7 @@ contract GovernorGuardian is AccessControlEnumerable {
             // Change the hook configuration, i.e. by unpausing the selected operations.
             IEVault(vault).setHookConfig(address(0), newHookedOps);
 
-            emit PauseStatusChanged(vault);
+            emit PauseStatusChanged(_msgSender(), vault);
         }
     }
 
