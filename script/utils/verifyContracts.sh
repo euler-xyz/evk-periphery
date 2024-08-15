@@ -5,17 +5,10 @@ function verify_contract {
     local contractAddress=$1
     local contractName=$2
     local chain=$(get_chain_from_id $chainId)
-    local verify_command="forge verify-contract $contractAddress $contractName --rpc-url $DEPLOYMENT_RPC_URL --chain $chain --verifier-url $VERIFIER_URL --etherscan-api-key $VERIFIER_API_KEY --skip-is-verified-check --watch"
+    local verify_command="forge verify-contract $contractAddress $contractName --guess-constructor-args --rpc-url $DEPLOYMENT_RPC_URL --chain $chain --verifier-url $VERIFIER_URL --etherscan-api-key $VERIFIER_API_KEY --watch"
     
     echo "Verifying $contractName: $contractAddress"
-    result=$(eval $verify_command --flatten --force 2>&1)
-
-    if [[ "$result" != *"Contract successfully verified"* ]]; then
-        result=$(eval $verify_command 2>&1)
-        if [[ "$result" != *"Contract successfully verified"* ]]; then
-            echo "Failure"
-        fi
-    fi
+    result=$(eval $verify_command)
 }
 
 function get_chain_from_id {
