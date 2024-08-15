@@ -5,6 +5,8 @@ import {Test} from "forge-std/Test.sol";
 import {IRMVariableRange} from "../../../src/IRM/IRMVariableRange.sol";
 import {IRMVariableRangeHarness} from "./IRMVariableRangeHarness.sol";
 
+/// forge-config: default.invariant.runs = 100
+/// forge-config: default.invariant.depth = 100
 contract IRMVariableRangeInvariantTest is Test {
     uint256 internal constant SECONDS_PER_YEAR = 365 days;
     uint256 internal constant targetUtilizationLower = 0.7e18;
@@ -73,8 +75,6 @@ contract IRMVariableRangeInvariantTest is Test {
         targetContract(address(harness));
     }
 
-    /// forge-config: default.invariant.runs = 100
-    /// forge-config: default.invariant.depth = 100
     function invariant_FullRateBetweenMinAndMax() public view {
         uint256 numCalls = harness.numCalls();
         if (numCalls == 0) return;
@@ -88,30 +88,65 @@ contract IRMVariableRangeInvariantTest is Test {
         }
     }
 
-    // /// forge-config: default.invariant.runs = 100
-    // /// forge-config: default.invariant.depth = 100
-    // function invariant_AdaptiveMechanismMovesKinkRateInCorrectDirection() public view {
-    //     uint256 numCalls = harness.numCalls();
-    //     if (numCalls < 2) return;
+    function invariant_FirstCallAlwaysSetsFullRateToInitialFullRate() public view {
+        uint256 numCalls = harness.numCalls();
+        if (numCalls != 1) return;
+        IRMVariableRange[] memory irms = harness.getIrms();
 
-    //     IRMVariableRange[] memory irms = harness.getIrms();
-    //     for (uint256 i = 0; i < irms.length; ++i) {
-    //         IRMVariableRange _irm = irms[i];
-    //         IRMVariableRangeHarness.StateHistory memory lastCall = harness.nthCall(_irm, numCalls - 1);
-    //         IRMVariableRangeHarness.StateHistory memory secondToLastCall = harness.nthCall(_irm, numCalls - 2);
+        for (uint256 i = 0; i < irms.length; ++i) {
+            IRMVariableRange _irm = irms[i];
+            IRMVariableRangeHarness.StateHistory memory lastCall = harness.nthCall(_irm, numCalls - 1);
+            assertGe(lastCall.fullRate, _irm.initialFullRate());
+        }
+    }
 
-    //         if (lastCall.delay == 0) {
-    //             // if time has not passed then the model should not adapt
-    //             assertEq(lastCall.kinkRate, secondToLastCall.kinkRate);
-    //         } else if (lastCall.utilization > uint256(_irm.kink())) {
-    //             // must have translated the kink model up
-    //             if (lastCall.kinkRate == irm.maxKinkRate()) return;
-    //             assertTrue(lastCall.kinkRate > secondToLastCall.kinkRate);
-    //         } else if (lastCall.utilization < uint256(_irm.kink())) {
-    //             // must have translated the kink model down
-    //             if (lastCall.kinkRate == irm.minKinkRate()) return;
-    //             assertTrue(lastCall.kinkRate < secondToLastCall.kinkRate);
-    //         }
-    //     }
-    // }
+    function invariant_AdaptiveMechanismMovesFullRateInCorrectDirection() public view {
+        uint256 numCalls = harness.numCalls();
+        if (numCalls < 2) return;
+
+        IRMVariableRange[] memory irms = harness.getIrms();
+        for (uint256 i = 0; i < irms.length; ++i) {
+            IRMVariableRange _irm = irms[i];
+            IRMVariableRangeHarness.StateHistory memory lastCall = harness.nthCall(_irm, numCalls - 1);
+            IRMVariableRangeHarness.StateHistory memory secondToLastCall = harness.nthCall(_irm, numCalls - 2);
+
+            if (lastCall.delay == 0) {
+                // if time has not passed then the model should not adapt
+                assertEq(lastCall.fullRate, secondToLastCall.fullRate);
+            } else if (lastCall.utilization > uint256(_irm.targetUtilizationUpper())) {
+                // must have translated the kink model up
+                if (lastCall.fullRate == irm.maxFullRate()) return;
+                assertTrue(lastCall.fullRate > secondToLastCall.fullRate);
+            } else if (lastCall.utilization < uint256(_irm.targetUtilizationLower())) {
+                // must have translated the kink model down
+                if (lastCall.fullRate == irm.minFullRate()) return;
+                assertTrue(lastCall.fullRate < secondToLastCall.fullRate);
+            } else {
+                // if utilization rate is within bounds then the model should not adapt
+                assertEq(lastCall.fullRate, secondToLastCall.fullRate);
+            }
+        }
+    }
+    function invariant_SpeedAffectsAdaptiveMechanismCorrectly2() public view {
+        uint256 numCalls = harness.numCalls();
+        if (numCalls == 0) return;
+
+        IRMVariableRangeHarness.StateHistory memory lastCallIrm = harness.nthCall(irm, numCalls - 1);
+        IRMVariableRangeHarness.StateHistory memory lastCallIrmFaster = harness.nthCall(irmFaster, numCalls - 1);
+        IRMVariableRangeHarness.StateHistory memory lastCallIrmSlower = harness.nthCall(irmSlower, numCalls - 1);
+
+        if (lastCallIrm.utilization > uint256(irm.targetUtilizationUpper())) {
+            // Lower half life -> Faster response -> Higher rate
+            assertGe(lastCallIrmFaster.fullRate, lastCallIrm.fullRate);
+            // assertLe(lastCallIrmSlower.fullRate, lastCallIrm.fullRate);
+            // assertGe(lastCallIrmFaster.rate, lastCallIrm.rate);
+            // assertLe(lastCallIrmSlower.rate, lastCallIrm.rate);
+        } else if (lastCallIrm.utilization < uint256(irm.targetUtilizationLower())) {
+            // Higher half life -> Faster response -> Higher rate
+            // assertLe(lastCallIrmFaster.fullRate, lastCallIrm.fullRate);
+            // assertGe(lastCallIrmSlower.fullRate, lastCallIrm.fullRate);
+            // assertLe(lastCallIrmFaster.rate, lastCallIrm.rate);
+            // assertGe(lastCallIrmSlower.rate, lastCallIrm.rate);
+        }
+    }
 }

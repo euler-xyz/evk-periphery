@@ -5,6 +5,8 @@ import {Test} from "forge-std/Test.sol";
 import {IRMAdaptiveLinearKink} from "../../../src/IRM/IRMAdaptiveLinearKink.sol";
 import {IRMAdaptiveLinearKinkHarness} from "./IRMAdaptiveLinearKinkHarness.sol";
 
+/// forge-config: default.invariant.runs = 100
+/// forge-config: default.invariant.depth = 100
 contract IRMAdaptiveLinearKinkInvariantTest is Test {
     int256 internal constant SECONDS_PER_YEAR = int256(365 days);
     int256 internal constant kink = 0.9e18;
@@ -50,8 +52,6 @@ contract IRMAdaptiveLinearKinkInvariantTest is Test {
         targetContract(address(harness));
     }
 
-    /// forge-config: default.invariant.runs = 100
-    /// forge-config: default.invariant.depth = 100
     function invariant_KinkRateBetweenMinAndMax() public view {
         uint256 numCalls = harness.numCalls();
         if (numCalls == 0) return;
@@ -65,8 +65,6 @@ contract IRMAdaptiveLinearKinkInvariantTest is Test {
         }
     }
 
-    /// forge-config: default.invariant.runs = 100
-    /// forge-config: default.invariant.depth = 100
     function invariant_SlopeAffectsRatesCorrectly() public view {
         uint256 numCalls = harness.numCalls();
         if (numCalls == 0) return;
@@ -89,8 +87,6 @@ contract IRMAdaptiveLinearKinkInvariantTest is Test {
         assertEq(lastCallIrmFlatter.kinkRate, lastCallIrm.kinkRate);
     }
 
-    /// forge-config: default.invariant.runs = 100
-    /// forge-config: default.invariant.depth = 100
     function invariant_SlopeDoesNotAffectRatesAtKink() public {
         harness.computeInterestRate(3600, 1e18, 9e18);
         uint256 numCalls = harness.numCalls();
@@ -103,8 +99,6 @@ contract IRMAdaptiveLinearKinkInvariantTest is Test {
         assertEq(lastCallIrmFlatter.rate, lastCallIrm.rate);
     }
 
-    /// forge-config: default.invariant.runs = 100
-    /// forge-config: default.invariant.depth = 100
     function invariant_AdaptiveMechanismMovesKinkRateInCorrectDirection() public view {
         uint256 numCalls = harness.numCalls();
         if (numCalls < 2) return;
