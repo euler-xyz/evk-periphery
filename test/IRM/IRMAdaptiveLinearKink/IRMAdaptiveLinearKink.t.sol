@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
 import {IIRM} from "evk/InterestRateModels/IIRM.sol";
-import {IRMAdaptiveLinearKink} from "../../src/IRM/IRMAdaptiveLinearKink.sol";
+import {IRMAdaptiveLinearKink} from "../../../src/IRM/IRMAdaptiveLinearKink.sol";
 
 contract IRMAdaptiveLinearKinkTest is Test {
     address constant VAULT = address(0x1234);
@@ -34,14 +34,6 @@ contract IRMAdaptiveLinearKinkTest is Test {
         vm.expectRevert(IIRM.E_IRMUpdateUnauthorized.selector);
         vm.startPrank(address(0x2345));
         irm.computeInterestRate(VAULT, 5, 6);
-    }
-
-    function computeRateAtUtilization(uint256 utilizationRate) internal returns (uint256) {
-        if (utilizationRate == 0) return irm.computeInterestRate(VAULT, 0, 0);
-        if (utilizationRate == 1e18) return irm.computeInterestRate(VAULT, 0, 1e18);
-
-        uint256 borrows = 1e18 * utilizationRate / (1e18 - utilizationRate);
-        return irm.computeInterestRate(VAULT, 1e18, borrows);
     }
 
     function test_IRMCalculations() public {
@@ -78,5 +70,13 @@ contract IRMAdaptiveLinearKinkTest is Test {
         // Utilization goes back to 90% without time delay. The rate is back at initial + adjustment factor.
         uint256 rate9 = computeRateAtUtilization(0.9e18);
         assertEq(rate8, uint256(slope) * rate9 / 1e18);
+    }
+
+    function computeRateAtUtilization(uint256 utilizationRate) internal returns (uint256) {
+        if (utilizationRate == 0) return irm.computeInterestRate(VAULT, 0, 0);
+        if (utilizationRate == 1e18) return irm.computeInterestRate(VAULT, 0, 1e18);
+
+        uint256 borrows = 1e18 * utilizationRate / (1e18 - utilizationRate);
+        return irm.computeInterestRate(VAULT, 1e18, borrows);
     }
 }

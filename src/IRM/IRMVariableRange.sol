@@ -10,10 +10,10 @@ import {IIRM} from "evk/InterestRateModels/IIRM.sol";
 contract IRMVariableRange is IIRM {
     /// @dev Unit for internal precision.
     uint256 internal constant WAD = 1e18;
-    /// @notice The lower bound of the utilization range where the interest rate does not adjust.
+    /// @notice The lower bound of the utilization range where the full rate does not adjust.
     /// @dev In WAD units e.g. 0.9e18 = 90%.
     uint256 public immutable targetUtilizationLower;
-    /// @notice The upper bound of the utilization range where the interest rate does not adjust.
+    /// @notice The upper bound of the utilization range where the full rate does not adjust.
     /// @dev In WAD units e.g. 0.9e18 = 90%.
     uint256 public immutable targetUtilizationUpper;
     /// @notice The utilization at which the slope increases.
@@ -22,9 +22,6 @@ contract IRMVariableRange is IIRM {
     /// @notice The interest rate when utilization is 0%.
     /// @dev In WAD units per second e.g. 1e18 / 365 days = 100%.
     uint256 public immutable baseRate;
-    /// @notice The first interest rate to use.
-    /// @dev In WAD units per second e.g. 1e18 / 365 days = 100%.
-    uint256 public immutable initialRate;
     /// @notice The minimum interest rate when utilization is 100%.
     /// @dev In WAD units per second e.g. 1e18 / 365 days = 100%.
     uint256 public immutable minFullRate;
@@ -40,14 +37,15 @@ contract IRMVariableRange is IIRM {
     /// @notice The percent of the delta between max and min.
     uint256 public immutable kinkRatePercent;
 
+    /// @notice Cached state of the interest rate model.
     struct IRState {
-        uint104 rate;
-        uint104 fullRate;
+        /// @dev The current rate at 100% utilization.
+        uint208 fullRate;
+        /// @dev The timestamp of the last update to the model.
         uint48 lastUpdate;
     }
 
     /// @notice Get the cached state of a vault's irm.
-    /// @return rate The current rate.
     /// @return fullRate The current full rate.
     /// @return lastUpdate The last update timestamp.
     /// @dev Note that this state may be outdated. Use `computeInterestRateView` for the latest interest rate.
@@ -58,7 +56,6 @@ contract IRMVariableRange is IIRM {
     /// @param _targetUtilizationUpper The upper bound of the utilization range where the interest rate does not adjust.
     /// @param _kink The utilization at which the slope increases.
     /// @param _baseRate The interest rate when utilization is 0%.
-    /// @param _initialRate The first interest rate to use.
     /// @param _minFullRate The minimum interest rate when utilization is 100%.
     /// @param _maxFullRate The maximum interest rate when utilization is 100%.
     /// @param _initialFullRate The initial interest rate when utilization is 100%.
@@ -69,7 +66,6 @@ contract IRMVariableRange is IIRM {
         uint256 _targetUtilizationUpper,
         uint256 _kink,
         uint256 _baseRate,
-        uint256 _initialRate,
         uint256 _minFullRate,
         uint256 _maxFullRate,
         uint256 _initialFullRate,
@@ -80,7 +76,6 @@ contract IRMVariableRange is IIRM {
         targetUtilizationUpper = _targetUtilizationUpper;
         kink = _kink;
         baseRate = _baseRate;
-        initialRate = _initialRate;
         minFullRate = _minFullRate;
         maxFullRate = _maxFullRate;
         initialFullRate = _initialFullRate;
@@ -92,7 +87,7 @@ contract IRMVariableRange is IIRM {
     function computeInterestRate(address vault, uint256 cash, uint256 borrows) external returns (uint256) {
         if (msg.sender != vault) revert E_IRMUpdateUnauthorized();
         (uint256 rate, uint256 fullRate) = computeInterestRateInternal(vault, cash, borrows);
-        irState[vault] = IRState(uint104(rate), uint104(fullRate), uint48(block.timestamp));
+        irState[vault] = IRState(uint208(fullRate), uint48(block.timestamp));
         return rate;
     }
 
@@ -113,15 +108,15 @@ contract IRMVariableRange is IIRM {
         view
         returns (uint256, uint256)
     {
-        // Initialize rate if this is the first call.
-        IRState memory state = irState[vault];
-        if (state.lastUpdate == 0) return (initialRate, initialFullRate);
-
         // Calculate utilization rate.
         uint256 totalAssets = cash + borrows;
         uint256 utilization = totalAssets == 0 ? 0 : borrows * WAD / totalAssets;
 
-        // Calculate time elapsed.
+        IRState memory state = irState[vault];
+        // Initialize full rate if this is the first call.
+        if (state.lastUpdate == 0) return (getNewRate(utilization, initialFullRate), initialFullRate);
+
+        // Calculate time elapsed since last update.
         uint256 deltaTime = block.timestamp - state.lastUpdate;
 
         // Calculate new interest rates.
