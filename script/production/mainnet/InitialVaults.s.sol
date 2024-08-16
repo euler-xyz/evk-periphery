@@ -13,20 +13,17 @@ import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
 contract InitialVaults is ScriptUtils, CoreInfoLib {
     address internal constant USD = address(840);
-    address internal constant WETH = 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2;
+    address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address internal constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address internal constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address internal constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
-    // address internal constant sDAI = ;
     address[] internal assetsList;
-
 
     // TODO
     address internal constant WETHUSD = 0x9ba991C56eB386AB58A3373215Afb5cf52ed78A7;
     address internal constant wstETHUSD = 0x509aB758603aaf54Ad64567137C5cFA522a899d1;
     address internal constant USDCUSD = 0xa87dA6Bb80fB51155D245B0A6f27184E425B4952;
     address internal constant USDTUSD = 0x3B66ebD98f9E5D53A9d2Cc7ffFD2F760f7EbDD19;
-    // address internal constant sDAIUSD = ;
     address[] internal oracleAdaptersList;
 
     address internal constant ORACLE_ROUTER_GOVERNOR = 0x0000000000000000000000000000000000000000; // TODO
