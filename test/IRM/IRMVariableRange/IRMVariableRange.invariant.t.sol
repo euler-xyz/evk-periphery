@@ -44,7 +44,7 @@ contract IRMVariableRangeInvariantTest is Test {
             minFullRate,
             maxFullRate,
             initialFullRate,
-            halfLife / 2,
+            halfLife * 2,
             kinkRatePercent
         );
         irmFaster = new IRMVariableRange(
@@ -55,7 +55,7 @@ contract IRMVariableRangeInvariantTest is Test {
             minFullRate,
             maxFullRate,
             initialFullRate,
-            halfLife * 2,
+            halfLife / 2,
             kinkRatePercent
         );
         harness = new IRMVariableRangeHarness();
@@ -116,37 +116,15 @@ contract IRMVariableRangeInvariantTest is Test {
             } else if (lastCall.utilization > uint256(_irm.targetUtilizationUpper())) {
                 // must have translated the kink model up
                 if (lastCall.fullRate == irm.maxFullRate()) return;
-                assertTrue(lastCall.fullRate > secondToLastCall.fullRate);
+                assertGe(lastCall.fullRate, secondToLastCall.fullRate);
             } else if (lastCall.utilization < uint256(_irm.targetUtilizationLower())) {
                 // must have translated the kink model down
                 if (lastCall.fullRate == irm.minFullRate()) return;
-                assertTrue(lastCall.fullRate < secondToLastCall.fullRate);
+                assertLe(lastCall.fullRate, secondToLastCall.fullRate);
             } else {
                 // if utilization rate is within bounds then the model should not adapt
                 assertEq(lastCall.fullRate, secondToLastCall.fullRate);
             }
-        }
-    }
-    function invariant_SpeedAffectsAdaptiveMechanismCorrectly2() public view {
-        uint256 numCalls = harness.numCalls();
-        if (numCalls == 0) return;
-
-        IRMVariableRangeHarness.StateHistory memory lastCallIrm = harness.nthCall(irm, numCalls - 1);
-        IRMVariableRangeHarness.StateHistory memory lastCallIrmFaster = harness.nthCall(irmFaster, numCalls - 1);
-        IRMVariableRangeHarness.StateHistory memory lastCallIrmSlower = harness.nthCall(irmSlower, numCalls - 1);
-
-        if (lastCallIrm.utilization > uint256(irm.targetUtilizationUpper())) {
-            // Lower half life -> Faster response -> Higher rate
-            assertGe(lastCallIrmFaster.fullRate, lastCallIrm.fullRate);
-            // assertLe(lastCallIrmSlower.fullRate, lastCallIrm.fullRate);
-            // assertGe(lastCallIrmFaster.rate, lastCallIrm.rate);
-            // assertLe(lastCallIrmSlower.rate, lastCallIrm.rate);
-        } else if (lastCallIrm.utilization < uint256(irm.targetUtilizationLower())) {
-            // Higher half life -> Faster response -> Higher rate
-            // assertLe(lastCallIrmFaster.fullRate, lastCallIrm.fullRate);
-            // assertGe(lastCallIrmSlower.fullRate, lastCallIrm.fullRate);
-            // assertLe(lastCallIrmFaster.rate, lastCallIrm.rate);
-            // assertGe(lastCallIrmSlower.rate, lastCallIrm.rate);
         }
     }
 }

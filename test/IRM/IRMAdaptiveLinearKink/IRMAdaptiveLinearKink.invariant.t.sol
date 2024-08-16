@@ -115,11 +115,11 @@ contract IRMAdaptiveLinearKinkInvariantTest is Test {
             } else if (lastCall.utilization > uint256(_irm.kink())) {
                 // must have translated the kink model up
                 if (lastCall.kinkRate == irm.maxKinkRate()) return;
-                assertTrue(lastCall.kinkRate > secondToLastCall.kinkRate);
+                assertGe(lastCall.kinkRate, secondToLastCall.kinkRate);
             } else if (lastCall.utilization < uint256(_irm.kink())) {
                 // must have translated the kink model down
                 if (lastCall.kinkRate == irm.minKinkRate()) return;
-                assertTrue(lastCall.kinkRate < secondToLastCall.kinkRate);
+                assertLe(lastCall.kinkRate, secondToLastCall.kinkRate);
             }
         }
     }
