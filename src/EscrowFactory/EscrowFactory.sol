@@ -14,14 +14,15 @@ contract EscrowFactory {
         IEVault vault = IEVault(
             vaultFactory.createProxy(
                 address(0),
-                false, // current perspective does not allow upgradeability.
+                true, // current perspective requires.
                 abi.encodePacked(_asset, address(0), address(0))
             )
         );
 
+        vault.setHookConfig(address(0), uint32(0));
         vault.setGovernorAdmin(address(0));
         escrowPerspective.perspectiveVerify(address(vault), true);
-        
+
         selfdestruct(payable(address(0)));
     }
 }
