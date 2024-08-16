@@ -20,6 +20,8 @@ contract InitialVaults is ScriptUtils, CoreInfoLib {
     // address internal constant sDAI = ;
     address[] internal assetsList;
 
+
+    // TODO
     address internal constant WETHUSD = 0x9ba991C56eB386AB58A3373215Afb5cf52ed78A7;
     address internal constant wstETHUSD = 0x509aB758603aaf54Ad64567137C5cFA522a899d1;
     address internal constant USDCUSD = 0xa87dA6Bb80fB51155D245B0A6f27184E425B4952;
