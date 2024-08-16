@@ -19,11 +19,11 @@ contract InitialVaults is ScriptUtils, CoreInfoLib {
     address internal constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address[] internal assetsList;
 
-    // TODO
-    address internal constant WETHUSD = 0x9ba991C56eB386AB58A3373215Afb5cf52ed78A7;
-    address internal constant wstETHUSD = 0x509aB758603aaf54Ad64567137C5cFA522a899d1;
-    address internal constant USDCUSD = 0xa87dA6Bb80fB51155D245B0A6f27184E425B4952;
-    address internal constant USDTUSD = 0x3B66ebD98f9E5D53A9d2Cc7ffFD2F760f7EbDD19;
+    // TODO double check
+    address internal constant WETHUSD = 0x10674C8C1aE2072d4a75FE83f1E159425fd84E1D;
+    address internal constant wstETHUSD = 0x02dd5B7ab536629d2235276aBCDf8eb3Af9528D7;
+    address internal constant USDCUSD = 0x6213f24332D35519039f2afa7e3BffE105a37d3F;
+    address internal constant USDTUSD = 0x587CABe0521f5065b561A6e68c25f338eD037FF9;
     address[] internal oracleAdaptersList;
 
     address internal constant ORACLE_ROUTER_GOVERNOR = 0x0000000000000000000000000000000000000000; // TODO
@@ -116,9 +116,6 @@ contract InitialVaults is ScriptUtils, CoreInfoLib {
         for (uint256 i = 0; i < assetsList.length; ++i) {
             address asset = assetsList[i];
 
-            // allow lower interest fee by configuring the protocol config
-            ProtocolConfig(coreInfo.protocolConfig).setVaultInterestFeeRange(riskOffVaults[asset], true, 0.05e4, 1e4);
-
             // configure the escrow vaults and verify them by the escrow perspective
             IEVault(escrowVaults[asset]).setHookConfig(address(0), 0);
             IEVault(escrowVaults[asset]).setGovernorAdmin(address(0));
@@ -128,9 +125,11 @@ contract InitialVaults is ScriptUtils, CoreInfoLib {
             IEVault(riskOffVaults[asset]).setMaxLiquidationDiscount(0.15e4);
             IEVault(riskOffVaults[asset]).setLiquidationCoolOffTime(1);
             IEVault(riskOffVaults[asset]).setInterestRateModel(irmList[i]);
-            IEVault(riskOffVaults[asset]).setInterestFee(0.05e4);
+            // TODO check fee and other params
+            IEVault(riskOffVaults[asset]).setInterestFee(0.1e4);
             IEVault(riskOffVaults[asset]).setHookConfig(address(0), 0);
             IEVault(riskOffVaults[asset]).setGovernorAdmin(RISK_OFF_VAULTS_GOVERNOR);
+
             BasePerspective(coreInfo.governableWhitelistPerspective).perspectiveVerify(riskOffVaults[asset], true);
         }
 
