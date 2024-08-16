@@ -114,23 +114,42 @@ contract IRMVariableRange is IIRM {
 
         IRState memory state = irState[vault];
         // Initialize full rate if this is the first call.
-        if (state.lastUpdate == 0) return (getNewRate(utilization, initialFullRate), initialFullRate);
+        if (state.lastUpdate == 0) return (calcLinearKinkRate(utilization, initialFullRate), initialFullRate);
 
         // Calculate time elapsed since last update.
         uint256 deltaTime = block.timestamp - state.lastUpdate;
 
         // Calculate new interest rates.
-        uint256 newFullRate = getNewFullRate(deltaTime, utilization, state.fullRate);
-        uint256 newRate = getNewRate(utilization, newFullRate);
+        uint256 newFullRate = calcNewFullRate(deltaTime, utilization, state.fullRate);
+        uint256 newRate = calcLinearKinkRate(utilization, newFullRate);
         return (newRate, newFullRate);
     }
 
+    /// @notice Calculate the new interest rate.
+    /// @param utilization The utilization rate in WAD.
+    /// @param newFullRate The new interest rate when utilization is 100% in WAD.
+    /// @return The new interest rate in WAD per second.
+    function calcLinearKinkRate(uint256 utilization, uint256 newFullRate) internal view returns (uint256) {
+        // kinkRate is calculated as the percentage of the delta between min and max interest
+        uint256 kinkRate = (((newFullRate - baseRate) * kinkRatePercent) / WAD) + baseRate;
+
+        if (utilization < kink) {
+            return baseRate + (utilization * (kinkRate - baseRate)) / kink;
+        } else {
+            return kinkRate + ((utilization - kink) * (newFullRate - kinkRate)) / (WAD - kink);
+        }
+    }
     /// @notice Calculate the new full interest rate, i.e. rate when utilization is 100%.
     /// @param deltaTime The elapsed time since last update in seconds.
     /// @param utilization The utilization rate in WAD.
     /// @param fullRate The interest rate when utilization is 100% in WAD.
     /// @return The new full interest rate in WAD per second.
-    function getNewFullRate(uint256 deltaTime, uint256 utilization, uint256 fullRate) internal view returns (uint256) {
+
+    function calcNewFullRate(uint256 deltaTime, uint256 utilization, uint256 fullRate)
+        internal
+        view
+        returns (uint256)
+    {
         if (utilization < targetUtilizationLower) {
             // Adjust full rate downward based on half life decay.
             uint256 deltaUtilization = ((targetUtilizationLower - utilization) * WAD) / targetUtilizationLower;
@@ -144,21 +163,6 @@ contract IRMVariableRange is IIRM {
         }
         // Utilization is within target range. Return last rate.
         return fullRate;
-    }
-
-    /// @notice Calculate the new interest rate.
-    /// @param utilization The utilization rate in WAD.
-    /// @param newFullRate The new interest rate when utilization is 100% in WAD.
-    /// @return The new interest rate in WAD per second.
-    function getNewRate(uint256 utilization, uint256 newFullRate) internal view returns (uint256) {
-        // kinkRate is calculated as the percentage of the delta between min and max interest
-        uint256 kinkRate = (((newFullRate - baseRate) * kinkRatePercent) / WAD) + baseRate;
-
-        if (utilization < kink) {
-            return baseRate + (utilization * (kinkRate - baseRate)) / kink;
-        } else {
-            return kinkRate + ((utilization - kink) * (newFullRate - kinkRate)) / (WAD - kink);
-        }
     }
 
     /// @notice Bound `fullRate` to `[minFullRate, maxFullRate]`.
