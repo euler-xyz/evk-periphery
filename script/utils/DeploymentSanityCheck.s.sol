@@ -164,12 +164,6 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         assert(Swapper(coreInfo.swapper).uniswapRouterV2() == UNI_ROUTER_V2);
         assert(Swapper(coreInfo.swapper).uniswapRouterV3() == UNI_ROUTER_V3);
         assert(Swapper(coreInfo.swapper).uniswapRouter02() == UNI_ROUTER_02);
-
-
-        // FIXME: other things to check:
-        //   * no duplicated contracts
-        //   * is verified on etherscan
-        //   * code exactly matches repo
     }
 
     function verifyVaults(CoreInfo memory coreInfo) internal view {
