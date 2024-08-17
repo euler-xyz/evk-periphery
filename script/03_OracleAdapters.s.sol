@@ -10,7 +10,7 @@ import {LidoOracle} from "euler-price-oracle/adapter/lido/LidoOracle.sol";
 import {PythOracle} from "euler-price-oracle/adapter/pyth/PythOracle.sol";
 import {RedstoneCoreOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreOracle.sol";
 //import {RedstoneCoreArbitrumOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreArbitrumOracle.sol";
-import {CrossAdapter as CrossOracle} from "euler-price-oracle/adapter/CrossAdapter.sol";
+import {CrossAdapter} from "euler-price-oracle/adapter/CrossAdapter.sol";
 import {UniswapV3Oracle} from "euler-price-oracle/adapter/uniswap/UniswapV3Oracle.sol";
 
 contract ChainlinkAdapter is ScriptUtils {
@@ -207,7 +207,7 @@ contract RedstoneAdapter is ScriptUtils {
     }
 }
 
-contract CrossAdapter is ScriptUtils {
+contract CrossAdapterDeployer is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_CrossAdapter_input.json";
         string memory outputScriptFileName = "03_CrossAdapter_output.json";
@@ -245,7 +245,7 @@ contract CrossAdapter is ScriptUtils {
         address oracleBaseCross,
         address oracleCrossQuote
     ) public returns (address adapter) {
-        adapter = address(new CrossOracle(base, cross, quote, oracleBaseCross, oracleCrossQuote));
+        adapter = address(new CrossAdapter(base, cross, quote, oracleBaseCross, oracleCrossQuote));
         SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
