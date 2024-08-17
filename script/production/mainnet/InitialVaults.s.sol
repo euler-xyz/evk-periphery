@@ -26,8 +26,9 @@ contract InitialVaults is ScriptUtils, CoreInfoLib {
     address internal constant USDTUSD = 0x587CABe0521f5065b561A6e68c25f338eD037FF9;
     address[] internal oracleAdaptersList;
 
-    address internal constant ORACLE_ROUTER_GOVERNOR = 0x0000000000000000000000000000000000000000; // TODO
-    address internal constant RISK_OFF_VAULTS_GOVERNOR = 0x0000000000000000000000000000000000000000; // TODO
+    address internal constant DAO_MULTISIG = 0xcAD001c30E96765aC90307669d578219D4fb1DCe;
+    address internal constant ORACLE_ROUTER_GOVERNOR = DAO_MULTISIG;
+    address internal constant RISK_OFF_VAULTS_GOVERNOR = DAO_MULTISIG;
 
     mapping(address => address) internal escrowVaults;
     mapping(address => address) internal riskOffVaults;
