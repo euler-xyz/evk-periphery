@@ -11,6 +11,7 @@ import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {TrackingRewardStreams} from "reward-streams/TrackingRewardStreams.sol";
 import {FeeFlowController} from "fee-flow/FeeFlowController.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
+import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 
@@ -236,6 +237,12 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         assert(EVault(vault).asset() == WETH);
         (,,, adapter) = EulerRouter(EVault(vault).oracle()).resolveOracle(1e18, vault, USD);
         assert(adapter == WETHUSD);
+        address irm = EVault(vault).interestRateModel();
+        assert(IRMLinearKink(irm).baseRate() == 0);
+        assert(IRMLinearKink(irm).slope1() == 218407859);
+        assert(IRMLinearKink(irm).slope2() == 42500370385);
+        assert(IRMLinearKink(irm).kink() == 3865470566);
+
         // escrow WETH
         (uint16 borrowLTV, uint16 liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
         assert(borrowLTV == 0); 
@@ -274,6 +281,11 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         assert(EVault(vault).asset() == wstETH);
         (,,, adapter) = EulerRouter(EVault(vault).oracle()).resolveOracle(1e18, vault, USD);
         assert(adapter == wstETHUSD);
+        irm = EVault(vault).interestRateModel();
+        assert(IRMLinearKink(irm).baseRate() == 0);
+        assert(IRMLinearKink(irm).slope1() == 760869530);
+        assert(IRMLinearKink(irm).slope2() == 7611888145);
+        assert(IRMLinearKink(irm).kink() == 1932735283);
         // escrow WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
         assert(borrowLTV == 0.87e4); 
@@ -312,44 +324,11 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         assert(EVault(vault).asset() == USDC);
         (,,, adapter) = EulerRouter(EVault(vault).oracle()).resolveOracle(1e18, vault, USD);
         assert(adapter == USDCUSD);
-        // escrow WETH
-        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
-        assert(borrowLTV == 0.81e4); 
-        assert(liquidationLTV == 0.83e4); 
-        // escrow wstETH
-        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[2]);
-        assert(borrowLTV == 0.78e4); 
-        assert(liquidationLTV == 0.8e4); 
-        // escrow USDC
-        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[4]);
-        assert(borrowLTV == 0); 
-        assert(liquidationLTV == 0); 
-        // escrow USDT
-        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
-        assert(borrowLTV == 0.85e4); 
-        assert(liquidationLTV == 0.87e4); 
-        // managed WETH
-        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
-        assert(borrowLTV == 0.79e4); 
-        assert(liquidationLTV == 0.81e4); 
-        // managed wstETH
-        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
-        assert(borrowLTV == 0.76e4); 
-        assert(liquidationLTV == 0.78e4); 
-        // managed USDC
-        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
-        assert(borrowLTV == 0); 
-        assert(liquidationLTV == 0); 
-        // managed USDT
-        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
-        assert(borrowLTV == 0.83e4); 
-        assert(liquidationLTV == 0.85e4); 
-
-        // USDC
-        vault = vaults[5];
-        assert(EVault(vault).asset() == USDC);
-        (,,, adapter) = EulerRouter(EVault(vault).oracle()).resolveOracle(1e18, vault, USD);
-        assert(adapter == USDCUSD);
+        irm = EVault(vault).interestRateModel();
+        assert(IRMLinearKink(irm).baseRate() == 0);
+        assert(IRMLinearKink(irm).slope1() == 505037995);
+        assert(IRMLinearKink(irm).slope2() == 41211382066);
+        assert(IRMLinearKink(irm).kink() == 3951369912);
         // escrow WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
         assert(borrowLTV == 0.81e4); 
@@ -388,6 +367,11 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         assert(EVault(vault).asset() == USDT);
         (,,, adapter) = EulerRouter(EVault(vault).oracle()).resolveOracle(1e18, vault, USD);
         assert(adapter == USDTUSD);
+        irm = EVault(vault).interestRateModel();
+        assert(IRMLinearKink(irm).baseRate() == 0);
+        assert(IRMLinearKink(irm).slope1() == 505037995);
+        assert(IRMLinearKink(irm).slope2() == 49166860226);
+        assert(IRMLinearKink(irm).kink() == 3951369912);
         // escrow WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
         assert(borrowLTV == 0.81e4); 
