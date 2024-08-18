@@ -27,12 +27,19 @@ interface IEVCUser {
 
 
 contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
+    // assets
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address internal constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address internal constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address internal constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address internal constant EUL = 0xd9Fcd98c322942075A5C3860693e9f4f03AAE07b;
+
+    // adapters
+    address internal constant WETHUSD = 0x10674C8C1aE2072d4a75FE83f1E159425fd84E1D;
+    address internal constant wstETHUSD = 0x02dd5B7ab536629d2235276aBCDf8eb3Af9528D7;
+    address internal constant USDCUSD = 0x6213f24332D35519039f2afa7e3BffE105a37d3F;
+    address internal constant USDTUSD = 0x587CABe0521f5065b561A6e68c25f338eD037FF9;
 
     address internal constant ONE_INCH_ROUTER_V6 = 0x111111125421cA6dc452d289314280a0f8842A65;
     address internal constant UNI_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
@@ -170,6 +177,7 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         assert(GenericFactory(coreInfo.eVaultFactory).getProxyListLength() == 8);
         address[] memory vaults = GenericFactory(coreInfo.eVaultFactory).getProxyListSlice(0, 8);
 
+        address oracle = EVault(vaults[1]).oracle();
 
         for (uint i = 0; i < vaults.length; i++) {
             if (BasePerspective(coreInfo.escrowPerspective).isVerified(vaults[i])) {
@@ -182,16 +190,239 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
 
                 // oracle
 
-                address oracle = EVault(vaults[i]).oracle();
+                assert(oracle == EVault(vaults[i]).oracle());
                 assert(EulerRouterFactory(coreInfo.oracleRouterFactory).isValidDeployment(oracle));
-
                 assert(EulerRouter(oracle).governor() == DAO_MULTISIG);
+                assert(EVault(vaults[i]).unitOfAccount() == USD);
+
+                // common config
+                assert(EVault(vaults[i]).maxLiquidationDiscount() == 0.15e4);
+                assert(EVault(vaults[i]).liquidationCoolOffTime() == 1);
+                assert(EVault(vaults[i]).interestFee() == 0.1e4);
+
             } else {
                 revert ('vault not found in perspectives');
             }
         }
 
-        // FIXME vault config
+        // oracle config for escrow
+        address vault = vaults[0];
+        assert(BasePerspective(coreInfo.escrowPerspective).isVerified(vault));
+        assert(EVault(vault).asset() == WETH);
+        (,,, address adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
+        assert(adapter == WETHUSD);
+
+        vault = vaults[2];
+        assert(BasePerspective(coreInfo.escrowPerspective).isVerified(vault));
+        assert(EVault(vault).asset() == wstETH);
+        (,,, adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
+        assert(adapter == wstETHUSD);
+
+        vault = vaults[4];
+        assert(BasePerspective(coreInfo.escrowPerspective).isVerified(vault));
+        assert(EVault(vault).asset() == USDC);
+        (,,, adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
+        assert(adapter == USDCUSD);
+
+        vault = vaults[6];
+        assert(BasePerspective(coreInfo.escrowPerspective).isVerified(vault));
+        assert(EVault(vault).asset() == USDT);
+        (,,, adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
+        assert(adapter == USDTUSD);
+
+        // managed vaults config
+        // WETH
+        vault = vaults[1];
+        assert(EVault(vault).asset() == WETH);
+        (,,, adapter) = EulerRouter(EVault(vault).oracle()).resolveOracle(1e18, vault, USD);
+        assert(adapter == WETHUSD);
+        // escrow WETH
+        (uint16 borrowLTV, uint16 liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
+        assert(borrowLTV == 0); 
+        assert(liquidationLTV == 0); 
+        // escrow wstETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[2]);
+        assert(borrowLTV == 0.87e4); 
+        assert(liquidationLTV == 0.89e4); 
+        // escrow USDC
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[4]);
+        assert(borrowLTV == 0.74e4); 
+        assert(liquidationLTV == 0.76e4); 
+        // escrow USDT
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
+        assert(borrowLTV == 0.74e4); 
+        assert(liquidationLTV == 0.76e4); 
+        // managed WETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
+        assert(borrowLTV == 0); 
+        assert(liquidationLTV == 0); 
+        // managed wstETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
+        assert(borrowLTV == 0.85e4); 
+        assert(liquidationLTV == 0.87e4); 
+        // managed USDC
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
+        assert(borrowLTV == 0.72e4); 
+        assert(liquidationLTV == 0.74e4); 
+        // managed USDT
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
+        assert(borrowLTV == 0.72e4); 
+        assert(liquidationLTV == 0.74e4); 
+
+        // wstETH
+        vault = vaults[3];
+        assert(EVault(vault).asset() == wstETH);
+        (,,, adapter) = EulerRouter(EVault(vault).oracle()).resolveOracle(1e18, vault, USD);
+        assert(adapter == wstETHUSD);
+        // escrow WETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
+        assert(borrowLTV == 0.87e4); 
+        assert(liquidationLTV == 0.89e4); 
+        // escrow wstETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[2]);
+        assert(borrowLTV == 0); 
+        assert(liquidationLTV == 0); 
+        // escrow USDC
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[4]);
+        assert(borrowLTV == 0.74e4); 
+        assert(liquidationLTV == 0.76e4); 
+        // escrow USDT
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
+        assert(borrowLTV == 0.74e4); 
+        assert(liquidationLTV == 0.76e4); 
+        // managed WETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
+        assert(borrowLTV == 0.85e4); 
+        assert(liquidationLTV == 0.87e4); 
+        // managed wstETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
+        assert(borrowLTV == 0); 
+        assert(liquidationLTV == 0); 
+        // managed USDC
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
+        assert(borrowLTV == 0.72e4); 
+        assert(liquidationLTV == 0.74e4); 
+        // managed USDT
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
+        assert(borrowLTV == 0.72e4); 
+        assert(liquidationLTV == 0.74e4); 
+
+        // USDC
+        vault = vaults[5];
+        assert(EVault(vault).asset() == USDC);
+        (,,, adapter) = EulerRouter(EVault(vault).oracle()).resolveOracle(1e18, vault, USD);
+        assert(adapter == USDCUSD);
+        // escrow WETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
+        assert(borrowLTV == 0.81e4); 
+        assert(liquidationLTV == 0.83e4); 
+        // escrow wstETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[2]);
+        assert(borrowLTV == 0.78e4); 
+        assert(liquidationLTV == 0.8e4); 
+        // escrow USDC
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[4]);
+        assert(borrowLTV == 0); 
+        assert(liquidationLTV == 0); 
+        // escrow USDT
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
+        assert(borrowLTV == 0.85e4); 
+        assert(liquidationLTV == 0.87e4); 
+        // managed WETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
+        assert(borrowLTV == 0.79e4); 
+        assert(liquidationLTV == 0.81e4); 
+        // managed wstETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
+        assert(borrowLTV == 0.76e4); 
+        assert(liquidationLTV == 0.78e4); 
+        // managed USDC
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
+        assert(borrowLTV == 0); 
+        assert(liquidationLTV == 0); 
+        // managed USDT
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
+        assert(borrowLTV == 0.83e4); 
+        assert(liquidationLTV == 0.85e4); 
+
+        // USDC
+        vault = vaults[5];
+        assert(EVault(vault).asset() == USDC);
+        (,,, adapter) = EulerRouter(EVault(vault).oracle()).resolveOracle(1e18, vault, USD);
+        assert(adapter == USDCUSD);
+        // escrow WETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
+        assert(borrowLTV == 0.81e4); 
+        assert(liquidationLTV == 0.83e4); 
+        // escrow wstETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[2]);
+        assert(borrowLTV == 0.78e4); 
+        assert(liquidationLTV == 0.8e4); 
+        // escrow USDC
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[4]);
+        assert(borrowLTV == 0); 
+        assert(liquidationLTV == 0); 
+        // escrow USDT
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
+        assert(borrowLTV == 0.85e4); 
+        assert(liquidationLTV == 0.87e4); 
+        // managed WETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
+        assert(borrowLTV == 0.79e4); 
+        assert(liquidationLTV == 0.81e4); 
+        // managed wstETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
+        assert(borrowLTV == 0.76e4); 
+        assert(liquidationLTV == 0.78e4); 
+        // managed USDC
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
+        assert(borrowLTV == 0); 
+        assert(liquidationLTV == 0); 
+        // managed USDT
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
+        assert(borrowLTV == 0.83e4); 
+        assert(liquidationLTV == 0.85e4); 
+
+        // USDT
+        vault = vaults[7];
+        assert(EVault(vault).asset() == USDT);
+        (,,, adapter) = EulerRouter(EVault(vault).oracle()).resolveOracle(1e18, vault, USD);
+        assert(adapter == USDTUSD);
+        // escrow WETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
+        assert(borrowLTV == 0.81e4); 
+        assert(liquidationLTV == 0.83e4); 
+        // escrow wstETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[2]);
+        assert(borrowLTV == 0.78e4); 
+        assert(liquidationLTV == 0.8e4); 
+        // escrow USDC
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[4]);
+        assert(borrowLTV == 0.85e4); 
+        assert(liquidationLTV == 0.87e4); 
+        // escrow USDT
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
+        assert(borrowLTV == 0); 
+        assert(liquidationLTV == 0);
+        // managed WETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
+        assert(borrowLTV == 0.79e4); 
+        assert(liquidationLTV == 0.81e4); 
+        // managed wstETH
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
+        assert(borrowLTV == 0.76e4); 
+        assert(liquidationLTV == 0.78e4); 
+        // managed USDC
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
+        assert(borrowLTV == 0.83e4); 
+        assert(liquidationLTV == 0.85e4); 
+        // managed USDT
+        (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
+        assert(borrowLTV == 0); 
+        assert(liquidationLTV == 0); 
+
+
+        // FIXME add IRM config
     }
 
     function callWithTrailing(address target, bytes4 selector) internal view returns (address) {
