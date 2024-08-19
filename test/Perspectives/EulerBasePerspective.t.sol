@@ -35,12 +35,12 @@ contract EulerBasePerspectiveTest is DefaultSetupTest {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IPerspective.PerspectiveError.selector,
-                address(escrowPerspective),
+                address(escrowedCollateralPerspective),
                 vaultBase3,
                 ERROR__ORACLE_INVALID_ROUTER
             )
         );
-        escrowPerspective.perspectiveVerify(vaultBase3, true);
+        escrowedCollateralPerspective.perspectiveVerify(vaultBase3, true);
 
         // verifies that the vault base 1 belongs to the default perspective 1.
         // while verifying the vault base 1, the default perspective 1 will also verify the vault base 2 as they
@@ -58,14 +58,14 @@ contract EulerBasePerspectiveTest is DefaultSetupTest {
 
         // verifies that the vault base 3 belongs to the default perspective 2.
         // while verifying the vault base 3, the escrow perspective will also verify the vault escrow
-        vm.expectEmit(true, false, false, false, address(escrowPerspective));
+        vm.expectEmit(true, false, false, false, address(escrowedCollateralPerspective));
         emit IPerspective.PerspectiveVerified(vaultEscrow);
         vm.expectEmit(true, false, false, false, address(eulerBasePerspective2));
         emit IPerspective.PerspectiveVerified(vaultBase3);
         eulerBasePerspective2.perspectiveVerify(vaultBase3, true);
-        assertTrue(escrowPerspective.isVerified(vaultEscrow));
+        assertTrue(escrowedCollateralPerspective.isVerified(vaultEscrow));
         assertTrue(eulerBasePerspective2.isVerified(vaultBase3));
-        assertEq(escrowPerspective.verifiedArray()[0], vaultEscrow);
+        assertEq(escrowedCollateralPerspective.verifiedArray()[0], vaultEscrow);
         assertEq(eulerBasePerspective2.verifiedArray()[0], vaultBase3);
 
         // verification of the vault base 4 fails
@@ -115,7 +115,7 @@ contract EulerBasePerspectiveTest is DefaultSetupTest {
 
         // meanwhile, other vaults got verified too
         assertTrue(eulerBasePerspective3.isVerified(vaultBase3));
-        assertTrue(escrowPerspective.isVerified(vaultEscrow));
+        assertTrue(escrowedCollateralPerspective.isVerified(vaultEscrow));
         assertTrue(eulerBasePerspective1.isVerified(vaultBase1));
         assertTrue(eulerBasePerspective1.isVerified(vaultBase2));
     }

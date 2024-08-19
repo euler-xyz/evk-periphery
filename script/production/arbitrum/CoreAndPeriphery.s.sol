@@ -119,11 +119,11 @@ contract CoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddressesLi
                 peripheryAddresses.irmRegistry
             );
 
-            extraAddresses.governedPerspective = perspectives[0];
-            extraAddresses.escrowPerspective = perspectives[1];
-            extraAddresses.euler0xPerspective = perspectives[2];
-            extraAddresses.euler1xPerspective = perspectives[3];
-            extraAddresses.eulerFactoryPerspective = perspectives[4];
+            extraAddresses.factoryPespective = perspectives[0];
+            extraAddresses.governedPerspective = perspectives[1];
+            extraAddresses.escrowedCollateralPerspective = perspectives[2];
+            extraAddresses.eulerUngoverned0xPerspective = perspectives[3];
+            extraAddresses.eulerUngoverned1xPerspective = perspectives[4];
         }
 
         // save results

@@ -140,7 +140,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider_index" == *Cross* ]]; then
         baseName=03_OracleAdapters
-        scriptName=${baseName}.s.sol:CrossAdapter
+        scriptName=${baseName}.s.sol:CrossAdapterDeploye
         jsonName=03_CrossAdapter
 
         jq -n \
@@ -164,7 +164,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     fi
 
     if script/utils/executeForgeScript.sh $scriptName $verify_contracts; then
-        local counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
+        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
 
         echo "${columns[0]},${columns[1]},${columns[2]},$(jq -r '.adapter' "script/${jsonName}_output.json")" >> "$adaptersList"
         mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"

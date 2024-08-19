@@ -160,27 +160,29 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         // - immutable: oracleLens
         assert(address(VaultLens(extraAddresses.vaultLens).oracleLens()) == extraAddresses.oracleLens);
 
-        // escrowPerspective
+        // escrowedCollateralPerspective
         // - immutable: vaultFactory
         // VERIFIED manually in creation TX
         // https://etherscan.io/tx/0x1d3d9f2cb49c06ba52d7855b9dcc02c8f3a7f794e6eb1565d3a9b6bbb803a531
 
-        // eulerFactoryPerspective
+        // factoryPerspective
         // - immutable: vaultFactory
         // VERIFIED manually in creation TX
         // https://etherscan.io/tx/0x9a27da6c4170cb47ac8d35cd7fbe0fb1a4cbad1d27219532b33317e1afcd5e0f
 
-        // euler0xPerspective
+        // eulerUngoverned0xPerspective
         // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory
         // - recognizedCollateralPerspectives
         // VERIFIED immutables manually in creation TX
         // https://etherscan.io/tx/0xdf281d88a257624765ab569353a14d1caabb1f34c6a6a47545f2ae9913919ffe
-        address recognized = EulerBasePerspective(extraAddresses.euler0xPerspective).recognizedCollateralPerspectives(0);
-        assert(recognized == extraAddresses.escrowPerspective);
-        recognized = EulerBasePerspective(extraAddresses.euler0xPerspective).recognizedCollateralPerspectives(1);
+        address recognized =
+            EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(0);
+        assert(recognized == extraAddresses.escrowedCollateralPerspective);
+        recognized =
+            EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(1);
         assert(recognized == address(0));
 
-        try EulerBasePerspective(extraAddresses.euler0xPerspective).recognizedCollateralPerspectives(2) {
+        try EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(2) {
             revert("array too long!");
         } catch {}
 
@@ -209,7 +211,7 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         address oracle = EVault(vaults[1]).oracle();
 
         for (uint256 i = 0; i < vaults.length; i++) {
-            if (BasePerspective(extraAddresses.escrowPerspective).isVerified(vaults[i])) {
+            if (BasePerspective(extraAddresses.escrowedCollateralPerspective).isVerified(vaults[i])) {
                 // escrow vaults
                 assert(EVault(vaults[i]).governorAdmin() == address(0));
             } else if (BasePerspective(extraAddresses.governedPerspective).isVerified(vaults[i])) {
@@ -235,25 +237,25 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
 
         // oracle config for escrow
         address vault = vaults[0];
-        assert(BasePerspective(extraAddresses.escrowPerspective).isVerified(vault));
+        assert(BasePerspective(extraAddresses.escrowedCollateralPerspective).isVerified(vault));
         assert(EVault(vault).asset() == WETH);
         (,,, address adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
         assert(adapter == WETHUSD);
 
         vault = vaults[2];
-        assert(BasePerspective(extraAddresses.escrowPerspective).isVerified(vault));
+        assert(BasePerspective(extraAddresses.escrowedCollateralPerspective).isVerified(vault));
         assert(EVault(vault).asset() == wstETH);
         (,,, adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
         assert(adapter == wstETHUSD);
 
         vault = vaults[4];
-        assert(BasePerspective(extraAddresses.escrowPerspective).isVerified(vault));
+        assert(BasePerspective(extraAddresses.escrowedCollateralPerspective).isVerified(vault));
         assert(EVault(vault).asset() == USDC);
         (,,, adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
         assert(adapter == USDCUSD);
 
         vault = vaults[6];
-        assert(BasePerspective(extraAddresses.escrowPerspective).isVerified(vault));
+        assert(BasePerspective(extraAddresses.escrowedCollateralPerspective).isVerified(vault));
         assert(EVault(vault).asset() == USDT);
         (,,, adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
         assert(adapter == USDTUSD);

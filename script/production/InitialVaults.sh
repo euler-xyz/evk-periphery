@@ -9,9 +9,10 @@ source .env
 scriptName="InitialVaults.s.sol"
 
 script_dir="${1#script/}"
-core_json_file="$2/CoreAddresses.json"
-periphery_json_file="$2/PeripheryAddresses.json"
-extra_json_file="$2/ExtraAddresses.json"
+addresses_dir_path="${2%/}"
+core_json_file="$addresses_dir_path/CoreAddresses.json"
+periphery_json_file="$addresses_dir_path/PeripheryAddresses.json"
+extra_json_file="$addresses_dir_path/ExtraAddresses.json"
 
 dst_core_json_file=script/CoreAddresses.json
 dst_periphery_json_file=script/PeripheryAddresses.json
@@ -28,7 +29,7 @@ if ! script/utils/checkEnvironment.sh $verify_contracts; then
     exit 1
 fi
 
-if [[ $2 == http* ]]; then
+if [[ $addresses_dir_path == http* ]]; then
     curl -o $dst_core_json_file $core_json_file
     curl -o $dst_periphery_json_file $periphery_json_file
     curl -o $dst_extra_json_file $extra_json_file

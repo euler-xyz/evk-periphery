@@ -6,25 +6,25 @@ import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {EscrowPerspective} from "../../src/Perspectives/deployed/EscrowPerspective.sol";
+import {EscrowedCollateralPerspective} from "../../src/Perspectives/deployed/EscrowedCollateralPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
 import {IPerspective} from "../../src/Perspectives/implementation/interfaces/IPerspective.sol";
 
-contract EscrowPerspectiveTest is EVaultTestBase, PerspectiveErrors {
+contract EscrowedCollateralPerspectiveTest is EVaultTestBase, PerspectiveErrors {
     event PerspectiveVerified(address indexed vault);
 
-    EscrowPerspective perspective;
+    EscrowedCollateralPerspective perspective;
 
     function setUp() public override {
         super.setUp();
-        perspective = new EscrowPerspective(address(factory));
+        perspective = new EscrowedCollateralPerspective(address(factory));
     }
 
-    function test_EscrowPerspective_name() public view {
-        assertEq(perspective.name(), "Escrow Perspective");
+    function test_EscrowedCollateralPerspective_name() public view {
+        assertEq(perspective.name(), "Escrowed Collateral Perspective");
     }
 
-    function test_EscrowPerspective_general() public {
+    function test_EscrowedCollateralPerspective_general() public {
         // deploy and configure the vault
         address vault =
             factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(0), address(0)));

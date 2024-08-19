@@ -128,7 +128,7 @@ contract InitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, 
             // configure the escrow vaults and verify them by the escrow perspective
             IEVault(escrowVaults[asset]).setHookConfig(address(0), 0);
             IEVault(escrowVaults[asset]).setGovernorAdmin(address(0));
-            BasePerspective(extraAddresses.escrowPerspective).perspectiveVerify(escrowVaults[asset], true);
+            BasePerspective(extraAddresses.escrowedCollateralPerspective).perspectiveVerify(escrowVaults[asset], true);
 
             // configure the riskOff vaults and verify them by the whitelist perspective
             IEVault(riskOffVaults[asset]).setMaxLiquidationDiscount(0.15e4);
