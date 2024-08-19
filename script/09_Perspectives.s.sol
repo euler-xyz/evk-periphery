@@ -7,7 +7,6 @@ import {FactoryPerspective} from "../src/Perspectives/deployed/FactoryPerspectiv
 import {GovernedPerspective} from "../src/Perspectives/deployed/GovernedPerspective.sol";
 import {EscrowedCollateralPerspective} from "../src/Perspectives/deployed/EscrowedCollateralPerspective.sol";
 import {EulerBasePerspective} from "../src/Perspectives/deployed/EulerBasePerspective.sol";
-import {EulerBasePlusPerspective} from "../src/Perspectives/deployed/EulerBasePlusPerspective.sol";
 
 contract Perspectives is ScriptUtils {
     function run() public broadcast returns (address[] memory perspectives) {
@@ -35,7 +34,7 @@ contract Perspectives is ScriptUtils {
         object = vm.serializeAddress("perspectives", "governedPerspective", perspectives[1]);
         object = vm.serializeAddress("perspectives", "escrowedCollateralPerspective", perspectives[2]);
         object = vm.serializeAddress("perspectives", "eulerUngoverned0xPerspective", perspectives[3]);
-        object = vm.serializeAddress("perspectives", "eulerUngoverned1xPerspective", perspectives[4]);
+        object = vm.serializeAddress("perspectives", "eulerUngovernedNzxPerspective", perspectives[4]);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
@@ -85,22 +84,20 @@ contract Perspectives is ScriptUtils {
             )
         );
 
-        recognizedPerspectives = new address[](4);
+        recognizedPerspectives = new address[](3);
         recognizedPerspectives[0] = governedPerspective;
         recognizedPerspectives[1] = escrowedCollateralPerspective;
-        recognizedPerspectives[2] = eulerUngoverned0xPerspective;
-        recognizedPerspectives[3] = address(0);
-        address eulerUngoverned1xPerspective = address(
-            new EulerBasePlusPerspective(
-                "Euler Ungoverned 1x Perspective",
+        recognizedPerspectives[2] = address(0);
+        address eulerUngovernedNzxPerspective = address(
+            new EulerBasePerspective(
+                "Euler Ungoverned Nzx Perspective",
                 eVaultFactory,
                 oracleRouterFactory,
                 oracleAdapterRegistry,
                 externalVaultRegistry,
                 kinkIRMFactory,
                 irmRegistry,
-                recognizedPerspectives,
-                governedPerspective
+                recognizedPerspectives
             )
         );
 
@@ -109,6 +106,6 @@ contract Perspectives is ScriptUtils {
         perspectives[1] = governedPerspective;
         perspectives[2] = escrowedCollateralPerspective;
         perspectives[3] = eulerUngoverned0xPerspective;
-        perspectives[4] = eulerUngoverned1xPerspective;
+        perspectives[4] = eulerUngovernedNzxPerspective;
     }
 }

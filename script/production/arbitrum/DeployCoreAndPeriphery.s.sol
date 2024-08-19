@@ -117,7 +117,7 @@ contract DeployCoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddre
             peripheryAddresses.governedPerspective = perspectives[1];
             peripheryAddresses.escrowedCollateralPerspective = perspectives[2];
             peripheryAddresses.eulerUngoverned0xPerspective = perspectives[3];
-            peripheryAddresses.eulerUngoverned1xPerspective = perspectives[4];
+            peripheryAddresses.eulerUngovernedNzxPerspective = perspectives[4];
         }
         // deploy lenses
         {

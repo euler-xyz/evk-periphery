@@ -84,7 +84,7 @@ contract PeripheryAddressesLib is Script {
         address governedPerspective;
         address escrowedCollateralPerspective;
         address eulerUngoverned0xPerspective;
-        address eulerUngoverned1xPerspective;
+        address eulerUngovernedNzxPerspective;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -105,7 +105,7 @@ contract PeripheryAddressesLib is Script {
             "peripheryAddresses", "eulerUngoverned0xPerspective", Addresses.eulerUngoverned0xPerspective
         );
         result = vm.serializeAddress(
-            "peripheryAddresses", "eulerUngoverned1xPerspective", Addresses.eulerUngoverned1xPerspective
+            "peripheryAddresses", "eulerUngovernedNzxPerspective", Addresses.eulerUngovernedNzxPerspective
         );
     }
 
@@ -123,7 +123,7 @@ contract PeripheryAddressesLib is Script {
             governedPerspective: abi.decode(vm.parseJson(json, ".governedPerspective"), (address)),
             escrowedCollateralPerspective: abi.decode(vm.parseJson(json, ".escrowedCollateralPerspective"), (address)),
             eulerUngoverned0xPerspective: abi.decode(vm.parseJson(json, ".eulerUngoverned0xPerspective"), (address)),
-            eulerUngoverned1xPerspective: abi.decode(vm.parseJson(json, ".eulerUngoverned1xPerspective"), (address))
+            eulerUngovernedNzxPerspective: abi.decode(vm.parseJson(json, ".eulerUngovernedNzxPerspective"), (address))
         });
     }
 }
