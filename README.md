@@ -20,8 +20,8 @@ Contracts that encode validity criteria for EVK vaults.
 
 There are two sub-directories:
 
-* `implementation` * Supporting contracts that may be used by multiple perspectives.
-* `deployed` * Concrete instances of perspectives to be deployed.
+* `implementation` - Supporting contracts that may be used by multiple perspectives.
+* `deployed` - Concrete instances of perspectives to be deployed.
 
 ### IRMFactory
 
