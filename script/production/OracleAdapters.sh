@@ -140,7 +140,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider_index" == *Cross* ]]; then
         baseName=03_OracleAdapters
-        scriptName=${baseName}.s.sol:CrossAdapterDeploye
+        scriptName=${baseName}.s.sol:CrossAdapterDeployer
         jsonName=03_CrossAdapter
 
         jq -n \
