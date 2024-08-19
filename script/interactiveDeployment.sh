@@ -304,7 +304,7 @@ while true; do
                 5)
                     echo "Deploying Cross Adapter..."
                     
-                    scriptName=${baseName}.s.sol:CrossAdapter
+                    scriptName=${baseName}.s.sol:CrossAdapterDeployer
                     jsonName=03_CrossAdapter
 
                     read -p "Enter the Adapter Registry address: " adapter_registry
@@ -438,7 +438,7 @@ while true; do
             echo "Deploying EVault..."
 
             baseName=07_EVault
-            scriptName=${baseName}.s.sol
+            scriptName=${baseName}Deployer.s.sol
             jsonName=$baseName
 
             read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle

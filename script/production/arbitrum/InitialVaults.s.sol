@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, ExtraAddressesLib} from "../../utils/ScriptUtils.s.sol";
 import {KinkIRM} from "../../04_KinkIRM.s.sol";
-import {EVault} from "../../07_EVault.s.sol";
+import {EVaultDeployer} from "../../07_EVault.s.sol";
 import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
 import {BasePerspective} from "../../../src/Perspectives/implementation/BasePerspective.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
@@ -93,7 +93,7 @@ contract InitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, 
 
         // deploy the vaults
         {
-            EVault deployer = new EVault();
+            EVaultDeployer deployer = new EVaultDeployer();
             for (uint256 i = 0; i < assetsList.length; ++i) {
                 address asset = assetsList[i];
 

@@ -21,13 +21,13 @@ import {BasePerspective} from "../implementation/BasePerspective.sol";
 contract EulerBasePerspective is BasePerspective {
     string internal nameString;
     address[] public recognizedCollateralPerspectives;
+    IEulerRouterFactory public immutable routerFactory;
+    SnapshotRegistry public immutable adapterRegistry;
+    SnapshotRegistry public immutable externalVaultRegistry;
+    SnapshotRegistry public immutable irmRegistry;
+    IEulerKinkIRMFactory public immutable irmFactory;
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    IEulerRouterFactory internal immutable routerFactory;
-    SnapshotRegistry internal immutable adapterRegistry;
-    SnapshotRegistry internal immutable externalVaultRegistry;
-    SnapshotRegistry internal immutable irmRegistry;
-    IEulerKinkIRMFactory internal immutable irmFactory;
 
     /// @notice Creates a new EulerBasePerspective instance.
     /// @param nameString_ The name string for the perspective.

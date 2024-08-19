@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, ExtraAddressesLib} from "../../utils/ScriptUtils.s.sol";
 import {KinkIRM} from "../../04_KinkIRM.s.sol";
-import {EVault} from "../../07_EVault.s.sol";
+import {EVaultDeployer} from "../../07_EVault.s.sol";
 import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
 import {BasePerspective} from "../../../src/Perspectives/implementation/BasePerspective.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
@@ -26,8 +26,9 @@ contract InitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, 
     address internal constant USDTUSD = 0x587CABe0521f5065b561A6e68c25f338eD037FF9;
     address[] internal oracleAdaptersList;
 
-    address internal constant ORACLE_ROUTER_GOVERNOR = 0x0000000000000000000000000000000000000000; // TODO
-    address internal constant RISK_OFF_VAULTS_GOVERNOR = 0x0000000000000000000000000000000000000000; // TODO
+    address internal constant DAO_MULTISIG = 0xcAD001c30E96765aC90307669d578219D4fb1DCe;
+    address internal constant ORACLE_ROUTER_GOVERNOR = DAO_MULTISIG;
+    address internal constant RISK_OFF_VAULTS_GOVERNOR = DAO_MULTISIG;
 
     mapping(address => address) internal escrowVaults;
     mapping(address => address) internal riskOffVaults;
@@ -87,7 +88,7 @@ contract InitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, 
 
         // deploy the vaults
         {
-            EVault deployer = new EVault();
+            EVaultDeployer deployer = new EVaultDeployer();
             for (uint256 i = 0; i < assetsList.length; ++i) {
                 address asset = assetsList[i];
 

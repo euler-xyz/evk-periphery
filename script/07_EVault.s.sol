@@ -7,7 +7,7 @@ import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {EulerRouterFactory} from "../src/EulerRouterFactory/EulerRouterFactory.sol";
 
-contract EVault is ScriptUtils {
+contract EVaultDeployer is ScriptUtils {
     function run() public broadcast returns (address oracleRouter, address eVault) {
         string memory inputScriptFileName = "07_EVault_input.json";
         string memory outputScriptFileName = "07_EVault_output.json";
