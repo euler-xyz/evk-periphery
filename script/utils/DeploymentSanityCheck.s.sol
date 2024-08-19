@@ -19,6 +19,7 @@ import {OracleLens} from "../../src/Lens/OracleLens.sol";
 import {VaultLens} from "../../src/Lens/VaultLens.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 import {EulerBasePerspective} from "../../src/Perspectives/deployed/EulerBasePerspective.sol";
+import {EulerBasePlusPerspective} from "../../src/Perspectives/deployed/EulerBasePlusPerspective.sol";
 import {Swapper} from "../../src/Swaps/Swapper.sol";
 import {EulerRouterFactory} from "../../src/EulerRouterFactory/EulerRouterFactory.sol";
 
@@ -192,7 +193,7 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         } catch {}
 
         // eulerUngoverned1xPerspective
-        // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory
+        // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory, mustHaveCollateralPerspective
         // - recognizedCollateralPerspectives
         assert(address(BasePerspective(extraAddresses.eulerUngoverned1xPerspective).vaultFactory()) == coreAddresses.eVaultFactory);
         assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).routerFactory()) == peripheryAddresses.oracleRouterFactory);
@@ -200,6 +201,7 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).externalVaultRegistry()) == peripheryAddresses.externalVaultRegistry);
         assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).irmRegistry()) == peripheryAddresses.irmRegistry);
         assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).irmFactory()) == peripheryAddresses.kinkIRMFactory);
+        assert(EulerBasePlusPerspective(extraAddresses.eulerUngoverned1xPerspective).mustHaveCollateralPerspective() == extraAddresses.governedPerspective);
 
         recognized =
             EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(0);
