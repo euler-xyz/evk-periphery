@@ -35,9 +35,9 @@ Directory: [src/IRM](src/IRM)
 
 Alternative interest rate models for use by EVK vaults.
 
-- IRMAdaptiveLinearKink is a Linear Kink model with an adaptive mechanism based on exponential growth/decay. As utilization persists above/below the kink the Linear Kink IRM is translated up/down. This model is based on Morpho's [AdaptiveCurveIrm](https://github.com/morpho-org/morpho-blue-irm/blob/8242d5d0414b75368f150d251b518a6c9cf797af/src/adaptive-curve-irm/AdaptiveCurveIrm.sol).
+- IRMAdaptiveLinearKink is a Linear Kink model with an adaptive mechanism based on exponential growth/decay. As utilization persists above/below the kink the Linear Kink IRM is translated up/down. This model is based on Morpho's [AdaptiveCurveIrm](https://github.com/morpho-org/morpho-blue-irm/blob/8242d5d0414b75368f150d251b518a6c9cf797af/src/adaptive-curve-irm/AdaptiveCurveIrm.sol). More information: [Morpho docs](https://docs.morpho.org/morpho/contracts/irm/adaptive-curve-irm/), [LlamaRisk explainer](https://www.llamarisk.com/research/morph-crvusd-vault-irm).
 
-- IRMAdaptiveRange is a Linear Kink model with an adaptive mechanism based on exponential growth/decay. As utilization persists above/below a range around the kink the Linear Kink IRM is adapted to increase/decrease rates. This model is based on Frax's [VariableInterestRate](https://github.com/FraxFinance/fraxlend/blob/f474378c87910f23e3bb135c0e42057afee573b7/src/contracts/VariableInterestRate.sol).
+- IRMAdaptiveRange is a Linear Kink model with an adaptive mechanism based on exponential growth/decay. As utilization persists above/below a range around the kink the Linear Kink IRM is adapted to increase/decrease rates. This model is based on Frax's [VariableInterestRate](https://github.com/FraxFinance/fraxlend/blob/f474378c87910f23e3bb135c0e42057afee573b7/src/contracts/VariableInterestRate.sol). More information: [Fraxlend docs](https://docs.frax.finance/fraxlend/advanced-concepts/interest-rates#variable-rate-v2-interest-rate), [LlamaRisk explainer](https://www.llamarisk.com/research/sturdy-crvusd-aggregator-interest-rate-model-upgrade).
 
 ### EulerRouterFactory
 
