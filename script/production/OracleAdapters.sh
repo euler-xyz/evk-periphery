@@ -36,8 +36,6 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     provider_index="${columns[2]}"
     deploy_index="${columns[3]}"
 
-    echo $provider_index
-
     if [[ "$deploy_index" == "Deploy" || "$deploy_index" == "No" ]]; then
         continue
     fi
@@ -139,6 +137,21 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 maxConfWidth: $maxConfWidth
             }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider_index" == *Cross* ]]; then
+        # Sanity check
+        timestamp=$(date +%s)
+        baseCrossAdapters=$(cast call "$adapter_registry" "getValidAddresses(address,address,uint256)(address[])" "${columns[6]}" "${columns[7]}" "$timestamp" --rpc-url "$DEPLOYMENT_RPC_URL")
+        crossQuoteAdapters=$(cast call "$adapter_registry" "getValidAddresses(address,address,uint256)(address[])" "${columns[7]}" "${columns[8]}" "$timestamp" --rpc-url "$DEPLOYMENT_RPC_URL")
+
+        if [[ $baseCrossAdapters != *"${columns[9]}"* ]]; then
+            echo "${columns[9]} is not a valid adapter. Skipping..."
+            continue
+        fi
+
+        if [[ $crossQuoteAdapters != *"${columns[10]}"* ]]; then
+            echo "${columns[10]} is not a valid adapter. Skipping..."
+            continue
+        fi
+
         baseName=03_OracleAdapters
         scriptName=${baseName}.s.sol:CrossAdapterDeployer
         jsonName=03_CrossAdapter
