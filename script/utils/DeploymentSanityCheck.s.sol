@@ -66,11 +66,13 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
             deserializePeripheryAddresses(vm.readFile(vm.envString("PERIPHERY_ADDRESSES_PATH")));
         ExtraAddresses memory extraAddresses =
             deserializeExtraAddresses(vm.readFile(vm.envString("EXTRA_ADDRESSES_PATH")));
+
         verifyCoreAndPeriphery(coreAddresses, peripheryAddresses, extraAddresses);
         verifyVaults(coreAddresses, peripheryAddresses, extraAddresses);
 
         // FIXME: oracle / adapters?
     }
+
 
     function verifyCoreAndPeriphery(
         CoreAddresses memory coreAddresses,
@@ -162,19 +164,22 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
 
         // escrowedCollateralPerspective
         // - immutable: vaultFactory
-        // VERIFIED manually in creation TX
-        // https://etherscan.io/tx/0x1d3d9f2cb49c06ba52d7855b9dcc02c8f3a7f794e6eb1565d3a9b6bbb803a531
+        assert(address(BasePerspective(extraAddresses.escrowedCollateralPerspective).vaultFactory()) == coreAddresses.eVaultFactory);
 
         // factoryPerspective
         // - immutable: vaultFactory
-        // VERIFIED manually in creation TX
-        // https://etherscan.io/tx/0x9a27da6c4170cb47ac8d35cd7fbe0fb1a4cbad1d27219532b33317e1afcd5e0f
+        assert(address(BasePerspective(extraAddresses.factoryPerspective).vaultFactory()) == coreAddresses.eVaultFactory);
 
         // eulerUngoverned0xPerspective
         // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory
         // - recognizedCollateralPerspectives
-        // VERIFIED immutables manually in creation TX
-        // https://etherscan.io/tx/0xdf281d88a257624765ab569353a14d1caabb1f34c6a6a47545f2ae9913919ffe
+        assert(address(BasePerspective(extraAddresses.eulerUngoverned0xPerspective).vaultFactory()) == coreAddresses.eVaultFactory);
+        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).routerFactory()) == peripheryAddresses.oracleRouterFactory);
+        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).adapterRegistry()) == peripheryAddresses.oracleAdapterRegistry);
+        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).externalVaultRegistry()) == peripheryAddresses.externalVaultRegistry);
+        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).irmRegistry()) == peripheryAddresses.irmRegistry);
+        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).irmFactory()) == peripheryAddresses.kinkIRMFactory);
+
         address recognized =
             EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(0);
         assert(recognized == extraAddresses.escrowedCollateralPerspective);
@@ -183,6 +188,33 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         assert(recognized == address(0));
 
         try EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(2) {
+            revert("array too long!");
+        } catch {}
+
+        // eulerUngoverned1xPerspective
+        // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory
+        // - recognizedCollateralPerspectives
+        assert(address(BasePerspective(extraAddresses.eulerUngoverned1xPerspective).vaultFactory()) == coreAddresses.eVaultFactory);
+        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).routerFactory()) == peripheryAddresses.oracleRouterFactory);
+        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).adapterRegistry()) == peripheryAddresses.oracleAdapterRegistry);
+        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).externalVaultRegistry()) == peripheryAddresses.externalVaultRegistry);
+        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).irmRegistry()) == peripheryAddresses.irmRegistry);
+        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).irmFactory()) == peripheryAddresses.kinkIRMFactory);
+
+        recognized =
+            EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(0);
+        assert(recognized == extraAddresses.governedPerspective);
+        recognized =
+            EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(1);
+        assert(recognized == extraAddresses.escrowedCollateralPerspective);
+        recognized =
+            EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(2);
+        assert(recognized == extraAddresses.eulerUngoverned0xPerspective);
+        recognized =
+            EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(3);
+        assert(recognized == address(0));
+
+        try EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(4) {
             revert("array too long!");
         } catch {}
 
@@ -443,4 +475,25 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         assert(data.length == 32);
         return abi.decode(data, (address));
     }
+
+    // function addToPerspectives(
+    //     CoreAddresses memory coreAddresses,
+    //     PeripheryAddresses memory,
+    //     ExtraAddresses memory extraAddresses
+    // ) internal {
+    //     assert(GenericFactory(coreAddresses.eVaultFactory).getProxyListLength() == 8);
+    //     address[] memory vaults = GenericFactory(coreAddresses.eVaultFactory).getProxyListSlice(0, 8);
+
+    //     startBroadcast();
+
+    //     for (uint256 i = 0; i < vaults.length; i++) {
+    //         if (i % 2 == 0) {
+    //             BasePerspective(extraAddresses.escrowedCollateralPerspective).perspectiveVerify(vaults[i], true);
+    //         } else {
+    //             BasePerspective(extraAddresses.governedPerspective).perspectiveVerify(vaults[i], true);
+    //         }
+    //     }
+
+    //     stopBroadcast();
+    // }
 }

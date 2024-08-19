@@ -117,7 +117,7 @@ contract ExtraAddressesLib is Script {
         address escrowedCollateralPerspective;
         address eulerUngoverned0xPerspective;
         address eulerUngoverned1xPerspective;
-        address factoryPespective;
+        address factoryPerspective;
     }
 
     function serializeExtraAddresses(ExtraAddresses memory Addresses) internal returns (string memory result) {
@@ -135,7 +135,7 @@ contract ExtraAddressesLib is Script {
         result = vm.serializeAddress(
             "extraAddresses", "eulerUngoverned1xPerspective", Addresses.eulerUngoverned1xPerspective
         );
-        result = vm.serializeAddress("extraAddresses", "factoryPespective", Addresses.factoryPespective);
+        result = vm.serializeAddress("extraAddresses", "factoryPerspective", Addresses.factoryPerspective);
     }
 
     function deserializeExtraAddresses(string memory json) internal pure returns (ExtraAddresses memory) {
@@ -148,7 +148,7 @@ contract ExtraAddressesLib is Script {
             escrowedCollateralPerspective: abi.decode(vm.parseJson(json, ".escrowedCollateralPerspective"), (address)),
             eulerUngoverned0xPerspective: abi.decode(vm.parseJson(json, ".eulerUngoverned0xPerspective"), (address)),
             eulerUngoverned1xPerspective: abi.decode(vm.parseJson(json, ".eulerUngoverned1xPerspective"), (address)),
-            factoryPespective: abi.decode(vm.parseJson(json, ".factoryPespective"), (address))
+            factoryPerspective: abi.decode(vm.parseJson(json, ".factoryPerspective"), (address))
         });
     }
 }

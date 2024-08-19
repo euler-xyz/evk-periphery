@@ -31,7 +31,7 @@ contract Perspectives is ScriptUtils {
         );
 
         string memory object;
-        object = vm.serializeAddress("perspectives", "factoryPespective", perspectives[0]);
+        object = vm.serializeAddress("perspectives", "factoryPerspective", perspectives[0]);
         object = vm.serializeAddress("perspectives", "governedPerspective", perspectives[1]);
         object = vm.serializeAddress("perspectives", "escrowedCollateralPerspective", perspectives[2]);
         object = vm.serializeAddress("perspectives", "eulerUngoverned0xPerspective", perspectives[3]);
@@ -65,7 +65,7 @@ contract Perspectives is ScriptUtils {
         address kinkIRMFactory,
         address irmRegistry
     ) public returns (address[] memory perspectives) {
-        address factoryPespective = address(new FactoryPerspective(eVaultFactory));
+        address factoryPerspective = address(new FactoryPerspective(eVaultFactory));
         address governedPerspective = address(new GovernedPerspective(getDeployer()));
         address escrowedCollateralPerspective = address(new EscrowedCollateralPerspective(eVaultFactory));
 
@@ -105,7 +105,7 @@ contract Perspectives is ScriptUtils {
         );
 
         perspectives = new address[](5);
-        perspectives[0] = factoryPespective;
+        perspectives[0] = factoryPerspective;
         perspectives[1] = governedPerspective;
         perspectives[2] = escrowedCollateralPerspective;
         perspectives[3] = eulerUngoverned0xPerspective;
