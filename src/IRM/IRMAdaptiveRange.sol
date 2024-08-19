@@ -3,62 +3,63 @@ pragma solidity ^0.8.0;
 
 import {IIRM} from "evk/InterestRateModels/IIRM.sol";
 
-/// @title IRMVariableRange
+/// @title IRMAdaptiveRange
+/// @custom:contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/).
 /// @author Inspired by Frax (https://docs.frax.finance/fraxlend/advanced-concepts/interest-rates).
-/// @custom:contact security@euler.xyz
-contract IRMVariableRange is IIRM {
+contract IRMAdaptiveRange is IIRM {
     /// @dev Unit for internal precision.
     uint256 internal constant WAD = 1e18;
     /// @notice The lower bound of the utilization range where the full rate does not adjust.
-    /// @dev In WAD units e.g. 0.9e18 = 90%.
+    /// @dev In WAD units.
     uint256 public immutable targetUtilizationLower;
     /// @notice The upper bound of the utilization range where the full rate does not adjust.
-    /// @dev In WAD units e.g. 0.9e18 = 90%.
+    /// @dev In WAD units.
     uint256 public immutable targetUtilizationUpper;
     /// @notice The utilization at which the slope increases.
-    /// @dev In WAD units e.g. 0.9e18 = 90%.
+    /// @dev In WAD units.
     uint256 public immutable kink;
-    /// @notice The interest rate when utilization is 0%.
-    /// @dev In WAD units per second e.g. 1e18 / 365 days = 100%.
+    /// @notice The interest rate at zero utilization.
+    /// @dev In WAD per second units.
     uint256 public immutable baseRate;
-    /// @notice The minimum interest rate when utilization is 100%.
-    /// @dev In WAD units per second e.g. 1e18 / 365 days = 100%.
+    /// @notice The minimum interest rate at full utilization.
+    /// @dev In WAD per second units.
     uint256 public immutable minFullRate;
-    /// @notice The maximum interest rate when utilization is 100%.
-    /// @dev In WAD units per second e.g. 1e18 / 365 days = 100%.
+    /// @notice The maximum interest rate at full utilization.
+    /// @dev In WAD per second units.
     uint256 public immutable maxFullRate;
-    /// @notice The initial interest rate when utilization is 100%.
-    /// @dev In WAD units per second e.g. 1e18 / 365 days = 100%.
+    /// @notice The initial interest rate at full utilization.
+    /// @dev In WAD per second units.
     uint256 public immutable initialFullRate;
     /// @notice The time it takes for the interest to halve when adjusting the curve.
-    /// @dev In seconds e.g. 43200 = 12 hours.
+    /// @dev In seconds.
     uint256 public immutable halfLife;
     /// @notice The percent of the delta between max and min.
+    /// @dev In WAD units.
     uint256 public immutable kinkRatePercent;
 
     /// @notice Cached state of the interest rate model.
     struct IRState {
-        /// @dev The current rate at 100% utilization.
+        /// @dev The current rate at full utilization.
         uint208 fullRate;
         /// @dev The timestamp of the last update to the model.
         uint48 lastUpdate;
     }
 
     /// @notice Get the cached state of a vault's irm.
-    /// @return fullRate The current full rate.
+    /// @return fullRate The last computed rate at full utilization.
     /// @return lastUpdate The last update timestamp.
     /// @dev Note that this state may be outdated. Use `computeInterestRateView` for the latest interest rate.
     mapping(address => IRState) public irState;
 
-    /// @notice Deploy IRMVariableRange.
+    /// @notice Deploy IRMAdaptiveRange.
     /// @param _targetUtilizationLower The lower bound of the utilization range where the interest rate does not adjust.
     /// @param _targetUtilizationUpper The upper bound of the utilization range where the interest rate does not adjust.
     /// @param _kink The utilization at which the slope increases.
-    /// @param _baseRate The interest rate when utilization is 0%.
-    /// @param _minFullRate The minimum interest rate when utilization is 100%.
-    /// @param _maxFullRate The maximum interest rate when utilization is 100%.
-    /// @param _initialFullRate The initial interest rate when utilization is 100%.
+    /// @param _baseRate The interest rate at zero utilization.
+    /// @param _minFullRate The minimum interest rate at full utilization.
+    /// @param _maxFullRate The maximum interest rate at full utilization.
+    /// @param _initialFullRate The initial interest rate at full utilization.
     /// @param _halfLife The time it takes for the interest to halve when adjusting the curve.
     /// @param _kinkRatePercent The percent of the delta between max and min.
     constructor(
@@ -124,25 +125,10 @@ contract IRMVariableRange is IIRM {
         uint256 newRate = calcLinearKinkRate(utilization, newFullRate);
         return (newRate, newFullRate);
     }
-
-    /// @notice Calculate the new interest rate.
-    /// @param utilization The utilization rate in WAD.
-    /// @param newFullRate The new interest rate when utilization is 100% in WAD.
-    /// @return The new interest rate in WAD per second.
-    function calcLinearKinkRate(uint256 utilization, uint256 newFullRate) internal view returns (uint256) {
-        // kinkRate is calculated as the percentage of the delta between min and max interest
-        uint256 kinkRate = (((newFullRate - baseRate) * kinkRatePercent) / WAD) + baseRate;
-
-        if (utilization < kink) {
-            return baseRate + (utilization * (kinkRate - baseRate)) / kink;
-        } else {
-            return kinkRate + ((utilization - kink) * (newFullRate - kinkRate)) / (WAD - kink);
-        }
-    }
-    /// @notice Calculate the new full interest rate, i.e. rate when utilization is 100%.
+    /// @notice Calculate the new rate at full utilization.
     /// @param deltaTime The elapsed time since last update in seconds.
     /// @param utilization The utilization rate in WAD.
-    /// @param fullRate The interest rate when utilization is 100% in WAD.
+    /// @param fullRate The interest rate at full utilization in WAD.
     /// @return The new full interest rate in WAD per second.
 
     function calcNewFullRate(uint256 deltaTime, uint256 utilization, uint256 fullRate)
@@ -151,17 +137,17 @@ contract IRMVariableRange is IIRM {
         returns (uint256)
     {
         if (utilization < targetUtilizationLower) {
-            // Adjust full rate downward based on half life decay.
+            // Adjust full rate downward based on half life.
             uint256 deltaUtilization = ((targetUtilizationLower - utilization) * WAD) / targetUtilizationLower;
             uint256 decayGrowth = halfLife * WAD * WAD + deltaUtilization * deltaUtilization * deltaTime;
             return boundFullRate(fullRate * halfLife * WAD * WAD / decayGrowth);
         } else if (utilization > targetUtilizationUpper) {
-            // Adjust full rate upward based on half life decay.
+            // Adjust full rate upward based on half life.
             uint256 deltaUtilization = ((utilization - targetUtilizationUpper) * WAD) / (WAD - targetUtilizationUpper);
             uint256 decayGrowth = halfLife * WAD * WAD + deltaUtilization * deltaUtilization * deltaTime;
             return boundFullRate(fullRate * decayGrowth / (halfLife * WAD * WAD));
         }
-        // Utilization is within target range. Return last rate.
+        // Utilization is within target range. Do not adjust full rate.
         return fullRate;
     }
 
@@ -172,5 +158,20 @@ contract IRMVariableRange is IIRM {
         if (fullRate < minFullRate) return minFullRate;
         if (fullRate > maxFullRate) return maxFullRate;
         return fullRate;
+    }
+
+    /// @notice Calculate the new interest rate.
+    /// @param utilization The utilization rate in WAD.
+    /// @param fullRate The new interest rate at full utilization in WAD.
+    /// @return The new interest rate in WAD per second.
+    function calcLinearKinkRate(uint256 utilization, uint256 fullRate) internal view returns (uint256) {
+        // kinkRate is calculated as the percentage of the delta between min and max interest
+        uint256 kinkRate = (((fullRate - baseRate) * kinkRatePercent) / WAD) + baseRate;
+
+        if (utilization < kink) {
+            return baseRate + (utilization * (kinkRate - baseRate)) / kink;
+        } else {
+            return kinkRate + ((utilization - kink) * (fullRate - kinkRate)) / (WAD - kink);
+        }
     }
 }

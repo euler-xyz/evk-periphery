@@ -2,10 +2,10 @@
 pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
-import {IRMVariableRange} from "../../../src/IRM/IRMVariableRange.sol";
+import {IRMAdaptiveRange} from "../../../src/IRM/IRMAdaptiveRange.sol";
 
-contract IRMVariableRangeHarness is Test {
-    IRMVariableRange[] internal irms;
+contract IRMAdaptiveRangeHarness is Test {
+    IRMAdaptiveRange[] internal irms;
 
     struct StateHistory {
         uint256 cash;
@@ -18,13 +18,13 @@ contract IRMVariableRangeHarness is Test {
     }
 
     uint256 public numCalls;
-    mapping(IRMVariableRange => StateHistory[]) public history;
+    mapping(IRMAdaptiveRange => StateHistory[]) public history;
 
-    function addIrm(IRMVariableRange irm) external {
+    function addIrm(IRMAdaptiveRange irm) external {
         irms.push(irm);
     }
 
-    function getIrms() external view returns (IRMVariableRange[] memory) {
+    function getIrms() external view returns (IRMAdaptiveRange[] memory) {
         return irms;
     }
 
@@ -33,7 +33,7 @@ contract IRMVariableRangeHarness is Test {
         ++numCalls;
 
         for (uint256 i = 0; i < irms.length; ++i) {
-            IRMVariableRange irm = irms[i];
+            IRMAdaptiveRange irm = irms[i];
             uint256 rate = irm.computeInterestRate(address(this), cash, borrows);
             (uint208 fullRate, uint48 timestamp) = irm.irState(address(this));
             uint256 totalAssets = uint256(cash) + borrows;
@@ -52,7 +52,7 @@ contract IRMVariableRangeHarness is Test {
         }
     }
 
-    function nthCall(IRMVariableRange irm, uint256 index) external view returns (StateHistory memory) {
+    function nthCall(IRMAdaptiveRange irm, uint256 index) external view returns (StateHistory memory) {
         return history[irm][index];
     }
 }

@@ -3,9 +3,9 @@ pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
 import {IIRM} from "evk/InterestRateModels/IIRM.sol";
-import {IRMVariableRange} from "../../../src/IRM/IRMVariableRange.sol";
+import {IRMAdaptiveRange} from "../../../src/IRM/IRMAdaptiveRange.sol";
 
-contract IRMVariableRangeTest is Test {
+contract IRMAdaptiveRangeTest is Test {
     address constant VAULT = address(0x1234);
     uint256 internal constant SECONDS_PER_YEAR = 365 days;
     uint256 internal constant targetUtilizationLower = 0.7e18;
@@ -18,10 +18,10 @@ contract IRMVariableRangeTest is Test {
     uint256 internal constant halfLife = 6 hours;
     uint256 internal constant kinkRatePercent = 0.9e18;
 
-    IRMVariableRange irm;
+    IRMAdaptiveRange irm;
 
     function setUp() public {
-        irm = new IRMVariableRange(
+        irm = new IRMAdaptiveRange(
             targetUtilizationLower,
             targetUtilizationUpper,
             kink,
