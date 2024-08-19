@@ -18,15 +18,16 @@ function save_results {
     local jsonName=$1
     local deployment_name=$2
     local deployment_dir="script/deployments/$deployment_name"
-    local timestamp=$(date +%s)
     local chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 
     mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broadcast"
 
     if [[ -f "script/${jsonName}_output.json" ]]; then
-        mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${timestamp}.json"
-        mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${timestamp}.json"
-        mv "./broadcast/${jsonName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${timestamp}.json"
+        local counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
+
+        mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
+        mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"
+        mv "./broadcast/${jsonName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
     else
         rm "script/${jsonName}_input.json"
     fi
@@ -97,7 +98,7 @@ while true; do
     echo "Select an option to deploy:"
     echo "0. ERC20 mock token"
     echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
-    echo "2. Periphery factories (Oracle Router, Oracle Adapter Registry, Kink IRM Factory)"
+    echo "2. Periphery factories and registries"
     echo "3. Oracle adapter"
     echo "4. Kink IRM"
     echo "5. EVault implementation (modules and implementation contract)"

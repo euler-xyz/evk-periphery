@@ -29,18 +29,18 @@ After that, deploy the contracts in a different terminal window.
 
 The results of the deployment will be saved in `script/deployments/[your_deployment_name]` directory.
 
-### 1. Deploy the core contracts:
+### 1. Deploy the core and the periphery contracts:
 
 ```sh
-./script/production/Core.sh <solidity_script_dir_path>
+./script/production/CoreAndPeriphery.sh <solidity_script_dir_path>
 ```
 
 i.e.
 ```sh
-./script/production/Core.sh script/production/arbitrum
+./script/production/CoreAndPeriphery.sh script/production/arbitrum
 ```
 
-The core contracts addresses which are the result of this deployment will be stored in `script/deployments/[your_deployment_name]/output/CoreInfo.json`. They will be required for the other scripts to run but also the Front End team needs those.
+All the contract addresses, which are the result of this deployment, will be stored in `script/deployments/[your_deployment_name]/output`. They will be required for the other scripts to run (this directory path must be provided) but also the Front End team needs those.
 
 ### 2. Copy the oracle adapters data in the CSV format into any directory you like
 ### 3. Deploy the oracle adapters adding them to the Adapters Registry:
@@ -62,24 +62,27 @@ Note that the Cross adapter relies on the previous adapters deployment hence the
 ### 4. Deploy the initial set of vaults:
 
 ```sh
-./script/production/InitialVaults.sh <solidity_script_dir_path> <core_info_json_file_path>
+./script/production/InitialVaults.sh <solidity_script_dir_path> <addresses_dir_path>
 ```
 
 i.e.
 ```sh
-./script/production/InitialVaults.sh script/production/arbitrum script/deployments/default/output/CoreInfo.json
+./script/production/InitialVaults.sh script/production/arbitrum script/deployments/default/output
 ```
 
 **Important**
 Note that the vaults deployment relies on the deployed oracle adapter addresses. Prepare the `InitialVaults.s.sol` accordingly before running the script.
 
+**Important**
+`<addresses_dir_path>` must contain three json files containing the addresses, which are the result of running the `CoreAndPeriphery.sh` script: `CoreAddresses.json`, `PeripheryAddresses.json` and `ExtraAddresses.json`.
+
 ### 5. Transfer the ownership of the core contracts:
 
 ```sh
-./script/production/OwnershipTransfer.sh <solidity_script_dir_path> <core_info_json_file_path>
+./script/production/OwnershipTransfer.sh <solidity_script_dir_path> <addresses_dir_path>
 ```
 
 i.e.
 ```sh
-./script/production/OwnershipTransfer.sh script/production/arbitrum script/deployments/default/output/CoreInfo.json
+./script/production/OwnershipTransfer.sh script/production/arbitrum script/deployments/default/output
 ```

@@ -36,6 +36,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     provider_index="${columns[2]}"
     deploy_index="${columns[3]}"
 
+    echo $provider_index
+
     if [[ "$deploy_index" == "Deploy" || "$deploy_index" == "No" ]]; then
         continue
     fi
@@ -136,7 +138,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 maxStaleness: $maxStaleness,
                 maxConfWidth: $maxConfWidth
             }' --indent 4 > script/${jsonName}_input.json
-    elif [[ "$provider_index" == "Cross (Chainlink)" ]]; then
+    elif [[ "$provider_index" == *Cross* ]]; then
         baseName=03_OracleAdapters
         scriptName=${baseName}.s.sol:CrossAdapter
         jsonName=03_CrossAdapter
@@ -158,25 +160,16 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             }' --indent 4 > script/${jsonName}_input.json
     else
         echo "Error!"
+        exit 1
     fi
 
     if script/utils/executeForgeScript.sh $scriptName $verify_contracts; then
-        echo "${columns[0]},${columns[1]},${columns[2]},$(jq -r '.adapter' "script/${jsonName}_output.json")" >> "$adaptersList"
-        
-        get_new_filename() {
-            local base_file="$1"
-            local counter=0
-            local new_file="${base_file%.*}_${counter}.${base_file##*.}"
-            while [[ -e "$new_file" ]]; do
-                ((counter++))
-                new_file="${base_file%.*}_${counter}.${base_file##*.}"
-            done
-            echo "$new_file"
-        }
+        local counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
 
-        mv "script/${jsonName}_input.json" $(get_new_filename "$deployment_dir/input/${jsonName}.json")
-        mv "script/${jsonName}_output.json" $(get_new_filename "$deployment_dir/output/${jsonName}.json")
-        cp "broadcast/${baseName}.s.sol/$chainId/run-latest.json" $(get_new_filename "$deployment_dir/broadcast/${jsonName}.json")
+        echo "${columns[0]},${columns[1]},${columns[2]},$(jq -r '.adapter' "script/${jsonName}_output.json")" >> "$adaptersList"
+        mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
+        mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"
+        cp "broadcast/${baseName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
     else
         rm "script/${jsonName}_input.json"
     fi

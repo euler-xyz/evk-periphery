@@ -25,15 +25,15 @@ After that, deploy the contracts in a different terminal window.
 
 ## Batch Deployment
 
-Invoke the specific task scripts.
+Invoke the specific task scripts, i.e.:
 
 Core:
 
-    ./script/production/Core.sh production/arbitrum
+    ./script/production/CoreAndPeriphery.sh production/arbitrum
 
 OwnershipTransfer:
 
-    ./script/production/OwnershipTransfer.sh production/arbitrum script/deployments/arbitrum/output/CoreInfo.json
+    ./script/production/OwnershipTransfer.sh production/arbitrum script/deployments/arbitrum/output
 
 
 ## Interactive Deployment

@@ -26,10 +26,124 @@ contract ScriptUtils is Script {
         return deployer == vm.addr(1) ? address(this) : deployer;
     }
 
-    function getInputConfig(string memory jsonFile) internal view returns (string memory) {
+    function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {
         string memory root = vm.projectRoot();
-        string memory configPath = string.concat(root, "/script/", jsonFile);
-        return vm.readFile(configPath);
+        return string.concat(root, "/script/", jsonFile);
+    }
+
+    function getInputConfig(string memory jsonFile) internal view returns (string memory) {
+        return vm.readFile(getInputConfigFilePath(jsonFile));
+    }
+}
+
+contract CoreAddressesLib is Script {
+    struct CoreAddresses {
+        address evc;
+        address protocolConfig;
+        address sequenceRegistry;
+        address balanceTracker;
+        address permit2;
+        address eVaultImplementation;
+        address eVaultFactory;
+    }
+
+    function serializeCoreAddresses(CoreAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("coreAddresses", "evc", Addresses.evc);
+        result = vm.serializeAddress("coreAddresses", "protocolConfig", Addresses.protocolConfig);
+        result = vm.serializeAddress("coreAddresses", "sequenceRegistry", Addresses.sequenceRegistry);
+        result = vm.serializeAddress("coreAddresses", "balanceTracker", Addresses.balanceTracker);
+        result = vm.serializeAddress("coreAddresses", "permit2", Addresses.permit2);
+        result = vm.serializeAddress("coreAddresses", "eVaultImplementation", Addresses.eVaultImplementation);
+        result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
+    }
+
+    function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory) {
+        return CoreAddresses({
+            evc: abi.decode(vm.parseJson(json, ".evc"), (address)),
+            protocolConfig: abi.decode(vm.parseJson(json, ".protocolConfig"), (address)),
+            sequenceRegistry: abi.decode(vm.parseJson(json, ".sequenceRegistry"), (address)),
+            balanceTracker: abi.decode(vm.parseJson(json, ".balanceTracker"), (address)),
+            permit2: abi.decode(vm.parseJson(json, ".permit2"), (address)),
+            eVaultImplementation: abi.decode(vm.parseJson(json, ".eVaultImplementation"), (address)),
+            eVaultFactory: abi.decode(vm.parseJson(json, ".eVaultFactory"), (address))
+        });
+    }
+}
+
+contract PeripheryAddressesLib is Script {
+    struct PeripheryAddresses {
+        address oracleRouterFactory;
+        address oracleAdapterRegistry;
+        address externalVaultRegistry;
+        address kinkIRMFactory;
+        address irmRegistry;
+        address swapper;
+        address swapVerifier;
+        address feeFlowController;
+    }
+
+    function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("peripheryAddresses", "oracleRouterFactory", Addresses.oracleRouterFactory);
+        result = vm.serializeAddress("peripheryAddresses", "oracleAdapterRegistry", Addresses.oracleAdapterRegistry);
+        result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
+        result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
+        result = vm.serializeAddress("peripheryAddresses", "irmRegistry", Addresses.irmRegistry);
+        result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
+        result = vm.serializeAddress("peripheryAddresses", "swapVerifier", Addresses.swapVerifier);
+        result = vm.serializeAddress("peripheryAddresses", "feeFlowController", Addresses.feeFlowController);
+    }
+
+    function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
+        return PeripheryAddresses({
+            oracleRouterFactory: abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address)),
+            oracleAdapterRegistry: abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address)),
+            externalVaultRegistry: abi.decode(vm.parseJson(json, ".externalVaultRegistry"), (address)),
+            kinkIRMFactory: abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address)),
+            irmRegistry: abi.decode(vm.parseJson(json, ".irmRegistry"), (address)),
+            swapper: abi.decode(vm.parseJson(json, ".swapper"), (address)),
+            swapVerifier: abi.decode(vm.parseJson(json, ".swapVerifier"), (address)),
+            feeFlowController: abi.decode(vm.parseJson(json, ".feeFlowController"), (address))
+        });
+    }
+}
+
+contract ExtraAddressesLib is Script {
+    struct ExtraAddresses {
+        address accountLens;
+        address oracleLens;
+        address vaultLens;
+        address utilsLens;
+        address governedPerspective;
+        address escrowPerspective;
+        address euler0xPerspective;
+        address euler1xPerspective;
+        address eulerFactoryPerspective;
+    }
+
+    function serializeExtraAddresses(ExtraAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("extraAddresses", "accountLens", Addresses.accountLens);
+        result = vm.serializeAddress("extraAddresses", "oracleLens", Addresses.oracleLens);
+        result = vm.serializeAddress("extraAddresses", "vaultLens", Addresses.vaultLens);
+        result = vm.serializeAddress("extraAddresses", "utilsLens", Addresses.utilsLens);
+        result = vm.serializeAddress("extraAddresses", "governedPerspective", Addresses.governedPerspective);
+        result = vm.serializeAddress("extraAddresses", "escrowPerspective", Addresses.escrowPerspective);
+        result = vm.serializeAddress("extraAddresses", "euler0xPerspective", Addresses.euler0xPerspective);
+        result = vm.serializeAddress("extraAddresses", "euler1xPerspective", Addresses.euler1xPerspective);
+        result = vm.serializeAddress("extraAddresses", "eulerFactoryPerspective", Addresses.eulerFactoryPerspective);
+    }
+
+    function deserializeExtraAddresses(string memory json) internal pure returns (ExtraAddresses memory) {
+        return ExtraAddresses({
+            accountLens: abi.decode(vm.parseJson(json, ".accountLens"), (address)),
+            oracleLens: abi.decode(vm.parseJson(json, ".oracleLens"), (address)),
+            vaultLens: abi.decode(vm.parseJson(json, ".vaultLens"), (address)),
+            utilsLens: abi.decode(vm.parseJson(json, ".utilsLens"), (address)),
+            governedPerspective: abi.decode(vm.parseJson(json, ".governedPerspective"), (address)),
+            escrowPerspective: abi.decode(vm.parseJson(json, ".escrowPerspective"), (address)),
+            euler0xPerspective: abi.decode(vm.parseJson(json, ".euler0xPerspective"), (address)),
+            euler1xPerspective: abi.decode(vm.parseJson(json, ".euler1xPerspective"), (address)),
+            eulerFactoryPerspective: abi.decode(vm.parseJson(json, ".eulerFactoryPerspective"), (address))
+        });
     }
 }
 
@@ -49,87 +163,5 @@ contract ERC20Mintable is Ownable, ERC20 {
 
     function mint(address account, uint256 amount) external onlyOwner {
         _mint(account, amount);
-    }
-}
-
-contract CoreInfoLib is Script {
-    struct CoreInfo {
-        address evc;
-        address protocolConfig;
-        address sequenceRegistry;
-        address balanceTracker;
-        address permit2;
-        address oracleRouterFactory;
-        address oracleAdapterRegistry;
-        address externalVaultRegistry;
-        address kinkIRMFactory;
-        address irmRegistry;
-        address eVaultImplementation;
-        address eVaultFactory;
-        address accountLens;
-        address oracleLens;
-        address vaultLens;
-        address utilsLens;
-        address governableWhitelistPerspective;
-        address escrowPerspective;
-        address eulerBasePerspective;
-        address eulerFactoryPerspective;
-        address swapper;
-        address swapVerifier;
-        address feeFlowController;
-    }
-
-    function serializeCoreInfo(CoreInfo memory info) internal returns (string memory result) {
-        result = vm.serializeAddress("coreInfo", "evc", info.evc);
-        result = vm.serializeAddress("coreInfo", "protocolConfig", info.protocolConfig);
-        result = vm.serializeAddress("coreInfo", "sequenceRegistry", info.sequenceRegistry);
-        result = vm.serializeAddress("coreInfo", "balanceTracker", info.balanceTracker);
-        result = vm.serializeAddress("coreInfo", "permit2", info.permit2);
-        result = vm.serializeAddress("coreInfo", "oracleRouterFactory", info.oracleRouterFactory);
-        result = vm.serializeAddress("coreInfo", "oracleAdapterRegistry", info.oracleAdapterRegistry);
-        result = vm.serializeAddress("coreInfo", "externalVaultRegistry", info.externalVaultRegistry);
-        result = vm.serializeAddress("coreInfo", "kinkIRMFactory", info.kinkIRMFactory);
-        result = vm.serializeAddress("coreInfo", "irmRegistry", info.irmRegistry);
-        result = vm.serializeAddress("coreInfo", "eVaultImplementation", info.eVaultImplementation);
-        result = vm.serializeAddress("coreInfo", "eVaultFactory", info.eVaultFactory);
-        result = vm.serializeAddress("coreInfo", "accountLens", info.accountLens);
-        result = vm.serializeAddress("coreInfo", "oracleLens", info.oracleLens);
-        result = vm.serializeAddress("coreInfo", "vaultLens", info.vaultLens);
-        result = vm.serializeAddress("coreInfo", "utilsLens", info.utilsLens);
-        result = vm.serializeAddress("coreInfo", "governableWhitelistPerspective", info.governableWhitelistPerspective);
-        result = vm.serializeAddress("coreInfo", "escrowPerspective", info.escrowPerspective);
-        result = vm.serializeAddress("coreInfo", "eulerBasePerspective", info.eulerBasePerspective);
-        result = vm.serializeAddress("coreInfo", "eulerFactoryPerspective", info.eulerFactoryPerspective);
-        result = vm.serializeAddress("coreInfo", "swapper", info.swapper);
-        result = vm.serializeAddress("coreInfo", "swapVerifier", info.swapVerifier);
-        result = vm.serializeAddress("coreInfo", "feeFlowController", info.feeFlowController);
-    }
-
-    function deserializeCoreInfo(string memory json) internal pure returns (CoreInfo memory) {
-        return CoreInfo({
-            evc: abi.decode(vm.parseJson(json, ".evc"), (address)),
-            protocolConfig: abi.decode(vm.parseJson(json, ".protocolConfig"), (address)),
-            sequenceRegistry: abi.decode(vm.parseJson(json, ".sequenceRegistry"), (address)),
-            balanceTracker: abi.decode(vm.parseJson(json, ".balanceTracker"), (address)),
-            permit2: abi.decode(vm.parseJson(json, ".permit2"), (address)),
-            oracleRouterFactory: abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address)),
-            oracleAdapterRegistry: abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address)),
-            externalVaultRegistry: abi.decode(vm.parseJson(json, ".externalVaultRegistry"), (address)),
-            kinkIRMFactory: abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address)),
-            irmRegistry: abi.decode(vm.parseJson(json, ".irmRegistry"), (address)),
-            eVaultImplementation: abi.decode(vm.parseJson(json, ".eVaultImplementation"), (address)),
-            eVaultFactory: abi.decode(vm.parseJson(json, ".eVaultFactory"), (address)),
-            accountLens: abi.decode(vm.parseJson(json, ".accountLens"), (address)),
-            oracleLens: abi.decode(vm.parseJson(json, ".oracleLens"), (address)),
-            vaultLens: abi.decode(vm.parseJson(json, ".vaultLens"), (address)),
-            utilsLens: abi.decode(vm.parseJson(json, ".utilsLens"), (address)),
-            governableWhitelistPerspective: abi.decode(vm.parseJson(json, ".governableWhitelistPerspective"), (address)),
-            escrowPerspective: abi.decode(vm.parseJson(json, ".escrowPerspective"), (address)),
-            eulerBasePerspective: abi.decode(vm.parseJson(json, ".eulerBasePerspective"), (address)),
-            eulerFactoryPerspective: abi.decode(vm.parseJson(json, ".eulerFactoryPerspective"), (address)),
-            swapper: abi.decode(vm.parseJson(json, ".swapper"), (address)),
-            swapVerifier: abi.decode(vm.parseJson(json, ".swapVerifier"), (address)),
-            feeFlowController: abi.decode(vm.parseJson(json, ".feeFlowController"), (address))
-        });
     }
 }

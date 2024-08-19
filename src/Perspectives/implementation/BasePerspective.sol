@@ -19,7 +19,7 @@ abstract contract BasePerspective is IPerspective, PerspectiveErrors {
         uint256 placeholder;
     }
 
-    GenericFactory internal immutable vaultFactory;
+    GenericFactory public immutable vaultFactory;
 
     EnumerableSet.AddressSet internal verified;
     Transient private transientVerified;

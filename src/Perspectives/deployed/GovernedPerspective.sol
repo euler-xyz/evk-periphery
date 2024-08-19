@@ -10,7 +10,7 @@ import {BasePerspective} from "../implementation/BasePerspective.sol";
 /// @title GovernedPerspective
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice A contract that verifies whether a vault is on the governed whitelist.
+/// @notice A contract that verifies whether a vault is on the defined governed whitelist.
 contract GovernedPerspective is Ownable, BasePerspective {
     using EnumerableSet for EnumerableSet.AddressSet;
 

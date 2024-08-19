@@ -19,6 +19,7 @@ import {BasePerspective} from "../implementation/BasePerspective.sol";
 /// @notice A contract that verifies whether a vault has the properties of a base vault. It allows collaterals to be
 /// recognized by any of the specified perspectives.
 contract EulerBasePerspective is BasePerspective {
+    string internal nameString;
     address[] public recognizedCollateralPerspectives;
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -29,6 +30,7 @@ contract EulerBasePerspective is BasePerspective {
     IEulerKinkIRMFactory internal immutable irmFactory;
 
     /// @notice Creates a new EulerBasePerspective instance.
+    /// @param nameString_ The name string for the perspective.
     /// @param vaultFactory_ The address of the GenericFactory contract.
     /// @param routerFactory_ The address of the EulerRouterFactory contract.
     /// @param adapterRegistry_ The address of the adapter registry contract.
@@ -38,6 +40,7 @@ contract EulerBasePerspective is BasePerspective {
     /// @param recognizedCollateralPerspectives_ The addresses of the recognized collateral perspectives. address(0) for
     /// self.
     constructor(
+        string memory nameString_,
         address vaultFactory_,
         address routerFactory_,
         address adapterRegistry_,
@@ -46,6 +49,7 @@ contract EulerBasePerspective is BasePerspective {
         address irmRegistry_,
         address[] memory recognizedCollateralPerspectives_
     ) BasePerspective(vaultFactory_) {
+        nameString = nameString_;
         routerFactory = IEulerRouterFactory(routerFactory_);
         adapterRegistry = SnapshotRegistry(adapterRegistry_);
         externalVaultRegistry = SnapshotRegistry(externalVaultRegistry_);
@@ -55,12 +59,12 @@ contract EulerBasePerspective is BasePerspective {
     }
 
     /// @inheritdoc BasePerspective
-    function name() public pure virtual override returns (string memory) {
-        return "Euler Base Perspective";
+    function name() public view virtual override returns (string memory) {
+        return nameString;
     }
 
     /// @inheritdoc BasePerspective
-    function perspectiveVerifyInternal(address vault) internal override {
+    function perspectiveVerifyInternal(address vault) internal virtual override {
         // the vault must be deployed by recognized factory
         testProperty(vaultFactory.isProxy(vault), ERROR__FACTORY);
 

@@ -80,6 +80,7 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         address[] memory recognizedCollateralPerspectives = new address[](1);
         recognizedCollateralPerspectives[0] = address(0);
         eulerBasePerspective1 = new EulerBasePerspective(
+            "Euler Base Perspective 1",
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -91,6 +92,7 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
 
         recognizedCollateralPerspectives[0] = address(escrowPerspective);
         eulerBasePerspective2 = new EulerBasePerspective(
+            "Euler Base Perspective 2",
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
@@ -104,6 +106,7 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         recognizedCollateralPerspectives[0] = address(escrowPerspective);
         recognizedCollateralPerspectives[1] = address(eulerBasePerspective1);
         eulerBasePerspective3 = new EulerBasePerspective(
+            "Euler Base Perspective 3",
             address(factory),
             address(routerFactory),
             address(adapterRegistry),

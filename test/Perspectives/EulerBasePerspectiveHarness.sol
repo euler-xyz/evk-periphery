@@ -14,6 +14,7 @@ contract EulerBasePerspectiveHarness is EulerBasePerspective {
         address irmRegistry
     )
         EulerBasePerspective(
+            "",
             vaultFactory_,
             routerFactory_,
             adapterRegistry_,

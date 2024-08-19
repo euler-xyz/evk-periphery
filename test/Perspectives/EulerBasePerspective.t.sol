@@ -12,9 +12,9 @@ contract EulerBasePerspectiveTest is DefaultSetupTest {
     }
 
     function test_Perspective_EulerBasePerspective_name() public view {
-        assertEq(eulerBasePerspective1.name(), "Euler Base Perspective");
-        assertEq(eulerBasePerspective2.name(), "Euler Base Perspective");
-        assertEq(eulerBasePerspective3.name(), "Euler Base Perspective");
+        assertEq(eulerBasePerspective1.name(), "Euler Base Perspective 1");
+        assertEq(eulerBasePerspective2.name(), "Euler Base Perspective 2");
+        assertEq(eulerBasePerspective3.name(), "Euler Base Perspective 3");
     }
 
     function test_Perspective_EulerBasePerspective_general() public {
