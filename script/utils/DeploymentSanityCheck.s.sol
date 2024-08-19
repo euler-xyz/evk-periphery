@@ -52,8 +52,8 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
 
     // expected admins
 
-    address internal constant EVAULT_FACTORY_ADMIN = EULER_DEPLOYER;
-    address internal constant PROTOCOL_CONFIG_ADMIN = EULER_DEPLOYER;
+    address internal constant EVAULT_FACTORY_ADMIN = DAO_MULTISIG;
+    address internal constant PROTOCOL_CONFIG_ADMIN = DAO_MULTISIG;
     address internal constant ORACLE_ADAPTER_REGISTRY_ADMIN = EULER_DEPLOYER;
     address internal constant EXTERNAL_VAULT_REGISTRY_ADMIN = EULER_DEPLOYER;
     address internal constant IRM_REGISTRY_ADMIN = EULER_DEPLOYER;
