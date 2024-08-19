@@ -454,10 +454,8 @@ contract GovernorGuardianTests is EVaultTestBase {
         skip(200);
 
         address mockTargetHook = address(new MockTargetHook());
-        bytes memory data = abi.encodeWithSelector(IEVault(vaults[0]).setHookConfig.selector, mockTargetHook, 1);
-
-        startHoax(admin);
-        governorGuardian.adminCall(vaults[0], data);
+        vm.prank(address(governorGuardian));
+        IEVault(vaults[0]).setHookConfig(mockTargetHook, 1);
         (address hook, uint32 hooked) = IEVault(vaults[0]).hookConfig();
         assertEq(hook, mockTargetHook);
         assertEq(hooked, 1);
@@ -511,7 +509,7 @@ contract GovernorGuardianTests is EVaultTestBase {
         // hence, even if paused twice and unpaused, the cached config is brought back correctly
         vm.revertTo(snapshot);
         mockTargetHook = address(new MockTargetHook());
-        data = abi.encodeWithSelector(IEVault(vaults[0]).setHookConfig.selector, mockTargetHook, 2);
+        bytes memory data = abi.encodeWithSelector(IEVault(vaults[0]).setHookConfig.selector, mockTargetHook, 2);
 
         startHoax(admin);
         governorGuardian.adminCall(vaults[0], data);

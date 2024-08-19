@@ -87,8 +87,9 @@ contract GovernorGuardian is AccessControlEnumerable {
 
         // If the call is a setHookConfig call, update the pause data.
         if (bytes4(data) == IEVault(vault).setHookConfig.selector) {
-            pauseDatas[vault].paused = false;
-            (pauseDatas[vault].hookTarget, pauseDatas[vault].hookedOps) = IEVault(vault).hookConfig();
+            PauseData storage pauseData = pauseDatas[vault];
+            (pauseData.hookTarget, pauseData.hookedOps) = IEVault(vault).hookConfig();
+            pauseData.paused = false;
         }
 
         emit AdminCall(_msgSender(), vault, data);
@@ -104,13 +105,14 @@ contract GovernorGuardian is AccessControlEnumerable {
 
             if (!canBePaused(vault)) continue;
 
-            pauseDatas[vault].paused = true;
-            pauseDatas[vault].lastPauseTimestamp = uint48(block.timestamp);
-
             // Cache the hook configuration only if the vault wasn't previously paused or was explicitly unpaused.
-            if (!pauseDatas[vault].paused) {
-                (pauseDatas[vault].hookTarget, pauseDatas[vault].hookedOps) = IEVault(vault).hookConfig();
+            PauseData storage pauseData = pauseDatas[vault];
+            if (!pauseData.paused) {
+                (pauseData.hookTarget, pauseData.hookedOps) = IEVault(vault).hookConfig();
             }
+
+            pauseData.paused = true;
+            pauseData.lastPauseTimestamp = uint48(block.timestamp);
 
             // Disable all operations.
             IEVault(vault).setHookConfig(address(0), (OP_MAX_VALUE - 1));
@@ -129,10 +131,11 @@ contract GovernorGuardian is AccessControlEnumerable {
 
             if (!canBeUnpaused(vault, guardianCalling)) continue;
 
-            pauseDatas[vault].paused = false;
+            PauseData storage pauseData = pauseDatas[vault];
+            pauseData.paused = false;
 
             // Restore the hook configuration.
-            IEVault(vault).setHookConfig(pauseDatas[vault].hookTarget, pauseDatas[vault].hookedOps);
+            IEVault(vault).setHookConfig(pauseData.hookTarget, pauseData.hookedOps);
 
             emit Unpaused(_msgSender(), vault);
         }
