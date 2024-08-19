@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, ExtraAddressesLib} from "../../utils/ScriptUtils.s.sol";
+import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib} from "../../utils/ScriptUtils.s.sol";
 import {KinkIRM} from "../../04_KinkIRM.s.sol";
 import {EVaultDeployer} from "../../07_EVault.s.sol";
 import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
@@ -11,24 +11,24 @@ import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
-contract InitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, ExtraAddressesLib {
+contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib {
     address internal constant USD = address(840);
-    address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
-    address internal constant wstETH = 0x5979D7b546E38E414F7E9822514be443A4800529;
-    address internal constant WBTC = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
-    address internal constant USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
-    address internal constant USDT = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
+    address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address internal constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
+    address internal constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address internal constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address[] internal assetsList;
 
-    address internal constant WETHUSD = 0xb70977986f38c74aB22D8ffaa0B7E13A7d574dD2;
-    address internal constant wstETHUSD = 0x92a31a99ae3d754c6880fCc9eaEe502f5205624E;
-    address internal constant WBTCUSD = 0x30Dcb2c78a01B9AD67c8cB8853D09EAEF1842594;
-    address internal constant USDCUSD = 0x862b1042f653AE74880D0d3EBf0DDEe90aB8601D;
-    address internal constant USDTUSD = 0x53aC2d35D724fc32BdabF1b92Be5B326b76c1205;
+    // TODO double check
+    address internal constant WETHUSD = 0x10674C8C1aE2072d4a75FE83f1E159425fd84E1D;
+    address internal constant wstETHUSD = 0x02dd5B7ab536629d2235276aBCDf8eb3Af9528D7;
+    address internal constant USDCUSD = 0x6213f24332D35519039f2afa7e3BffE105a37d3F;
+    address internal constant USDTUSD = 0x587CABe0521f5065b561A6e68c25f338eD037FF9;
     address[] internal oracleAdaptersList;
 
-    address internal constant ORACLE_ROUTER_GOVERNOR = 0x0000000000000000000000000000000000000000; // TODO
-    address internal constant RISK_OFF_VAULTS_GOVERNOR = 0x0000000000000000000000000000000000000000; // TODO
+    address internal constant DAO_MULTISIG = 0xcAD001c30E96765aC90307669d578219D4fb1DCe;
+    address internal constant ORACLE_ROUTER_GOVERNOR = DAO_MULTISIG;
+    address internal constant RISK_OFF_VAULTS_GOVERNOR = DAO_MULTISIG;
 
     mapping(address => address) internal escrowVaults;
     mapping(address => address) internal riskOffVaults;
@@ -38,23 +38,21 @@ contract InitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, 
     address[] internal irmList;
 
     constructor() {
-        assetsList = [WETH, wstETH, WBTC, USDC, USDT];
-        oracleAdaptersList = [WETHUSD, wstETHUSD, WBTCUSD, USDCUSD, USDTUSD];
+        assetsList = [WETH, wstETH, USDC, USDT];
+        oracleAdaptersList = [WETHUSD, wstETHUSD, USDCUSD, USDTUSD];
 
         riskOffEscrowLTVs = [
-            [0, 0.89e4, 0.83e4, 0.83e4, 0.83e4],
-            [0.89e4, 0, 0.8e4, 0.8e4, 0.8e4],
-            [0.75e4, 0.75e4, 0, 0.75e4, 0.75e4],
-            [0.76e4, 0.76e4, 0.76e4, 0, 0.87e4],
-            [0.76e4, 0.76e4, 0.76e4, 0.87e4, 0]
+            [0, 0.89e4, 0.83e4, 0.83e4],
+            [0.89e4, 0, 0.8e4, 0.8e4],
+            [0.76e4, 0.76e4, 0, 0.87e4],
+            [0.76e4, 0.76e4, 0.87e4, 0]
         ];
 
         riskOffRiskOffLTVs = [
-            [0, 0.87e4, 0.81e4, 0.81e4, 0.81e4],
-            [0.87e4, 0, 0.78e4, 0.78e4, 0.78e4],
-            [0.73e4, 0.73e4, 0, 0.73e4, 0.73e4],
-            [0.74e4, 0.74e4, 0.74e4, 0, 0.85e4],
-            [0.74e4, 0.74e4, 0.74e4, 0.85e4, 0]
+            [0, 0.87e4, 0.81e4, 0.81e4],
+            [0.87e4, 0, 0.78e4, 0.78e4],
+            [0.74e4, 0.74e4, 0, 0.85e4],
+            [0.74e4, 0.74e4, 0.85e4, 0]
         ];
     }
 
@@ -62,7 +60,6 @@ contract InitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, 
         CoreAddresses memory coreAddresses = deserializeCoreAddresses(getInputConfig("CoreAddresses.json"));
         PeripheryAddresses memory peripheryAddresses =
             deserializePeripheryAddresses(getInputConfig("PeripheryAddresses.json"));
-        ExtraAddresses memory extraAddresses = deserializeExtraAddresses(getInputConfig("ExtraAddresses.json"));
 
         // deploy the oracle router
         startBroadcast();
@@ -79,16 +76,13 @@ contract InitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, 
             // Base=0% APY  Kink(45%)=4.75% APY  Max=84.75% APY
             address irmWstETH = deployer.deploy(peripheryAddresses.kinkIRMFactory, 0, 760869530, 7611888145, 1932735283);
 
-            // Base=0% APY  Kink(45%)=4% APY  Max=304% APY
-            address irmWBTC = deployer.deploy(peripheryAddresses.kinkIRMFactory, 0, 643054912, 18204129717, 1932735283);
-
             // Base=0% APY  Kink(92%)=6.5% APY  Max=66.5% APY
             address irmUSDC = deployer.deploy(peripheryAddresses.kinkIRMFactory, 0, 505037995, 41211382066, 3951369912);
 
             // Base=0% APY  Kink(92%)=6.5% APY  Max=81.5% APY
             address irmUSDT = deployer.deploy(peripheryAddresses.kinkIRMFactory, 0, 505037995, 49166860226, 3951369912);
 
-            irmList = [irmWETH, irmWstETH, irmWBTC, irmUSDC, irmUSDT];
+            irmList = [irmWETH, irmWstETH, irmUSDC, irmUSDT];
         }
 
         // deploy the vaults
@@ -128,17 +122,20 @@ contract InitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, 
             // configure the escrow vaults and verify them by the escrow perspective
             IEVault(escrowVaults[asset]).setHookConfig(address(0), 0);
             IEVault(escrowVaults[asset]).setGovernorAdmin(address(0));
-            BasePerspective(extraAddresses.escrowedCollateralPerspective).perspectiveVerify(escrowVaults[asset], true);
+            BasePerspective(peripheryAddresses.escrowedCollateralPerspective).perspectiveVerify(
+                escrowVaults[asset], true
+            );
 
             // configure the riskOff vaults and verify them by the whitelist perspective
             IEVault(riskOffVaults[asset]).setMaxLiquidationDiscount(0.15e4);
             IEVault(riskOffVaults[asset]).setLiquidationCoolOffTime(1);
             IEVault(riskOffVaults[asset]).setInterestRateModel(irmList[i]);
-            IEVault(riskOffVaults[asset]).setInterestFee(0.05e4);
+            // TODO check fee and other params
+            IEVault(riskOffVaults[asset]).setInterestFee(0.1e4);
             IEVault(riskOffVaults[asset]).setHookConfig(address(0), 0);
             IEVault(riskOffVaults[asset]).setGovernorAdmin(RISK_OFF_VAULTS_GOVERNOR);
 
-            BasePerspective(extraAddresses.governedPerspective).perspectiveVerify(riskOffVaults[asset], true);
+            BasePerspective(peripheryAddresses.governedPerspective).perspectiveVerify(riskOffVaults[asset], true);
         }
 
         stopBroadcast();

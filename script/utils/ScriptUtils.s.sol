@@ -80,6 +80,11 @@ contract PeripheryAddressesLib is Script {
         address swapper;
         address swapVerifier;
         address feeFlowController;
+        address factoryPerspective;
+        address governedPerspective;
+        address escrowedCollateralPerspective;
+        address eulerUngoverned0xPerspective;
+        address eulerUngoverned1xPerspective;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -91,6 +96,17 @@ contract PeripheryAddressesLib is Script {
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
         result = vm.serializeAddress("peripheryAddresses", "swapVerifier", Addresses.swapVerifier);
         result = vm.serializeAddress("peripheryAddresses", "feeFlowController", Addresses.feeFlowController);
+        result = vm.serializeAddress("peripheryAddresses", "factoryPerspective", Addresses.factoryPerspective);
+        result = vm.serializeAddress("peripheryAddresses", "governedPerspective", Addresses.governedPerspective);
+        result = vm.serializeAddress(
+            "peripheryAddresses", "escrowedCollateralPerspective", Addresses.escrowedCollateralPerspective
+        );
+        result = vm.serializeAddress(
+            "peripheryAddresses", "eulerUngoverned0xPerspective", Addresses.eulerUngoverned0xPerspective
+        );
+        result = vm.serializeAddress(
+            "peripheryAddresses", "eulerUngoverned1xPerspective", Addresses.eulerUngoverned1xPerspective
+        );
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -102,53 +118,37 @@ contract PeripheryAddressesLib is Script {
             irmRegistry: abi.decode(vm.parseJson(json, ".irmRegistry"), (address)),
             swapper: abi.decode(vm.parseJson(json, ".swapper"), (address)),
             swapVerifier: abi.decode(vm.parseJson(json, ".swapVerifier"), (address)),
-            feeFlowController: abi.decode(vm.parseJson(json, ".feeFlowController"), (address))
+            feeFlowController: abi.decode(vm.parseJson(json, ".feeFlowController"), (address)),
+            factoryPerspective: abi.decode(vm.parseJson(json, ".factoryPerspective"), (address)),
+            governedPerspective: abi.decode(vm.parseJson(json, ".governedPerspective"), (address)),
+            escrowedCollateralPerspective: abi.decode(vm.parseJson(json, ".escrowedCollateralPerspective"), (address)),
+            eulerUngoverned0xPerspective: abi.decode(vm.parseJson(json, ".eulerUngoverned0xPerspective"), (address)),
+            eulerUngoverned1xPerspective: abi.decode(vm.parseJson(json, ".eulerUngoverned1xPerspective"), (address))
         });
     }
 }
 
-contract ExtraAddressesLib is Script {
-    struct ExtraAddresses {
+contract LensAddressesLib is Script {
+    struct LensAddresses {
         address accountLens;
         address oracleLens;
         address vaultLens;
         address utilsLens;
-        address governedPerspective;
-        address escrowedCollateralPerspective;
-        address eulerUngoverned0xPerspective;
-        address eulerUngoverned1xPerspective;
-        address factoryPerspective;
     }
 
-    function serializeExtraAddresses(ExtraAddresses memory Addresses) internal returns (string memory result) {
-        result = vm.serializeAddress("extraAddresses", "accountLens", Addresses.accountLens);
-        result = vm.serializeAddress("extraAddresses", "oracleLens", Addresses.oracleLens);
-        result = vm.serializeAddress("extraAddresses", "vaultLens", Addresses.vaultLens);
-        result = vm.serializeAddress("extraAddresses", "utilsLens", Addresses.utilsLens);
-        result = vm.serializeAddress("extraAddresses", "governedPerspective", Addresses.governedPerspective);
-        result = vm.serializeAddress(
-            "extraAddresses", "escrowedCollateralPerspective", Addresses.escrowedCollateralPerspective
-        );
-        result = vm.serializeAddress(
-            "extraAddresses", "eulerUngoverned0xPerspective", Addresses.eulerUngoverned0xPerspective
-        );
-        result = vm.serializeAddress(
-            "extraAddresses", "eulerUngoverned1xPerspective", Addresses.eulerUngoverned1xPerspective
-        );
-        result = vm.serializeAddress("extraAddresses", "factoryPerspective", Addresses.factoryPerspective);
+    function serializeLensAddresses(LensAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("lensAddresses", "accountLens", Addresses.accountLens);
+        result = vm.serializeAddress("lensAddresses", "oracleLens", Addresses.oracleLens);
+        result = vm.serializeAddress("lensAddresses", "vaultLens", Addresses.vaultLens);
+        result = vm.serializeAddress("lensAddresses", "utilsLens", Addresses.utilsLens);
     }
 
-    function deserializeExtraAddresses(string memory json) internal pure returns (ExtraAddresses memory) {
-        return ExtraAddresses({
+    function deserializeLensAddresses(string memory json) internal pure returns (LensAddresses memory) {
+        return LensAddresses({
             accountLens: abi.decode(vm.parseJson(json, ".accountLens"), (address)),
             oracleLens: abi.decode(vm.parseJson(json, ".oracleLens"), (address)),
             vaultLens: abi.decode(vm.parseJson(json, ".vaultLens"), (address)),
-            utilsLens: abi.decode(vm.parseJson(json, ".utilsLens"), (address)),
-            governedPerspective: abi.decode(vm.parseJson(json, ".governedPerspective"), (address)),
-            escrowedCollateralPerspective: abi.decode(vm.parseJson(json, ".escrowedCollateralPerspective"), (address)),
-            eulerUngoverned0xPerspective: abi.decode(vm.parseJson(json, ".eulerUngoverned0xPerspective"), (address)),
-            eulerUngoverned1xPerspective: abi.decode(vm.parseJson(json, ".eulerUngoverned1xPerspective"), (address)),
-            factoryPerspective: abi.decode(vm.parseJson(json, ".factoryPerspective"), (address))
+            utilsLens: abi.decode(vm.parseJson(json, ".utilsLens"), (address))
         });
     }
 }

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, ExtraAddressesLib} from "../../utils/ScriptUtils.s.sol";
+import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib} from "../../utils/ScriptUtils.s.sol";
 import {Integrations} from "../../01_Integrations.s.sol";
 import {PeripheryFactories} from "../../02_PeripheryFactories.s.sol";
 import {EVaultImplementation} from "../../05_EVaultImplementation.s.sol";
@@ -14,27 +14,28 @@ import {FeeFlow} from "../../11_FeeFlow.s.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
-contract CoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, ExtraAddressesLib {
-    address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+contract DeployCoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib {
+    address internal constant EUL = 0xd9Fcd98c322942075A5C3860693e9f4f03AAE07b;
 
     address internal constant ONE_INCH_AGGREGATOR_V6 = 0x111111125421cA6dc452d289314280a0f8842A65;
     address internal constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address internal constant UNISWAP_ROUTER_V3 = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address internal constant UNISWAP_ROUTER_02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 
-    uint256 internal constant FEE_FLOW_INIT_PRICE = 1e6;
-    address internal constant FEE_FLOW_PAYMENT_TOKEN = WETH; // TODO
-    address internal constant FEE_FLOW_PAYMENT_RECEIVER = 0x0000000000000000000000000000000000000000; // TODO
+    uint256 internal constant FEE_FLOW_INIT_PRICE = 1e18;
+    address internal constant FEE_FLOW_PAYMENT_TOKEN = EUL;
+    address internal constant FEE_FLOW_PAYMENT_RECEIVER = 0xcAD001c30E96765aC90307669d578219D4fb1DCe; // Euler DAO
+        // multi-sig
     uint256 internal constant FEE_FLOW_EPOCH_PERIOD = 14 days;
-    uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18; // TODO
-    uint256 internal constant FEE_FLOW_MIN_INIT_PRICE = 1e6; // TODO
+    uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18;
+    uint256 internal constant FEE_FLOW_MIN_INIT_PRICE = 1e6;
 
     function run()
         public
         returns (
             CoreAddresses memory coreAddresses,
             PeripheryAddresses memory peripheryAddresses,
-            ExtraAddresses memory extraAddresses
+            LensAddresses memory lensAddresses
         )
     {
         // deply integrations
@@ -101,12 +102,6 @@ contract CoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddressesLi
             ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(peripheryAddresses.feeFlowController);
             stopBroadcast();
         }
-        // deploy lenses
-        {
-            Lenses deployer = new Lenses();
-            (extraAddresses.accountLens, extraAddresses.oracleLens, extraAddresses.vaultLens, extraAddresses.utilsLens)
-            = deployer.deploy(peripheryAddresses.oracleAdapterRegistry);
-        }
         // deploy perspectives
         {
             Perspectives deployer = new Perspectives();
@@ -119,18 +114,24 @@ contract CoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddressesLi
                 peripheryAddresses.irmRegistry
             );
 
-            extraAddresses.factoryPerspective = perspectives[0];
-            extraAddresses.governedPerspective = perspectives[1];
-            extraAddresses.escrowedCollateralPerspective = perspectives[2];
-            extraAddresses.eulerUngoverned0xPerspective = perspectives[3];
-            extraAddresses.eulerUngoverned1xPerspective = perspectives[4];
+            peripheryAddresses.factoryPerspective = perspectives[0];
+            peripheryAddresses.governedPerspective = perspectives[1];
+            peripheryAddresses.escrowedCollateralPerspective = perspectives[2];
+            peripheryAddresses.eulerUngoverned0xPerspective = perspectives[3];
+            peripheryAddresses.eulerUngoverned1xPerspective = perspectives[4];
+        }
+        // deploy lenses
+        {
+            Lenses deployer = new Lenses();
+            (lensAddresses.accountLens, lensAddresses.oracleLens, lensAddresses.vaultLens, lensAddresses.utilsLens) =
+                deployer.deploy(peripheryAddresses.oracleAdapterRegistry);
         }
 
         // save results
         vm.writeJson(serializeCoreAddresses(coreAddresses), getInputConfigFilePath("CoreAddresses.json"));
         vm.writeJson(serializePeripheryAddresses(peripheryAddresses), getInputConfigFilePath("PeripheryAddresses.json"));
-        vm.writeJson(serializeExtraAddresses(extraAddresses), getInputConfigFilePath("ExtraAddresses.json"));
+        vm.writeJson(serializeLensAddresses(lensAddresses), getInputConfigFilePath("LensAddresses.json"));
 
-        return (coreAddresses, peripheryAddresses, extraAddresses);
+        return (coreAddresses, peripheryAddresses, lensAddresses);
     }
 }

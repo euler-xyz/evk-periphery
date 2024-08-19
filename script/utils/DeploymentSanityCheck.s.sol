@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/console.sol";
 
-import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, ExtraAddressesLib} from "./ScriptUtils.s.sol";
+import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib} from "./ScriptUtils.s.sol";
 
 import {EVault} from "evk/EVault/EVault.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
@@ -26,7 +26,7 @@ interface IEVCUser {
     function EVC() external view returns (address);
 }
 
-contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, ExtraAddressesLib {
+contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib {
     // assets
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -64,21 +64,17 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         CoreAddresses memory coreAddresses = deserializeCoreAddresses(vm.readFile(vm.envString("CORE_ADDRESSES_PATH")));
         PeripheryAddresses memory peripheryAddresses =
             deserializePeripheryAddresses(vm.readFile(vm.envString("PERIPHERY_ADDRESSES_PATH")));
-        ExtraAddresses memory extraAddresses =
-            deserializeExtraAddresses(vm.readFile(vm.envString("EXTRA_ADDRESSES_PATH")));
 
-        verifyCoreAndPeriphery(coreAddresses, peripheryAddresses, extraAddresses);
-        verifyVaults(coreAddresses, peripheryAddresses, extraAddresses);
+        verifyCoreAndPeriphery(coreAddresses, peripheryAddresses);
+        verifyVaults(coreAddresses, peripheryAddresses);
 
         // FIXME: oracle / adapters?
     }
 
-
-    function verifyCoreAndPeriphery(
-        CoreAddresses memory coreAddresses,
-        PeripheryAddresses memory peripheryAddresses,
-        ExtraAddresses memory extraAddresses
-    ) internal view {
+    function verifyCoreAndPeriphery(CoreAddresses memory coreAddresses, PeripheryAddresses memory peripheryAddresses)
+        internal
+        view
+    {
         // Nothing to check in: evc, sequenceRegistry, accountLens, utilsLens, kinkIRMFactory, swapVerifier
 
         // eVaultFactory
@@ -152,76 +148,108 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         // - owner
         assert(Ownable(peripheryAddresses.irmRegistry).owner() == IRM_REGISTRY_ADMIN);
 
-        // oracleLens
-        // - immutable: adapterRegistry
-        assert(
-            address(OracleLens(extraAddresses.oracleLens).adapterRegistry()) == peripheryAddresses.oracleAdapterRegistry
-        );
-
-        // vaultLens
-        // - immutable: oracleLens
-        assert(address(VaultLens(extraAddresses.vaultLens).oracleLens()) == extraAddresses.oracleLens);
-
         // escrowedCollateralPerspective
         // - immutable: vaultFactory
-        assert(address(BasePerspective(extraAddresses.escrowedCollateralPerspective).vaultFactory()) == coreAddresses.eVaultFactory);
+        assert(
+            address(BasePerspective(peripheryAddresses.escrowedCollateralPerspective).vaultFactory())
+                == coreAddresses.eVaultFactory
+        );
 
         // factoryPerspective
         // - immutable: vaultFactory
-        assert(address(BasePerspective(extraAddresses.factoryPerspective).vaultFactory()) == coreAddresses.eVaultFactory);
+        assert(
+            address(BasePerspective(peripheryAddresses.factoryPerspective).vaultFactory())
+                == coreAddresses.eVaultFactory
+        );
 
         // eulerUngoverned0xPerspective
         // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory
         // - recognizedCollateralPerspectives
-        assert(address(BasePerspective(extraAddresses.eulerUngoverned0xPerspective).vaultFactory()) == coreAddresses.eVaultFactory);
-        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).routerFactory()) == peripheryAddresses.oracleRouterFactory);
-        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).adapterRegistry()) == peripheryAddresses.oracleAdapterRegistry);
-        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).externalVaultRegistry()) == peripheryAddresses.externalVaultRegistry);
-        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).irmRegistry()) == peripheryAddresses.irmRegistry);
-        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).irmFactory()) == peripheryAddresses.kinkIRMFactory);
+        assert(
+            address(BasePerspective(peripheryAddresses.eulerUngoverned0xPerspective).vaultFactory())
+                == coreAddresses.eVaultFactory
+        );
+        assert(
+            address(EulerBasePerspective(peripheryAddresses.eulerUngoverned0xPerspective).routerFactory())
+                == peripheryAddresses.oracleRouterFactory
+        );
+        assert(
+            address(EulerBasePerspective(peripheryAddresses.eulerUngoverned0xPerspective).adapterRegistry())
+                == peripheryAddresses.oracleAdapterRegistry
+        );
+        assert(
+            address(EulerBasePerspective(peripheryAddresses.eulerUngoverned0xPerspective).externalVaultRegistry())
+                == peripheryAddresses.externalVaultRegistry
+        );
+        assert(
+            address(EulerBasePerspective(peripheryAddresses.eulerUngoverned0xPerspective).irmRegistry())
+                == peripheryAddresses.irmRegistry
+        );
+        assert(
+            address(EulerBasePerspective(peripheryAddresses.eulerUngoverned0xPerspective).irmFactory())
+                == peripheryAddresses.kinkIRMFactory
+        );
 
         address recognized =
-            EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(0);
-        assert(recognized == extraAddresses.escrowedCollateralPerspective);
+            EulerBasePerspective(peripheryAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(0);
+        assert(recognized == peripheryAddresses.escrowedCollateralPerspective);
         recognized =
-            EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(1);
+            EulerBasePerspective(peripheryAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(1);
         assert(recognized == address(0));
 
-        try EulerBasePerspective(extraAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(2) {
+        try EulerBasePerspective(peripheryAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(2) {
             revert("array too long!");
         } catch {}
 
         // eulerUngoverned1xPerspective
         // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory
         // - recognizedCollateralPerspectives
-        assert(address(BasePerspective(extraAddresses.eulerUngoverned1xPerspective).vaultFactory()) == coreAddresses.eVaultFactory);
-        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).routerFactory()) == peripheryAddresses.oracleRouterFactory);
-        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).adapterRegistry()) == peripheryAddresses.oracleAdapterRegistry);
-        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).externalVaultRegistry()) == peripheryAddresses.externalVaultRegistry);
-        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).irmRegistry()) == peripheryAddresses.irmRegistry);
-        assert(address(EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).irmFactory()) == peripheryAddresses.kinkIRMFactory);
+        assert(
+            address(BasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).vaultFactory())
+                == coreAddresses.eVaultFactory
+        );
+        assert(
+            address(EulerBasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).routerFactory())
+                == peripheryAddresses.oracleRouterFactory
+        );
+        assert(
+            address(EulerBasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).adapterRegistry())
+                == peripheryAddresses.oracleAdapterRegistry
+        );
+        assert(
+            address(EulerBasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).externalVaultRegistry())
+                == peripheryAddresses.externalVaultRegistry
+        );
+        assert(
+            address(EulerBasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).irmRegistry())
+                == peripheryAddresses.irmRegistry
+        );
+        assert(
+            address(EulerBasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).irmFactory())
+                == peripheryAddresses.kinkIRMFactory
+        );
 
         recognized =
-            EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(0);
-        assert(recognized == extraAddresses.governedPerspective);
+            EulerBasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(0);
+        assert(recognized == peripheryAddresses.governedPerspective);
         recognized =
-            EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(1);
-        assert(recognized == extraAddresses.escrowedCollateralPerspective);
+            EulerBasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(1);
+        assert(recognized == peripheryAddresses.escrowedCollateralPerspective);
         recognized =
-            EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(2);
-        assert(recognized == extraAddresses.eulerUngoverned0xPerspective);
+            EulerBasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(2);
+        assert(recognized == peripheryAddresses.eulerUngoverned0xPerspective);
         recognized =
-            EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(3);
+            EulerBasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(3);
         assert(recognized == address(0));
 
-        try EulerBasePerspective(extraAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(4) {
+        try EulerBasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).recognizedCollateralPerspectives(4) {
             revert("array too long!");
         } catch {}
 
         // governedPerspective
         // - owner
 
-        assert(Ownable(extraAddresses.governedPerspective).owner() == GOVERNED_PERSPECTIVE_ADMIN);
+        assert(Ownable(peripheryAddresses.governedPerspective).owner() == GOVERNED_PERSPECTIVE_ADMIN);
 
         // swapper
         // - immutables: oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02
@@ -232,23 +260,22 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         assert(Swapper(peripheryAddresses.swapper).uniswapRouter02() == UNI_ROUTER_02);
     }
 
-    function verifyVaults(
-        CoreAddresses memory coreAddresses,
-        PeripheryAddresses memory peripheryAddresses,
-        ExtraAddresses memory extraAddresses
-    ) internal view {
+    function verifyVaults(CoreAddresses memory coreAddresses, PeripheryAddresses memory peripheryAddresses)
+        internal
+        view
+    {
         assert(GenericFactory(coreAddresses.eVaultFactory).getProxyListLength() == 8);
         address[] memory vaults = GenericFactory(coreAddresses.eVaultFactory).getProxyListSlice(0, 8);
 
         address oracle = EVault(vaults[1]).oracle();
 
         for (uint256 i = 0; i < vaults.length; i++) {
-            if (BasePerspective(extraAddresses.escrowedCollateralPerspective).isVerified(vaults[i])) {
+            if (BasePerspective(peripheryAddresses.escrowedCollateralPerspective).isVerified(vaults[i])) {
                 // escrow vaults
                 assert(EVault(vaults[i]).governorAdmin() == address(0));
-            } else if (BasePerspective(extraAddresses.governedPerspective).isVerified(vaults[i])) {
+            } else if (BasePerspective(peripheryAddresses.governedPerspective).isVerified(vaults[i])) {
                 // managed vaults
-                assert(BasePerspective(extraAddresses.governedPerspective).isVerified(vaults[i]));
+                assert(BasePerspective(peripheryAddresses.governedPerspective).isVerified(vaults[i]));
                 assert(EVault(vaults[i]).governorAdmin() == DAO_MULTISIG);
 
                 // oracle
@@ -269,25 +296,25 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
 
         // oracle config for escrow
         address vault = vaults[0];
-        assert(BasePerspective(extraAddresses.escrowedCollateralPerspective).isVerified(vault));
+        assert(BasePerspective(peripheryAddresses.escrowedCollateralPerspective).isVerified(vault));
         assert(EVault(vault).asset() == WETH);
         (,,, address adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
         assert(adapter == WETHUSD);
 
         vault = vaults[2];
-        assert(BasePerspective(extraAddresses.escrowedCollateralPerspective).isVerified(vault));
+        assert(BasePerspective(peripheryAddresses.escrowedCollateralPerspective).isVerified(vault));
         assert(EVault(vault).asset() == wstETH);
         (,,, adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
         assert(adapter == wstETHUSD);
 
         vault = vaults[4];
-        assert(BasePerspective(extraAddresses.escrowedCollateralPerspective).isVerified(vault));
+        assert(BasePerspective(peripheryAddresses.escrowedCollateralPerspective).isVerified(vault));
         assert(EVault(vault).asset() == USDC);
         (,,, adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
         assert(adapter == USDCUSD);
 
         vault = vaults[6];
-        assert(BasePerspective(extraAddresses.escrowedCollateralPerspective).isVerified(vault));
+        assert(BasePerspective(peripheryAddresses.escrowedCollateralPerspective).isVerified(vault));
         assert(EVault(vault).asset() == USDT);
         (,,, adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
         assert(adapter == USDTUSD);
@@ -478,8 +505,7 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
 
     // function addToPerspectives(
     //     CoreAddresses memory coreAddresses,
-    //     PeripheryAddresses memory,
-    //     ExtraAddresses memory extraAddresses
+    //     PeripheryAddresses memory peripheryAddresses
     // ) internal {
     //     assert(GenericFactory(coreAddresses.eVaultFactory).getProxyListLength() == 8);
     //     address[] memory vaults = GenericFactory(coreAddresses.eVaultFactory).getProxyListSlice(0, 8);
@@ -488,9 +514,9 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
 
     //     for (uint256 i = 0; i < vaults.length; i++) {
     //         if (i % 2 == 0) {
-    //             BasePerspective(extraAddresses.escrowedCollateralPerspective).perspectiveVerify(vaults[i], true);
+    //             BasePerspective(peripheryAddresses.escrowedCollateralPerspective).perspectiveVerify(vaults[i], true);
     //         } else {
-    //             BasePerspective(extraAddresses.governedPerspective).perspectiveVerify(vaults[i], true);
+    //             BasePerspective(peripheryAddresses.governedPerspective).perspectiveVerify(vaults[i], true);
     //         }
     //     }
 

@@ -6,17 +6,12 @@ if [ -z "$1" ] || [ -z "$2" ]; then
 fi
 
 source .env
-scriptName="OwnershipTransfer.s.sol"
+scriptName="OwnershipTransferPeriphery.s.sol"
 
 script_dir="${1#script/}"
 addresses_dir_path="${2%/}"
-core_json_file="$addresses_dir_path/CoreAddresses.json"
-periphery_json_file="$addresses_dir_path/PeripheryAddresses.json"
-extra_json_file="$addresses_dir_path/ExtraAddresses.json"
-
-dst_core_json_file=script/CoreAddresses.json
-dst_periphery_json_file=script/PeripheryAddresses.json
-dst_extra_json_file=script/ExtraAddresses.json
+json_file="$addresses_dir_path/PeripheryAddresses.json"
+dst_json_file=script/PeripheryAddresses.json
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
@@ -27,13 +22,9 @@ if ! script/utils/checkEnvironment.sh; then
 fi
 
 if [[ $addresses_dir_path == http* ]]; then
-    curl -o $dst_core_json_file $core_json_file
-    curl -o $dst_periphery_json_file $periphery_json_file
-    curl -o $dst_extra_json_file $extra_json_file
+    curl -o $dst_json_file $json_file
 else
-    cp $core_json_file $dst_core_json_file
-    cp $periphery_json_file $dst_periphery_json_file
-    cp $extra_json_file $dst_extra_json_file
+    cp $json_file $dst_json_file
 fi
 
 if script/utils/executeForgeScript.sh "$script_dir/$scriptName"; then
@@ -44,6 +35,4 @@ if script/utils/executeForgeScript.sh "$script_dir/$scriptName"; then
     cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${scriptName}.json"
 fi
 
-rm $dst_core_json_file
-rm $dst_periphery_json_file
-rm $dst_extra_json_file
+rm $dst_json_file

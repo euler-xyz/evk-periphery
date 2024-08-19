@@ -29,7 +29,7 @@ Invoke the specific task scripts, i.e.:
 
 Core:
 
-    ./script/production/CoreAndPeriphery.sh production/arbitrum
+    ./script/production/DeployCoreAndPeriphery.sh production/arbitrum
 
 OwnershipTransfer:
 

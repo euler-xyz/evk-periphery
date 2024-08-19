@@ -32,12 +32,12 @@ The results of the deployment will be saved in `script/deployments/[your_deploym
 ### 1. Deploy the core and the periphery contracts:
 
 ```sh
-./script/production/CoreAndPeriphery.sh <solidity_script_dir_path>
+./script/production/DeployCoreAndPeriphery.sh <solidity_script_dir_path>
 ```
 
 i.e.
 ```sh
-./script/production/CoreAndPeriphery.sh script/production/arbitrum
+./script/production/DeployCoreAndPeriphery.sh script/production/mainnet
 ```
 
 All the contract addresses, which are the result of this deployment, will be stored in `script/deployments/[your_deployment_name]/output`. They will be required for the other scripts to run (this directory path must be provided) but also the Front End team needs those.
@@ -46,12 +46,12 @@ All the contract addresses, which are the result of this deployment, will be sto
 ### 3. Deploy the oracle adapters adding them to the Adapters Registry:
 
 ```sh
-./script/production/OracleAdapters.sh <csv_file_path>
+./script/production/DeployOracleAdapters.sh <csv_file_path>
 ```
 
 i.e.
 ```sh
-./script/production/OracleAdapters.sh "script/production/arbitrum/oracleAdapters/test/Euler V2 Oracles (Arbitrum) - Chainlink.csv"
+./script/production/DeployOracleAdapters.sh "script/production/mainnet/oracleAdapters/test/Euler V2 Oracles - Chainlink.csv"
 ```
 
 The above command must be run for each oracle provider/oracle type. You will be prompted for the Adapter Registry address which you should have obtained in step 1.
@@ -62,27 +62,38 @@ Note that the Cross adapter relies on the previous adapters deployment hence the
 ### 4. Deploy the initial set of vaults:
 
 ```sh
-./script/production/InitialVaults.sh <solidity_script_dir_path> <addresses_dir_path>
+./script/production/DeployInitialVaults.sh <solidity_script_dir_path> <addresses_dir_path>
 ```
 
 i.e.
 ```sh
-./script/production/InitialVaults.sh script/production/arbitrum script/deployments/default/output
+./script/production/DeployInitialVaults.sh script/production/mainnet script/deployments/default/output
 ```
 
 **Important**
-Note that the vaults deployment relies on the deployed oracle adapter addresses. Prepare the `InitialVaults.s.sol` accordingly before running the script.
+Note that the vaults deployment relies on the deployed oracle adapter addresses. Prepare the `DeployInitialVaults.s.sol` accordingly before running the script.
 
 **Important**
-`<addresses_dir_path>` must contain three json files containing the addresses, which are the result of running the `CoreAndPeriphery.sh` script: `CoreAddresses.json`, `PeripheryAddresses.json` and `ExtraAddresses.json`.
+`<addresses_dir_path>` must contain two json files containing the addresses, which are the result of running the `DeployCoreAndPeriphery.sh` script: `CoreAddresses.json` and `PeripheryAddresses.json`.
 
 ### 5. Transfer the ownership of the core contracts:
 
 ```sh
-./script/production/OwnershipTransfer.sh <solidity_script_dir_path> <addresses_dir_path>
+./script/production/OwnershipTransferCore.sh <solidity_script_dir_path> <addresses_dir_path>
 ```
 
 i.e.
 ```sh
-./script/production/OwnershipTransfer.sh script/production/arbitrum script/deployments/default/output
+./script/production/OwnershipTransferCore.sh script/production/mainnet script/deployments/default/output
+```
+
+### 6. Transfer the ownership of the periphery contracts:
+
+```sh
+./script/production/OwnershipTransferPeriphery.sh <solidity_script_dir_path> <addresses_dir_path>
+```
+
+i.e.
+```sh
+./script/production/OwnershipTransferPeriphery.sh script/production/mainnet script/deployments/default/output
 ```

@@ -14,7 +14,7 @@ read -p "Provide the deployment name used to save results (default: default): " 
 deployment_name=${deployment_name:-default}
 
 source .env
-scriptName="CoreAndPeriphery.s.sol"
+scriptName="DeployCoreAndPeriphery.s.sol"
 
 if ! script/utils/checkEnvironment.sh $verify_contracts; then
     echo "Environment check failed. Exiting."
@@ -31,5 +31,5 @@ if script/utils/executeForgeScript.sh "$script_dir/$scriptName" $verify_contract
     cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${scriptName}.json"
     mv "script/CoreAddresses.json" "$deployment_dir/output/CoreAddresses.json"
     mv "script/PeripheryAddresses.json" "$deployment_dir/output/PeripheryAddresses.json"
-    mv "script/ExtraAddresses.json" "$deployment_dir/output/ExtraAddresses.json"
+    mv "script/LensAddresses.json" "$deployment_dir/output/LensAddresses.json"
 fi
