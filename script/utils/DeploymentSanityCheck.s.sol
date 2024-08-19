@@ -19,6 +19,7 @@ import {OracleLens} from "../../src/Lens/OracleLens.sol";
 import {VaultLens} from "../../src/Lens/VaultLens.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 import {EulerBasePerspective} from "../../src/Perspectives/deployed/EulerBasePerspective.sol";
+import {EulerBasePlusPerspective} from "../../src/Perspectives/deployed/EulerBasePlusPerspective.sol";
 import {Swapper} from "../../src/Swaps/Swapper.sol";
 import {EulerRouterFactory} from "../../src/EulerRouterFactory/EulerRouterFactory.sol";
 
@@ -202,7 +203,8 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         } catch {}
 
         // eulerUngoverned1xPerspective
-        // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory
+        // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory,
+        // mustHaveCollateralPerspective
         // - recognizedCollateralPerspectives
         assert(
             address(BasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).vaultFactory())
@@ -227,6 +229,10 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         assert(
             address(EulerBasePerspective(peripheryAddresses.eulerUngoverned1xPerspective).irmFactory())
                 == peripheryAddresses.kinkIRMFactory
+        );
+        assert(
+            EulerBasePlusPerspective(peripheryAddresses.eulerUngoverned1xPerspective).mustHaveCollateralPerspective()
+                == peripheryAddresses.governedPerspective
         );
 
         recognized =
