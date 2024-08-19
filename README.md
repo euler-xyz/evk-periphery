@@ -27,13 +27,17 @@ There are two sub-directories:
 
 Directory: [src/IRMFactory](src/IRMFactory)
 
-This is an immutable factory contract for deploying Linear Kink IRM instances, used by EVK vaults. It does some basic parameter validation and tracks the addresses of created IRMs, so that the deployment provenance of IRM instances can be verified by perspectives. Linear Kink IRMs are immutable and stateless.
+Immutable factory contracts for deploying IRM instances. They do some parameter validation and track the addresses of created IRMs, so that the deployment provenance of IRM instances can be verified by perspectives. All deployed IRMs are immutable and stateless.
 
 ### IRM
 
 Directory: [src/IRM](src/IRM)
 
-Alternative interest rate models compatible for use by EVK vaults.
+Alternative interest rate models for use by EVK vaults.
+
+- IRMAdaptiveLinearKink is a Linear Kink model with an adaptive mechanism based on exponential growth/decay. As utilization persists above/below the kink the Linear Kink IRM is translated up/down. This model is based on Morpho's [AdaptiveCurveIrm](https://github.com/morpho-org/morpho-blue-irm/blob/8242d5d0414b75368f150d251b518a6c9cf797af/src/adaptive-curve-irm/AdaptiveCurveIrm.sol).
+
+- IRMAdaptiveRange is a Linear Kink model with an adaptive mechanism based on exponential growth/decay. As utilization persists above/below a range around the kink the Linear Kink IRM is adapted to increase/decrease rates. This model is based on Frax's [VariableInterestRate](https://github.com/FraxFinance/fraxlend/blob/f474378c87910f23e3bb135c0e42057afee573b7/src/contracts/VariableInterestRate.sol).
 
 ### EulerRouterFactory
 
@@ -55,7 +59,7 @@ Although the root of trust of a router can be verified through `OracleFactory`, 
 
 SnapshotRegistry can also be used as a whitelist for external ERC4626 vaults that can be configured as internally resolved vaults in `EulerRouter`. Practically speaking this allows a perspective to recognize ERC4626 yield-bearing tokens as collateral or liability.
 
-SnapshotRegistry can also be used as a whitelist for and other smart contracts (i.e. IRMs).
+SnapshotRegistry can also be used as a whitelist for other smart contracts (i.e. IRMs).
 
 ### Swaps
 

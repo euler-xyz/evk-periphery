@@ -61,7 +61,7 @@ contract IRMAdaptiveRange is IIRM {
     /// @param _maxFullRate The maximum interest rate at full utilization.
     /// @param _initialFullRate The initial interest rate at full utilization.
     /// @param _halfLife The time it takes for the interest to halve when adjusting the curve.
-    /// @param _kinkRatePercent The percent of the delta between max and min.
+    /// @param _kinkRatePercent The delta between full rate and base rate used for calculating kink rate.
     constructor(
         uint256 _targetUtilizationLower,
         uint256 _targetUtilizationUpper,

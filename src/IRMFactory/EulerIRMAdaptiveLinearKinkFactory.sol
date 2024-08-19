@@ -5,11 +5,11 @@ pragma solidity ^0.8.0;
 import {BaseFactory} from "../BaseFactory/BaseFactory.sol";
 import {IRMAdaptiveLinearKink} from "../IRM/IRMAdaptiveLinearKink.sol";
 
-/// @title EulerAdaptiveLinearKinkIRMFactory
+/// @title EulerIRMAdaptiveLinearKinkFactory
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A minimal factory for Adaptive Linear Kink IRMs.
-contract EulerAdaptiveLinearKinkIRMFactory is BaseFactory {
+contract EulerIRMAdaptiveLinearKinkFactory is BaseFactory {
     int256 internal constant SECONDS_PER_YEAR = 365.2425 days;
     int256 internal constant MIN_KINK_RATE = 0.1e18 / SECONDS_PER_YEAR;
     int256 internal constant MAX_KINK_RATE = 1000e18 / SECONDS_PER_YEAR;
@@ -21,7 +21,7 @@ contract EulerAdaptiveLinearKinkIRMFactory is BaseFactory {
     /// @notice Error thrown when the constructor parameters are invalid.
     error IRMFactory_InvalidParams();
 
-    /// @notice Deploys a new IRMLinearKink.
+    /// @notice Deploys a new IRMAdaptiveLinearKink.
     /// @param kink The utilization rate targeted by the interest rate model.
     /// @param initialKinkRate The initial interest rate at kink.
     /// @param minKinkRate The minimum interest rate at kink that the model can adjust to.
@@ -39,10 +39,9 @@ contract EulerAdaptiveLinearKinkIRMFactory is BaseFactory {
     ) external returns (address) {
         // Validate parameters.
         if (kink < 0 || kink > 1e18) revert IRMFactory_InvalidParams();
-        if (initialKinkRate < MIN_KINK_RATE || initialKinkRate > MAX_KINK_RATE) revert IRMFactory_InvalidParams();
+        if (initialKinkRate < minKinkRate || initialKinkRate > maxKinkRate) revert IRMFactory_InvalidParams();
         if (minKinkRate < MIN_KINK_RATE || minKinkRate > MAX_KINK_RATE) revert IRMFactory_InvalidParams();
         if (maxKinkRate < MIN_KINK_RATE || maxKinkRate > MAX_KINK_RATE) revert IRMFactory_InvalidParams();
-        if (initialKinkRate < minKinkRate || initialKinkRate > maxKinkRate) revert IRMFactory_InvalidParams();
         if (minKinkRate > maxKinkRate) revert IRMFactory_InvalidParams();
         if (slope < MIN_SLOPE || slope > MAX_SLOPE) revert IRMFactory_InvalidParams();
         if (adjustmentSpeed < MIN_SPEED || adjustmentSpeed > MAX_SPEED) revert IRMFactory_InvalidParams();
@@ -56,6 +55,7 @@ contract EulerAdaptiveLinearKinkIRMFactory is BaseFactory {
         irm.computeInterestRateView(address(0), type(uint32).max - uint256(kink), uint256(kink));
         irm.computeInterestRateView(address(0), 0, type(uint32).max);
 
+        // Store the deployment and return the address.
         deploymentInfo[address(irm)] = DeploymentInfo(msg.sender, uint96(block.timestamp));
         deployments.push(address(irm));
         emit ContractDeployed(address(irm), msg.sender, block.timestamp);
