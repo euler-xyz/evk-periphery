@@ -7,7 +7,7 @@ import {ExpWad} from "./lib/ExpWad.sol";
 /// @title IRMAdaptiveLinearKink
 /// @custom:contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/).
-/// @author Inspired by Morpho Labs (https://github.com/morpho-org/morpho-blue-irm/).
+/// @author Adapted from Morpho Labs (https://github.com/morpho-org/morpho-blue-irm/).
 /// @notice A Linear Kink IRM with an adaptive mechanism based on exponential growth/decay.
 /// As utilization persists above/below the kink the Linear Kink IRM is translated up/down.
 /// @dev The model is parameterized by `(kink, kinkRate, slope)` instead of `(kink, baseRate, slope1, slope2)`.

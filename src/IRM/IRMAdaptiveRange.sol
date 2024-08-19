@@ -6,7 +6,7 @@ import {IIRM} from "evk/InterestRateModels/IIRM.sol";
 /// @title IRMAdaptiveRange
 /// @custom:contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/).
-/// @author Inspired by Frax (https://docs.frax.finance/fraxlend/advanced-concepts/interest-rates).
+/// @author Adapted from Frax (https://docs.frax.finance/fraxlend/advanced-concepts/interest-rates).
 contract IRMAdaptiveRange is IIRM {
     /// @dev Unit for internal precision.
     uint256 internal constant WAD = 1e18;
