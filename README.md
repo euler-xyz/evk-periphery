@@ -1,4 +1,5 @@
 # Euler Vault Kit Periphery
+
 Periphery contracts for the [Euler Vault Kit](https://github.com/euler-xyz/euler-vault-kit) and [Euler Price Oracle](https://github.com/euler-xyz/euler-price-oracle).
 
 > The Euler Vault Kit is a system for constructing credit vaults. Credit vaults are ERC-4626 vaults with added borrowing functionality. Unlike typical ERC-4626 vaults which earn yield by actively investing deposited funds, credit vaults are passive lending pools. See the [whitepaper](https://docs.euler.finance/euler-vault-kit-white-paper/) for more details.
@@ -19,8 +20,8 @@ Contracts that encode validity criteria for EVK vaults.
 
 There are two sub-directories:
 
-* `implementation` - Supporting contracts that may be used by multiple perspectives.
-* `deployed` - Concrete instances of perspectives to be deployed.
+- `implementation` - Supporting contracts that may be used by multiple perspectives.
+- `deployed` - Concrete instances of perspectives to be deployed.
 
 ### IRMFactory
 
@@ -28,14 +29,20 @@ Directory: [src/IRMFactory](src/IRMFactory)
 
 This is an immutable factory contract for deploying Linear Kink IRM instances, used by EVK vaults. It does some basic parameter validation and tracks the addresses of created IRMs, so that the deployment provenance of IRM instances can be verified by perspectives. Linear Kink IRMs are immutable and stateless.
 
+### IRM
+
+Directory: [src/IRM](src/IRM)
+
+Alternative interest rate models compatible for use by EVK vaults.
+
 ### EulerRouterFactory
 
 Directory: [src/EulerRouterFactory](src/EulerRouterFactory)
 
 This is an immutable contract that can be used to deploy instances of `EulerRouter`. It allows the deployment provenance of router instances to be verified by perspectives.
 
-* Although the factory (and implementation) is immutable, the routers themselves are created with a user-specifiable address as the governor so that adapters can be installed. If a perspective wishes for the routers to be immutable, it must also confirm this governor has been changed to `address(0)`.
-* Routers can have fallbacks specified. If present, these must also be verified to be safe.
+- Although the factory (and implementation) is immutable, the routers themselves are created with a user-specifiable address as the governor so that adapters can be installed. If a perspective wishes for the routers to be immutable, it must also confirm this governor has been changed to `address(0)`.
+- Routers can have fallbacks specified. If present, these must also be verified to be safe.
 
 ### SnapshotRegistry
 
@@ -43,8 +50,8 @@ Directory: [src/SnapshotRegistry](src/SnapshotRegistry)
 
 Although the root of trust of a router can be verified through `OracleFactory`, individual adapters cannot. Because of the large variety of adapters, and also because it is difficult to determine the safety of various adapter parameters on-chain, the root of trust of adapters is difficult to verify. The adapter registry is one possible solution to this. It is a governed whitelist contract, where a governor can add new adapters and revoke existing ones. Perspectives who trust the governor of the registry can verify that each adapter was added there.
 
-* Querying the SnapshotRegistry takes a `snapshotTime` parameter. This can be used to query the registry state at a point in the past. This allows a user who doesn't trust the registry to verify each apadter that was installed at a given time, and be confident that the governor can never alter this set. If you do trust the governor, the `snapshotTime` can simply be `block.timestamp`.
-* After revoking, an adapter can never be added back again. Instead, simply deploy an identical one at a new address.
+- Querying the SnapshotRegistry takes a `snapshotTime` parameter. This can be used to query the registry state at a point in the past. This allows a user who doesn't trust the registry to verify each apadter that was installed at a given time, and be confident that the governor can never alter this set. If you do trust the governor, the `snapshotTime` can simply be `block.timestamp`.
+- After revoking, an adapter can never be added back again. Instead, simply deploy an identical one at a new address.
 
 SnapshotRegistry can also be used as a whitelist for external ERC4626 vaults that can be configured as internally resolved vaults in `EulerRouter`. Practically speaking this allows a perspective to recognize ERC4626 yield-bearing tokens as collateral or liability.
 
@@ -58,10 +65,9 @@ Directory: [src/Swaps](src/Swaps)
 
 Utilities for performing DEX swaps for EVK vault operations.
 
-`Swapper.sol` and the handlers are considered to live outside the trusted code-base. Swapper invocations should always be followed by a call to one of `SwapVerifier`'s methods. `SwapVerifier.sol` *is* considered part of the trusted code-base.
+`Swapper.sol` and the handlers are considered to live outside the trusted code-base. Swapper invocations should always be followed by a call to one of `SwapVerifier`'s methods. `SwapVerifier.sol` _is_ considered part of the trusted code-base.
 
 Fork tests require `.env` file with `FORK_RPC_URL` variable set to a provider with archive node support, like Alchemy.
-
 
 ## Safety
 
