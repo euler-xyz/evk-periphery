@@ -69,8 +69,8 @@ contract Perspectives is ScriptUtils {
         address escrowPerspective = address(new EscrowPerspective(eVaultFactory));
 
         address[] memory recognizedPerspectives = new address[](2);
-        recognizedPerspectives[1] = escrowPerspective;
-        recognizedPerspectives[2] = address(0);
+        recognizedPerspectives[0] = escrowPerspective;
+        recognizedPerspectives[1] = address(0);
         address euler0xPerspective = address(
             new EulerBasePerspective(
                 "Euler 0x Perspective",
