@@ -66,8 +66,6 @@ for tx in $transactions; do
                         constructorBytesSize=160
                     fi
 
-                    echo "Contract name is $contractName and the address is $contractAddress"
-
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $index -eq 1 ]]; then
                     contractName=DToken
