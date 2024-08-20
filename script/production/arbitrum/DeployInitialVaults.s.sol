@@ -8,8 +8,9 @@ import {EVaultDeployer} from "../../07_EVault.s.sol";
 import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
 import {BasePerspective} from "../../../src/Perspectives/implementation/BasePerspective.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
-import {IEVault} from "evk/EVault/IEVault.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
+import {IEVault} from "evk/EVault/IEVault.sol";
+import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 
 contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib {
     address internal constant USD = address(840);
@@ -106,41 +107,88 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
 
         // configure the oracle router
         startBroadcast();
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3 * assetsList.length + 1);
+        address deployerAddress = getDeployer();
+
         for (uint256 i = 0; i < assetsList.length; ++i) {
             address asset = assetsList[i];
+            uint256 index = 3 * i;
 
-            EulerRouter(oracleRouter).govSetConfig(asset, USD, oracleAdaptersList[i]);
-            EulerRouter(oracleRouter).govSetResolvedVault(escrowVaults[asset], true);
-            EulerRouter(oracleRouter).govSetResolvedVault(riskOffVaults[asset], true);
+            items[index].targetContract = oracleRouter;
+            items[index].onBehalfOfAccount = deployerAddress;
+            items[index].data = abi.encodeCall(EulerRouter.govSetConfig, (asset, USD, oracleAdaptersList[i]));
+
+            items[index + 1].targetContract = oracleRouter;
+            items[index + 1].onBehalfOfAccount = deployerAddress;
+            items[index + 1].data = abi.encodeCall(EulerRouter.govSetResolvedVault, (escrowVaults[asset], true));
+
+            items[index + 2].targetContract = oracleRouter;
+            items[index + 2].onBehalfOfAccount = deployerAddress;
+            items[index + 2].data = abi.encodeCall(EulerRouter.govSetResolvedVault, (riskOffVaults[asset], true));
         }
 
         // transfer the oracle router governance
-        EulerRouter(oracleRouter).transferGovernance(ORACLE_ROUTER_GOVERNOR);
+        items[items.length - 1].targetContract = oracleRouter;
+        items[items.length - 1].onBehalfOfAccount = deployerAddress;
+        items[items.length - 1].data =
+            abi.encodeCall(EulerRouter(oracleRouter).transferGovernance, (ORACLE_ROUTER_GOVERNOR));
+
+        IEVC(coreAddresses.evc).batch(items);
 
         // configure the LTVs
-        setLTVs(riskOffVaults, escrowVaults, riskOffEscrowLTVs);
-        setLTVs(riskOffVaults, riskOffVaults, riskOffRiskOffLTVs);
+        setLTVs(coreAddresses, riskOffVaults, escrowVaults, riskOffEscrowLTVs);
+        setLTVs(coreAddresses, riskOffVaults, riskOffVaults, riskOffRiskOffLTVs);
 
+        items = new IEVC.BatchItem[](10 * assetsList.length);
         for (uint256 i = 0; i < assetsList.length; ++i) {
             address asset = assetsList[i];
+            uint256 index = 10 * i;
 
             // configure the escrow vaults and verify them by the escrow perspective
-            IEVault(escrowVaults[asset]).setHookConfig(address(0), 0);
-            IEVault(escrowVaults[asset]).setGovernorAdmin(address(0));
-            BasePerspective(peripheryAddresses.escrowedCollateralPerspective).perspectiveVerify(
-                escrowVaults[asset], true
-            );
+            items[index].targetContract = escrowVaults[asset];
+            items[index].onBehalfOfAccount = deployerAddress;
+            items[index].data = abi.encodeCall(IEVault(escrowVaults[asset]).setHookConfig, (address(0), 0));
+
+            items[index + 1].targetContract = escrowVaults[asset];
+            items[index + 1].onBehalfOfAccount = deployerAddress;
+            items[index + 1].data = abi.encodeCall(IEVault(escrowVaults[asset]).setGovernorAdmin, (address(0)));
+
+            items[index + 2].targetContract = peripheryAddresses.escrowedCollateralPerspective;
+            items[index + 2].onBehalfOfAccount = deployerAddress;
+            items[index + 2].data = abi.encodeCall(BasePerspective.perspectiveVerify, (escrowVaults[asset], true));
 
             // configure the riskOff vaults and verify them by the whitelist perspective
-            IEVault(riskOffVaults[asset]).setMaxLiquidationDiscount(0.15e4);
-            IEVault(riskOffVaults[asset]).setLiquidationCoolOffTime(1);
-            IEVault(riskOffVaults[asset]).setInterestRateModel(irmList[i]);
-            IEVault(riskOffVaults[asset]).setInterestFee(0.05e4);
-            IEVault(riskOffVaults[asset]).setHookConfig(address(0), 0);
-            IEVault(riskOffVaults[asset]).setGovernorAdmin(RISK_OFF_VAULTS_GOVERNOR);
+            items[index + 3].targetContract = riskOffVaults[asset];
+            items[index + 3].onBehalfOfAccount = deployerAddress;
+            items[index + 3].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setMaxLiquidationDiscount, (0.15e4));
 
-            BasePerspective(peripheryAddresses.governedPerspective).perspectiveVerify(riskOffVaults[asset], true);
+            items[index + 4].targetContract = riskOffVaults[asset];
+            items[index + 4].onBehalfOfAccount = deployerAddress;
+            items[index + 4].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setLiquidationCoolOffTime, (1));
+
+            items[index + 5].targetContract = riskOffVaults[asset];
+            items[index + 5].onBehalfOfAccount = deployerAddress;
+            items[index + 5].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setInterestRateModel, (irmList[i]));
+
+            items[index + 6].targetContract = riskOffVaults[asset];
+            items[index + 6].onBehalfOfAccount = deployerAddress;
+            items[index + 6].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setInterestFee, (0.1e4));
+
+            items[index + 7].targetContract = riskOffVaults[asset];
+            items[index + 7].onBehalfOfAccount = deployerAddress;
+            items[index + 7].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setHookConfig, (address(0), 0));
+
+            items[index + 8].targetContract = riskOffVaults[asset];
+            items[index + 8].onBehalfOfAccount = deployerAddress;
+            items[index + 8].data =
+                abi.encodeCall(IEVault(riskOffVaults[asset]).setGovernorAdmin, (RISK_OFF_VAULTS_GOVERNOR));
+
+            items[index + 9].targetContract = peripheryAddresses.governedPerspective;
+            items[index + 9].onBehalfOfAccount = deployerAddress;
+            items[index + 9].data = abi.encodeCall(BasePerspective.perspectiveVerify, (riskOffVaults[asset], true));
         }
+
+        IEVC(coreAddresses.evc).batch(items);
 
         stopBroadcast();
 
@@ -155,10 +203,15 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
     }
 
     function setLTVs(
+        CoreAddresses memory coreAddresses,
         mapping(address => address) storage vaults,
         mapping(address => address) storage collaterals,
         uint16[][] storage ltvs
     ) internal {
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](assetsList.length * assetsList.length - assetsList.length);
+        address deployerAddress = getDeployer();
+
+        uint256 index;
         for (uint256 i = 0; i < assetsList.length; ++i) {
             for (uint256 j = 0; j < assetsList.length; ++j) {
                 if (i == j) continue;
@@ -167,8 +220,16 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
                 address vaultAsset = assetsList[j];
                 uint16 ltv = ltvs[i][j];
 
-                IEVault(vaults[vaultAsset]).setLTV(collaterals[collateralAsset], ltv - 0.02e4, ltv, 0);
+                items[index].targetContract = vaults[vaultAsset];
+                items[index].onBehalfOfAccount = deployerAddress;
+                items[index].data = abi.encodeCall(
+                    IEVault(vaults[vaultAsset]).setLTV, (collaterals[collateralAsset], ltv - 0.02e4, ltv, 0)
+                );
+
+                ++index;
             }
         }
+
+        IEVC(coreAddresses.evc).batch(items);
     }
 }
