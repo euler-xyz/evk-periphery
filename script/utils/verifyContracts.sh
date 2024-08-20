@@ -83,7 +83,7 @@ for tx in $transactions; do
 
             verify_contract $contractAddress $contractName "$constructorArgs"
 
-            if [[ $contractName == *Proxy* ]]; then
+            if [[ $contractName == *Proxy* && $VERIFIER_URL == *scan.io/api* ]]; then
                 curl -d "address=$contractAddress" "$VERIFIER_URL?module=contract&action=verifyproxycontract&apikey=$VERIFIER_API_KEY"
             fi
         done
