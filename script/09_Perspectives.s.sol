@@ -90,7 +90,7 @@ contract Perspectives is ScriptUtils {
         recognizedPerspectives[2] = address(0);
         address eulerUngovernedNzxPerspective = address(
             new EulerBasePerspective(
-                "Euler Ungoverned Nzx Perspective",
+                "Euler Ungoverned nzx Perspective",
                 eVaultFactory,
                 oracleRouterFactory,
                 oracleAdapterRegistry,
