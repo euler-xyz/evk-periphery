@@ -23,7 +23,20 @@ source .env && anvil --fork-url "$FORK_RPC_URL"
 
 After that, deploy the contracts in a different terminal window.
 
-## Deployment
+## Batch Deployment
+
+Invoke the specific task scripts.
+
+Core:
+
+    ./script/production/Core.sh production/arbitrum
+
+OwnershipTransfer:
+
+    ./script/production/OwnershipTransfer.sh production/arbitrum script/deployments/arbitrum/output/CoreInfo.json
+
+
+## Interactive Deployment
 
 To use the interactive deployment script, run the following command:
 
