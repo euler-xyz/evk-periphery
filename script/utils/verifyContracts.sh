@@ -55,28 +55,37 @@ for tx in $transactions; do
                 constructorBytesSize=64
                 constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
             elif [[ $contractName == "GenericFactory" || $function == "createProxy(address,bool,bytes)" ]]; then
-                ((index++))
-
-                if [[ $index -eq 1 ]]; then
+                if [[ $index -eq 0 ]]; then
                     upgradable=$(echo "$arguments" | jq -r '.[1]')
                     
                     if [[ $upgradable == true ]]; then
                         contractName=BeaconProxy
                         constructorBytesSize=128
                     else
-                        contractName=""
+                        contractName=MetaProxy
                         constructorBytesSize=160
-                        continue
                     fi
 
+                    echo "Contract name is $contractName and the address is $contractAddress"
+
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-                elif [[ $index -eq 2 ]]; then
+                elif [[ $index -eq 1 ]]; then
                     contractName=DToken
                     constructorArgs=""
                 fi
             fi
 
+            ((index++))
+
+            if [[ $contractName == "MetaProxy" ]]; then
+                continue
+            fi
+
             verify_contract $contractAddress $contractName "$constructorArgs"
+
+            if [[ $contractName == *Proxy* ]]; then
+                curl -d "address=$contractAddress" "$VERIFIER_URL?module=contract&action=verifyproxycontract&apikey=$VERIFIER_API_KEY"
+            fi
         done
     fi
 done
