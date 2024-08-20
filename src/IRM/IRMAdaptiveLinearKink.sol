@@ -30,7 +30,7 @@ contract IRMAdaptiveLinearKink is IIRM {
     /// @dev In WAD per second units.
     int256 public immutable maxKinkRate;
     /// @notice The steepness of interest rate line above the kink. The line below the kink has the inverse slope.
-    /// @dev In WAD per second units. The line below the kink has the inverse slope.
+    /// @dev In WAD units. The line below the kink has the inverse slope.
     int256 public immutable slope;
     /// @notice The speed at which the rate at kink is adjusted up or down.
     /// @dev In WAD per second units. For example, an adjustment speed of `2e18 / 24 hours` will make the model
