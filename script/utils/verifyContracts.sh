@@ -4,9 +4,10 @@ function verify_contract {
     local chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
     local contractAddress=$1
     local contractName=$2
+    local constructorArgs=$3
 
     echo "Verifying $contractName: $contractAddress"
-    forge verify-contract $contractAddress $contractName --guess-constructor-args --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId --verifier-url $VERIFIER_URL --etherscan-api-key $VERIFIER_API_KEY --watch
+    forge verify-contract $contractAddress $contractName $constructorArgs --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId --verifier-url $VERIFIER_URL --etherscan-api-key $VERIFIER_API_KEY --watch
 }
 
 source .env
@@ -25,37 +26,57 @@ for tx in $transactions; do
     contractAddress=$(echo $tx | jq -r '.contractAddress')
     contractName=$(echo $tx | jq -r '.contractName')
 
-    if [[ $contractName == null || $contractAddress == null ]]; then
+    if [[ $transactionType == "CREATE" && $contractAddress != null && $contractName != null ]]; then
+        verify_contract $contractAddress $contractName --guess-constructor-args
         continue
     fi
 
-    if [[ $transactionType == "CREATE" ]]; then
-        verify_contract $contractAddress $contractName
+    if [[ $contractAddress == null ]]; then
         continue
     fi
 
     if [[ $transactionType == "CALL" ]]; then
+        function=$(echo $tx | jq -r '.function')
+        arguments=$(echo $tx | jq -r '.arguments')
         additionalContracts=$(echo $tx | jq -c '.additionalContracts[]')
 
         index=0
         for contract in $additionalContracts; do
             transactionType=$(echo $contract | jq -r '.transactionType')
             contractAddress=$(echo $contract | jq -r '.address')
+            initCode=$(echo $contract | jq -r '.initCode')
 
-            if [[ $contractName == "EulerKinkIRMFactory" ]]; then
-                verify_contract $contractAddress IRMLinearKink
-            elif [[ $contractName == "EulerRouterFactory" ]]; then
-                verify_contract $contractAddress EulerRouter
-            elif [[ $contractName == "GenericFactory" ]]; then
-                if [[ $index -eq 0 ]]; then
-                    #verify_contract $contractAddress BeaconProxy
-                    true
-                elif [[ $index -eq 1 ]]; then
-                    verify_contract $contractAddress DToken
+            if [[ $contractName == "EulerKinkIRMFactory" || $function == "deploy(uint256,uint256,uint256,uint32)" ]]; then
+                contractName=IRMLinearKink
+                constructorBytesSize=128
+                constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+            elif [[ $contractName == "EulerRouterFactory" || $function == "deploy(address)" ]]; then
+                contractName=EulerRouter
+                constructorBytesSize=64
+                constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+            elif [[ $contractName == "GenericFactory" || $function == "createProxy(address,bool,bytes)" ]]; then
+                ((index++))
+
+                if [[ $index -eq 1 ]]; then
+                    upgradable=$(echo "$arguments" | jq -r '.[1]')
+                    
+                    if [[ $upgradable == true ]]; then
+                        contractName=BeaconProxy
+                        constructorBytesSize=128
+                    else
+                        contractName=""
+                        constructorBytesSize=160
+                        continue
+                    fi
+
+                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                elif [[ $index -eq 2 ]]; then
+                    contractName=DToken
+                    constructorArgs=""
                 fi
             fi
-            
-            ((index++))
+
+            verify_contract $contractAddress $contractName "$constructorArgs"
         done
     fi
 done
