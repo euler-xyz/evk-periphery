@@ -99,10 +99,6 @@ contract IRMAdaptiveLinearKink is IIRM {
         view
         returns (uint256, int256)
     {
-        IRState memory state = irState[vault];
-        // Initialize rate if this is the first interaction.
-        if (state.lastUpdate == 0) return (uint256(initialKinkRate), initialKinkRate);
-
         // Calculate utilization rate.
         uint256 totalAssets = cash + borrows;
         int256 utilization = totalAssets == 0 ? int256(0) : int256(borrows) * WAD / int256(totalAssets);
@@ -111,6 +107,10 @@ contract IRMAdaptiveLinearKink is IIRM {
         // `err` is normalized to [-1,+1] where -1 is 0% util, 0 is `kink` and +1 is 100% util.
         int256 errNormFactor = utilization > kink ? WAD - kink : kink;
         int256 err = (utilization - kink) * WAD / errNormFactor;
+
+        // Initialize rate if this is the first interaction.
+        IRState memory state = irState[vault];
+        if (state.lastUpdate == 0) return (calcLinearKinkRate(initialKinkRate, err), initialKinkRate);
 
         // The speed is assumed constant between two updates, but it is in fact not constant because of interest.
         // So the rate is always underestimated.
