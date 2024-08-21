@@ -19,8 +19,6 @@ fi
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-read -p "Enter the Adapter Registry address: " adapter_registry
-
 source .env
 deployment_dir="script/deployments/$deployment_name"
 adaptersList="$deployment_dir/output/adaptersList.csv"
@@ -33,6 +31,10 @@ if [[ ! -f "$adaptersList" ]]; then
 fi
 
 baseName=03_OracleAdapters
+
+read -p "Enter the Adapter Registry address: " adapter_registry
+read -p "Should the adapter be added to the Adapter Registry? (y/n) (default: y): " add_to_adapter_registry
+add_to_adapter_registry=${add_to_adapter_registry:-y}
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
     provider_index="${columns[2]}"
@@ -47,12 +49,14 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         jsonName=03_ChainlinkAdapter
 
         jq -n \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
             --arg feed "${columns[10]}" \
             --argjson maxStaleness "${columns[11]}" \
             '{
+                addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
                 base: $base,
                 quote: $quote,
@@ -64,12 +68,14 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         jsonName=03_ChronicleAdapter
 
         jq -n \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
             --arg feed "${columns[10]}" \
             --argjson maxStaleness "${columns[11]}" \
             '{
+                addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
                 base: $base,
                 quote: $quote,
@@ -81,8 +87,10 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         jsonName=03_LidoAdapter
 
         jq -n \
-            --arg adapterRegistry "$adapter_registry"
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+            --arg adapterRegistry "$adapter_registry" \
             '{
+                addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry
             }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider_index" == "RedStone Classic" ]]; then
@@ -90,12 +98,14 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         jsonName=03_ChainlinkAdapter
 
         jq -n \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
             --arg feed "${columns[10]}" \
             --argjson maxStaleness "${columns[11]}" \
             '{
+                addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
                 base: $base,
                 quote: $quote,
@@ -107,6 +117,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         jsonName=03_RedstoneAdapter
 
         jq -n \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[6]}" \
             --arg quote "${columns[7]}" \
@@ -114,6 +125,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --argjson feedDecimals "${columns[9]}" \
             --argjson maxStaleness "${columns[10]}" \
             '{
+                addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
                 base: $base,
                 quote: $quote,
@@ -126,6 +138,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         jsonName=03_PythAdapter
 
         jq -n \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg pyth "${columns[6]}" \
             --arg base "${columns[7]}" \
@@ -134,6 +147,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --argjson maxStaleness "${columns[10]}" \
             --argjson maxConfWidth "${columns[11]}" \
             '{
+                addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
                 pyth: $pyth,
                 base: $base,
@@ -162,6 +176,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         jsonName=03_CrossAdapter
 
         jq -n \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[6]}" \
             --arg cross "${columns[7]}" \
@@ -169,6 +184,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --arg oracleBaseCross "${columns[9]}" \
             --arg oracleCrossQuote "${columns[10]}" \
             '{
+                addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
                 base: $base,
                 cross: $cross,

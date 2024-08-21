@@ -173,6 +173,10 @@ while true; do
 
             baseName=03_OracleAdapters
 
+            read -p "Enter the Adapter Registry address: " adapter_registry
+            read -p "Should the adapter be added to the Adapter Registry? (y/n) (default: y): " add_to_adapter_registry
+            add_to_adapter_registry=${add_to_adapter_registry:-y}
+
             case $adapter_choice in
                 0)
                     echo "Deploying Chainlink Adapter..."
@@ -180,19 +184,20 @@ while true; do
                     scriptName=${baseName}.s.sol:ChainlinkAdapter
                     jsonName=03_ChainlinkAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
                     read -p "Enter feed address: " feed
                     read -p "Enter max staleness (in seconds): " max_staleness
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feed "$feed" \
                         --argjson maxStaleness "$max_staleness" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -206,19 +211,20 @@ while true; do
                     scriptName=${baseName}.s.sol:ChronicleAdapter
                     jsonName=03_ChronicleAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
                     read -p "Enter feed address: " feed
                     read -p "Enter max staleness (in seconds): " max_staleness
 
                     jq -n \
+                    --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feed "$feed" \
                         --argjson maxStaleness "$max_staleness" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -232,9 +238,8 @@ while true; do
                     scriptName=${baseName}.s.sol:LidoAdapter
                     jsonName=03_LidoAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
-
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         '{
                             adapterRegistry: $adapterRegistry
@@ -246,7 +251,6 @@ while true; do
                     scriptName=${baseName}.s.sol:PythAdapter
                     jsonName=03_PythAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter Pyth address: " pyth
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
@@ -255,6 +259,7 @@ while true; do
                     read -p "Enter max confidence width: " max_conf_width
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg pyth "$pyth" \
                         --arg base "$base" \
@@ -263,6 +268,7 @@ while true; do
                         --argjson maxStaleness "$max_staleness" \
                         --argjson maxConfWidth "$max_conf_width" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             pyth: $pyth,
                             base: $base,
@@ -278,7 +284,6 @@ while true; do
                     scriptName=${baseName}.s.sol:RedstoneAdapter
                     jsonName=03_RedstoneAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
                     read -p "Enter feed ID: " feed_id
@@ -286,6 +291,7 @@ while true; do
                     read -p "Enter max staleness (in seconds): " max_staleness
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg quote "$quote" \
@@ -293,6 +299,7 @@ while true; do
                         --argjson feedDecimals "$feed_decimals" \
                         --argjson maxStaleness "$max_staleness" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -307,7 +314,6 @@ while true; do
                     scriptName=${baseName}.s.sol:CrossAdapterDeployer
                     jsonName=03_CrossAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter cross token address: " cross
                     read -p "Enter quote token address: " quote
@@ -315,6 +321,7 @@ while true; do
                     read -p "Enter oracleCrossQuote address: " oracle_cross_quote
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg cross "$cross" \
@@ -322,6 +329,7 @@ while true; do
                         --arg oracleBaseCross "$oracle_base_cross" \
                         --arg oracleCrossQuote "$oracle_cross_quote" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -336,7 +344,6 @@ while true; do
                     scriptName=${baseName}.s.sol:UniswapAdapter
                     jsonName=03_UniswapAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter tokenA address: " token_a
                     read -p "Enter tokenB address: " token_b
                     read -p "Enter fee: " fee
@@ -344,6 +351,7 @@ while true; do
                     read -p "Enter uniswapV3Factory address: " uniswap_v3_factory
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg tokenA "$token_a" \
                         --arg tokenB "$token_b" \
@@ -351,6 +359,7 @@ while true; do
                         --argjson twapWindow "$twap_window" \
                         --arg uniswapV3Factory "$uniswap_v3_factory" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             tokenA: $tokenA,
                             tokenB: $tokenB,
