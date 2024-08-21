@@ -15,19 +15,19 @@ import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
 contract Core is ScriptUtils, CoreInfoLib {
-    address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address internal constant EUL = 0xd9Fcd98c322942075A5C3860693e9f4f03AAE07b;
 
     address internal constant ONE_INCH_AGGREGATOR_V6 = 0x111111125421cA6dc452d289314280a0f8842A65;
     address internal constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address internal constant UNISWAP_ROUTER_V3 = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address internal constant UNISWAP_ROUTER_02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 
-    uint256 internal constant FEE_FLOW_INIT_PRICE = 1e6;
-    address internal constant FEE_FLOW_PAYMENT_TOKEN = WETH; // TODO
-    address internal constant FEE_FLOW_PAYMENT_RECEIVER = 0x0000000000000000000000000000000000000000; // TODO
+    uint256 internal constant FEE_FLOW_INIT_PRICE = 1e18;
+    address internal constant FEE_FLOW_PAYMENT_TOKEN = EUL;
+    address internal constant FEE_FLOW_PAYMENT_RECEIVER = 0xcAD001c30E96765aC90307669d578219D4fb1DCe; // Euler DAO multi-sig
     uint256 internal constant FEE_FLOW_EPOCH_PERIOD = 14 days;
-    uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18; // TODO
-    uint256 internal constant FEE_FLOW_MIN_INIT_PRICE = 1e6; // TODO
+    uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18;
+    uint256 internal constant FEE_FLOW_MIN_INIT_PRICE = 1e6;
 
     function run() public returns (CoreInfo memory coreInfo) {
         // deply integrations

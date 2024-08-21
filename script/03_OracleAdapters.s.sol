@@ -9,8 +9,8 @@ import {ChronicleOracle} from "euler-price-oracle/adapter/chronicle/ChronicleOra
 import {LidoOracle} from "euler-price-oracle/adapter/lido/LidoOracle.sol";
 import {PythOracle} from "euler-price-oracle/adapter/pyth/PythOracle.sol";
 import {RedstoneCoreOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreOracle.sol";
-import {RedstoneCoreArbitrumOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreArbitrumOracle.sol";
-import {CrossAdapter as CrossOracle} from "euler-price-oracle/adapter/CrossAdapter.sol";
+//import {RedstoneCoreArbitrumOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreArbitrumOracle.sol";
+import {CrossAdapter} from "euler-price-oracle/adapter/CrossAdapter.sol";
 import {UniswapV3Oracle} from "euler-price-oracle/adapter/uniswap/UniswapV3Oracle.sol";
 
 contract ChainlinkAdapter is ScriptUtils {
@@ -118,7 +118,7 @@ contract PythAdapter is ScriptUtils {
         address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
         bytes32 feedId = abi.decode(vm.parseJson(json, ".feedId"), (bytes32));
         uint256 maxStaleness = abi.decode(vm.parseJson(json, ".maxStaleness"), (uint256));
-        uint256 maxConfWidth = abi.decode(vm.parseJson(json, ".maxStaleness"), (uint256));
+        uint256 maxConfWidth = abi.decode(vm.parseJson(json, ".maxConfWidth"), (uint256));
 
         adapter = execute(adapterRegistry, pyth, base, quote, feedId, maxStaleness, maxConfWidth);
 
@@ -197,7 +197,8 @@ contract RedstoneAdapter is ScriptUtils {
         uint256 maxStaleness
     ) public returns (address adapter) {
         if (block.chainid == 42161) {
-            adapter = address(new RedstoneCoreArbitrumOracle(base, quote, feedId, feedDecimals, maxStaleness));
+            //adapter = address(new RedstoneCoreArbitrumOracle(base, quote, feedId, feedDecimals, maxStaleness));
+            require(false, "redstone not yet supported on arbitrum");
         } else {
             adapter = address(new RedstoneCoreOracle(base, quote, feedId, feedDecimals, maxStaleness));
         }
@@ -206,7 +207,7 @@ contract RedstoneAdapter is ScriptUtils {
     }
 }
 
-contract CrossAdapter is ScriptUtils {
+contract CrossAdapterDeployer is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_CrossAdapter_input.json";
         string memory outputScriptFileName = "03_CrossAdapter_output.json";
@@ -244,7 +245,7 @@ contract CrossAdapter is ScriptUtils {
         address oracleBaseCross,
         address oracleCrossQuote
     ) public returns (address adapter) {
-        adapter = address(new CrossOracle(base, cross, quote, oracleBaseCross, oracleCrossQuote));
+        adapter = address(new CrossAdapter(base, cross, quote, oracleBaseCross, oracleCrossQuote));
         SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
