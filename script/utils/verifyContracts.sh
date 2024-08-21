@@ -15,9 +15,7 @@ source .env
 # Verify the deployed smart contracts
 fileName=$1
 tmpFileName=${fileName}.tmp
-sed 's/, /,/g' $fileName > $tmpFileName
-
-# Iterate over each transaction and verify it
+sed 's/, /,/g; s/\\"//g; s/ //g' $fileName > $tmpFileName
 transactions=$(jq -c '.transactions[]' $tmpFileName)
 rm $tmpFileName
 
