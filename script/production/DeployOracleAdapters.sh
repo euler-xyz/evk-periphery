@@ -32,6 +32,8 @@ if [[ ! -f "$adaptersList" ]]; then
     echo "Asset,Quote,Provider,Adapter" > "$adaptersList"
 fi
 
+baseName=03_OracleAdapters
+
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
     provider_index="${columns[2]}"
     deploy_index="${columns[3]}"
@@ -41,7 +43,6 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     fi
 
     if [[ "$provider_index" == "Chainlink" ]]; then
-        baseName=03_OracleAdapters
         scriptName=${baseName}.s.sol:ChainlinkAdapter
         jsonName=03_ChainlinkAdapter
 
@@ -59,7 +60,6 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 maxStaleness: $maxStaleness
             }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider_index" == "Chronicle" ]]; then
-        baseName=03_OracleAdapters
         scriptName=${baseName}.s.sol:ChronicleAdapter
         jsonName=03_ChronicleAdapter
 
@@ -76,8 +76,16 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 feed: $feed,
                 maxStaleness: $maxStaleness
             }' --indent 4 > script/${jsonName}_input.json
+    elif [[ "$provider_index" == "Lido" ]]; then
+        scriptName=${baseName}.s.sol:LidoAdapter
+        jsonName=03_LidoAdapter
+
+        jq -n \
+            --arg adapterRegistry "$adapter_registry"
+            '{
+                adapterRegistry: $adapterRegistry
+            }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider_index" == "RedStone Classic" ]]; then
-        baseName=03_OracleAdapters
         scriptName=${baseName}.s.sol:ChainlinkAdapter
         jsonName=03_ChainlinkAdapter
 
@@ -95,7 +103,6 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 maxStaleness: $maxStaleness
             }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider_index" == "RedStone Core" ]]; then
-        baseName=03_OracleAdapters
         scriptName=${baseName}.s.sol:RedstoneAdapter
         jsonName=03_RedstoneAdapter
 
@@ -115,7 +122,6 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 maxStaleness: $maxStaleness
             }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider_index" == "Pyth" ]]; then
-        baseName=03_OracleAdapters
         scriptName=${baseName}.s.sol:PythAdapter
         jsonName=03_PythAdapter
 
@@ -152,7 +158,6 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             continue
         fi
 
-        baseName=03_OracleAdapters
         scriptName=${baseName}.s.sol:CrossAdapterDeployer
         jsonName=03_CrossAdapter
 
