@@ -7,7 +7,7 @@ import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 
-contract ConfigureSDAI is ScriptUtils {
+contract ConfigSDAI is ScriptUtils {
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address internal constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
