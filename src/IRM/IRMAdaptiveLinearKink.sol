@@ -46,10 +46,7 @@ contract IRMAdaptiveLinearKink is IIRM {
     }
 
     /// @notice Get the cached state of a vault's irm.
-    /// @return kinkRate The last computed rate at kink.
-    /// @return lastUpdate The last update timestamp.
-    /// @dev Note that this state may be outdated. Use `computeInterestRateView` for the latest interest rate.
-    mapping(address => IRState) public irState;
+    mapping(address => IRState) internal irState;
 
     /// @notice Deploy IRMAdaptiveLinearKink
     /// @param _kink The utilization rate targeted by the interest rate model.
@@ -88,6 +85,16 @@ contract IRMAdaptiveLinearKink is IIRM {
         return avgRate;
     }
 
+    /// @notice Perform computation of the new kink rate without mutating state.
+    /// @param vault Address of the vault to compute the new interest rate for.
+    /// @param cash Amount of assets held directly by the vault.
+    /// @param borrows Amount of assets lent out to borrowers by the vault.
+    /// @return Then new kink rate in WAD per second units.
+    function computeKinkRateView(address vault, uint256 cash, uint256 borrows) external view returns (int256) {
+        (, int256 kinkRate) = computeInterestRateInternal(vault, cash, borrows);
+        return kinkRate;
+    }
+
     /// @notice Compute the new interest rate and rate at kink of a vault.
     /// @param vault Address of the vault to compute the new interest rate for.
     /// @param cash Amount of assets held directly by the vault.
@@ -103,8 +110,8 @@ contract IRMAdaptiveLinearKink is IIRM {
         uint256 totalAssets = cash + borrows;
         int256 utilization = totalAssets == 0 ? int256(0) : int256(borrows) * WAD / int256(totalAssets);
 
-        // Calculate the normalized distance between current utilization wrt. target utilization (kink).
-        // `err` is normalized to [-1,+1] where -1 is 0% util, 0 is `kink` and +1 is 100% util.
+        // Calculate the normalized distance between current utilization and target utilization (kink).
+        // `err` is normalized to [-1,+1] where -1 is 0% util, 0 is at `kink` and +1 is 100% util.
         int256 errNormFactor = utilization > kink ? WAD - kink : kink;
         int256 err = (utilization - kink) * WAD / errNormFactor;
 

@@ -47,10 +47,7 @@ contract IRMAdaptiveRange is IIRM {
     }
 
     /// @notice Get the cached state of a vault's irm.
-    /// @return fullRate The last computed rate at full utilization.
-    /// @return lastUpdate The last update timestamp.
-    /// @dev Note that this state may be outdated. Use `computeInterestRateView` for the latest interest rate.
-    mapping(address => IRState) public irState;
+    mapping(address => IRState) internal irState;
 
     /// @notice Deploy IRMAdaptiveRange.
     /// @param _targetUtilizationLower The lower bound of the utilization range where the interest rate does not adjust.
@@ -96,6 +93,16 @@ contract IRMAdaptiveRange is IIRM {
     function computeInterestRateView(address vault, uint256 cash, uint256 borrows) external view returns (uint256) {
         (uint256 rate,) = computeInterestRateInternal(vault, cash, borrows);
         return rate;
+    }
+
+    /// @notice Perform computation of the new full rate without mutating state.
+    /// @param vault Address of the vault to compute the new interest rate for.
+    /// @param cash Amount of assets held directly by the vault.
+    /// @param borrows Amount of assets lent out to borrowers by the vault.
+    /// @return Then new rate at 100% utilization in WAD per second units.
+    function computeFullRateView(address vault, uint256 cash, uint256 borrows) external view returns (uint256) {
+        (, uint256 fullRate) = computeInterestRateInternal(vault, cash, borrows);
+        return fullRate;
     }
 
     /// @notice Compute the current interest rate for a vault.

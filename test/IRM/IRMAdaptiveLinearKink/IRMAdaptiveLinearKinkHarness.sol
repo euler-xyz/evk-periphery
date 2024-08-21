@@ -22,8 +22,7 @@ contract IRMAdaptiveLinearKinkHarness is Test {
         uint256 borrows;
         uint256 utilization;
         uint256 rate;
-        int208 kinkRate;
-        uint48 timestamp;
+        int256 kinkRate;
         uint32 delay;
     }
 
@@ -45,7 +44,7 @@ contract IRMAdaptiveLinearKinkHarness is Test {
         for (uint256 i = 0; i < irms.length; ++i) {
             IRMAdaptiveLinearKink irm = irms[i];
             uint256 rate = irm.computeInterestRate(address(this), cash, borrows);
-            (int208 kinkRate, uint48 timestamp) = irm.irState(address(this));
+            int256 kinkRate = irm.computeKinkRateView(address(this), cash, borrows);
             uint256 totalAssets = uint256(cash) + borrows;
             uint256 utilization = totalAssets == 0 ? 0 : uint256(borrows) * 1e18 / totalAssets;
             history[irm].push(
@@ -55,7 +54,6 @@ contract IRMAdaptiveLinearKinkHarness is Test {
                     utilization: utilization,
                     rate: rate,
                     kinkRate: kinkRate,
-                    timestamp: timestamp,
                     delay: delay
                 })
             );

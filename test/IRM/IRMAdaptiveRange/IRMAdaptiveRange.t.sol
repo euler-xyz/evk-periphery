@@ -135,12 +135,14 @@ contract IRMAdaptiveRangeTest is Test {
     function computeRateAtUtilization(uint256 utilizationRate) internal returns (uint256 rate, uint256 fullRate) {
         if (utilizationRate == 0) {
             rate = irm.computeInterestRate(VAULT, 0, 0);
+            fullRate = irm.computeFullRateView(VAULT, 0, 0);
         } else if (utilizationRate == 1e18) {
             rate = irm.computeInterestRate(VAULT, 0, 1e18);
+            fullRate = irm.computeFullRateView(VAULT, 0, 1e18);
         } else {
             uint256 borrows = 1e18 * utilizationRate / (1e18 - utilizationRate);
             rate = irm.computeInterestRate(VAULT, 1e18, borrows);
+            fullRate = irm.computeFullRateView(VAULT, 1e18, borrows);
         }
-        (fullRate,) = irm.irState(VAULT);
     }
 }
