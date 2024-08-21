@@ -217,7 +217,7 @@ while true; do
                     read -p "Enter max staleness (in seconds): " max_staleness
 
                     jq -n \
-                    --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg quote "$quote" \
