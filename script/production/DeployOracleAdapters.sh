@@ -27,14 +27,18 @@ chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broadcast"
 
 if [[ ! -f "$adaptersList" ]]; then
-    echo "Asset,Quote,Provider,Adapter" > "$adaptersList"
+    echo "Asset,Quote,Provider,Adapter,Base,Quote" > "$adaptersList"
 fi
 
 baseName=03_OracleAdapters
 
-read -p "Enter the Adapter Registry address: " adapter_registry
 read -p "Should the adapter be added to the Adapter Registry? (y/n) (default: y): " add_to_adapter_registry
 add_to_adapter_registry=${add_to_adapter_registry:-y}
+
+adapter_registry=0x0000000000000000000000000000000000000000
+if [[ $add_to_adapter_registry != "n" ]]; then
+    read -p "Enter the Adapter Registry address: " adapter_registry
+fi
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
     provider_index="${columns[2]}"
@@ -47,6 +51,9 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     if [[ "$provider_index" == "Chainlink" ]]; then
         scriptName=${baseName}.s.sol:ChainlinkAdapter
         jsonName=03_ChainlinkAdapter
+
+        base="${columns[8]}"
+        quote="${columns[9]}"
 
         jq -n \
             --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
@@ -67,6 +74,9 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         scriptName=${baseName}.s.sol:ChronicleAdapter
         jsonName=03_ChronicleAdapter
 
+        base="${columns[8]}"
+        quote="${columns[9]}"
+
         jq -n \
             --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
@@ -86,6 +96,14 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         scriptName=${baseName}.s.sol:LidoAdapter
         jsonName=03_LidoAdapter
 
+        if [[ $chainId == "1" ]]; then
+            base=0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84
+            quote=0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0
+        else
+            base=""
+            quote=""
+        fi
+
         jq -n \
             --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
@@ -96,6 +114,9 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     elif [[ "$provider_index" == "RedStone Classic" ]]; then
         scriptName=${baseName}.s.sol:ChainlinkAdapter
         jsonName=03_ChainlinkAdapter
+
+        base="${columns[8]}"
+        quote="${columns[9]}"
 
         jq -n \
             --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
@@ -115,6 +136,9 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     elif [[ "$provider_index" == "RedStone Core" ]]; then
         scriptName=${baseName}.s.sol:RedstoneAdapter
         jsonName=03_RedstoneAdapter
+
+        base="${columns[6]}"
+        quote="${columns[7]}"
 
         jq -n \
             --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
@@ -136,6 +160,9 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     elif [[ "$provider_index" == "Pyth" ]]; then
         scriptName=${baseName}.s.sol:PythAdapter
         jsonName=03_PythAdapter
+
+        base="${columns[7]}"
+        quote="${columns[8]}"
 
         jq -n \
             --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
@@ -175,6 +202,9 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         scriptName=${baseName}.s.sol:CrossAdapterDeployer
         jsonName=03_CrossAdapter
 
+        base="${columns[6]}"
+        quote="${columns[8]}"
+
         jq -n \
             --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
@@ -200,7 +230,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     if script/utils/executeForgeScript.sh $scriptName $verify_contracts; then
         counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
 
-        echo "${columns[0]},${columns[1]},${columns[2]},$(jq -r '.adapter' "script/${jsonName}_output.json")" >> "$adaptersList"
+        echo "${columns[0]},${columns[1]},${columns[2]},$(jq -r '.adapter' "script/${jsonName}_output.json"),$base,$quote" >> "$adaptersList"
         mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
         mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"
         cp "broadcast/${baseName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"

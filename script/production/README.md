@@ -54,7 +54,18 @@ i.e.
 ./script/production/DeployOracleAdapters.sh "script/production/mainnet/oracleAdapters/test/Euler V2 Oracles - Chainlink.csv"
 ```
 
-The above command must be run for each oracle provider/oracle type. You will be prompted for the Adapter Registry address which you should have obtained in step 1.
+The above command must be run for each oracle provider/oracle type. If you choose to add the oracle adapters to the Adapters Registry while deploying, you will be prompted for the Adapter Registry address which you should have obtained in step 1.
+
+If you decided not to add the oracle adapters to the Adapters Registry, you can add them later by running the `ConfigAddOracleAdapters.sh` script and providing the `adaptersList.csv` file path as an argument. The CSV file is the result of running the `DeployOracleAdapters.sh` script and can be found in the deployment directory.
+
+```sh
+./script/production/ConfigAddOracleAdapters.sh <csv_file_path>
+```
+
+i.e.
+```sh
+./script/production/ConfigAddOracleAdapters.sh "script/deployments/default/output/adaptersList.csv"
+```
 
 **Important**
 Note that the Cross adapter relies on the previous adapters deployment hence the Cross CSV must contain appropriate adapters addresses when the script is run. These can be taken from `script/deployments/[your_deployment_name]/output/adaptersList.csv`

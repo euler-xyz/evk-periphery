@@ -173,9 +173,13 @@ while true; do
 
             baseName=03_OracleAdapters
 
-            read -p "Enter the Adapter Registry address: " adapter_registry
             read -p "Should the adapter be added to the Adapter Registry? (y/n) (default: y): " add_to_adapter_registry
             add_to_adapter_registry=${add_to_adapter_registry:-y}
+
+            adapter_registry=0x0000000000000000000000000000000000000000
+            if [[ $add_to_adapter_registry != "n" ]]; then
+                read -p "Enter the Adapter Registry address: " adapter_registry
+            fi
 
             case $adapter_choice in
                 0)
