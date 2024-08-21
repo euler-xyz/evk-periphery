@@ -8,7 +8,6 @@ import {EVaultDeployer} from "../../07_EVault.s.sol";
 import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
 import {BasePerspective} from "../../../src/Perspectives/implementation/BasePerspective.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
-import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 
@@ -20,7 +19,6 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
     address internal constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address[] internal assetsList;
 
-    // TODO double check
     address internal constant WETHUSD = 0x10674C8C1aE2072d4a75FE83f1E159425fd84E1D;
     address internal constant wstETHUSD = 0x02dd5B7ab536629d2235276aBCDf8eb3Af9528D7;
     address internal constant USDCUSD = 0x6213f24332D35519039f2afa7e3BffE105a37d3F;
@@ -58,6 +56,7 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
     }
 
     function run() public returns (address[] memory) {
+        address deployerAddress = getDeployer();
         CoreAddresses memory coreAddresses = deserializeCoreAddresses(getInputConfig("CoreAddresses.json"));
         PeripheryAddresses memory peripheryAddresses =
             deserializePeripheryAddresses(getInputConfig("PeripheryAddresses.json"));
@@ -103,7 +102,6 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
         // configure the oracle router
         startBroadcast();
         IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3 * assetsList.length + 1);
-        address deployerAddress = getDeployer();
 
         for (uint256 i = 0; i < assetsList.length; ++i) {
             address asset = assetsList[i];
@@ -165,7 +163,6 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
             items[index + 5].onBehalfOfAccount = deployerAddress;
             items[index + 5].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setInterestRateModel, (irmList[i]));
 
-            // TODO check fee and other params
             items[index + 6].targetContract = riskOffVaults[asset];
             items[index + 6].onBehalfOfAccount = deployerAddress;
             items[index + 6].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setInterestFee, (0.1e4));

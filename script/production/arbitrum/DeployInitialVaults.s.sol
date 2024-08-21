@@ -8,7 +8,6 @@ import {EVaultDeployer} from "../../07_EVault.s.sol";
 import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
 import {BasePerspective} from "../../../src/Perspectives/implementation/BasePerspective.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
-import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 
@@ -60,6 +59,7 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
     }
 
     function run() public returns (address[] memory) {
+        address deployerAddress = getDeployer();
         CoreAddresses memory coreAddresses = deserializeCoreAddresses(getInputConfig("CoreAddresses.json"));
         PeripheryAddresses memory peripheryAddresses =
             deserializePeripheryAddresses(getInputConfig("PeripheryAddresses.json"));
@@ -108,7 +108,6 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
         // configure the oracle router
         startBroadcast();
         IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3 * assetsList.length + 1);
-        address deployerAddress = getDeployer();
 
         for (uint256 i = 0; i < assetsList.length; ++i) {
             address asset = assetsList[i];
