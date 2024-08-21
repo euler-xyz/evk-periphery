@@ -27,14 +27,17 @@ After that, deploy the contracts in a different terminal window.
 
 Invoke the specific task scripts, i.e.:
 
-Core:
+DeployCoreAndPeriphery:
 
-    ./script/production/DeployCoreAndPeriphery.sh production/arbitrum
+```sh
+./script/production/DeployCoreAndPeriphery.sh production/mainnet
+```
 
-OwnershipTransfer:
+OwnershipTransferCore:
 
-    ./script/production/OwnershipTransfer.sh production/arbitrum script/deployments/arbitrum/output
-
+```sh
+./script/production/OwnershipTransferCore.sh production/mainnet script/deployments/mainnet/output
+```
 
 ## Interactive Deployment
 
@@ -47,3 +50,11 @@ To use the interactive deployment script, run the following command:
 You will be walked through the deployment process step by step.
 
 The result of the deployment will be saved in `script/deployments/[your_deployment_name]` directory.
+
+## Verification
+
+Each bash script will prompt you whether you would like to verify the contracts. If you decided not to do it during the deployment, you can do it later. To do that, use the `verifyContracts.sh` script by passing the foundry broadcast file as an argument, i.e.:
+
+```sh
+./script/utils/verifyContracts.sh script/deployments/mainnet/broadcast/DeployCoreAndPeriphery.s.sol.json
+```

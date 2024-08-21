@@ -69,7 +69,7 @@ for tx in $transactions; do
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $index -eq 1 ]]; then
                     contractName=DToken
-                    constructorArgs=""
+                    constructorArgs="--constructor-args 0x"
                 fi
             fi
 
