@@ -6,7 +6,7 @@ import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {FactoryPerspective} from "../src/Perspectives/deployed/FactoryPerspective.sol";
 import {GovernedPerspective} from "../src/Perspectives/deployed/GovernedPerspective.sol";
 import {EscrowedCollateralPerspective} from "../src/Perspectives/deployed/EscrowedCollateralPerspective.sol";
-import {EulerBasePerspective} from "../src/Perspectives/deployed/EulerBasePerspective.sol";
+import {EulerUngovernedPerspective} from "../src/Perspectives/deployed/EulerUngovernedPerspective.sol";
 
 contract Perspectives is ScriptUtils {
     function run() public broadcast returns (address[] memory perspectives) {
@@ -72,7 +72,7 @@ contract Perspectives is ScriptUtils {
         recognizedPerspectives[0] = escrowedCollateralPerspective;
         recognizedPerspectives[1] = address(0);
         address eulerUngoverned0xPerspective = address(
-            new EulerBasePerspective(
+            new EulerUngovernedPerspective(
                 "Euler Ungoverned 0x Perspective",
                 eVaultFactory,
                 oracleRouterFactory,
@@ -89,7 +89,7 @@ contract Perspectives is ScriptUtils {
         recognizedPerspectives[1] = escrowedCollateralPerspective;
         recognizedPerspectives[2] = address(0);
         address eulerUngovernedNzxPerspective = address(
-            new EulerBasePerspective(
+            new EulerUngovernedPerspective(
                 "Euler Ungoverned nzx Perspective",
                 eVaultFactory,
                 oracleRouterFactory,

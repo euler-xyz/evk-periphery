@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.24;
 
-import {EulerBasePerspective} from "../../src/Perspectives/deployed/EulerBasePerspective.sol";
+import {EulerUngovernedPerspective} from "../../src/Perspectives/deployed/EulerUngovernedPerspective.sol";
 
-contract EulerBasePerspectiveHarness is EulerBasePerspective {
+contract EulerUngovernedPerspectiveHarness is EulerUngovernedPerspective {
     constructor(
         address vaultFactory_,
         address routerFactory_,
@@ -13,7 +13,7 @@ contract EulerBasePerspectiveHarness is EulerBasePerspective {
         address irmFactory_,
         address irmRegistry
     )
-        EulerBasePerspective(
+        EulerUngovernedPerspective(
             "",
             vaultFactory_,
             routerFactory_,
