@@ -12,12 +12,12 @@ contract SimulateIRMs is Script, IRMSimulationHarness {
 
     function scenario1() public {
         IRMAdaptiveLinearKink irmAdaptiveCurve = new IRMAdaptiveLinearKink(
-            0.9 ether,
-            0.04 ether / int256(365 days),
-            0.001 ether / int256(365 days),
-            2.0 ether / int256(365 days),
-            4 ether,
-            50 ether / int256(365 days)
+            0.9e18,
+            0.04e18 / int256(365 days),
+            0.001e18 / int256(365 days),
+            2.0e18 / int256(365 days),
+            4e18,
+            50e18 / int256(365 days)
         );
 
         useIRM(irmAdaptiveCurve);
