@@ -11,7 +11,7 @@ import {IRMAdaptiveLinearKink} from "../IRM/IRMAdaptiveLinearKink.sol";
 /// @notice A minimal factory for Adaptive Linear Kink IRMs.
 contract EulerIRMAdaptiveLinearKinkFactory is BaseFactory {
     int256 internal constant SECONDS_PER_YEAR = 365.2425 days;
-    int256 internal constant MIN_KINK_RATE = 0.1e18 / SECONDS_PER_YEAR;
+    int256 internal constant MIN_KINK_RATE = 0.01e18 / SECONDS_PER_YEAR;
     int256 internal constant MAX_KINK_RATE = 1000e18 / SECONDS_PER_YEAR;
     int256 internal constant MIN_SLOPE = 1.01e18;
     int256 internal constant MAX_SLOPE = 100e18;
