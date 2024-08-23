@@ -132,6 +132,7 @@ contract LensAddressesLib is Script {
     struct LensAddresses {
         address accountLens;
         address oracleLens;
+        address irmlens;
         address vaultLens;
         address utilsLens;
     }
@@ -139,6 +140,7 @@ contract LensAddressesLib is Script {
     function serializeLensAddresses(LensAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("lensAddresses", "accountLens", Addresses.accountLens);
         result = vm.serializeAddress("lensAddresses", "oracleLens", Addresses.oracleLens);
+        result = vm.serializeAddress("lensAddresses", "irmlens", Addresses.irmlens);
         result = vm.serializeAddress("lensAddresses", "vaultLens", Addresses.vaultLens);
         result = vm.serializeAddress("lensAddresses", "utilsLens", Addresses.utilsLens);
     }
@@ -147,6 +149,7 @@ contract LensAddressesLib is Script {
         return LensAddresses({
             accountLens: abi.decode(vm.parseJson(json, ".accountLens"), (address)),
             oracleLens: abi.decode(vm.parseJson(json, ".oracleLens"), (address)),
+            irmlens: abi.decode(vm.parseJson(json, ".irmlens"), (address)),
             vaultLens: abi.decode(vm.parseJson(json, ".vaultLens"), (address)),
             utilsLens: abi.decode(vm.parseJson(json, ".utilsLens"), (address))
         });
