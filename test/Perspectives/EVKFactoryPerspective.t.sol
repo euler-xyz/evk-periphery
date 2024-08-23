@@ -5,19 +5,19 @@ pragma solidity ^0.8.24;
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IPerspective} from "../../src/Perspectives/implementation/interfaces/IPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
-import {FactoryPerspective} from "../../src/Perspectives/deployed/FactoryPerspective.sol";
+import {EVKFactoryPerspective} from "../../src/Perspectives/deployed/EVKFactoryPerspective.sol";
 
-contract FactoryPerspectiveTest is EVaultTestBase, PerspectiveErrors {
-    FactoryPerspective perspective;
+contract EVKFactoryPerspectiveTest is EVaultTestBase, PerspectiveErrors {
+    EVKFactoryPerspective perspective;
 
     function setUp() public virtual override {
         super.setUp();
 
-        perspective = new FactoryPerspective(address(factory));
+        perspective = new EVKFactoryPerspective(address(factory));
     }
 
-    function test_FactoryPerspective(uint8 size) public {
-        assertEq(perspective.name(), "Factory Perspective");
+    function test_EVKFactoryPerspective(uint8 size) public {
+        assertEq(perspective.name(), "EVK Factory Perspective");
 
         uint256 currentLength = factory.getProxyListLength();
         assertEq(currentLength, perspective.verifiedLength());

@@ -155,10 +155,10 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
                 == coreAddresses.eVaultFactory
         );
 
-        // factoryPerspective
+        // evkFactoryPerspective
         // - immutable: vaultFactory
         assert(
-            address(BasePerspective(peripheryAddresses.factoryPerspective).vaultFactory())
+            address(BasePerspective(peripheryAddresses.evkFactoryPerspective).vaultFactory())
                 == coreAddresses.eVaultFactory
         );
 

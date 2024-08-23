@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
-import {FactoryPerspective} from "../src/Perspectives/deployed/FactoryPerspective.sol";
+import {EVKFactoryPerspective} from "../src/Perspectives/deployed/EVKFactoryPerspective.sol";
 import {GovernedPerspective} from "../src/Perspectives/deployed/GovernedPerspective.sol";
 import {EscrowedCollateralPerspective} from "../src/Perspectives/deployed/EscrowedCollateralPerspective.sol";
 import {EulerUngovernedPerspective} from "../src/Perspectives/deployed/EulerUngovernedPerspective.sol";
@@ -30,7 +30,7 @@ contract Perspectives is ScriptUtils {
         );
 
         string memory object;
-        object = vm.serializeAddress("perspectives", "factoryPerspective", perspectives[0]);
+        object = vm.serializeAddress("perspectives", "evkFactoryPerspective", perspectives[0]);
         object = vm.serializeAddress("perspectives", "governedPerspective", perspectives[1]);
         object = vm.serializeAddress("perspectives", "escrowedCollateralPerspective", perspectives[2]);
         object = vm.serializeAddress("perspectives", "eulerUngoverned0xPerspective", perspectives[3]);
@@ -64,7 +64,7 @@ contract Perspectives is ScriptUtils {
         address kinkIRMFactory,
         address irmRegistry
     ) public returns (address[] memory perspectives) {
-        address factoryPerspective = address(new FactoryPerspective(eVaultFactory));
+        address evkFactoryPerspective = address(new EVKFactoryPerspective(eVaultFactory));
         address governedPerspective = address(new GovernedPerspective(getDeployer()));
         address escrowedCollateralPerspective = address(new EscrowedCollateralPerspective(eVaultFactory));
 
@@ -102,7 +102,7 @@ contract Perspectives is ScriptUtils {
         );
 
         perspectives = new address[](5);
-        perspectives[0] = factoryPerspective;
+        perspectives[0] = evkFactoryPerspective;
         perspectives[1] = governedPerspective;
         perspectives[2] = escrowedCollateralPerspective;
         perspectives[3] = eulerUngoverned0xPerspective;

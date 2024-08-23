@@ -80,7 +80,7 @@ contract PeripheryAddressesLib is Script {
         address swapper;
         address swapVerifier;
         address feeFlowController;
-        address factoryPerspective;
+        address evkFactoryPerspective;
         address governedPerspective;
         address escrowedCollateralPerspective;
         address eulerUngoverned0xPerspective;
@@ -96,7 +96,7 @@ contract PeripheryAddressesLib is Script {
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
         result = vm.serializeAddress("peripheryAddresses", "swapVerifier", Addresses.swapVerifier);
         result = vm.serializeAddress("peripheryAddresses", "feeFlowController", Addresses.feeFlowController);
-        result = vm.serializeAddress("peripheryAddresses", "factoryPerspective", Addresses.factoryPerspective);
+        result = vm.serializeAddress("peripheryAddresses", "evkFactoryPerspective", Addresses.evkFactoryPerspective);
         result = vm.serializeAddress("peripheryAddresses", "governedPerspective", Addresses.governedPerspective);
         result = vm.serializeAddress(
             "peripheryAddresses", "escrowedCollateralPerspective", Addresses.escrowedCollateralPerspective
@@ -119,7 +119,7 @@ contract PeripheryAddressesLib is Script {
             swapper: abi.decode(vm.parseJson(json, ".swapper"), (address)),
             swapVerifier: abi.decode(vm.parseJson(json, ".swapVerifier"), (address)),
             feeFlowController: abi.decode(vm.parseJson(json, ".feeFlowController"), (address)),
-            factoryPerspective: abi.decode(vm.parseJson(json, ".factoryPerspective"), (address)),
+            evkFactoryPerspective: abi.decode(vm.parseJson(json, ".evkFactoryPerspective"), (address)),
             governedPerspective: abi.decode(vm.parseJson(json, ".governedPerspective"), (address)),
             escrowedCollateralPerspective: abi.decode(vm.parseJson(json, ".escrowedCollateralPerspective"), (address)),
             eulerUngoverned0xPerspective: abi.decode(vm.parseJson(json, ".eulerUngoverned0xPerspective"), (address)),

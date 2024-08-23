@@ -113,7 +113,7 @@ contract DeployCoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddre
                 peripheryAddresses.irmRegistry
             );
 
-            peripheryAddresses.factoryPerspective = perspectives[0];
+            peripheryAddresses.evkFactoryPerspective = perspectives[0];
             peripheryAddresses.governedPerspective = perspectives[1];
             peripheryAddresses.escrowedCollateralPerspective = perspectives[2];
             peripheryAddresses.eulerUngoverned0xPerspective = perspectives[3];
