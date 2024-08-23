@@ -13,7 +13,6 @@ import {ExpLib} from "./lib/ExpLib.sol";
 /// @notice A Linear Kink IRM with an adaptive mechanism based on exponential growth/decay.
 /// As utilization persists above/below the target the Linear Kink IRM is translated up/down.
 /// @dev The model is parameterized by `(TARGET_UTILIZATION, rateAtTarget, CURVE_STEEPNESS)`.
-/// `CURVE_STEEPNESS` is equivalent to `slope2` (above target), whereas `slope1` (under target) is `1/CURVE_STEEPNESS`.
 /// The `rateAtTarget` parameter is the adaptive component in this model.
 contract IRMAdaptiveCurve is IIRM {
     /// @dev Unit for internal precision.
@@ -35,7 +34,7 @@ contract IRMAdaptiveCurve is IIRM {
     /// @notice The maximum interest rate at target utilization that the model can adjust to.
     /// @dev In WAD per second units.
     int256 public immutable MAX_RATE_AT_TARGET;
-    /// @notice The slope of interest rate line above the target. The line below the target has inverse slope.
+    /// @notice The steepness of the interest rate line.
     /// @dev In WAD units.
     int256 public immutable CURVE_STEEPNESS;
     /// @notice The speed at which the rate at target is adjusted up or down.
@@ -61,7 +60,7 @@ contract IRMAdaptiveCurve is IIRM {
     /// @param _INITIAL_RATE_AT_TARGET The initial interest rate at target utilization.
     /// @param _MIN_RATE_AT_TARGET The minimum interest rate at target utilization that the model can adjust to.
     /// @param _MAX_RATE_AT_TARGET The maximum interest rate at target utilization that the model can adjust to.
-    /// @param _CURVE_STEEPNESS The slope of interest rate above target. The line below target has inverse slope.
+    /// @param _CURVE_STEEPNESS The steepness of the interest rate line.
     /// @param _ADJUSTMENT_SPEED The speed at which the rate at target utilization is adjusted up or down.
     constructor(
         int256 _TARGET_UTILIZATION,
