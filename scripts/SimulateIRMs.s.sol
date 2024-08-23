@@ -5,13 +5,13 @@ import {Script} from "forge-std/Script.sol";
 import {Test} from "forge-std/Test.sol";
 import {IIRM} from "evk/InterestRateModels/IIRM.sol";
 import {IRMSimulationHarness} from "./IRMSimulationHarness.sol";
-import {IRMAdaptiveLinearKink} from "../src/IRM/IRMAdaptiveLinearKink.sol";
+import {IRMAdaptiveCurve} from "../src/IRM/IRMAdaptiveCurve.sol";
 
 contract SimulateIRMs is Script, IRMSimulationHarness {
     uint256 internal constant SEED = 2718;
 
     function scenario1() public {
-        IRMAdaptiveLinearKink irmAdaptiveCurve = new IRMAdaptiveLinearKink(
+        IRMAdaptiveCurve irmAdaptiveCurve = new IRMAdaptiveCurve(
             0.9e18,
             0.04e18 / int256(365 days),
             0.001e18 / int256(365 days),
