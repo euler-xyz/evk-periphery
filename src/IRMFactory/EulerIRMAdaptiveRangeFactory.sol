@@ -24,60 +24,63 @@ contract EulerIRMAdaptiveRangeFactory is BaseFactory {
     error IRMFactory_InvalidParams();
 
     /// @notice Deploys a new IRMAdaptiveRange.
-    /// @param targetUtilizationLower The lower bound of the utilization range where the interest rate does not adjust.
-    /// @param targetUtilizationUpper The upper bound of the utilization range where the interest rate does not adjust.
-    /// @param kink The utilization at which the slope increases.
-    /// @param baseRate The interest rate at zero utilization.
-    /// @param minFullRate The minimum interest rate at full utilization.
-    /// @param maxFullRate The maximum interest rate at full utilization.
-    /// @param initialFullRate The initial interest rate at full utilization.
-    /// @param halfLife The time it takes for the interest to halve when adjusting the curve.
-    /// @param kinkRatePercent The delta between full rate and base rate used for calculating kink rate.
+    /// @param MIN_TARGET_UTIL The lower bound of the utilization range where the interest rate does not adjust.
+    /// @param MAX_TARGET_UTIL The upper bound of the utilization range where the interest rate does not adjust.
+    /// @param VERTEX_UTILIZATION The utilization at which the slope increases.
+    /// @param ZERO_UTIL_RATE The interest rate at zero utilization.
+    /// @param MIN_FULL_UTIL_RATE The minimum interest rate at full utilization.
+    /// @param MAX_FULL_UTIL_RATE The maximum interest rate at full utilization.
+    /// @param INITIAL_FULL_UTIL_RATE The initial interest rate at full utilization.
+    /// @param RATE_HALF_LIFE The time it takes for the interest to halve when adjusting the curve.
+    /// @param VERTEX_RATE_PERCENT The delta between full rate and base rate used for calculating VERTEX_UTILIZATION
+    /// rate.
     /// @return The deployment address.
     function deploy(
-        uint256 targetUtilizationLower,
-        uint256 targetUtilizationUpper,
-        uint256 kink,
-        uint256 baseRate,
-        uint256 minFullRate,
-        uint256 maxFullRate,
-        uint256 initialFullRate,
-        uint256 halfLife,
-        uint256 kinkRatePercent
+        uint256 MIN_TARGET_UTIL,
+        uint256 MAX_TARGET_UTIL,
+        uint256 VERTEX_UTILIZATION,
+        uint256 ZERO_UTIL_RATE,
+        uint256 MIN_FULL_UTIL_RATE,
+        uint256 MAX_FULL_UTIL_RATE,
+        uint256 INITIAL_FULL_UTIL_RATE,
+        uint256 RATE_HALF_LIFE,
+        uint256 VERTEX_RATE_PERCENT
     ) external returns (address) {
         // Validate parameters.
-        if (targetUtilizationLower < MIN_TARGET_UTILIZATION || targetUtilizationLower > MAX_TARGET_UTILIZATION) {
+        if (MIN_TARGET_UTIL < MIN_TARGET_UTILIZATION || MIN_TARGET_UTIL > MAX_TARGET_UTILIZATION) {
             revert IRMFactory_InvalidParams();
         }
-        if (targetUtilizationUpper < MIN_TARGET_UTILIZATION || targetUtilizationUpper > MAX_TARGET_UTILIZATION) {
+        if (MAX_TARGET_UTIL < MIN_TARGET_UTILIZATION || MAX_TARGET_UTIL > MAX_TARGET_UTILIZATION) {
             revert IRMFactory_InvalidParams();
         }
-        if (targetUtilizationLower > targetUtilizationUpper) revert IRMFactory_InvalidParams();
-        if (kink < 0 || kink > 1e18) revert IRMFactory_InvalidParams();
-        if (baseRate < MIN_BASE_RATE || baseRate > MAX_BASE_RATE) revert IRMFactory_InvalidParams();
-        if (initialFullRate < minFullRate || initialFullRate > minFullRate) revert IRMFactory_InvalidParams();
-        if (minFullRate < MIN_FULL_RATE || minFullRate > MAX_FULL_RATE) revert IRMFactory_InvalidParams();
-        if (maxFullRate < MIN_FULL_RATE || maxFullRate > MAX_FULL_RATE) revert IRMFactory_InvalidParams();
-        if (minFullRate > maxFullRate) revert IRMFactory_InvalidParams();
-        if (halfLife < MIN_HALF_LIFE || halfLife > MAX_HALF_LIFE) revert IRMFactory_InvalidParams();
-        if (kinkRatePercent < 0 || kinkRatePercent > 1e18) revert IRMFactory_InvalidParams();
+        if (MIN_TARGET_UTIL > MAX_TARGET_UTIL) revert IRMFactory_InvalidParams();
+        if (VERTEX_UTILIZATION < 0 || VERTEX_UTILIZATION > 1e18) revert IRMFactory_InvalidParams();
+        if (ZERO_UTIL_RATE < MIN_BASE_RATE || ZERO_UTIL_RATE > MAX_BASE_RATE) revert IRMFactory_InvalidParams();
+        if (INITIAL_FULL_UTIL_RATE < MIN_FULL_UTIL_RATE || INITIAL_FULL_UTIL_RATE > MIN_FULL_UTIL_RATE) {
+            revert IRMFactory_InvalidParams();
+        }
+        if (MIN_FULL_UTIL_RATE < MIN_FULL_RATE || MIN_FULL_UTIL_RATE > MAX_FULL_RATE) revert IRMFactory_InvalidParams();
+        if (MAX_FULL_UTIL_RATE < MIN_FULL_RATE || MAX_FULL_UTIL_RATE > MAX_FULL_RATE) revert IRMFactory_InvalidParams();
+        if (MIN_FULL_UTIL_RATE > MAX_FULL_UTIL_RATE) revert IRMFactory_InvalidParams();
+        if (RATE_HALF_LIFE < MIN_HALF_LIFE || RATE_HALF_LIFE > MAX_HALF_LIFE) revert IRMFactory_InvalidParams();
+        if (VERTEX_RATE_PERCENT < 0 || VERTEX_RATE_PERCENT > 1e18) revert IRMFactory_InvalidParams();
 
         // Deploy IRM.
         IRMAdaptiveRange irm = new IRMAdaptiveRange(
-            targetUtilizationLower,
-            targetUtilizationUpper,
-            kink,
-            baseRate,
-            minFullRate,
-            maxFullRate,
-            initialFullRate,
-            halfLife,
-            kinkRatePercent
+            MIN_TARGET_UTIL,
+            MAX_TARGET_UTIL,
+            VERTEX_UTILIZATION,
+            ZERO_UTIL_RATE,
+            MIN_FULL_UTIL_RATE,
+            MAX_FULL_UTIL_RATE,
+            INITIAL_FULL_UTIL_RATE,
+            RATE_HALF_LIFE,
+            VERTEX_RATE_PERCENT
         );
 
         // Verify that the IRM is functional.
         irm.computeInterestRateView(address(0), type(uint32).max, 0);
-        irm.computeInterestRateView(address(0), type(uint32).max - kink, kink);
+        irm.computeInterestRateView(address(0), type(uint32).max - VERTEX_UTILIZATION, VERTEX_UTILIZATION);
         irm.computeInterestRateView(address(0), 0, type(uint32).max);
 
         // Store the deployment and return the address.

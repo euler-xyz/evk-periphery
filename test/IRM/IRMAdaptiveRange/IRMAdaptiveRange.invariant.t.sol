@@ -9,15 +9,15 @@ import {IRMAdaptiveRangeHarness} from "./IRMAdaptiveRangeHarness.sol";
 /// forge-config: default.invariant.depth = 100
 contract IRMAdaptiveRangeInvariantTest is Test {
     uint256 internal constant SECONDS_PER_YEAR = 365 days;
-    uint256 internal constant targetUtilizationLower = 0.7e18;
-    uint256 internal constant targetUtilizationUpper = 0.9e18;
-    uint256 internal constant kink = 0.8e18;
-    uint256 internal constant baseRate = 0.01e18 / SECONDS_PER_YEAR;
-    uint256 internal constant minFullRate = 100e18 / SECONDS_PER_YEAR;
-    uint256 internal constant maxFullRate = 1000e18 / SECONDS_PER_YEAR;
-    uint256 internal constant initialFullRate = 200e18 / SECONDS_PER_YEAR;
-    uint256 internal constant halfLife = 6 hours;
-    uint256 internal constant kinkRatePercent = 0.9e18;
+    uint256 internal constant MIN_TARGET_UTIL = 0.7e18;
+    uint256 internal constant MAX_TARGET_UTIL = 0.9e18;
+    uint256 internal constant VERTEX_UTILIZATION = 0.8e18;
+    uint256 internal constant ZERO_UTIL_RATE = 0.01e18 / SECONDS_PER_YEAR;
+    uint256 internal constant MIN_FULL_UTIL_RATE = 100e18 / SECONDS_PER_YEAR;
+    uint256 internal constant MAX_FULL_UTIL_RATE = 1000e18 / SECONDS_PER_YEAR;
+    uint256 internal constant INITIAL_FULL_UTIL_RATE = 200e18 / SECONDS_PER_YEAR;
+    uint256 internal constant RATE_HALF_LIFE = 6 hours;
+    uint256 internal constant VERTEX_RATE_PERCENT = 0.9e18;
 
     IRMAdaptiveRange internal irm;
     IRMAdaptiveRange internal irmSlower;
@@ -26,37 +26,37 @@ contract IRMAdaptiveRangeInvariantTest is Test {
 
     function setUp() public {
         irm = new IRMAdaptiveRange(
-            targetUtilizationLower,
-            targetUtilizationUpper,
-            kink,
-            baseRate,
-            minFullRate,
-            maxFullRate,
-            initialFullRate,
-            halfLife,
-            kinkRatePercent
+            MIN_TARGET_UTIL,
+            MAX_TARGET_UTIL,
+            VERTEX_UTILIZATION,
+            ZERO_UTIL_RATE,
+            MIN_FULL_UTIL_RATE,
+            MAX_FULL_UTIL_RATE,
+            INITIAL_FULL_UTIL_RATE,
+            RATE_HALF_LIFE,
+            VERTEX_RATE_PERCENT
         );
         irmSlower = new IRMAdaptiveRange(
-            targetUtilizationLower,
-            targetUtilizationUpper,
-            kink,
-            baseRate,
-            minFullRate,
-            maxFullRate,
-            initialFullRate,
-            halfLife * 2,
-            kinkRatePercent
+            MIN_TARGET_UTIL,
+            MAX_TARGET_UTIL,
+            VERTEX_UTILIZATION,
+            ZERO_UTIL_RATE,
+            MIN_FULL_UTIL_RATE,
+            MAX_FULL_UTIL_RATE,
+            INITIAL_FULL_UTIL_RATE,
+            RATE_HALF_LIFE * 2,
+            VERTEX_RATE_PERCENT
         );
         irmFaster = new IRMAdaptiveRange(
-            targetUtilizationLower,
-            targetUtilizationUpper,
-            kink,
-            baseRate,
-            minFullRate,
-            maxFullRate,
-            initialFullRate,
-            halfLife / 2,
-            kinkRatePercent
+            MIN_TARGET_UTIL,
+            MAX_TARGET_UTIL,
+            VERTEX_UTILIZATION,
+            ZERO_UTIL_RATE,
+            MIN_FULL_UTIL_RATE,
+            MAX_FULL_UTIL_RATE,
+            INITIAL_FULL_UTIL_RATE,
+            RATE_HALF_LIFE / 2,
+            VERTEX_RATE_PERCENT
         );
         harness = new IRMAdaptiveRangeHarness();
         harness.addIrm(irm);
@@ -83,8 +83,8 @@ contract IRMAdaptiveRangeInvariantTest is Test {
         for (uint256 i = 0; i < irms.length; ++i) {
             IRMAdaptiveRange _irm = irms[i];
             IRMAdaptiveRangeHarness.StateHistory memory lastCall = harness.nthCall(_irm, numCalls - 1);
-            assertGe(lastCall.fullRate, _irm.minFullRate());
-            assertLe(lastCall.fullRate, _irm.maxFullRate());
+            assertGe(lastCall.fullRate, _irm.MIN_FULL_UTIL_RATE());
+            assertLe(lastCall.fullRate, _irm.MAX_FULL_UTIL_RATE());
         }
     }
 
@@ -96,7 +96,7 @@ contract IRMAdaptiveRangeInvariantTest is Test {
         for (uint256 i = 0; i < irms.length; ++i) {
             IRMAdaptiveRange _irm = irms[i];
             IRMAdaptiveRangeHarness.StateHistory memory lastCall = harness.nthCall(_irm, numCalls - 1);
-            assertGe(lastCall.fullRate, _irm.initialFullRate());
+            assertGe(lastCall.fullRate, _irm.INITIAL_FULL_UTIL_RATE());
         }
     }
 
@@ -113,13 +113,13 @@ contract IRMAdaptiveRangeInvariantTest is Test {
             if (lastCall.delay == 0) {
                 // if time has not passed then the model should not adapt
                 assertEq(lastCall.fullRate, secondToLastCall.fullRate);
-            } else if (lastCall.utilization > uint256(_irm.targetUtilizationUpper())) {
-                // must have translated the kink model up
-                if (lastCall.fullRate == irm.maxFullRate()) return;
+            } else if (lastCall.utilization > uint256(_irm.MAX_TARGET_UTIL())) {
+                // must have translated the VERTEX_UTILIZATION model up
+                if (lastCall.fullRate == irm.MAX_FULL_UTIL_RATE()) return;
                 assertGe(lastCall.fullRate, secondToLastCall.fullRate);
-            } else if (lastCall.utilization < uint256(_irm.targetUtilizationLower())) {
-                // must have translated the kink model down
-                if (lastCall.fullRate == irm.minFullRate()) return;
+            } else if (lastCall.utilization < uint256(_irm.MIN_TARGET_UTIL())) {
+                // must have translated the VERTEX_UTILIZATION model down
+                if (lastCall.fullRate == irm.MIN_FULL_UTIL_RATE()) return;
                 assertLe(lastCall.fullRate, secondToLastCall.fullRate);
             } else {
                 // if utilization rate is within bounds then the model should not adapt

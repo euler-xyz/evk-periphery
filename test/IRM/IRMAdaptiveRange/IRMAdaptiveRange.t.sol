@@ -8,29 +8,29 @@ import {IRMAdaptiveRange} from "../../../src/IRM/IRMAdaptiveRange.sol";
 contract IRMAdaptiveRangeTest is Test {
     address constant VAULT = address(0x1234);
     uint256 internal constant SECONDS_PER_YEAR = 365 days;
-    uint256 internal constant targetUtilizationLower = 0.7e18;
-    uint256 internal constant targetUtilizationUpper = 0.9e18;
-    uint256 internal constant kink = 0.8e18;
-    uint256 internal constant baseRate = 0.01e18 / SECONDS_PER_YEAR;
-    uint256 internal constant minFullRate = 100e18 / SECONDS_PER_YEAR;
-    uint256 internal constant maxFullRate = 1000e18 / SECONDS_PER_YEAR;
-    uint256 internal constant initialFullRate = 200e18 / SECONDS_PER_YEAR;
-    uint256 internal constant halfLife = 6 hours;
-    uint256 internal constant kinkRatePercent = 0.9e18;
+    uint256 internal constant MIN_TARGET_UTIL = 0.7e18;
+    uint256 internal constant MAX_TARGET_UTIL = 0.9e18;
+    uint256 internal constant VERTEX_UTILIZATION = 0.8e18;
+    uint256 internal constant ZERO_UTIL_RATE = 0.01e18 / SECONDS_PER_YEAR;
+    uint256 internal constant MIN_FULL_UTIL_RATE = 100e18 / SECONDS_PER_YEAR;
+    uint256 internal constant MAX_FULL_UTIL_RATE = 1000e18 / SECONDS_PER_YEAR;
+    uint256 internal constant INITIAL_FULL_UTIL_RATE = 200e18 / SECONDS_PER_YEAR;
+    uint256 internal constant RATE_HALF_LIFE = 6 hours;
+    uint256 internal constant VERTEX_RATE_PERCENT = 0.9e18;
 
     IRMAdaptiveRange irm;
 
     function setUp() public {
         irm = new IRMAdaptiveRange(
-            targetUtilizationLower,
-            targetUtilizationUpper,
-            kink,
-            baseRate,
-            minFullRate,
-            maxFullRate,
-            initialFullRate,
-            halfLife,
-            kinkRatePercent
+            VERTEX_UTILIZATION,
+            VERTEX_RATE_PERCENT,
+            MIN_TARGET_UTIL,
+            MAX_TARGET_UTIL,
+            ZERO_UTIL_RATE,
+            MIN_FULL_UTIL_RATE,
+            MAX_FULL_UTIL_RATE,
+            INITIAL_FULL_UTIL_RATE,
+            RATE_HALF_LIFE
         );
         vm.startPrank(VAULT);
     }
@@ -44,19 +44,19 @@ contract IRMAdaptiveRangeTest is Test {
     }
 
     function test_IRMCalculation() public {
-        // First call initializes the IRM with `initialFullRate`.
+        // First call initializes the IRM with `INITIAL_FULL_UTIL_RATE`.
         (uint256 rate1, uint256 fullRate1) = computeRateAtUtilization(0.8e18);
-        assertEq(fullRate1, initialFullRate);
-        assertEq(rate1, 5707794266868);
+        assertEq(fullRate1, INITIAL_FULL_UTIL_RATE * 1e9);
+        assertEq(rate1, 317097919);
         computeRateAtUtilization(0.8e18);
         computeRateAtUtilization(0.8e18);
 
-        // Utilization remains at `kink` so rate and full rate remain the same.
+        // Utilization remains at `VERTEX_UTILIZATION` so rate and full rate remain the same.
         (uint256 rate2, uint256 fullRate2) = computeRateAtUtilization(0.8e18);
         assertEq(rate2, rate1);
         assertEq(fullRate2, fullRate1);
 
-        // Even after time delay, there is no adaptation because the IRM is at kink.
+        // Even after time delay, there is no adaptation because the IRM is at VERTEX_UTILIZATION.
         skip(365 days);
         (uint256 rate3, uint256 fullRate3) = computeRateAtUtilization(0.8e18);
         assertEq(rate3, rate1);
@@ -99,50 +99,50 @@ contract IRMAdaptiveRangeTest is Test {
         // Utilization remains above range. Rate and full rate increase but they are capped.
         skip(1 days);
         (, uint256 fullRate10) = computeRateAtUtilization(0.95e18);
-        assertEq(fullRate10, maxFullRate);
+        assertEq(fullRate10, MAX_FULL_UTIL_RATE);
 
         // Rate and full rate remain capped irrespective of time passed.
         skip(365 days);
         (, uint256 fullRate11) = computeRateAtUtilization(0.95e18);
-        assertEq(fullRate11, maxFullRate);
+        assertEq(fullRate11, MAX_FULL_UTIL_RATE);
 
         // Utilization falls to range. Full rate is not adjusted.
         skip(1 days);
         (, uint256 fullRate12) = computeRateAtUtilization(0.9e18);
-        assertEq(fullRate12, maxFullRate);
+        assertEq(fullRate12, MAX_FULL_UTIL_RATE);
 
         // Utilization falls to lower bound range. Full rate is not adjusted.
         skip(1 days);
         (, uint256 fullRate13) = computeRateAtUtilization(0.7e18 + 1);
-        assertEq(fullRate13, maxFullRate);
+        assertEq(fullRate13, MAX_FULL_UTIL_RATE);
 
         // Utilization falls below range. Full rate decreases.
         skip(1 days);
         (, uint256 fullRate14) = computeRateAtUtilization(0.35e18 + 1);
-        assertEq(fullRate14, maxFullRate / 2);
+        assertEq(fullRate14, MAX_FULL_UTIL_RATE / 2);
 
         // Utilization remains below range. Full rate decreases.
         skip(1 days);
         (, uint256 fullRate15) = computeRateAtUtilization(0.35e18 + 1);
-        assertEq(fullRate15, maxFullRate / 4);
+        assertEq(fullRate15, MAX_FULL_UTIL_RATE / 4);
 
         // After some time full rate falls to minimum.
         skip(365 days);
         (, uint256 fullRate16) = computeRateAtUtilization(0.35e18 + 1);
-        assertEq(fullRate16, minFullRate);
+        assertEq(fullRate16, MIN_FULL_UTIL_RATE);
     }
 
     function computeRateAtUtilization(uint256 utilizationRate) internal returns (uint256 rate, uint256 fullRate) {
         if (utilizationRate == 0) {
             rate = irm.computeInterestRate(VAULT, 0, 0);
-            fullRate = irm.computeFullRateView(VAULT, 0, 0);
+            fullRate = irm.computeFullUtilizationInterestView(VAULT, 0, 0);
         } else if (utilizationRate == 1e18) {
             rate = irm.computeInterestRate(VAULT, 0, 1e18);
-            fullRate = irm.computeFullRateView(VAULT, 0, 1e18);
+            fullRate = irm.computeFullUtilizationInterestView(VAULT, 0, 1e18);
         } else {
             uint256 borrows = 1e18 * utilizationRate / (1e18 - utilizationRate);
             rate = irm.computeInterestRate(VAULT, 1e18, borrows);
-            fullRate = irm.computeFullRateView(VAULT, 1e18, borrows);
+            fullRate = irm.computeFullUtilizationInterestView(VAULT, 1e18, borrows);
         }
     }
 }

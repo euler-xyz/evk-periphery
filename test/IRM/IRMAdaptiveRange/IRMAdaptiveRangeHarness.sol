@@ -34,7 +34,7 @@ contract IRMAdaptiveRangeHarness is Test {
         for (uint256 i = 0; i < irms.length; ++i) {
             IRMAdaptiveRange irm = irms[i];
             uint256 rate = irm.computeInterestRate(address(this), cash, borrows);
-            uint256 fullRate = irm.computeFullRateView(address(this), cash, borrows);
+            uint256 fullRate = irm.computeFullUtilizationInterestView(address(this), cash, borrows);
             uint256 totalAssets = uint256(cash) + borrows;
             uint256 utilization = totalAssets == 0 ? 0 : uint256(borrows) * 1e18 / totalAssets;
             history[irm].push(

@@ -54,8 +54,7 @@ contract IRMAdaptiveCurve is IIRM {
     /// @param _INITIAL_RATE_AT_TARGET The initial interest rate at target utilization.
     /// @param _MIN_RATE_AT_TARGET The minimum interest rate at target utilization that the model can adjust to.
     /// @param _MAX_RATE_AT_TARGET The maximum interest rate at target utilization that the model can adjust to.
-    /// @param _CURVE_STEEPNESS The slope of interest rate line above the target utilization. The line below the target
-    /// has inverse slope.
+    /// @param _CURVE_STEEPNESS The slope of interest rate above target. The line below target has inverse slope.
     /// @param _ADJUSTMENT_SPEED The speed at which the rate at target utilization is adjusted up or down.
     constructor(
         int256 _TARGET_UTILIZATION,
@@ -84,17 +83,19 @@ contract IRMAdaptiveCurve is IIRM {
     /// @inheritdoc IIRM
     function computeInterestRateView(address vault, uint256 cash, uint256 borrows) external view returns (uint256) {
         (uint256 avgRate,) = computeInterestRateInternal(vault, cash, borrows);
-        return avgRate;
+        // Scale rate to 1e27 for EVK.
+        return avgRate * 1e9;
     }
 
     /// @notice Perform computation of the new rate at target without mutating state.
     /// @param vault Address of the vault to compute the new interest rate for.
     /// @param cash Amount of assets held directly by the vault.
     /// @param borrows Amount of assets lent out to borrowers by the vault.
-    /// @return The new rate at target utilization.
+    /// @return The new rate at target utilization in RAY units.
     function computeRateAtTargetView(address vault, uint256 cash, uint256 borrows) external view returns (uint256) {
         (, uint256 rateAtTarget) = computeInterestRateInternal(vault, cash, borrows);
-        return rateAtTarget;
+        // Scale rate to 1e27 for EVK.
+        return rateAtTarget * 1e9;
     }
 
     /// @notice Compute the new interest rate and rate at target utilization of a vault.
