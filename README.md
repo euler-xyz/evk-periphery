@@ -28,6 +28,14 @@ Directory: [src/IRMFactory](src/IRMFactory)
 
 This is an immutable factory contract for deploying Linear Kink IRM instances, used by EVK vaults. It does some basic parameter validation and tracks the addresses of created IRMs, so that the deployment provenance of IRM instances can be verified by perspectives. Linear Kink IRMs are immutable and stateless.
 
+### IRM
+
+Directory: [src/IRM](src/IRM)
+
+Alternative interest rate models for use by EVK vaults.
+
+* IRMAdaptiveLinearKink is a Linear Kink model with an adaptive mechanism based on exponential growth/decay. As utilization persists above/below the kink the Linear Kink IRM is translated up/down. This model is based on Morpho's [AdaptiveCurveIrm](https://github.com/morpho-org/morpho-blue-irm/blob/8242d5d0414b75368f150d251b518a6c9cf797af/src/adaptive-curve-irm/AdaptiveCurveIrm.sol). More information: [Morpho docs](https://docs.morpho.org/morpho/contracts/irm/adaptive-curve-irm/), [LlamaRisk explainer](https://www.llamarisk.com/research/morph-crvusd-vault-irm).
+
 ### EulerRouterFactory
 
 Directory: [src/EulerRouterFactory](src/EulerRouterFactory)
