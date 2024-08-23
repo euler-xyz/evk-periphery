@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2023 Morpho Association
+
 pragma solidity ^0.8.0;
 
 import {IIRM} from "evk/InterestRateModels/IIRM.sol";
@@ -17,6 +18,10 @@ import {ExpLib} from "./lib/ExpLib.sol";
 contract IRMAdaptiveCurve is IIRM {
     /// @dev Unit for internal precision.
     int256 internal constant WAD = 1e18;
+    /// @dev Unit for internal precision.
+    int256 internal constant YEAR = int256(365.2425 days);
+    /// @notice The name of the IRM.
+    string public constant name = "IRMAdaptiveCurve";
     /// @notice The utilization rate targeted by the model.
     /// @dev In WAD units.
     int256 public immutable TARGET_UTILIZATION;
@@ -49,6 +54,8 @@ contract IRMAdaptiveCurve is IIRM {
     /// @notice Get the cached state of a vault's irm.
     mapping(address => IRState) internal irState;
 
+    error InvalidParams();
+
     /// @notice Deploy IRMAdaptiveCurve.
     /// @param _TARGET_UTILIZATION The utilization rate targeted by the interest rate model.
     /// @param _INITIAL_RATE_AT_TARGET The initial interest rate at target utilization.
@@ -64,6 +71,29 @@ contract IRMAdaptiveCurve is IIRM {
         int256 _CURVE_STEEPNESS,
         int256 _ADJUSTMENT_SPEED
     ) {
+        // Validate parameters.
+        if (_TARGET_UTILIZATION < 0 || _TARGET_UTILIZATION > 1e18) {
+            revert InvalidParams();
+        }
+        if (_INITIAL_RATE_AT_TARGET < _MIN_RATE_AT_TARGET || _INITIAL_RATE_AT_TARGET > _MAX_RATE_AT_TARGET) {
+            revert InvalidParams();
+        }
+        if (_MIN_RATE_AT_TARGET < 0.001e18 / YEAR || MIN_RATE_AT_TARGET > 10e18 / YEAR) {
+            revert InvalidParams();
+        }
+        if (_MAX_RATE_AT_TARGET < 0.001e18 / YEAR || MAX_RATE_AT_TARGET > 10e18) {
+            revert InvalidParams();
+        }
+        if (_MIN_RATE_AT_TARGET > _MAX_RATE_AT_TARGET) {
+            revert InvalidParams();
+        }
+        if (_CURVE_STEEPNESS < 1.01e18 || _CURVE_STEEPNESS > 100e18) {
+            revert InvalidParams();
+        }
+        if (_ADJUSTMENT_SPEED < 2e18 / YEAR || _ADJUSTMENT_SPEED > 1000e18 / YEAR) {
+            revert InvalidParams();
+        }
+
         TARGET_UTILIZATION = _TARGET_UTILIZATION;
         INITIAL_RATE_AT_TARGET = _INITIAL_RATE_AT_TARGET;
         MIN_RATE_AT_TARGET = _MIN_RATE_AT_TARGET;
