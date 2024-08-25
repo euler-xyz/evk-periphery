@@ -5,7 +5,6 @@ import {Test} from "forge-std/Test.sol";
 import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {IRMAdaptiveCurve} from "../../../src/IRM/IRMAdaptiveCurve.sol";
 
-/// forge-config: default.fuzz.runs = 100
 contract IRMAdaptiveCurvePropTest is Test {
     address internal constant VAULT = address(0x1234);
     int256 internal constant YEAR = int256(365.2425 days);
@@ -17,6 +16,7 @@ contract IRMAdaptiveCurvePropTest is Test {
     /// Verifies that: 1) The instantaneous interest rate function of IRMAdaptiveCurve is isomorphic to LinearKinkIRM.
     /// 2) The adjustments made by IRMAdaptiveCurve preserve this isomorphism (i.e. we can find another equivalent
     /// LinearKinkIRM after any number of adjustments).
+    /// forge-config: default.fuzz.runs = 100
     function test_AdaptiveCurveIsEquivalentToLinearKinkIgnoringTime(
         int256 TARGET_UTILIZATION,
         int256 INITIAL_RATE_AT_TARGET,
@@ -70,6 +70,54 @@ contract IRMAdaptiveCurvePropTest is Test {
                 uint256 rateStatic = irmStatic.computeInterestRateView(VAULT, sampleCash, sampleBorrows);
                 assertApproxEqAbs(rateAdaptive, rateStatic, 1e15); // within 1e-12 of each other
             }
+        }
+    }
+
+    /// @dev If a given parameter set is accepted then IRMAdaptiveCurve should never revert during computation.
+    /// forge-config: default.fuzz.runs = 1000
+    function test_NeverRevertsDuringComputation(
+        int256 TARGET_UTILIZATION,
+        int256 INITIAL_RATE_AT_TARGET,
+        int256 MIN_RATE_AT_TARGET,
+        int256 MAX_RATE_AT_TARGET,
+        int256 CURVE_STEEPNESS,
+        int256 ADJUSTMENT_SPEED,
+        uint256 seed
+    ) public {
+        // Bound params.
+        TARGET_UTILIZATION = bound(TARGET_UTILIZATION, 0, 1e18);
+        MIN_RATE_AT_TARGET = bound(MIN_RATE_AT_TARGET, 0.001e18 / YEAR, 10e18 / YEAR);
+        MAX_RATE_AT_TARGET = bound(MAX_RATE_AT_TARGET, MIN_RATE_AT_TARGET, 10e18 / YEAR);
+        INITIAL_RATE_AT_TARGET = bound(INITIAL_RATE_AT_TARGET, MIN_RATE_AT_TARGET, MAX_RATE_AT_TARGET);
+        CURVE_STEEPNESS = bound(CURVE_STEEPNESS, 1.01e18, 100e18);
+        ADJUSTMENT_SPEED = bound(ADJUSTMENT_SPEED, 2e18 / YEAR, 1000e18 / YEAR);
+
+        // Deploy adaptive IRM.
+        IRMAdaptiveCurve irm = new IRMAdaptiveCurve(
+            TARGET_UTILIZATION,
+            INITIAL_RATE_AT_TARGET,
+            MIN_RATE_AT_TARGET,
+            MAX_RATE_AT_TARGET,
+            CURVE_STEEPNESS,
+            ADJUSTMENT_SPEED
+        );
+
+        // Simulate interactions.
+        vm.startPrank(VAULT);
+        for (uint256 i = 0; i < NUM_INTERACTIONS; ++i) {
+            // Randomize utilization rate and time passed.
+            (uint256 cash, uint256 borrows) = getCashAndBorrowsAtUtilizationRate(
+                bound(uint256(keccak256(abi.encodePacked("utilizationRate", seed, i))), 0, 1e18)
+            );
+            uint256 timeDelta = bound(uint256(keccak256(abi.encodePacked("timeDelta", seed, i))), 0, 30 days);
+
+            // We update the IRMAdaptiveCurve with a random utilization and random delta time.
+            skip(timeDelta);
+            irm.computeInterestRateView(VAULT, cash, borrows);
+            irm.computeRateAtTargetView(VAULT, cash, borrows);
+            irm.computeInterestRate(VAULT, cash, borrows);
+            irm.computeInterestRateView(VAULT, cash, borrows);
+            irm.computeRateAtTargetView(VAULT, cash, borrows);
         }
     }
 
