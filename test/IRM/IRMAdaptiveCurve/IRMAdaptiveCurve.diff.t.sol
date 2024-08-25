@@ -3,21 +3,23 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {IRMAdaptiveCurve} from "../../../src/IRM/IRMAdaptiveCurve.sol";
+import {ExpLib} from "../../../src/IRM/lib/ExpLib.sol";
 import {
     AdaptiveCurveIrm,
     MarketParams,
     Market,
     ConstantsLib,
-    Id
+    Id,
+    ExpLib as ExpLibRef
 } from "morpho-blue-irm/adaptive-curve-irm/AdaptiveCurveIrm.sol";
 
-/// forge-config: default.fuzz.runs = 1000
 contract IRMAdaptiveCurveDiffTest is Test {
     address internal constant VAULT = address(0x1234);
     address internal constant MORPHO = address(0x2345);
     uint256 internal constant NUM_INTERACTIONS = 50;
 
     /// @dev Verify that IRMAdaptiveCurve is equivalent to the reference AdaptiveCurveIrm.
+    /// forge-config: default.fuzz.runs = 1000
     function test_DiffIRMAdaptiveCurveAgainstReference(uint256 seed) public {
         // Deploy IRMAdaptiveCurve with Morpho constants.
         IRMAdaptiveCurve irm = new IRMAdaptiveCurve(
@@ -57,6 +59,15 @@ contract IRMAdaptiveCurveDiffTest is Test {
             assertEq(rate, rateRef * 1e9);
             assertEq(rateAtTarget, uint256(rateAtTargetRef * 1e9));
         }
+    }
+
+    /// @dev Verify that the exp function in IRMAdaptiveCurve is equivalent to the reference exp function.
+    /// forge-config: default.fuzz.runs = 100000
+    function test_DiffExpAgainstReference(int256 x) public pure {
+        int256 result = ExpLib.wExp(x);
+        int256 resultRef = ExpLibRef.wExp(x);
+
+        assertEq(result, resultRef);
     }
 
     function getCashAndBorrowsAtUtilizationRate(uint256 utilizationRate) internal pure returns (uint256, uint256) {
