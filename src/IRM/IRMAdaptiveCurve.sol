@@ -10,10 +10,9 @@ import {ExpLib} from "./lib/ExpLib.sol";
 /// @custom:contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/).
 /// @author Adapted from Morpho Labs (https://github.com/morpho-org/morpho-blue-irm/).
-/// @notice A Linear Kink IRM with an adaptive mechanism based on exponential growth/decay.
-/// As utilization persists above/below the target the Linear Kink IRM is translated up/down.
-/// @dev The model is parameterized by `(TARGET_UTILIZATION, rateAtTarget, CURVE_STEEPNESS)`.
-/// The `rateAtTarget` parameter is the adaptive component in this model.
+/// @notice A Linear Kink IRM that adjusts the rate at target utilization based on time spent above/below it.
+/// @dev This implementation intentionally leaves variables names, units and ExpLib unchanged.
+/// Rates in external functions are extended to RAY per second to be compatible with the EVK.
 contract IRMAdaptiveCurve is IIRM {
     /// @dev Unit for internal precision.
     int256 internal constant WAD = 1e18;
@@ -50,7 +49,7 @@ contract IRMAdaptiveCurve is IIRM {
         uint48 lastUpdate;
     }
 
-    /// @notice Get the cached state of a vault's irm.
+    /// @notice Get the internal cached state of a vault's irm.
     mapping(address => IRState) internal irState;
 
     error InvalidParams();
@@ -106,14 +105,13 @@ contract IRMAdaptiveCurve is IIRM {
         if (msg.sender != vault) revert E_IRMUpdateUnauthorized();
         (uint256 avgRate, uint256 endRateAtTarget) = computeInterestRateInternal(vault, cash, borrows);
         irState[vault] = IRState(uint208(endRateAtTarget), uint48(block.timestamp));
-        return avgRate;
+        return avgRate * 1e9; // Extend rate to RAY/sec for EVK.
     }
 
     /// @inheritdoc IIRM
     function computeInterestRateView(address vault, uint256 cash, uint256 borrows) external view returns (uint256) {
         (uint256 avgRate,) = computeInterestRateInternal(vault, cash, borrows);
-        // Scale rate to 1e27 for EVK.
-        return avgRate * 1e9;
+        return avgRate * 1e9; // Extend rate to RAY/sec for EVK.
     }
 
     /// @notice Perform computation of the new rate at target without mutating state.
@@ -123,8 +121,7 @@ contract IRMAdaptiveCurve is IIRM {
     /// @return The new rate at target utilization in RAY units.
     function computeRateAtTargetView(address vault, uint256 cash, uint256 borrows) external view returns (uint256) {
         (, uint256 rateAtTarget) = computeInterestRateInternal(vault, cash, borrows);
-        // Scale rate to 1e27 for EVK.
-        return rateAtTarget * 1e9;
+        return rateAtTarget * 1e9; // Extend rate to RAY/sec for EVK.
     }
 
     /// @notice Compute the new interest rate and rate at target utilization of a vault.
