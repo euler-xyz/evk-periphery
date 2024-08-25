@@ -6,14 +6,17 @@ import {IRMAdaptiveCurve} from "../../../src/IRM/IRMAdaptiveCurve.sol";
 import {ExpLib} from "../../../src/IRM/lib/ExpLib.sol";
 import {
     AdaptiveCurveIrm,
-    MarketParams,
-    Market,
     ConstantsLib,
+    ExpLib as ExpLibRef,
     Id,
-    ExpLib as ExpLibRef
+    Market,
+    MarketParams,
+    MarketParamsLib
 } from "morpho-blue-irm/adaptive-curve-irm/AdaptiveCurveIrm.sol";
 
 contract IRMAdaptiveCurveDiffTest is Test {
+    using MarketParamsLib for MarketParams;
+
     address internal constant VAULT = address(0x1234);
     address internal constant MORPHO = address(0x2345);
     uint256 internal constant NUM_INTERACTIONS = 50;
@@ -54,7 +57,7 @@ contract IRMAdaptiveCurveDiffTest is Test {
             uint256 rateAtTarget = irm.computeRateAtTargetView(VAULT, cash, borrows);
             vm.startPrank(MORPHO);
             uint256 rateRef = irmRef.borrowRate(marketParams, market);
-            int256 rateAtTargetRef = irmRef.rateAtTarget(id(marketParams));
+            int256 rateAtTargetRef = irmRef.rateAtTarget(marketParams.id());
 
             assertEq(rate, rateRef * 1e9);
             assertEq(rateAtTarget, uint256(rateAtTargetRef * 1e9));
@@ -76,12 +79,5 @@ contract IRMAdaptiveCurveDiffTest is Test {
 
         uint256 borrows = 1e18 * utilizationRate / (1e18 - utilizationRate);
         return (1e18, borrows);
-    }
-
-    /// @notice Returns the id of the market `marketParams`.
-    function id(MarketParams memory marketParams) internal pure returns (Id marketParamsId) {
-        assembly ("memory-safe") {
-            marketParamsId := keccak256(marketParams, 160)
-        }
     }
 }
