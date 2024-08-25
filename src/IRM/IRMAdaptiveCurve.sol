@@ -11,8 +11,8 @@ import {ExpLib} from "./lib/ExpLib.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/).
 /// @author Adapted from Morpho Labs (https://github.com/morpho-org/morpho-blue-irm/).
 /// @notice A Linear Kink IRM that adjusts the rate at target utilization based on time spent above/below it.
-/// @dev This implementation intentionally leaves variables names, units and ExpLib unchanged.
-/// Rates in external functions are extended to RAY per second to be compatible with the EVK.
+/// @dev This implementation intentionally leaves variables names, units and ExpLib unchanged from original.
+/// Returned rates are extended to RAY per second to be compatible with the EVK.
 contract IRMAdaptiveCurve is IIRM {
     /// @dev Unit for internal precision.
     int256 internal constant WAD = 1e18;
@@ -76,10 +76,10 @@ contract IRMAdaptiveCurve is IIRM {
         if (_INITIAL_RATE_AT_TARGET < _MIN_RATE_AT_TARGET || _INITIAL_RATE_AT_TARGET > _MAX_RATE_AT_TARGET) {
             revert InvalidParams();
         }
-        if (_MIN_RATE_AT_TARGET < 0.001e18 / YEAR || MIN_RATE_AT_TARGET > 10e18 / YEAR) {
+        if (_MIN_RATE_AT_TARGET < 0.001e18 / YEAR || _MIN_RATE_AT_TARGET > 10e18 / YEAR) {
             revert InvalidParams();
         }
-        if (_MAX_RATE_AT_TARGET < 0.001e18 / YEAR || MAX_RATE_AT_TARGET > 10e18) {
+        if (_MAX_RATE_AT_TARGET < 0.001e18 / YEAR || _MAX_RATE_AT_TARGET > 10e18 / YEAR) {
             revert InvalidParams();
         }
         if (_MIN_RATE_AT_TARGET > _MAX_RATE_AT_TARGET) {

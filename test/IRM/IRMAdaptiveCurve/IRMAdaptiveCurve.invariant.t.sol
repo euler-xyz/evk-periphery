@@ -98,7 +98,7 @@ contract IRMAdaptiveCurveInvariantTest is Test {
         }
     }
 
-    function invariant_SlopeAffectsRatesCorrectly() public view {
+    function invariant_SteepnessAffectsRatesCorrectly() public view {
         uint256 numCalls = harness.numCalls();
         if (numCalls == 0) return;
 
@@ -115,12 +115,12 @@ contract IRMAdaptiveCurveInvariantTest is Test {
             assertGe(lastCallIrmFlatter.rate, lastCallIrm.rate);
         }
 
-        // Slope does not change TARGET_UTILIZATION rate.
+        // Steepness does not change rate at target.
         assertEq(lastCallIrmSteeper.rateAtTarget, lastCallIrm.rateAtTarget);
         assertEq(lastCallIrmFlatter.rateAtTarget, lastCallIrm.rateAtTarget);
     }
 
-    function invariant_SlopeDoesNotAffectRatesAtKink() public {
+    function invariant_SteepnessDoesNotAffectRatesAtKink() public {
         harness.computeInterestRate(3600, 1e18, 9e18);
         uint256 numCalls = harness.numCalls();
 
