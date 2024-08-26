@@ -56,6 +56,7 @@ contract DeployCoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddre
                 peripheryAddresses.oracleAdapterRegistry,
                 peripheryAddresses.externalVaultRegistry,
                 peripheryAddresses.kinkIRMFactory,
+                peripheryAddresses.adaptiveCurveIRMFactory,
                 peripheryAddresses.irmRegistry
             ) = deployer.deploy(coreAddresses.evc);
         }
@@ -122,8 +123,17 @@ contract DeployCoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddre
         // deploy lenses
         {
             Lenses deployer = new Lenses();
-            (lensAddresses.accountLens, lensAddresses.oracleLens, lensAddresses.vaultLens, lensAddresses.utilsLens) =
-                deployer.deploy(peripheryAddresses.oracleAdapterRegistry);
+            (
+                lensAddresses.accountLens,
+                lensAddresses.oracleLens,
+                lensAddresses.irmlens,
+                lensAddresses.vaultLens,
+                lensAddresses.utilsLens
+            ) = deployer.deploy(
+                peripheryAddresses.oracleAdapterRegistry,
+                peripheryAddresses.kinkIRMFactory,
+                peripheryAddresses.adaptiveCurveIRMFactory
+            );
         }
 
         // save results

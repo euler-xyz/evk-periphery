@@ -100,7 +100,7 @@ while true; do
     echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
     echo "2. Periphery factories and registries"
     echo "3. Oracle adapter"
-    echo "4. Kink IRM"
+    echo "4. IRM"
     echo "5. EVault implementation (modules and implementation contract)"
     echo "6. EVault factory"
     echo "7. EVault"
@@ -379,31 +379,78 @@ while true; do
             esac            
             ;;
         4)
-            echo "Deploying kink IRM..."
-            
-            baseName=04_KinkIRM
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
+            echo "Deploying IRM..."
+            echo "Select the type of IRM to deploy:"
+            echo "0. Kink"
+            echo "1. Adaptive Curve"
+            read -p "Enter your choice (0-1): " irm_choice
 
-            read -p "Enter the IRM Factory address: " irm_factory
-            read -p "Enter base rate SPY: " base_rate
-            read -p "Enter slope1 parameter: " slope1
-            read -p "Enter slope2 parameter: " slope2
-            read -p "Enter kink parameter: " kink
+            baseName=04_IRM
 
-            jq -n \
-                --arg irmFactory "$irm_factory" \
-                --arg baseRate "$base_rate" \
-                --arg slope1 "$slope1" \
-                --arg slope2 "$slope2" \
-                --arg kink "$kink" \
-                '{
-                    irmFactory: $irmFactory,
-                    baseRate: $baseRate,
-                    slope1: $slope1,
-                    slope2: $slope2,
-                    kink: $kink
-                }' --indent 4 > script/${jsonName}_input.json
+            case $irm_choice in
+                0)
+                    echo "Deploying Kink IRM..."
+                    
+                    scriptName=${baseName}.s.sol:KinkIRM
+                    jsonName=04_KinkIRM
+
+                    read -p "Enter the Kink IRM Factory address: " kinkIRMFactory
+                    read -p "Enter base rate SPY: " base_rate
+                    read -p "Enter slope1 parameter: " slope1
+                    read -p "Enter slope2 parameter: " slope2
+                    read -p "Enter kink parameter: " kink
+
+                    jq -n \
+                        --arg kinkIRMFactory "$kinkIRMFactory" \
+                        --argjson baseRate "$base_rate" \
+                        --argjson slope1 "$slope1" \
+                        --argjson slope2 "$slope2" \
+                        --argjson kink "$kink" \
+                        '{
+                            kinkIRMFactory: $kinkIRMFactory,
+                            baseRate: $baseRate,
+                            slope1: $slope1,
+                            slope2: $slope2,
+                            kink: $kink
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Adaptive Curve IRM..."
+                    
+                    scriptName=${baseName}.s.sol:AdaptiveCurveIRM
+                    jsonName=04_AdaptiveCurveIRM
+
+                    read -p "Enter the Adaptive Curve IRM Factory address: " adaptiveCurveIRMFactory
+                    read -p "Enter target utilization: " target_utilization
+                    read -p "Enter initial rate at target: " initial_rate_at_target
+                    read -p "Enter min rate at target: " min_rate_at_target
+                    read -p "Enter max rate at target: " max_rate_at_target
+                    read -p "Enter curve steepness: " curve_steepness
+                    read -p "Enter adjustment speed: " adjustment_speed
+
+                    jq -n \
+                        --arg adaptiveCurveIRMFactory "$adaptiveCurveIRMFactory" \
+                        --argjson targetUtilization "$target_utilization" \
+                        --argjson initialRateAtTarget "$initial_rate_at_target" \
+                        --argjson minRateAtTarget "$min_rate_at_target" \
+                        --argjson maxRateAtTarget "$max_rate_at_target" \
+                        --argjson curveSteepness "$curve_steepness" \
+                        --argjson adjustmentSpeed "$adjustment_speed" \
+                        '{
+                            adaptiveCurveIRMFactory: $adaptiveCurveIRMFactory,
+                            targetUtilization: $targetUtilization,
+                            initialRateAtTarget: $initialRateAtTarget,
+                            minRateAtTarget: $minRateAtTarget,
+                            maxRateAtTarget: $maxRateAtTarget,
+                            curveSteepness: $curveSteepness,
+                            adjustmentSpeed: $adjustmentSpeed
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid IRM choice. Exiting."
+                    exit 1
+                    ;;
+            esac            
             ;;
         5)
             echo "Deploying EVault implementation..."
@@ -495,11 +542,17 @@ while true; do
             jsonName=$baseName
             
             read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+            read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+            read -p "Enter the Adaptive Curve IRM Factory address: " adaptive_curve_irm_factory
 
             jq -n \
                 --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                --arg kinkIRMFactory "$kink_irm_factory" \
+                --arg adaptiveCurveIRMFactory "$adaptive_curve_irm_factory" \
                 '{
-                    oracleAdapterRegistry: $oracleAdapterRegistry
+                    oracleAdapterRegistry: $oracleAdapterRegistry,
+                    kinkIRMFactory: $kinkIRMFactory,
+                    adaptiveCurveIRMFactory: $adaptiveCurveIRMFactory
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         9)

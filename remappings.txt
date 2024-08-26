@@ -8,3 +8,4 @@ euler-price-oracle-test/=lib/euler-price-oracle/test/
 fee-flow/=lib/fee-flow/src/
 reward-streams/=lib/reward-streams/src/
 @openzeppelin/contracts/utils/math/=lib/euler-price-oracle/lib/openzeppelin-contracts/contracts/utils/math/
+morpho-blue-irm/=lib/morpho-blue-irm/src/

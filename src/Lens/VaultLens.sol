@@ -7,6 +7,7 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import {IIRM, IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {IPriceOracle} from "evk/interfaces/IPriceOracle.sol";
 import {OracleLens} from "./OracleLens.sol";
+import {IRMLens} from "./IRMLens.sol";
 import {Utils} from "./Utils.sol";
 import "evk/EVault/shared/types/AmountCap.sol";
 import "./LensTypes.sol";
@@ -15,71 +16,11 @@ contract VaultLens is Utils {
     address internal constant USD = address(840);
 
     OracleLens public immutable oracleLens;
+    IRMLens public immutable irmLens;
 
-    constructor(address _oracleLens) {
+    constructor(address _oracleLens, address _irmLens) {
         oracleLens = OracleLens(_oracleLens);
-    }
-
-    function getVaultInfoSimple(address vault) public view returns (VaultInfoSimple memory) {
-        VaultInfoSimple memory result;
-
-        result.timestamp = block.timestamp;
-
-        result.vault = vault;
-        result.vaultName = IEVault(vault).name();
-        result.vaultSymbol = IEVault(vault).symbol();
-        result.vaultDecimals = IEVault(vault).decimals();
-
-        result.asset = IEVault(vault).asset();
-        result.assetDecimals = _getDecimals(result.asset);
-
-        result.unitOfAccount = IEVault(vault).unitOfAccount();
-        result.unitOfAccountDecimals = _getDecimals(result.unitOfAccount);
-
-        result.totalShares = IEVault(vault).totalSupply();
-        result.totalCash = IEVault(vault).cash();
-        result.totalBorrowed = IEVault(vault).totalBorrows();
-        result.totalAssets = IEVault(vault).totalAssets();
-
-        result.oracle = IEVault(vault).oracle();
-        result.governorAdmin = IEVault(vault).governorAdmin();
-
-        uint256[] memory cash = new uint256[](1);
-        uint256[] memory borrows = new uint256[](1);
-        cash[0] = result.totalCash;
-        borrows[0] = result.totalBorrowed;
-        result.irmInfo = getVaultInterestRateModelInfo(vault, cash, borrows);
-
-        result.collateralLTVInfo = getRecognizedCollateralsLTVInfo(vault);
-
-        result.liabilityPriceInfo = getControllerAssetPriceInfo(vault, result.asset);
-
-        result.collateralPriceInfo = new AssetPriceInfo[](result.collateralLTVInfo.length);
-
-        for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
-            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
-        }
-
-        address[] memory bases = new address[](result.collateralLTVInfo.length + 1);
-        bases[0] = result.asset;
-        for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
-            bases[i + 1] = result.collateralLTVInfo[i].collateral;
-            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
-        }
-
-        result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, result.unitOfAccount);
-
-        if (result.oracle == address(0)) {
-            address unitOfAccount = result.unitOfAccount == address(0) ? USD : result.unitOfAccount;
-            result.backupAssetPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
-
-            bases = new address[](1);
-            bases[0] = result.asset;
-            result.backupAssetOracleInfo =
-                oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, unitOfAccount);
-        }
-
-        return result;
+        irmLens = IRMLens(_irmLens);
     }
 
     function getVaultInfoFull(address vault) public view returns (VaultInfoFull memory) {
@@ -307,42 +248,32 @@ contract VaultLens is Utils {
                 _computeAPYs(result.interestRateInfo[i].borrowSPY, result.interestRateInfo[i].supplySPY);
         }
 
+        result.interestRateModelInfo = irmLens.getInterestRateModelInfo(result.interestRateModel);
+
         return result;
     }
 
-    function getVaultKinkInterestRateModelInfo(address vault)
-        public
-        view
-        returns (VaultInterestRateModelInfo memory, KinkInterestRateModelInfo memory)
-    {
+    function getVaultKinkInterestRateModelInfo(address vault) public view returns (VaultInterestRateModelInfo memory) {
         address interestRateModel = IEVault(vault).interestRateModel();
 
         if (interestRateModel == address(0)) {
-            VaultInterestRateModelInfo memory result1;
-            KinkInterestRateModelInfo memory result2;
-            result1.vault = vault;
-            return (result1, result2);
+            VaultInterestRateModelInfo memory result;
+            result.vault = vault;
+            return result;
         }
 
-        KinkInterestRateModelInfo memory kinkIRMInfo = KinkInterestRateModelInfo({
-            interestRateModel: interestRateModel,
-            baseRate: IRMLinearKink(interestRateModel).baseRate(),
-            slope1: IRMLinearKink(interestRateModel).slope1(),
-            slope2: IRMLinearKink(interestRateModel).slope2(),
-            kink: IRMLinearKink(interestRateModel).kink()
-        });
-
+        uint256 kink = IRMLinearKink(interestRateModel).kink();
         uint256[] memory cash = new uint256[](3);
         uint256[] memory borrows = new uint256[](3);
 
         cash[0] = type(uint32).max;
-        cash[1] = type(uint32).max - kinkIRMInfo.kink;
+        cash[1] = type(uint32).max - kink;
         cash[2] = 0;
         borrows[0] = 0;
-        borrows[1] = kinkIRMInfo.kink;
+        borrows[1] = kink;
         borrows[2] = type(uint32).max;
 
-        return (getVaultInterestRateModelInfo(vault, cash, borrows), kinkIRMInfo);
+        return getVaultInterestRateModelInfo(vault, cash, borrows);
     }
 
     function getControllerAssetPriceInfo(address controller, address asset)

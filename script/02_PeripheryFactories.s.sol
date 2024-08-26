@@ -6,6 +6,7 @@ import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {EulerRouterFactory} from "../src/EulerRouterFactory/EulerRouterFactory.sol";
 import {SnapshotRegistry} from "../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../src/IRMFactory/EulerKinkIRMFactory.sol";
+import {EulerIRMAdaptiveCurveFactory} from "../src/IRMFactory/EulerIRMAdaptiveCurveFactory.sol";
 
 contract PeripheryFactories is ScriptUtils {
     function run()
@@ -16,6 +17,7 @@ contract PeripheryFactories is ScriptUtils {
             address oracleAdapterRegistry,
             address externalVaultRegistry,
             address kinkIRMFactory,
+            address adaptiveCurveIRMFactory,
             address irmRegistry
         )
     {
@@ -24,13 +26,21 @@ contract PeripheryFactories is ScriptUtils {
         string memory json = getInputConfig(inputScriptFileName);
         address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
 
-        (oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory, irmRegistry) = execute(evc);
+        (
+            oracleRouterFactory,
+            oracleAdapterRegistry,
+            externalVaultRegistry,
+            kinkIRMFactory,
+            adaptiveCurveIRMFactory,
+            irmRegistry
+        ) = execute(evc);
 
         string memory object;
         object = vm.serializeAddress("peripheryFactories", "oracleRouterFactory", oracleRouterFactory);
         object = vm.serializeAddress("peripheryFactories", "oracleAdapterRegistry", oracleAdapterRegistry);
         object = vm.serializeAddress("peripheryFactories", "externalVaultRegistry", externalVaultRegistry);
         object = vm.serializeAddress("peripheryFactories", "kinkIRMFactory", kinkIRMFactory);
+        object = vm.serializeAddress("peripheryFactories", "adaptiveCurveIRMFactory", adaptiveCurveIRMFactory);
         object = vm.serializeAddress("peripheryFactories", "irmRegistry", irmRegistry);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
@@ -43,10 +53,18 @@ contract PeripheryFactories is ScriptUtils {
             address oracleAdapterRegistry,
             address externalVaultRegistry,
             address kinkIRMFactory,
+            address adaptiveCurveIRMFactory,
             address irmRegistry
         )
     {
-        (oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory, irmRegistry) = execute(evc);
+        (
+            oracleRouterFactory,
+            oracleAdapterRegistry,
+            externalVaultRegistry,
+            kinkIRMFactory,
+            adaptiveCurveIRMFactory,
+            irmRegistry
+        ) = execute(evc);
     }
 
     function execute(address evc)
@@ -56,6 +74,7 @@ contract PeripheryFactories is ScriptUtils {
             address oracleAdapterRegistry,
             address externalVaultRegistry,
             address kinkIRMFactory,
+            address adaptiveCurveIRMFactory,
             address irmRegistry
         )
     {
@@ -63,6 +82,7 @@ contract PeripheryFactories is ScriptUtils {
         oracleAdapterRegistry = address(new SnapshotRegistry(getDeployer()));
         externalVaultRegistry = address(new SnapshotRegistry(getDeployer()));
         kinkIRMFactory = address(new EulerKinkIRMFactory());
+        adaptiveCurveIRMFactory = address(new EulerIRMAdaptiveCurveFactory());
         irmRegistry = address(new SnapshotRegistry(getDeployer()));
     }
 }
