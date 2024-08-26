@@ -495,11 +495,17 @@ while true; do
             jsonName=$baseName
             
             read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+            read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+            read -p "Enter the Adaptive Curve IRM Factory address: " adaptive_curve_irm_factory
 
             jq -n \
                 --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                --arg kinkIRMFactory "$kink_irm_factory" \
+                --arg adaptiveCurveIRMFactory "$adaptive_curve_irm_factory" \
                 '{
-                    oracleAdapterRegistry: $oracleAdapterRegistry
+                    oracleAdapterRegistry: $oracleAdapterRegistry,
+                    kinkIRMFactory: $kinkIRMFactory,
+                    adaptiveCurveIRMFactory: $adaptiveCurveIRMFactory
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         9)

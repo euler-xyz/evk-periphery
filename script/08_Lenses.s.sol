@@ -19,8 +19,11 @@ contract Lenses is ScriptUtils {
         string memory outputScriptFileName = "08_Lenses_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
+        address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
+        address adaptiveCurveIRMFactory = abi.decode(vm.parseJson(json, ".adaptiveCurveIRMFactory"), (address));
 
-        (accountLens, oracleLens, irmlens, vaultLens, utilsLens) = execute(oracleAdapterRegistry);
+        (accountLens, oracleLens, irmlens, vaultLens, utilsLens) =
+            execute(oracleAdapterRegistry, kinkIRMFactory, adaptiveCurveIRMFactory);
 
         string memory object;
         object = vm.serializeAddress("lenses", "accountLens", accountLens);
@@ -31,21 +34,22 @@ contract Lenses is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address oracleAdapterRegistry)
+    function deploy(address oracleAdapterRegistry, address kinkIRMFactory, address adaptiveCurveIRMFactory)
         public
         broadcast
         returns (address accountLens, address oracleLens, address irmlens, address vaultLens, address utilsLens)
     {
-        (accountLens, oracleLens, irmlens, vaultLens, utilsLens) = execute(oracleAdapterRegistry);
+        (accountLens, oracleLens, irmlens, vaultLens, utilsLens) =
+            execute(oracleAdapterRegistry, kinkIRMFactory, adaptiveCurveIRMFactory);
     }
 
-    function execute(address oracleAdapterRegistry)
+    function execute(address oracleAdapterRegistry, address kinkIRMFactory, address adaptiveCurveIRMFactory)
         public
         returns (address accountLens, address oracleLens, address irmlens, address vaultLens, address utilsLens)
     {
         accountLens = address(new AccountLens());
         oracleLens = address(new OracleLens(oracleAdapterRegistry));
-        irmlens = address(new IRMLens(address(oracleLens)));
+        irmlens = address(new IRMLens(kinkIRMFactory, adaptiveCurveIRMFactory));
         vaultLens = address(new VaultLens(address(oracleLens), address(irmlens)));
         utilsLens = address(new UtilsLens());
     }

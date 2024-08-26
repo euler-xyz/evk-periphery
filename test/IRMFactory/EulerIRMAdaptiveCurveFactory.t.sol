@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {IFactory} from "../../../src/BaseFactory/interfaces/IFactory.sol";
-import {IRMAdaptiveCurve} from "../../../src/IRM/IRMAdaptiveCurve.sol";
-import {EulerIRMAdaptiveCurveFactory} from "../../../src/IRMFactory/EulerIRMAdaptiveCurveFactory.sol";
+import {IFactory} from "../../src/BaseFactory/interfaces/IFactory.sol";
+import {IRMAdaptiveCurve} from "../../src/IRM/IRMAdaptiveCurve.sol";
+import {EulerIRMAdaptiveCurveFactory} from "../../src/IRMFactory/EulerIRMAdaptiveCurveFactory.sol";
 
 contract EulerIRMAdaptiveCurveFactoryTest is Test {
     int256 internal constant YEAR = int256(365.2425 days);
