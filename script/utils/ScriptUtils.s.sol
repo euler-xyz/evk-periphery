@@ -76,6 +76,7 @@ contract PeripheryAddressesLib is Script {
         address oracleAdapterRegistry;
         address externalVaultRegistry;
         address kinkIRMFactory;
+        address adaptiveCurveIRMFactory;
         address irmRegistry;
         address swapper;
         address swapVerifier;
@@ -92,6 +93,7 @@ contract PeripheryAddressesLib is Script {
         result = vm.serializeAddress("peripheryAddresses", "oracleAdapterRegistry", Addresses.oracleAdapterRegistry);
         result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
         result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
+        result = vm.serializeAddress("peripheryAddresses", "adaptiveCurveIRMFactory", Addresses.adaptiveCurveIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "irmRegistry", Addresses.irmRegistry);
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
         result = vm.serializeAddress("peripheryAddresses", "swapVerifier", Addresses.swapVerifier);
@@ -115,6 +117,7 @@ contract PeripheryAddressesLib is Script {
             oracleAdapterRegistry: abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address)),
             externalVaultRegistry: abi.decode(vm.parseJson(json, ".externalVaultRegistry"), (address)),
             kinkIRMFactory: abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address)),
+            adaptiveCurveIRMFactory: abi.decode(vm.parseJson(json, ".adaptiveCurveIRMFactory"), (address)),
             irmRegistry: abi.decode(vm.parseJson(json, ".irmRegistry"), (address)),
             swapper: abi.decode(vm.parseJson(json, ".swapper"), (address)),
             swapVerifier: abi.decode(vm.parseJson(json, ".swapVerifier"), (address)),
@@ -132,6 +135,7 @@ contract LensAddressesLib is Script {
     struct LensAddresses {
         address accountLens;
         address oracleLens;
+        address irmlens;
         address vaultLens;
         address utilsLens;
     }
@@ -139,6 +143,7 @@ contract LensAddressesLib is Script {
     function serializeLensAddresses(LensAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("lensAddresses", "accountLens", Addresses.accountLens);
         result = vm.serializeAddress("lensAddresses", "oracleLens", Addresses.oracleLens);
+        result = vm.serializeAddress("lensAddresses", "irmlens", Addresses.irmlens);
         result = vm.serializeAddress("lensAddresses", "vaultLens", Addresses.vaultLens);
         result = vm.serializeAddress("lensAddresses", "utilsLens", Addresses.utilsLens);
     }
@@ -147,6 +152,7 @@ contract LensAddressesLib is Script {
         return LensAddresses({
             accountLens: abi.decode(vm.parseJson(json, ".accountLens"), (address)),
             oracleLens: abi.decode(vm.parseJson(json, ".oracleLens"), (address)),
+            irmlens: abi.decode(vm.parseJson(json, ".irmlens"), (address)),
             vaultLens: abi.decode(vm.parseJson(json, ".vaultLens"), (address)),
             utilsLens: abi.decode(vm.parseJson(json, ".utilsLens"), (address))
         });
