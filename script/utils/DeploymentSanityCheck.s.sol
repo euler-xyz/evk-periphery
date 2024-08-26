@@ -26,7 +26,6 @@ interface IEVCUser {
     function EVC() external view returns (address);
 }
 
-
 contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
     // assets
     address internal constant USD = address(840);
@@ -77,14 +76,23 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         // - implementation
 
         require(GenericFactory(coreInfo.eVaultFactory).upgradeAdmin() == EVAULT_FACTORY_ADMIN, "eVaultFactory admin");
-        require(GenericFactory(coreInfo.eVaultFactory).implementation() == coreInfo.eVaultImplementation, "eVaultFactory implementation");
+        require(
+            GenericFactory(coreInfo.eVaultFactory).implementation() == coreInfo.eVaultImplementation,
+            "eVaultFactory implementation"
+        );
 
-        // eVaultImplementation 
+        // eVaultImplementation
         // - immutables: evc, protocolConfig, sequenceRegistry, balanceTracker, permit2
 
         assert(callWithTrailing(coreInfo.eVaultImplementation, IEVCUser.EVC.selector) == coreInfo.evc);
-        assert(callWithTrailing(coreInfo.eVaultImplementation, EVault.balanceTrackerAddress.selector) == coreInfo.balanceTracker);
-        assert(callWithTrailing(coreInfo.eVaultImplementation, EVault.protocolConfigAddress.selector) == coreInfo.protocolConfig);
+        assert(
+            callWithTrailing(coreInfo.eVaultImplementation, EVault.balanceTrackerAddress.selector)
+                == coreInfo.balanceTracker
+        );
+        assert(
+            callWithTrailing(coreInfo.eVaultImplementation, EVault.protocolConfigAddress.selector)
+                == coreInfo.protocolConfig
+        );
         assert(callWithTrailing(coreInfo.eVaultImplementation, EVault.permit2Address.selector) == coreInfo.permit2);
         // unfortunately no accessor for sequenceRegistry, verified manually
 
@@ -108,10 +116,10 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         // - global config: feeReceiver, protocolFeeShare
 
         assert(ProtocolConfig(coreInfo.protocolConfig).admin() == PROTOCOL_CONFIG_ADMIN);
-        (address feeReceiver, uint16 protocolFeeShare) = ProtocolConfig(coreInfo.protocolConfig).protocolFeeConfig(address(1));
+        (address feeReceiver, uint16 protocolFeeShare) =
+            ProtocolConfig(coreInfo.protocolConfig).protocolFeeConfig(address(1));
         assert(feeReceiver == coreInfo.feeFlowController);
         assert(protocolFeeShare == 0.5e4);
-
 
         // oracleRouterFactory
         // - immutables: evc
@@ -139,16 +147,19 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
 
         // escrowPerspective
         // - immutable: vaultFactory
-        // VERIFIED manually in creation TX https://etherscan.io/tx/0x1d3d9f2cb49c06ba52d7855b9dcc02c8f3a7f794e6eb1565d3a9b6bbb803a531
+        // VERIFIED manually in creation TX
+        // https://etherscan.io/tx/0x1d3d9f2cb49c06ba52d7855b9dcc02c8f3a7f794e6eb1565d3a9b6bbb803a531
 
         // eulerFactoryPerspective
         // - immutable: vaultFactory
-        // VERIFIED manually in creation TX https://etherscan.io/tx/0x9a27da6c4170cb47ac8d35cd7fbe0fb1a4cbad1d27219532b33317e1afcd5e0f
+        // VERIFIED manually in creation TX
+        // https://etherscan.io/tx/0x9a27da6c4170cb47ac8d35cd7fbe0fb1a4cbad1d27219532b33317e1afcd5e0f
 
         // eulerBasePerspective
         // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory
         // - recognizedCollateralPerspectives
-        // VERIFIED immutables manually in creation TX https://etherscan.io/tx/0xdf281d88a257624765ab569353a14d1caabb1f34c6a6a47545f2ae9913919ffe
+        // VERIFIED immutables manually in creation TX
+        // https://etherscan.io/tx/0xdf281d88a257624765ab569353a14d1caabb1f34c6a6a47545f2ae9913919ffe
         address recognized = EulerBasePerspective(coreInfo.eulerBasePerspective).recognizedCollateralPerspectives(0);
         assert(recognized == coreInfo.governableWhitelistPerspective);
         recognized = EulerBasePerspective(coreInfo.eulerBasePerspective).recognizedCollateralPerspectives(1);
@@ -157,7 +168,7 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         assert(recognized == address(0));
 
         try EulerBasePerspective(coreInfo.eulerBasePerspective).recognizedCollateralPerspectives(3) {
-            revert('array too long!');
+            revert("array too long!");
         } catch {}
 
         // governableWhitelistPerspective
@@ -180,7 +191,7 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
 
         address oracle = EVault(vaults[1]).oracle();
 
-        for (uint i = 0; i < vaults.length; i++) {
+        for (uint256 i = 0; i < vaults.length; i++) {
             if (BasePerspective(coreInfo.escrowPerspective).isVerified(vaults[i])) {
                 // escrow vaults
                 assert(EVault(vaults[i]).governorAdmin() == address(0));
@@ -200,9 +211,8 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
                 assert(EVault(vaults[i]).maxLiquidationDiscount() == 0.15e4);
                 assert(EVault(vaults[i]).liquidationCoolOffTime() == 1);
                 assert(EVault(vaults[i]).interestFee() == 0.1e4);
-
             } else {
-                revert ('vault not found in perspectives');
+                revert("vault not found in perspectives");
             }
         }
 
@@ -245,36 +255,36 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
 
         // escrow WETH
         (uint16 borrowLTV, uint16 liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
-        assert(borrowLTV == 0); 
-        assert(liquidationLTV == 0); 
+        assert(borrowLTV == 0);
+        assert(liquidationLTV == 0);
         // escrow wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[2]);
-        assert(borrowLTV == 0.87e4); 
-        assert(liquidationLTV == 0.89e4); 
+        assert(borrowLTV == 0.87e4);
+        assert(liquidationLTV == 0.89e4);
         // escrow USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[4]);
-        assert(borrowLTV == 0.74e4); 
-        assert(liquidationLTV == 0.76e4); 
+        assert(borrowLTV == 0.74e4);
+        assert(liquidationLTV == 0.76e4);
         // escrow USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
-        assert(borrowLTV == 0.74e4); 
-        assert(liquidationLTV == 0.76e4); 
+        assert(borrowLTV == 0.74e4);
+        assert(liquidationLTV == 0.76e4);
         // managed WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
-        assert(borrowLTV == 0); 
-        assert(liquidationLTV == 0); 
+        assert(borrowLTV == 0);
+        assert(liquidationLTV == 0);
         // managed wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
-        assert(borrowLTV == 0.85e4); 
-        assert(liquidationLTV == 0.87e4); 
+        assert(borrowLTV == 0.85e4);
+        assert(liquidationLTV == 0.87e4);
         // managed USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
-        assert(borrowLTV == 0.72e4); 
-        assert(liquidationLTV == 0.74e4); 
+        assert(borrowLTV == 0.72e4);
+        assert(liquidationLTV == 0.74e4);
         // managed USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
-        assert(borrowLTV == 0.72e4); 
-        assert(liquidationLTV == 0.74e4); 
+        assert(borrowLTV == 0.72e4);
+        assert(liquidationLTV == 0.74e4);
 
         // wstETH
         vault = vaults[3];
@@ -288,36 +298,36 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         assert(IRMLinearKink(irm).kink() == 1932735283);
         // escrow WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
-        assert(borrowLTV == 0.87e4); 
-        assert(liquidationLTV == 0.89e4); 
+        assert(borrowLTV == 0.87e4);
+        assert(liquidationLTV == 0.89e4);
         // escrow wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[2]);
-        assert(borrowLTV == 0); 
-        assert(liquidationLTV == 0); 
+        assert(borrowLTV == 0);
+        assert(liquidationLTV == 0);
         // escrow USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[4]);
-        assert(borrowLTV == 0.74e4); 
-        assert(liquidationLTV == 0.76e4); 
+        assert(borrowLTV == 0.74e4);
+        assert(liquidationLTV == 0.76e4);
         // escrow USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
-        assert(borrowLTV == 0.74e4); 
-        assert(liquidationLTV == 0.76e4); 
+        assert(borrowLTV == 0.74e4);
+        assert(liquidationLTV == 0.76e4);
         // managed WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
-        assert(borrowLTV == 0.85e4); 
-        assert(liquidationLTV == 0.87e4); 
+        assert(borrowLTV == 0.85e4);
+        assert(liquidationLTV == 0.87e4);
         // managed wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
-        assert(borrowLTV == 0); 
-        assert(liquidationLTV == 0); 
+        assert(borrowLTV == 0);
+        assert(liquidationLTV == 0);
         // managed USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
-        assert(borrowLTV == 0.72e4); 
-        assert(liquidationLTV == 0.74e4); 
+        assert(borrowLTV == 0.72e4);
+        assert(liquidationLTV == 0.74e4);
         // managed USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
-        assert(borrowLTV == 0.72e4); 
-        assert(liquidationLTV == 0.74e4); 
+        assert(borrowLTV == 0.72e4);
+        assert(liquidationLTV == 0.74e4);
 
         // USDC
         vault = vaults[5];
@@ -331,36 +341,36 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         assert(IRMLinearKink(irm).kink() == 3951369912);
         // escrow WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
-        assert(borrowLTV == 0.81e4); 
-        assert(liquidationLTV == 0.83e4); 
+        assert(borrowLTV == 0.81e4);
+        assert(liquidationLTV == 0.83e4);
         // escrow wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[2]);
-        assert(borrowLTV == 0.78e4); 
-        assert(liquidationLTV == 0.8e4); 
+        assert(borrowLTV == 0.78e4);
+        assert(liquidationLTV == 0.8e4);
         // escrow USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[4]);
-        assert(borrowLTV == 0); 
-        assert(liquidationLTV == 0); 
+        assert(borrowLTV == 0);
+        assert(liquidationLTV == 0);
         // escrow USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
-        assert(borrowLTV == 0.85e4); 
-        assert(liquidationLTV == 0.87e4); 
+        assert(borrowLTV == 0.85e4);
+        assert(liquidationLTV == 0.87e4);
         // managed WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
-        assert(borrowLTV == 0.79e4); 
-        assert(liquidationLTV == 0.81e4); 
+        assert(borrowLTV == 0.79e4);
+        assert(liquidationLTV == 0.81e4);
         // managed wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
-        assert(borrowLTV == 0.76e4); 
-        assert(liquidationLTV == 0.78e4); 
+        assert(borrowLTV == 0.76e4);
+        assert(liquidationLTV == 0.78e4);
         // managed USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
-        assert(borrowLTV == 0); 
-        assert(liquidationLTV == 0); 
+        assert(borrowLTV == 0);
+        assert(liquidationLTV == 0);
         // managed USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
-        assert(borrowLTV == 0.83e4); 
-        assert(liquidationLTV == 0.85e4); 
+        assert(borrowLTV == 0.83e4);
+        assert(liquidationLTV == 0.85e4);
 
         // USDT
         vault = vaults[7];
@@ -374,37 +384,36 @@ contract DeploymentSanityCheck is ScriptUtils, CoreInfoLib {
         assert(IRMLinearKink(irm).kink() == 3951369912);
         // escrow WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
-        assert(borrowLTV == 0.81e4); 
-        assert(liquidationLTV == 0.83e4); 
+        assert(borrowLTV == 0.81e4);
+        assert(liquidationLTV == 0.83e4);
         // escrow wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[2]);
-        assert(borrowLTV == 0.78e4); 
-        assert(liquidationLTV == 0.8e4); 
+        assert(borrowLTV == 0.78e4);
+        assert(liquidationLTV == 0.8e4);
         // escrow USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[4]);
-        assert(borrowLTV == 0.85e4); 
-        assert(liquidationLTV == 0.87e4); 
+        assert(borrowLTV == 0.85e4);
+        assert(liquidationLTV == 0.87e4);
         // escrow USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
-        assert(borrowLTV == 0); 
+        assert(borrowLTV == 0);
         assert(liquidationLTV == 0);
         // managed WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
-        assert(borrowLTV == 0.79e4); 
-        assert(liquidationLTV == 0.81e4); 
+        assert(borrowLTV == 0.79e4);
+        assert(liquidationLTV == 0.81e4);
         // managed wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
-        assert(borrowLTV == 0.76e4); 
-        assert(liquidationLTV == 0.78e4); 
+        assert(borrowLTV == 0.76e4);
+        assert(liquidationLTV == 0.78e4);
         // managed USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
-        assert(borrowLTV == 0.83e4); 
-        assert(liquidationLTV == 0.85e4); 
+        assert(borrowLTV == 0.83e4);
+        assert(liquidationLTV == 0.85e4);
         // managed USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
-        assert(borrowLTV == 0); 
-        assert(liquidationLTV == 0); 
-
+        assert(borrowLTV == 0);
+        assert(liquidationLTV == 0);
 
         // FIXME add IRM config
     }

@@ -10,7 +10,7 @@ import {ISwapper} from "../../src/Swaps/ISwapper.sol";
 import {Swapper} from "../../src/Swaps/Swapper.sol";
 import {SwapVerifier} from "../../src/Swaps/SwapVerifier.sol";
 
-import "./Payloads.sol";
+import "./Payloads1Inch.sol";
 
 import "forge-std/Test.sol";
 
@@ -24,6 +24,7 @@ contract Swaps1Inch is EVaultTestBase {
     address constant uniswapRouterV2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address constant uniswapRouterV3 = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address constant uniswapRouter02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address constant ensoAggregator = 0x80EbA3855878739F4710233A8a19d89Bdd2ffB8E;
 
     address constant GRT = 0xc944E90C64B2c07662A292be6244BDf05Cda44a7;
     address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -51,7 +52,7 @@ contract Swaps1Inch is EVaultTestBase {
         user = makeAddr("user");
         user2 = makeAddr("user2");
 
-        swapper = new Swapper(oneInchAggregatorV5, uniswapRouterV2, uniswapRouterV3, uniswapRouter02);
+        swapper = new Swapper(oneInchAggregatorV5, uniswapRouterV2, uniswapRouterV3, uniswapRouter02, ensoAggregator);
         swapVerifier = new SwapVerifier();
 
         if (bytes(FORK_RPC_URL).length != 0) {

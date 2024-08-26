@@ -19,8 +19,10 @@ contract Swap is ScriptUtils {
         address uniswapRouterV2 = abi.decode(vm.parseJson(json, ".uniswapRouterV2"), (address));
         address uniswapRouterV3 = abi.decode(vm.parseJson(json, ".uniswapRouterV3"), (address));
         address uniswapRouter02 = abi.decode(vm.parseJson(json, ".uniswapRouter02"), (address));
+        address ensoAggregator = abi.decode(vm.parseJson(json, ".ensoAggregator"), (address));
 
-        (swapper, swapVerifier) = execute(oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02);
+        (swapper, swapVerifier) =
+            execute(oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02, ensoAggregator);
 
         string memory object;
         object = vm.serializeAddress("swap", "swapper", swapper);
@@ -32,18 +34,22 @@ contract Swap is ScriptUtils {
         address oneInchAggregator,
         address uniswapRouterV2,
         address uniswapRouterV3,
-        address uniswapRouter02
+        address uniswapRouter02,
+        address ensoAggregator
     ) public broadcast returns (address swapper, address swapVerifier) {
-        (swapper, swapVerifier) = execute(oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02);
+        (swapper, swapVerifier) =
+            execute(oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02, ensoAggregator);
     }
 
     function execute(
         address oneInchAggregator,
         address uniswapRouterV2,
         address uniswapRouterV3,
-        address uniswapRouter02
+        address uniswapRouter02,
+        address ensoAggregator
     ) public returns (address swapper, address swapVerifier) {
-        swapper = address(new Swapper(oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02));
+        swapper =
+            address(new Swapper(oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02, ensoAggregator));
         swapVerifier = address(new SwapVerifier());
     }
 }

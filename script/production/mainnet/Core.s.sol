@@ -21,10 +21,12 @@ contract Core is ScriptUtils, CoreInfoLib {
     address internal constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address internal constant UNISWAP_ROUTER_V3 = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address internal constant UNISWAP_ROUTER_02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address internal constant ENSO_AGGREGATOR = 0x80EbA3855878739F4710233A8a19d89Bdd2ffB8E;
 
     uint256 internal constant FEE_FLOW_INIT_PRICE = 1e18;
     address internal constant FEE_FLOW_PAYMENT_TOKEN = EUL;
-    address internal constant FEE_FLOW_PAYMENT_RECEIVER = 0xcAD001c30E96765aC90307669d578219D4fb1DCe; // Euler DAO multi-sig
+    address internal constant FEE_FLOW_PAYMENT_RECEIVER = 0xcAD001c30E96765aC90307669d578219D4fb1DCe; // Euler DAO
+        // multi-sig
     uint256 internal constant FEE_FLOW_EPOCH_PERIOD = 14 days;
     uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18;
     uint256 internal constant FEE_FLOW_MIN_INIT_PRICE = 1e6;
@@ -95,8 +97,9 @@ contract Core is ScriptUtils, CoreInfoLib {
         // deploy swapper
         {
             Swap deployer = new Swap();
-            (coreInfo.swapper, coreInfo.swapVerifier) =
-                deployer.deploy(ONE_INCH_AGGREGATOR_V6, UNISWAP_ROUTER_V2, UNISWAP_ROUTER_V3, UNISWAP_ROUTER_02);
+            (coreInfo.swapper, coreInfo.swapVerifier) = deployer.deploy(
+                ONE_INCH_AGGREGATOR_V6, UNISWAP_ROUTER_V2, UNISWAP_ROUTER_V3, UNISWAP_ROUTER_02, ENSO_AGGREGATOR
+            );
         }
         // deploy fee flow
         {

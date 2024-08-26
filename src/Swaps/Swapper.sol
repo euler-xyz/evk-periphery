@@ -12,16 +12,18 @@ import {OneInchHandler} from "./handlers/OneInchHandler.sol";
 import {UniswapV2Handler} from "./handlers/UniswapV2Handler.sol";
 import {UniswapV3Handler} from "./handlers/UniswapV3Handler.sol";
 import {UniswapAutoRouterHandler} from "./handlers/UniswapAutoRouterHandler.sol";
+import {EnsoHandler} from "./handlers/EnsoHandler.sol";
 
 /// @title Swapper
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Untrusted helper contract for EVK for performing swaps and swaps to repay
-contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapAutoRouterHandler {
+contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapAutoRouterHandler, EnsoHandler {
     bytes32 public constant HANDLER_ONE_INCH = bytes32("1Inch");
     bytes32 public constant HANDLER_UNISWAP_V2 = bytes32("UniswapV2");
     bytes32 public constant HANDLER_UNISWAP_V3 = bytes32("UniswapV3");
     bytes32 public constant HANDLER_UNISWAP_AUTOROUTER = bytes32("UniswapAutoRouter");
+    bytes32 public constant HANDLER_ENSO = bytes32("Enso");
 
     uint256 internal constant REENTRANCYLOCK_UNLOCKED = 1;
     uint256 internal constant REENTRANCYLOCK_LOCKED = 2;
@@ -46,11 +48,18 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         if (isExternal) reentrancyLock = REENTRANCYLOCK_UNLOCKED;
     }
 
-    constructor(address oneInchAggregator, address uniswapRouterV2, address uniswapRouterV3, address uniswapRouter02)
+    constructor(
+        address oneInchAggregator,
+        address uniswapRouterV2,
+        address uniswapRouterV3,
+        address uniswapRouter02,
+        address ensoAggregator
+    )
         OneInchHandler(oneInchAggregator)
         UniswapV2Handler(uniswapRouterV2)
         UniswapV3Handler(uniswapRouterV3)
         UniswapAutoRouterHandler(uniswapRouter02)
+        EnsoHandler(ensoAggregator)
     {}
 
     /// @inheritdoc ISwapper
@@ -65,6 +74,8 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
             swapUniswapV3(params);
         } else if (params.handler == HANDLER_UNISWAP_AUTOROUTER) {
             swapAutoRouter(params);
+        } else if (params.handler == HANDLER_ENSO) {
+            swapEnso(params);
         } else {
             revert Swapper_UnknownHandler();
         }

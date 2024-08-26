@@ -15,7 +15,6 @@ contract OwnershipTransfer is ScriptUtils, CoreInfoLib {
     address internal constant PROTOCOL_CONFIG_ADMIN = EULER_DAO;
     address internal constant EVAULT_FACTORY_UPGRADE_ADMIN = EULER_DAO;
 
-
     // Default Perspective management: Euler Labs
     address internal constant EULER_LABS = 0xE130bA997B941f159ADc597F0d89a328554D4B3E;
 
@@ -23,7 +22,6 @@ contract OwnershipTransfer is ScriptUtils, CoreInfoLib {
     address internal constant EXTERNAL_VAULT_REGISTRY_OWNER = EULER_LABS;
     address internal constant IRM_REGISTRY_OWNER = EULER_LABS;
     address internal constant GOVERNABLE_WHITELIST_PERSPECTIVE_OWNER = EULER_LABS;
-
 
     function run() public {
         CoreInfo memory coreInfo =
