@@ -121,7 +121,7 @@ contract EulerUngovernedPerspective is BasePerspective {
         // vaults must have collaterals set up
         address[] memory ltvList = IEVault(vault).LTVList();
         uint256 ltvListLength = ltvList.length;
-        testProperty(ltvListLength > 0 && ltvListLength <= 10, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
+        testProperty(ltvListLength > 0, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
 
         // vaults must have recognized collaterals
         for (uint256 i = 0; i < ltvListLength; ++i) {
