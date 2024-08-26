@@ -46,7 +46,7 @@ All the contract addresses, which are the result of this deployment, will be sto
 ### 3. Deploy the oracle adapters adding them to the Adapters Registry:
 
 ```sh
-./script/production/DeployOracleAdapters.sh <csv_file_path>
+./script/production/DeployOracleAdapters.sh <csv_file_path> [<adapters_list_path>]
 ```
 
 i.e.
@@ -59,12 +59,12 @@ The above command must be run for each oracle provider/oracle type. If you choos
 If you decided not to add the oracle adapters to the Adapters Registry, you can add them later by running the `ConfigAddOracleAdapters.sh` script and providing the `adaptersList.csv` file path as an argument. The CSV file is the result of running the `DeployOracleAdapters.sh` script and can be found in the deployment directory.
 
 ```sh
-./script/production/ConfigAddOracleAdapters.sh <csv_file_path> [<adapters_list_path>]
+./script/production/ConfigAddOracleAdapters.sh <csv_file_path>
 ```
 
 i.e.
 ```sh
-./script/production/ConfigAddOracleAdapters.sh "script/deployments/default/output/adaptersList.csv" "script/deployments/default/output/adaptersList.csv"
+./script/production/ConfigAddOracleAdapters.sh "script/deployments/default/output/adaptersList.csv"
 ```
 
 **Important**
