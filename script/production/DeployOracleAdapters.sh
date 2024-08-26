@@ -195,14 +195,17 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             if [[ ! "$adapter_name" =~ ^0x ]]; then
                 adapter_name="${adapter_name//[/}"
                 adapter_name="${adapter_name//]/}"
+                adapter_name=$(echo "$adapter_name" | tr '[:upper:]' '[:lower:]')
                 
                 if [[ -f "$adapters_list" ]]; then
                     while IFS=, read -r -a adapter_columns || [ -n "$adapter_columns" ]; do
-                        if [[ "${adapter_columns[3]}" == "$adapter_name" ]]; then
+                        adapter_name_list=$(echo "${adapter_columns[3]}" | tr '[:upper:]' '[:lower:]')
+
+                        if [[ "${adapter_name_list}" == "$adapter_name" ]]; then
                             result="${adapter_columns[4]}"
                             break
                         fi
-                    done < <(tr -d '\r' < "$adapters_list_path")
+                    done < <(tr -d '\r' < "$adapters_list")
                 fi
             fi
 

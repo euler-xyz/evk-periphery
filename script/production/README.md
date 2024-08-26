@@ -59,16 +59,16 @@ The above command must be run for each oracle provider/oracle type. If you choos
 If you decided not to add the oracle adapters to the Adapters Registry, you can add them later by running the `ConfigAddOracleAdapters.sh` script and providing the `adaptersList.csv` file path as an argument. The CSV file is the result of running the `DeployOracleAdapters.sh` script and can be found in the deployment directory.
 
 ```sh
-./script/production/ConfigAddOracleAdapters.sh <csv_file_path>
+./script/production/ConfigAddOracleAdapters.sh <csv_file_path> [<adapters_list_path>]
 ```
 
 i.e.
 ```sh
-./script/production/ConfigAddOracleAdapters.sh "script/deployments/default/output/adaptersList.csv"
+./script/production/ConfigAddOracleAdapters.sh "script/deployments/default/output/adaptersList.csv" "script/deployments/default/output/adaptersList.csv"
 ```
 
 **Important**
-Note that the Cross adapter relies on the previous adapters deployment hence the Cross CSV must contain appropriate adapters addresses when the script is run. These can be taken from `script/deployments/[your_deployment_name]/output/adaptersList.csv`
+Note that the Cross adapter relies on the previous adapters deployment hence the Cross CSV must either contain appropriate adapters addresses when the script is run or appropriate `adaptersList.csv` from the previous deployment must be passed.
 
 ### 4. Deploy the initial set of vaults:
 
