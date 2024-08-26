@@ -124,6 +124,13 @@ contract IRMAdaptiveCurve is IIRM {
         return rateAtTarget * 1e9; // Extend rate to RAY/sec for EVK.
     }
 
+    /// @notice Get the timestamp of the last update for a vault.
+    /// @param vault Address of the vault to get the last update timestamp for.
+    /// @return The last update timestamp.
+    function getLastUpdateTimestamp(address vault) external view returns (uint256) {
+        return irState[vault].lastUpdate;
+    }
+
     /// @notice Compute the new interest rate and rate at target utilization of a vault.
     /// @param vault Address of the vault to compute the new interest rate for.
     /// @param cash Amount of assets held directly by the vault.

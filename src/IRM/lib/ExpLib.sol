@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 /// @title ExpLib
 /// @custom:contact security@euler.xyz
-/// @author Euler Labs (https://www.eulerlabs.com/).
 /// @author Adapted from Morpho Labs
 /// (https://github.com/morpho-org/morpho-blue-irm/blob/a824ce06a53f45f12d0ffedb51abd756896b29fa/src/adaptive-curve-irm/libraries/ExpLib.sol)
 /// @notice Library to approximate the exponential function.
