@@ -2,11 +2,12 @@
 
 # Check if the file path is provided
 if [ -z "$1" ]; then
-  echo "Usage: $0 <csv_file_path>"
+  echo "Usage: $0 <csv_file_path> [adapters_list_path]"
   exit 1
 fi
 
 csv_file="$1"
+adapters_list_path="$2"
 
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}
@@ -26,10 +27,6 @@ chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 
 mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broadcast"
 
-if [[ ! -f "$adaptersList" ]]; then
-    echo "Asset,Quote,Provider,Adapter,Base,Quote" > "$adaptersList"
-fi
-
 baseName=03_OracleAdapters
 
 read -p "Should the adapter be added to the Adapter Registry? (y/n) (default: y): " add_to_adapter_registry
@@ -40,6 +37,10 @@ if [[ $add_to_adapter_registry != "n" ]]; then
     read -p "Enter the Adapter Registry address: " adapter_registry
 fi
 
+if [[ ! -f "$adaptersList" ]]; then
+    echo "Asset,Quote,Provider,Adapter Name,Adapter,Base,Quote" > "$adaptersList"
+fi
+
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
     provider_index="${columns[2]}"
     deploy_index="${columns[3]}"
@@ -47,6 +48,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     if [[ "$deploy_index" == "Deploy" || "$deploy_index" == "No" ]]; then
         continue
     fi
+
+    adapterName="${provider_index// /}_${columns[0]}/${columns[1]}"
 
     if [[ "$provider_index" == "Chainlink" ]]; then
         scriptName=${baseName}.s.sol:ChainlinkAdapter
@@ -184,18 +187,44 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 maxConfWidth: $maxConfWidth
             }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider_index" == *Cross* ]]; then
+        find_adapter_address() {
+            local adapter_name="$1"
+            local adapters_list="$2"
+            local result="$adapter_name"
+
+            if [[ ! "$adapter_name" =~ ^0x ]]; then
+                adapter_name="${adapter_name//[/}"
+                adapter_name="${adapter_name//]/}"
+                
+                if [[ -f "$adapters_list" ]]; then
+                    while IFS=, read -r -a adapter_columns || [ -n "$adapter_columns" ]; do
+                        if [[ "${adapter_columns[3]}" == "$adapter_name" ]]; then
+                            result="${adapter_columns[4]}"
+                            break
+                        fi
+                    done < <(tr -d '\r' < "$adapters_list_path")
+                fi
+            fi
+
+            echo "$result"
+        }
+
+        columns[9]=$(find_adapter_address "${columns[9]}" "$adapters_list_path")
+        columns[10]=$(find_adapter_address "${columns[10]}" "$adapters_list_path")
+
         # Sanity check
         timestamp=$(date +%s)
         baseCrossAdapters=$(cast call "$adapter_registry" "getValidAddresses(address,address,uint256)(address[])" "${columns[6]}" "${columns[7]}" "$timestamp" --rpc-url "$DEPLOYMENT_RPC_URL")
-        crossQuoteAdapters=$(cast call "$adapter_registry" "getValidAddresses(address,address,uint256)(address[])" "${columns[7]}" "${columns[8]}" "$timestamp" --rpc-url "$DEPLOYMENT_RPC_URL")
 
         if [[ $baseCrossAdapters != *"${columns[9]}"* ]]; then
-            echo "${columns[9]} is not a valid adapter. Skipping..."
+            echo "${columns[9]} is not a valid adapter. Skipping deployment of $adapterName..."
             continue
         fi
 
+        crossQuoteAdapters=$(cast call "$adapter_registry" "getValidAddresses(address,address,uint256)(address[])" "${columns[7]}" "${columns[8]}" "$timestamp" --rpc-url "$DEPLOYMENT_RPC_URL")
+
         if [[ $crossQuoteAdapters != *"${columns[10]}"* ]]; then
-            echo "${columns[10]} is not a valid adapter. Skipping..."
+            echo "${columns[10]} is not a valid adapter. Skipping deployment of $adapterName..."
             continue
         fi
 
@@ -227,14 +256,20 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         exit 1
     fi
 
-    if script/utils/executeForgeScript.sh $scriptName $verify_contracts; then
-        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
+    script/utils/executeForgeScript.sh $scriptName $verify_contracts > /dev/null 2>&1
 
-        echo "${columns[0]},${columns[1]},${columns[2]},$(jq -r '.adapter' "script/${jsonName}_output.json"),$base,$quote" >> "$adaptersList"
+    if [[ -f "script/${jsonName}_output.json" ]]; then
+        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
+        adapter=$(jq -r '.adapter' "script/${jsonName}_output.json")
+
+        echo "Successfully deployed $adapterName: $adapter"
+        echo "${columns[0]},${columns[1]},${columns[2]},${adapterName},${adapter},$base,$quote" >> "$adaptersList"
+
         mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
         mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"
         cp "broadcast/${baseName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
     else
+        echo "Error deploying $adapterName..."
         rm "script/${jsonName}_input.json"
     fi
 done < <(tr -d '\r' < "$csv_file")

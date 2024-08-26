@@ -18,9 +18,9 @@ source .env
 read -p "Enter the Adapter Registry address: " adapter_registry
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
-    adapter="${columns[3]}"
-    base="${columns[4]}"
-    quote="${columns[5]}"
+    adapter="${columns[4]}"
+    base="${columns[5]}"
+    quote="${columns[6]}"
 
     if [[ "$adapter" == "Adapter" ]]; then
         continue
