@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib} from "../../utils/ScriptUtils.s.sol";
-import {KinkIRM} from "../../04_KinkIRM.s.sol";
+import {KinkIRM} from "../../04_IRM.s.sol";
 import {EVaultDeployer} from "../../07_EVault.s.sol";
 import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
 import {BasePerspective} from "../../../src/Perspectives/implementation/BasePerspective.sol";

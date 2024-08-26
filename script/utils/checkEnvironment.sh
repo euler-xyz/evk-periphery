@@ -26,3 +26,5 @@ if [[ $shouldVerify == "y" ]]; then
         exit 1
     fi
 fi
+
+forge clean && forge compile
