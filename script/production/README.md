@@ -46,7 +46,7 @@ All the contract addresses, which are the result of this deployment, will be sto
 ### 3. Deploy the oracle adapters adding them to the Adapters Registry:
 
 ```sh
-./script/production/DeployOracleAdapters.sh <csv_file_path> [<adapters_list_path>]
+./script/production/DeployOracleAdapters.sh <csv_input_file_path> [<csv_oracle_adapters_addresses_path>]
 ```
 
 i.e.
@@ -56,7 +56,7 @@ i.e.
 
 The above command must be run for each oracle provider/oracle type. If you choose to add the oracle adapters to the Adapters Registry while deploying, you will be prompted for the Adapter Registry address which you should have obtained in step 1.
 
-If you decided not to add the oracle adapters to the Adapters Registry, you can add them later by running the `ConfigAddOracleAdapters.sh` script and providing the `adaptersList.csv` file path as an argument. The CSV file is the result of running the `DeployOracleAdapters.sh` script and can be found in the deployment directory.
+If you decided not to add the oracle adapters to the Adapters Registry, you can add them later by running the `ConfigAddOracleAdapters.sh` script and providing the `OracleAdaptersAddresses.csv` file path as an argument. The CSV file is the result of running the `DeployOracleAdapters.sh` script and can be found in the deployment directory.
 
 ```sh
 ./script/production/ConfigAddOracleAdapters.sh <csv_file_path>
@@ -64,14 +64,14 @@ If you decided not to add the oracle adapters to the Adapters Registry, you can 
 
 i.e.
 ```sh
-./script/production/ConfigAddOracleAdapters.sh "script/deployments/default/output/adaptersList.csv"
+./script/production/ConfigAddOracleAdapters.sh "script/deployments/default/output/OracleAdaptersAddresses.csv"
 ```
 
 **Important**
-To avoid deploying duplicate adapters, one can pass the `adaptersList.csv` from the previous deployment as an argument (optional). The script will read the deployed adapters from the CSV and will not deploy the duplicate ones.
+To avoid deploying duplicate adapters, one can pass the `OracleAdaptersAddresses.csv` from the previous deployment as an argument (optional). The script will read the deployed adapters from the CSV and will not deploy the duplicate ones.
 
 **Important**
-Note that the Cross adapter deployment relies on the previous adapters deployment hence the Cross CSV must either contain appropriate adapters addresses when the script is run or appropriate `adaptersList.csv` from the previous deployment must be passed as an argument.
+Note that the Cross adapter deployment relies on the previous adapters deployment hence the Cross CSV must either contain appropriate adapters addresses when the script is run or appropriate `OracleAdaptersAddresses.csv` from the previous deployment must be passed as an argument.
 
 ### 4. Deploy the initial set of vaults:
 

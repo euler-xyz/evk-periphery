@@ -26,18 +26,18 @@ find_adapter_address() {
 }
 
 if [ -z "$1" ]; then
-    echo "Usage: $0 <csv_file_path> [adapters_list_path]"
+    echo "Usage: $0 <csv_input_file_path> [csv_oracle_adapters_addresses_path]"
     exit 1
 fi
 
 if [ ! -z "$2" ] && [[ ! -f "$2" ]]; then
     echo "Error: The specified adapters list file does not exist."
-    echo "Usage: $0 <csv_file_path> [adapters_list_path]"
+    echo "Usage: $0 <csv_input_file_path> [csv_oracle_adapters_addresses_path]"
     exit 1
 fi
 
 csv_file="$1"
-past_adapters_list_path="$2"
+past_oracle_adapters_addresses_path="$2"
 
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}
@@ -52,7 +52,7 @@ deployment_name=${deployment_name:-default}
 
 source .env
 deployment_dir="script/deployments/$deployment_name"
-adaptersList="$deployment_dir/output/adaptersList.csv"
+oracleAdaptersAddresses="$deployment_dir/output/OracleAdaptersAddresses.csv"
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 
 mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broadcast"
@@ -67,13 +67,13 @@ if [[ $add_to_adapter_registry != "n" ]]; then
     read -p "Enter the Adapter Registry address: " adapter_registry
 fi
 
-if [ -f "$past_adapters_list_path" ]; then
-    read -p "Should avoid deploying duplicates based on the provided $adaptersList file? (y/n) (default: y): " avoid_duplicates
+if [ -f "$past_oracle_adapters_addresses_path" ]; then
+    read -p "Should avoid deploying duplicates based on the provided $oracleAdaptersAddresses file? (y/n) (default: y): " avoid_duplicates
     avoid_duplicates=${avoid_duplicates:-y}
 fi
 
-if [[ ! -f "$adaptersList" ]]; then
-    echo "Asset,Quote,Provider,Adapter Name,Adapter,Base,Quote" > "$adaptersList"
+if [[ ! -f "$oracleAdaptersAddresses" ]]; then
+    echo "Asset,Quote,Provider,Adapter Name,Adapter,Base,Quote" > "$oracleAdaptersAddresses"
 fi
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
@@ -87,7 +87,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     adapterName="${provider_index// /}_${columns[0]}/${columns[1]}"
 
     if [[ "$avoid_duplicates" == "y" ]]; then
-        adapterAddress=$(find_adapter_address "$adapterName" "$past_adapters_list_path")
+        adapterAddress=$(find_adapter_address "$adapterName" "$past_oracle_adapters_addresses_path")
 
         if [[ "$adapterAddress" =~ ^0x ]]; then
             echo "Skipping deployment of $adapterName. Adapter already deployed: $adapterAddress"
@@ -231,8 +231,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 maxConfWidth: $maxConfWidth
             }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider_index" == *Cross* ]]; then
-        columns[9]=$(find_adapter_address "${columns[9]}" "$past_adapters_list_path")
-        columns[10]=$(find_adapter_address "${columns[10]}" "$past_adapters_list_path")
+        columns[9]=$(find_adapter_address "${columns[9]}" "$past_oracle_adapters_addresses_path")
+        columns[10]=$(find_adapter_address "${columns[10]}" "$past_oracle_adapters_addresses_path")
 
         # Sanity check
         timestamp=$(date +%s)
@@ -285,7 +285,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         adapter=$(jq -r '.adapter' "script/${jsonName}_output.json")
 
         echo "Successfully deployed $adapterName: $adapter"
-        echo "${columns[0]},${columns[1]},${columns[2]},${adapterName},${adapter},$base,$quote" >> "$adaptersList"
+        echo "${columns[0]},${columns[1]},${columns[2]},${adapterName},${adapter},$base,$quote" >> "$oracleAdaptersAddresses"
 
         mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
         mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"
