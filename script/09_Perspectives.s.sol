@@ -68,6 +68,10 @@ contract Perspectives is ScriptUtils {
         address governedPerspective = address(new GovernedPerspective(getDeployer()));
         address escrowedCollateralPerspective = address(new EscrowedCollateralPerspective(eVaultFactory));
 
+        address[] memory recognizedUnitOfAccounts = new address[](2);
+        recognizedUnitOfAccounts[0] = address(840);
+        recognizedUnitOfAccounts[1] = getWETHAddress();
+
         address[] memory recognizedPerspectives = new address[](2);
         recognizedPerspectives[0] = escrowedCollateralPerspective;
         recognizedPerspectives[1] = address(0);
@@ -80,7 +84,8 @@ contract Perspectives is ScriptUtils {
                 externalVaultRegistry,
                 kinkIRMFactory,
                 irmRegistry,
-                recognizedPerspectives
+                recognizedPerspectives,
+                recognizedUnitOfAccounts
             )
         );
 
@@ -97,7 +102,8 @@ contract Perspectives is ScriptUtils {
                 externalVaultRegistry,
                 kinkIRMFactory,
                 irmRegistry,
-                recognizedPerspectives
+                recognizedPerspectives,
+                recognizedUnitOfAccounts
             )
         );
 

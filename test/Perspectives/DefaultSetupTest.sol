@@ -77,6 +77,10 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         // deploy different perspectives
         escrowedCollateralPerspective = new EscrowedCollateralPerspective(address(factory));
 
+        address[] memory recognizedUnitOfAccounts = new address[](2);
+        recognizedUnitOfAccounts[0] = address(840);
+        recognizedUnitOfAccounts[1] = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+
         address[] memory recognizedCollateralPerspectives = new address[](1);
         recognizedCollateralPerspectives[0] = address(0);
         eulerUngovernedPerspective1 = new EulerUngovernedPerspective(
@@ -87,7 +91,8 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
             address(externalVaultRegistry),
             address(irmFactory),
             address(irmRegistry),
-            recognizedCollateralPerspectives
+            recognizedCollateralPerspectives,
+            recognizedUnitOfAccounts
         );
 
         recognizedCollateralPerspectives[0] = address(escrowedCollateralPerspective);
@@ -99,7 +104,8 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
             address(externalVaultRegistry),
             address(irmFactory),
             address(irmRegistry),
-            recognizedCollateralPerspectives
+            recognizedCollateralPerspectives,
+            recognizedUnitOfAccounts
         );
 
         recognizedCollateralPerspectives = new address[](2);
@@ -113,7 +119,8 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
             address(externalVaultRegistry),
             address(irmFactory),
             address(irmRegistry),
-            recognizedCollateralPerspectives
+            recognizedCollateralPerspectives,
+            recognizedUnitOfAccounts
         );
 
         // deploy example vaults and configure them

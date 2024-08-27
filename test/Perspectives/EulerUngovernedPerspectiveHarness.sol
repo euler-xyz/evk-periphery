@@ -21,6 +21,7 @@ contract EulerUngovernedPerspectiveHarness is EulerUngovernedPerspective {
             externalVaultRegistry_,
             irmFactory_,
             irmRegistry,
+            new address[](0),
             new address[](0)
         )
     {}

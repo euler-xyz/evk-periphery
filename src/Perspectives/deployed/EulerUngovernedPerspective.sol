@@ -19,18 +19,18 @@ import {BasePerspective} from "../implementation/BasePerspective.sol";
 /// @notice A contract that verifies whether a vault has the properties of an ungoverned vault. It allows
 /// collaterals to be recognized by any of the specified perspectives.
 contract EulerUngovernedPerspective is BasePerspective {
-    string internal nameString;
-    address[] public recognizedCollateralPerspectives;
     IEulerRouterFactory public immutable routerFactory;
     SnapshotRegistry public immutable adapterRegistry;
     SnapshotRegistry public immutable externalVaultRegistry;
     SnapshotRegistry public immutable irmRegistry;
     IEulerKinkIRMFactory public immutable irmFactory;
-    address internal constant USD = address(840);
-    address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+
+    string internal _name;
+    address[] internal _recognizedCollateralPerspectives;
+    mapping(address => bool) internal _isRecognizedUnitOfAccount;
 
     /// @notice Creates a new EulerUngovernedPerspective instance.
-    /// @param nameString_ The name string for the perspective.
+    /// @param name_ The name string for the perspective.
     /// @param vaultFactory_ The address of the GenericFactory contract.
     /// @param routerFactory_ The address of the EulerRouterFactory contract.
     /// @param adapterRegistry_ The address of the adapter registry contract.
@@ -40,27 +40,45 @@ contract EulerUngovernedPerspective is BasePerspective {
     /// @param recognizedCollateralPerspectives_ The addresses of the recognized collateral perspectives. address(0) for
     /// self.
     constructor(
-        string memory nameString_,
+        string memory name_,
         address vaultFactory_,
         address routerFactory_,
         address adapterRegistry_,
         address externalVaultRegistry_,
         address irmFactory_,
         address irmRegistry_,
-        address[] memory recognizedCollateralPerspectives_
+        address[] memory recognizedCollateralPerspectives_,
+        address[] memory recognizedUnitOfAccounts_
     ) BasePerspective(vaultFactory_) {
-        nameString = nameString_;
+        _name = name_;
         routerFactory = IEulerRouterFactory(routerFactory_);
         adapterRegistry = SnapshotRegistry(adapterRegistry_);
         externalVaultRegistry = SnapshotRegistry(externalVaultRegistry_);
         irmFactory = IEulerKinkIRMFactory(irmFactory_);
         irmRegistry = SnapshotRegistry(irmRegistry_);
-        recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
+        _recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
+
+        for (uint256 i = 0; i < recognizedUnitOfAccounts_.length; ++i) {
+            _isRecognizedUnitOfAccount[recognizedUnitOfAccounts_[i]] = true;
+        }
     }
 
     /// @inheritdoc BasePerspective
     function name() public view virtual override returns (string memory) {
-        return nameString;
+        return _name;
+    }
+
+    /// @notice Returns the list of recognized collateral perspectives
+    /// @return An array of addresses representing the recognized collateral perspectives
+    function recognizedCollateralPerspectives() public view returns (address[] memory) {
+        return _recognizedCollateralPerspectives;
+    }
+
+    /// @notice Checks if a given unit of account is recognized by this perspective
+    /// @param unitOfAccount The address of the unit of account to check
+    /// @return bool True if the unit of account is recognized, false otherwise
+    function isRecognizedUnitOfAccount(address unitOfAccount) public view returns (bool) {
+        return _isRecognizedUnitOfAccount[unitOfAccount];
     }
 
     /// @inheritdoc BasePerspective
@@ -111,9 +129,9 @@ contract EulerUngovernedPerspective is BasePerspective {
         testProperty(EulerRouter(oracle).governor() == address(0), ERROR__ORACLE_GOVERNED_ROUTER);
         testProperty(EulerRouter(oracle).fallbackOracle() == address(0), ERROR__ORACLE_INVALID_FALLBACK);
 
-        // Verify the unit of account is either USD or WETH
+        // Verify the unit of account is recognized
         address unitOfAccount = IEVault(vault).unitOfAccount();
-        testProperty(unitOfAccount == USD || unitOfAccount == WETH, ERROR__UNIT_OF_ACCOUNT);
+        testProperty(_isRecognizedUnitOfAccount[unitOfAccount], ERROR__UNIT_OF_ACCOUNT);
 
         // Verify the full pricing configuration for asset/unitOfAccount in the router.
         verifyAssetPricing(oracle, asset, unitOfAccount);
@@ -140,9 +158,9 @@ contract EulerUngovernedPerspective is BasePerspective {
 
             // iterate over recognized collateral perspectives to check if the collateral is recognized
             bool recognized = false;
-            uint256 recognizedCollateralPerspectivesLength = recognizedCollateralPerspectives.length;
+            uint256 recognizedCollateralPerspectivesLength = _recognizedCollateralPerspectives.length;
             for (uint256 j = 0; j < recognizedCollateralPerspectivesLength; ++j) {
-                address perspective = resolveRecognizedPerspective(recognizedCollateralPerspectives[j]);
+                address perspective = resolveRecognizedPerspective(_recognizedCollateralPerspectives[j]);
 
                 if (BasePerspective(perspective).isVerified(collateral)) {
                     recognized = true;
@@ -152,7 +170,7 @@ contract EulerUngovernedPerspective is BasePerspective {
 
             if (!recognized) {
                 for (uint256 j = 0; j < recognizedCollateralPerspectivesLength; ++j) {
-                    address perspective = resolveRecognizedPerspective(recognizedCollateralPerspectives[j]);
+                    address perspective = resolveRecognizedPerspective(_recognizedCollateralPerspectives[j]);
 
                     try BasePerspective(perspective).perspectiveVerify(collateral, true) {
                         recognized = true;

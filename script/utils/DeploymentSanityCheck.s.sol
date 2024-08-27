@@ -190,18 +190,11 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
                 == peripheryAddresses.kinkIRMFactory
         );
 
-        address recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective)
-            .recognizedCollateralPerspectives(0);
-        assert(recognized == peripheryAddresses.escrowedCollateralPerspective);
-        recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective)
-            .recognizedCollateralPerspectives(1);
-        assert(recognized == address(0));
-
-        try EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective).recognizedCollateralPerspectives(
-            2
-        ) {
-            revert("array too long!");
-        } catch {}
+        address[] memory recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective)
+            .recognizedCollateralPerspectives();
+        assert(recognized[0] == peripheryAddresses.escrowedCollateralPerspective);
+        assert(recognized[1] == address(0));
+        assert(recognized.length == 2);
 
         // eulerUngovernedNzxPerspective
         // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory
@@ -233,19 +226,11 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         );
 
         recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective)
-            .recognizedCollateralPerspectives(0);
-        assert(recognized == peripheryAddresses.governedPerspective);
-        recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective)
-            .recognizedCollateralPerspectives(1);
-        assert(recognized == peripheryAddresses.escrowedCollateralPerspective);
-        recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective)
-            .recognizedCollateralPerspectives(2);
-        assert(recognized == address(0));
-
-        try EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective)
-            .recognizedCollateralPerspectives(3) {
-            revert("array too long!");
-        } catch {}
+            .recognizedCollateralPerspectives();
+        assert(recognized[0] == peripheryAddresses.governedPerspective);
+        assert(recognized[1] == peripheryAddresses.escrowedCollateralPerspective);
+        assert(recognized[2] == address(0));
+        assert(recognized.length == 3);
 
         // governedPerspective
         // - owner
