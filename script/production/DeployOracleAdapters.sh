@@ -232,20 +232,20 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         columns[10]=$(find_adapter_address "${columns[10]}" "$past_oracle_adapters_addresses_path")
 
         # Sanity check
-        timestamp=$(date +%s)
-        baseCrossAdapters=$(cast call "$adapter_registry" "getValidAddresses(address,address,uint256)(address[])" "${columns[6]}" "${columns[7]}" "$timestamp" --rpc-url "$DEPLOYMENT_RPC_URL")
+        #timestamp=$(date +%s)
+        #baseCrossAdapters=$(cast call "$adapter_registry" "getValidAddresses(address,address,uint256)(address[])" "${columns[6]}" "${columns[7]}" "$timestamp" --rpc-url "$DEPLOYMENT_RPC_URL")
 
-        if [[ $baseCrossAdapters != *"${columns[9]}"* ]]; then
-            echo "${columns[9]} is not a valid adapter. Skipping deployment of $adapterName..."
-            continue
-        fi
+        #if [[ $baseCrossAdapters != *"${columns[9]}"* ]]; then
+        #    echo "${columns[9]} is not a valid adapter. Skipping deployment of $adapterName..."
+        #    continue
+        #fi
 
-        crossQuoteAdapters=$(cast call "$adapter_registry" "getValidAddresses(address,address,uint256)(address[])" "${columns[7]}" "${columns[8]}" "$timestamp" --rpc-url "$DEPLOYMENT_RPC_URL")
+        #crossQuoteAdapters=$(cast call "$adapter_registry" "getValidAddresses(address,address,uint256)(address[])" "${columns[7]}" "${columns[8]}" "$timestamp" --rpc-url "$DEPLOYMENT_RPC_URL")
 
-        if [[ $crossQuoteAdapters != *"${columns[10]}"* ]]; then
-            echo "${columns[10]} is not a valid adapter. Skipping deployment of $adapterName..."
-            continue
-        fi
+        #if [[ $crossQuoteAdapters != *"${columns[10]}"* ]]; then
+        #    echo "${columns[10]} is not a valid adapter. Skipping deployment of $adapterName..."
+        #    continue
+        #fi
 
         scriptName=${baseName}.s.sol:CrossAdapterDeployer
         jsonName=03_CrossAdapter
