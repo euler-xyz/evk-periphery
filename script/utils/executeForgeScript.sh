@@ -5,7 +5,7 @@ source .env
 scriptPath=$1
 shouldVerify=$2
 
-if ! forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --slow; then
+if ! forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --slow; then
     exit 1
 fi
 

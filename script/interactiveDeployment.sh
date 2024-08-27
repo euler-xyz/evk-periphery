@@ -1,19 +1,5 @@
 #!/bin/bash
 
-function execute_forge_script {
-    local scriptName=$1
-    local shouldVerify=$2
-
-    forge script script/$scriptName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --slow
-
-    if [[ $shouldVerify == "y" ]]; then
-        chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-        broadcastFileName=${scriptName%%:*}
-
-        ./script/utils/verifyContracts.sh "./broadcast/$broadcastFileName/$chainId/run-latest.json"
-    fi
-}
-
 function save_results {
     local jsonName=$1
     local deployment_name=$2
@@ -649,6 +635,6 @@ while true; do
             ;;
     esac
 
-    execute_forge_script $scriptName $verify_contracts
+    script/utils/executeForgeScript.sh $scriptName $verify_contracts
     save_results $jsonName "$deployment_name"
 done
