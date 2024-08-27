@@ -1,13 +1,43 @@
 #!/bin/bash
 
-# Check if the file path is provided
+find_adapter_address() {
+    local adapter_name="$1"
+    local adapters_list="$2"
+    local result="$adapter_name"
+
+    if [[ ! "$adapter_name" =~ ^0x ]]; then
+        adapter_name="${adapter_name//[/}"
+        adapter_name="${adapter_name//]/}"
+        adapter_name=$(echo "$adapter_name" | tr '[:upper:]' '[:lower:]')
+        
+        if [[ -f "$adapters_list" ]]; then
+            while IFS=, read -r -a adapter_columns || [ -n "$adapter_columns" ]; do
+                adapter_name_list=$(echo "${adapter_columns[3]}" | tr '[:upper:]' '[:lower:]')
+
+                if [[ "${adapter_name_list}" == "$adapter_name" ]]; then
+                    result="${adapter_columns[4]}"
+                    break
+                fi
+            done < <(tr -d '\r' < "$adapters_list")
+        fi
+    fi
+
+    echo "$result"
+}
+
 if [ -z "$1" ]; then
-  echo "Usage: $0 <csv_file_path> [adapters_list_path]"
-  exit 1
+    echo "Usage: $0 <csv_file_path> [adapters_list_path]"
+    exit 1
+fi
+
+if [ ! -z "$2" ] && [[ ! -f "$2" ]]; then
+    echo "Error: The specified adapters list file does not exist."
+    echo "Usage: $0 <csv_file_path> [adapters_list_path]"
+    exit 1
 fi
 
 csv_file="$1"
-adapters_list_path="$2"
+past_adapters_list_path="$2"
 
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}
@@ -37,6 +67,11 @@ if [[ $add_to_adapter_registry != "n" ]]; then
     read -p "Enter the Adapter Registry address: " adapter_registry
 fi
 
+if [ -f "$past_adapters_list_path" ]; then
+    read -p "Should avoid deploying duplicates based on the provided $adaptersList file? (y/n) (default: y): " avoid_duplicates
+    avoid_duplicates=${avoid_duplicates:-y}
+fi
+
 if [[ ! -f "$adaptersList" ]]; then
     echo "Asset,Quote,Provider,Adapter Name,Adapter,Base,Quote" > "$adaptersList"
 fi
@@ -50,6 +85,15 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     fi
 
     adapterName="${provider_index// /}_${columns[0]}/${columns[1]}"
+
+    if [[ "$avoid_duplicates" == "y" ]]; then
+        adapterAddress=$(find_adapter_address "$adapterName" "$past_adapters_list_path")
+
+        if [[ "$adapterAddress" =~ ^0x ]]; then
+            echo "Skipping deployment of $adapterName. Adapter already deployed: $adapterAddress"
+            continue
+        fi
+    fi
 
     if [[ "$provider_index" == "Chainlink" ]]; then
         scriptName=${baseName}.s.sol:ChainlinkAdapter
@@ -187,33 +231,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 maxConfWidth: $maxConfWidth
             }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider_index" == *Cross* ]]; then
-        find_adapter_address() {
-            local adapter_name="$1"
-            local adapters_list="$2"
-            local result="$adapter_name"
-
-            if [[ ! "$adapter_name" =~ ^0x ]]; then
-                adapter_name="${adapter_name//[/}"
-                adapter_name="${adapter_name//]/}"
-                adapter_name=$(echo "$adapter_name" | tr '[:upper:]' '[:lower:]')
-                
-                if [[ -f "$adapters_list" ]]; then
-                    while IFS=, read -r -a adapter_columns || [ -n "$adapter_columns" ]; do
-                        adapter_name_list=$(echo "${adapter_columns[3]}" | tr '[:upper:]' '[:lower:]')
-
-                        if [[ "${adapter_name_list}" == "$adapter_name" ]]; then
-                            result="${adapter_columns[4]}"
-                            break
-                        fi
-                    done < <(tr -d '\r' < "$adapters_list")
-                fi
-            fi
-
-            echo "$result"
-        }
-
-        columns[9]=$(find_adapter_address "${columns[9]}" "$adapters_list_path")
-        columns[10]=$(find_adapter_address "${columns[10]}" "$adapters_list_path")
+        columns[9]=$(find_adapter_address "${columns[9]}" "$past_adapters_list_path")
+        columns[10]=$(find_adapter_address "${columns[10]}" "$past_adapters_list_path")
 
         # Sanity check
         timestamp=$(date +%s)

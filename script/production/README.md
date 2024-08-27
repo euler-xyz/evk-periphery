@@ -68,7 +68,10 @@ i.e.
 ```
 
 **Important**
-Note that the Cross adapter relies on the previous adapters deployment hence the Cross CSV must either contain appropriate adapters addresses when the script is run or appropriate `adaptersList.csv` from the previous deployment must be passed.
+To avoid deploying duplicate adapters, one can pass the `adaptersList.csv` from the previous deployment as an argument (optional). The script will read the deployed adapters from the CSV and will not deploy the duplicate ones.
+
+**Important**
+Note that the Cross adapter deployment relies on the previous adapters deployment hence the Cross CSV must either contain appropriate adapters addresses when the script is run or appropriate `adaptersList.csv` from the previous deployment must be passed as an argument.
 
 ### 4. Deploy the initial set of vaults:
 
