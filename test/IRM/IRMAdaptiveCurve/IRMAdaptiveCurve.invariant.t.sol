@@ -100,17 +100,18 @@ contract IRMAdaptiveCurveInvariantTest is Test {
 
     function invariant_SteepnessAffectsRatesCorrectly() public view {
         uint256 numCalls = harness.numCalls();
-        if (numCalls == 0) return;
+        if (numCalls < 2) return;
 
         IRMAdaptiveCurveHarness.StateHistory memory lastCallIrm = harness.nthCall(irm, numCalls - 1);
         IRMAdaptiveCurveHarness.StateHistory memory lastCallIrmSteeper = harness.nthCall(irmSteeper, numCalls - 1);
         IRMAdaptiveCurveHarness.StateHistory memory lastCallIrmFlatter = harness.nthCall(irmFlatter, numCalls - 1);
+        IRMAdaptiveCurveHarness.StateHistory memory secondToLastCallIrm = harness.nthCall(irm, numCalls - 2);
 
-        if (lastCallIrm.utilization > uint256(irm.TARGET_UTILIZATION())) {
+        if (secondToLastCallIrm.utilization > uint256(irm.TARGET_UTILIZATION())) {
             // Above TARGET_UTILIZATION steeper CURVE_STEEPNESS = higher rate
             assertGe(lastCallIrmSteeper.rate, lastCallIrm.rate);
             assertLe(lastCallIrmFlatter.rate, lastCallIrm.rate);
-        } else if (lastCallIrm.utilization < uint256(irm.TARGET_UTILIZATION())) {
+        } else if (secondToLastCallIrm.utilization < uint256(irm.TARGET_UTILIZATION())) {
             assertLe(lastCallIrmSteeper.rate, lastCallIrm.rate);
             assertGe(lastCallIrmFlatter.rate, lastCallIrm.rate);
         }
@@ -121,6 +122,7 @@ contract IRMAdaptiveCurveInvariantTest is Test {
     }
 
     function invariant_SteepnessDoesNotAffectRatesAtKink() public {
+        harness.computeInterestRate(3600, 1e18, 9e18);
         harness.computeInterestRate(3600, 1e18, 9e18);
         uint256 numCalls = harness.numCalls();
 
@@ -145,13 +147,13 @@ contract IRMAdaptiveCurveInvariantTest is Test {
             if (lastCall.delay == 0) {
                 // if time has not passed then the model should not adapt
                 assertEq(lastCall.rateAtTarget, secondToLastCall.rateAtTarget);
-            } else if (lastCall.utilization > uint256(_irm.TARGET_UTILIZATION())) {
+            } else if (secondToLastCall.utilization > uint256(_irm.TARGET_UTILIZATION())) {
                 // must have translated the model up
-                if (lastCall.rateAtTarget == uint256(irm.MAX_RATE_AT_TARGET())) return;
+                if (secondToLastCall.rateAtTarget == uint256(irm.MAX_RATE_AT_TARGET())) return;
                 assertGe(lastCall.rateAtTarget, secondToLastCall.rateAtTarget);
-            } else if (lastCall.utilization < uint256(_irm.TARGET_UTILIZATION())) {
+            } else if (secondToLastCall.utilization < uint256(_irm.TARGET_UTILIZATION())) {
                 // must have translated the model down
-                if (lastCall.rateAtTarget == uint256(irm.MIN_RATE_AT_TARGET())) return;
+                if (secondToLastCall.rateAtTarget == uint256(irm.MIN_RATE_AT_TARGET())) return;
                 assertLe(lastCall.rateAtTarget, secondToLastCall.rateAtTarget);
             }
         }

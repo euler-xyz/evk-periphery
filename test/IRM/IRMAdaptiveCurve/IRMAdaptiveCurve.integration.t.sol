@@ -72,10 +72,10 @@ contract IRMAdaptiveCurveIntegrationTest is EVaultTestBase {
         assertEq(eTST.debtOf(borrower), 0.5e18);
 
         skip(1);
-        assertEq(eTST.interestAccumulator(), 1.000000001161920113267780211e27);
+        assertEq(eTST.interestAccumulator(), 1.000000000633774267100417455e27);
 
         // 1 block later, notice amount owed is rounded up:
-        assertEq(eTST.debtOf(borrower), 0.500000000422516364e18);
+        assertEq(eTST.debtOf(borrower), 0.500000000158443441e18);
 
         // Use max uint to actually pay off full amount:
         eTST.repay(type(uint256).max, borrower);

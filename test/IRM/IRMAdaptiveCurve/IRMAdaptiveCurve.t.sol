@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {console2} from "forge-std/console2.sol";
 import {Test} from "forge-std/Test.sol";
 import {IIRM} from "evk/InterestRateModels/IIRM.sol";
 import {IRMAdaptiveCurve} from "../../../src/IRM/IRMAdaptiveCurve.sol";
@@ -202,27 +203,36 @@ contract IRMAdaptiveCurveTest is Test {
         uint256 rate3 = computeRateAtUtilization(0.9e18);
         assertEq(rate3, uint256(INITIAL_RATE_AT_TARGET) * 1e9);
 
-        // Utilization climbs to 100% without time delay. The rate is 4x larger than initial.
+        // Utilization climbs to 100% without time delay. The next rate is 4x larger than initial.
         uint256 rate4 = computeRateAtUtilization(1e18);
-        assertEq(rate4, uint256(CURVE_STEEPNESS * INITIAL_RATE_AT_TARGET / 1e18) * 1e9);
+        assertEq(rate4, uint256(INITIAL_RATE_AT_TARGET) * 1e9);
 
-        // Utilization goes down to 0% without time delay. The rate is 4x smaller than initial.
+        // Utilization goes down to 0% without time delay. The next rate is 4x smaller than initial.
         uint256 rate5 = computeRateAtUtilization(0);
-        assertEq(rate5, uint256(1e18 * INITIAL_RATE_AT_TARGET / CURVE_STEEPNESS) * 1e9);
+        assertEq(rate5, uint256(CURVE_STEEPNESS * INITIAL_RATE_AT_TARGET / 1e18) * 1e9);
 
-        // Utilization goes back to 90% without time delay. The rate is back at initial.
+        // Utilization goes back to 90% without time delay. The next rate is back at initial.
         uint256 rate6 = computeRateAtUtilization(0.9e18);
-        assertEq(rate6, uint256(INITIAL_RATE_AT_TARGET) * 1e9);
+        assertEq(rate6, uint256(1e18 * INITIAL_RATE_AT_TARGET / CURVE_STEEPNESS) * 1e9);
+        // assertEq(rate6, uint256(INITIAL_RATE_AT_TARGET) * 1e9);
 
         // Utilization climbs to 100% after 1 day.
-        // The rate is 4x larger than initial + the whole curve has adjusted up.
+        // The next rate is 4x larger than initial + the whole curve has adjusted up.
         skip(1 days);
         uint256 rate7 = computeRateAtUtilization(1e18);
-        assertGt(rate7, uint256(CURVE_STEEPNESS * INITIAL_RATE_AT_TARGET / 1e18) * 1e9);
-        uint256 rate8 = computeRateAtUtilization(1e18);
-        // Utilization goes back to 90% without time delay. The rate is back at initial + adjustment factor.
+        assertEq(rate7, uint256(INITIAL_RATE_AT_TARGET) * 1e9);
+
+        skip(1 days);
+        uint256 rate8 = computeRateAtUtilization(0.9e18);
+        assertGt(rate8, uint256(CURVE_STEEPNESS * INITIAL_RATE_AT_TARGET / 1e18) * 1e9);
+
+        // Utilization goes back to 90%. The next rate is back at initial + adjustment factor.
+        skip(1 days);
         uint256 rate9 = computeRateAtUtilization(0.9e18);
-        assertEq(rate8, uint256(CURVE_STEEPNESS) * rate9 / 1e18);
+
+        skip(1 days);
+        computeRateAtUtilization(0.9e18);
+        assertGt(rate9, uint256(INITIAL_RATE_AT_TARGET) * 1e9);
     }
 
     function computeRateAtUtilization(uint256 utilizationRate) internal returns (uint256) {

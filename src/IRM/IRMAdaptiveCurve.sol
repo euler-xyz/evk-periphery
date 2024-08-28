@@ -105,31 +105,32 @@ contract IRMAdaptiveCurve is IIRM {
     /// @inheritdoc IIRM
     function computeInterestRate(address vault, uint256 cash, uint256 borrows) external returns (uint256) {
         if (msg.sender != vault) revert E_IRMUpdateUnauthorized();
-        (uint256 rate, uint256 rateAtTarget) = computeInterestRateInternal(vault);
+
         int256 utilization = _calcUtilization(cash, borrows);
+
+        // If this is the first call then use the current utilization instead of the lastUtilization from storage.
+        int256 lastUtilization = irState[vault].lastUpdate == 0 ? utilization : irState[vault].lastUtilization;
+        (uint256 rate, uint256 rateAtTarget) = computeInterestRateInternal(vault, lastUtilization);
+
         irState[vault] = IRState(uint144(rateAtTarget), int64(utilization), uint48(block.timestamp));
         return rate * 1e9; // Extend rate to RAY/sec for EVK.
     }
 
     /// @inheritdoc IIRM
-    function computeInterestRateView(address vault, uint256, /* cash */ uint256 /* borrows */ )
-        external
-        view
-        returns (uint256)
-    {
-        (uint256 rate,) = computeInterestRateInternal(vault);
+    function computeInterestRateView(address vault, uint256 cash, uint256 borrows) external view returns (uint256) {
+        int256 utilization = _calcUtilization(cash, borrows);
+        (uint256 rate,) = computeInterestRateInternal(vault, utilization);
         return rate * 1e9; // Extend rate to RAY/sec for EVK.
     }
 
     /// @notice Perform computation of the new rate at target without mutating state.
     /// @param vault Address of the vault to compute the new interest rate for.
+    /// @param cash Amount of assets held directly by the vault.
+    /// @param borrows Amount of assets lent out to borrowers by the vault.
     /// @return The new rate at target utilization in RAY units.
-    function computeRateAtTargetView(address vault, uint256, /* cash */ uint256 /* borrows */ )
-        external
-        view
-        returns (uint256)
-    {
-        (, uint256 rateAtTarget) = computeInterestRateInternal(vault);
+    function computeRateAtTargetView(address vault, uint256 cash, uint256 borrows) external view returns (uint256) {
+        int256 utilization = _calcUtilization(cash, borrows);
+        (, uint256 rateAtTarget) = computeInterestRateInternal(vault, utilization);
         return rateAtTarget * 1e9; // Extend rate to RAY/sec for EVK.
     }
 
@@ -144,10 +145,7 @@ contract IRMAdaptiveCurve is IIRM {
     /// @param vault Address of the vault to compute the new interest rate for.
     /// @return The new interest rate at current utilization.
     /// @return The new interest rate at target utilization.
-    function computeInterestRateInternal(address vault) internal view returns (uint256, uint256) {
-        // Calculate utilization rate.
-        int256 utilization = int256(irState[vault].lastUtilization);
-
+    function computeInterestRateInternal(address vault, int256 utilization) internal view returns (uint256, uint256) {
         // Calculate the normalized distance between current utilization and target utilization.
         // `err` is normalized to [-1, +1] where -1 is 0% util, 0 is at target, and +1 is 100% util.
         int256 errNormFactor = utilization > TARGET_UTILIZATION ? WAD - TARGET_UTILIZATION : TARGET_UTILIZATION;
@@ -162,7 +160,6 @@ contract IRMAdaptiveCurve is IIRM {
             // First interaction.
             endRateAtTarget = INITIAL_RATE_AT_TARGET;
         } else {
-            // The speed is assumed constant between two updates, but it is in fact not constant because of interest.
             // So the rate is always underestimated.
             int256 speed = ADJUSTMENT_SPEED * err / WAD;
 
