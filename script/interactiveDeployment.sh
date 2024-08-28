@@ -368,8 +368,7 @@ while true; do
             echo "Deploying IRM..."
             echo "Select the type of IRM to deploy:"
             echo "0. Kink"
-            echo "1. Adaptive Curve"
-            read -p "Enter your choice (0-1): " irm_choice
+            read -p "Enter your choice (0-0): " irm_choice
 
             baseName=04_IRM
 
@@ -398,38 +397,6 @@ while true; do
                             slope1: $slope1,
                             slope2: $slope2,
                             kink: $kink
-                        }' --indent 4 > script/${jsonName}_input.json
-                    ;;
-                1)
-                    echo "Deploying Adaptive Curve IRM..."
-                    
-                    scriptName=${baseName}.s.sol:AdaptiveCurveIRM
-                    jsonName=04_AdaptiveCurveIRM
-
-                    read -p "Enter the Adaptive Curve IRM Factory address: " adaptiveCurveIRMFactory
-                    read -p "Enter target utilization: " target_utilization
-                    read -p "Enter initial rate at target: " initial_rate_at_target
-                    read -p "Enter min rate at target: " min_rate_at_target
-                    read -p "Enter max rate at target: " max_rate_at_target
-                    read -p "Enter curve steepness: " curve_steepness
-                    read -p "Enter adjustment speed: " adjustment_speed
-
-                    jq -n \
-                        --arg adaptiveCurveIRMFactory "$adaptiveCurveIRMFactory" \
-                        --argjson targetUtilization "$target_utilization" \
-                        --argjson initialRateAtTarget "$initial_rate_at_target" \
-                        --argjson minRateAtTarget "$min_rate_at_target" \
-                        --argjson maxRateAtTarget "$max_rate_at_target" \
-                        --argjson curveSteepness "$curve_steepness" \
-                        --argjson adjustmentSpeed "$adjustment_speed" \
-                        '{
-                            adaptiveCurveIRMFactory: $adaptiveCurveIRMFactory,
-                            targetUtilization: $targetUtilization,
-                            initialRateAtTarget: $initialRateAtTarget,
-                            minRateAtTarget: $minRateAtTarget,
-                            maxRateAtTarget: $maxRateAtTarget,
-                            curveSteepness: $curveSteepness,
-                            adjustmentSpeed: $adjustmentSpeed
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
@@ -529,16 +496,13 @@ while true; do
             
             read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
             read -p "Enter the Kink IRM Factory address: " kink_irm_factory
-            read -p "Enter the Adaptive Curve IRM Factory address: " adaptive_curve_irm_factory
 
             jq -n \
                 --arg oracleAdapterRegistry "$oracle_adapter_registry" \
                 --arg kinkIRMFactory "$kink_irm_factory" \
-                --arg adaptiveCurveIRMFactory "$adaptive_curve_irm_factory" \
                 '{
                     oracleAdapterRegistry: $oracleAdapterRegistry,
-                    kinkIRMFactory: $kinkIRMFactory,
-                    adaptiveCurveIRMFactory: $adaptiveCurveIRMFactory
+                    kinkIRMFactory: $kinkIRMFactory
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         9)

@@ -19,6 +19,3 @@
 [submodule "lib/euler-vault-kit"]
 	path = lib/euler-vault-kit
 	url = https://github.com/euler-xyz/euler-vault-kit
-[submodule "lib/morpho-blue-irm"]
-	path = lib/morpho-blue-irm
-	url = https://github.com/morpho-org/morpho-blue-irm

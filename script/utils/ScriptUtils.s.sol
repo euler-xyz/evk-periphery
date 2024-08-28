@@ -86,7 +86,6 @@ contract PeripheryAddressesLib is Script {
         address oracleAdapterRegistry;
         address externalVaultRegistry;
         address kinkIRMFactory;
-        address adaptiveCurveIRMFactory;
         address irmRegistry;
         address swapper;
         address swapVerifier;
@@ -103,7 +102,6 @@ contract PeripheryAddressesLib is Script {
         result = vm.serializeAddress("peripheryAddresses", "oracleAdapterRegistry", Addresses.oracleAdapterRegistry);
         result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
         result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
-        result = vm.serializeAddress("peripheryAddresses", "adaptiveCurveIRMFactory", Addresses.adaptiveCurveIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "irmRegistry", Addresses.irmRegistry);
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
         result = vm.serializeAddress("peripheryAddresses", "swapVerifier", Addresses.swapVerifier);
@@ -127,7 +125,6 @@ contract PeripheryAddressesLib is Script {
             oracleAdapterRegistry: abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address)),
             externalVaultRegistry: abi.decode(vm.parseJson(json, ".externalVaultRegistry"), (address)),
             kinkIRMFactory: abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address)),
-            adaptiveCurveIRMFactory: abi.decode(vm.parseJson(json, ".adaptiveCurveIRMFactory"), (address)),
             irmRegistry: abi.decode(vm.parseJson(json, ".irmRegistry"), (address)),
             swapper: abi.decode(vm.parseJson(json, ".swapper"), (address)),
             swapVerifier: abi.decode(vm.parseJson(json, ".swapVerifier"), (address)),
