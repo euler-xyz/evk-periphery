@@ -18,6 +18,7 @@ source .env
 read -p "Enter the Adapter Registry address: " adapter_registry
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
+    adapterName="${columns[3]}"
     adapter="${columns[4]}"
     base="${columns[5]}"
     quote="${columns[6]}"
@@ -36,6 +37,6 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     if [[ $entry == "(0, 0)" ]]; then
         cast send $adapter_registry "add(address,address,address)()" $adapter $base $quote --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY
     else
-        echo "Adapter $adapter is already added to the registry or has been revoked. Skipping..."
+        echo "Adapter $adapterName ($adapter) is already added to the registry or has been revoked. Skipping..."
     fi
 done < <(tr -d '\r' < "$csv_file")
