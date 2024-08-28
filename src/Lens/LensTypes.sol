@@ -62,31 +62,6 @@ struct CollateralLiquidityInfo {
     uint256 collateralValue;
 }
 
-struct VaultInfoSimple {
-    uint256 timestamp;
-    address vault;
-    string vaultName;
-    string vaultSymbol;
-    uint256 vaultDecimals;
-    address asset;
-    uint256 assetDecimals;
-    address unitOfAccount;
-    uint256 unitOfAccountDecimals;
-    uint256 totalShares;
-    uint256 totalCash;
-    uint256 totalBorrowed;
-    uint256 totalAssets;
-    address oracle;
-    address governorAdmin;
-    VaultInterestRateModelInfo irmInfo;
-    LTVInfo[] collateralLTVInfo;
-    AssetPriceInfo liabilityPriceInfo;
-    AssetPriceInfo[] collateralPriceInfo;
-    OracleDetailedInfo oracleInfo;
-    AssetPriceInfo backupAssetPriceInfo;
-    OracleDetailedInfo backupAssetOracleInfo;
-}
-
 struct VaultInfoFull {
     uint256 timestamp;
     address vault;
@@ -164,6 +139,7 @@ struct VaultInterestRateModelInfo {
     address vault;
     address interestRateModel;
     InterestRateInfo[] interestRateInfo;
+    InterestRateModelDetailedInfo interestRateModelInfo;
 }
 
 struct InterestRateInfo {
@@ -175,8 +151,18 @@ struct InterestRateInfo {
     uint256 supplyAPY;
 }
 
-struct KinkInterestRateModelInfo {
+enum InterestRateModelType {
+    UNKNOWN,
+    KINK
+}
+
+struct InterestRateModelDetailedInfo {
     address interestRateModel;
+    InterestRateModelType interestRateModelType;
+    bytes interestRateModelParams;
+}
+
+struct KinkIRMInfo {
     uint256 baseRate;
     uint256 slope1;
     uint256 slope2;

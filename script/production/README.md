@@ -29,57 +29,85 @@ After that, deploy the contracts in a different terminal window.
 
 The results of the deployment will be saved in `script/deployments/[your_deployment_name]` directory.
 
-### 1. Deploy the core contracts:
+### 1. Deploy the core and the periphery contracts:
 
 ```sh
-./script/production/Core.sh <solidity_script_dir_path>
+./script/production/DeployCoreAndPeriphery.sh <solidity_script_dir_path>
 ```
 
 i.e.
 ```sh
-./script/production/Core.sh script/production/arbitrum
+./script/production/DeployCoreAndPeriphery.sh script/production/mainnet
 ```
 
-The core contracts addresses which are the result of this deployment will be stored in `script/deployments/[your_deployment_name]/output/CoreInfo.json`. They will be required for the other scripts to run but also the Front End team needs those.
+All the contract addresses, which are the result of this deployment, will be stored in `script/deployments/[your_deployment_name]/output`. They will be required for the other scripts to run (this directory path must be provided) but also the Front End team needs those.
 
 ### 2. Copy the oracle adapters data in the CSV format into any directory you like
 ### 3. Deploy the oracle adapters adding them to the Adapters Registry:
 
 ```sh
-./script/production/OracleAdapters.sh <csv_file_path>
+./script/production/DeployOracleAdapters.sh <csv_input_file_path> [<csv_oracle_adapters_addresses_path>]
 ```
 
 i.e.
 ```sh
-./script/production/OracleAdapters.sh "script/production/arbitrum/oracleAdapters/test/Euler V2 Oracles (Arbitrum) - Chainlink.csv"
+./script/production/DeployOracleAdapters.sh "script/production/mainnet/oracleAdapters/test/Euler V2 Oracles - Chainlink.csv"
 ```
 
-The above command must be run for each oracle provider/oracle type. You will be prompted for the Adapter Registry address which you should have obtained in step 1.
+The above command must be run for each oracle provider/oracle type. If you choose to add the oracle adapters to the Adapters Registry while deploying, you will be prompted for the Adapter Registry address which you should have obtained in step 1.
+
+If you decided not to add the oracle adapters to the Adapters Registry, you can add them later by running the `ConfigAddOracleAdapters.sh` script and providing the `OracleAdaptersAddresses.csv` file path as an argument. The CSV file is the result of running the `DeployOracleAdapters.sh` script and can be found in the deployment directory.
+
+```sh
+./script/production/ConfigAddOracleAdapters.sh <csv_file_path>
+```
+
+i.e.
+```sh
+./script/production/ConfigAddOracleAdapters.sh "script/deployments/default/output/OracleAdaptersAddresses.csv"
+```
 
 **Important**
-Note that the Cross adapter relies on the previous adapters deployment hence the Cross CSV must contain appropriate adapters addresses when the script is run. These can be taken from `script/deployments/[your_deployment_name]/output/adaptersList.csv`
+To avoid deploying duplicate adapters, one can pass the `OracleAdaptersAddresses.csv` from the previous deployment as an argument (optional). The script will read the deployed adapters from the CSV and will not deploy the duplicate ones.
+
+**Important**
+Note that the Cross adapter deployment relies on the previous adapters deployment hence the Cross CSV must either contain appropriate adapters addresses when the script is run or appropriate `OracleAdaptersAddresses.csv` from the previous deployment must be passed as an argument.
 
 ### 4. Deploy the initial set of vaults:
 
 ```sh
-./script/production/InitialVaults.sh <solidity_script_dir_path> <core_info_json_file_path>
+./script/production/DeployInitialVaults.sh <solidity_script_dir_path> <addresses_dir_path>
 ```
 
 i.e.
 ```sh
-./script/production/InitialVaults.sh script/production/arbitrum script/deployments/default/output/CoreInfo.json
+./script/production/DeployInitialVaults.sh script/production/mainnet script/deployments/default/output
 ```
 
 **Important**
-Note that the vaults deployment relies on the deployed oracle adapter addresses. Prepare the `InitialVaults.s.sol` accordingly before running the script.
+Note that the vaults deployment relies on the deployed oracle adapter addresses. Prepare the `DeployInitialVaults.s.sol` accordingly before running the script.
+
+**Important**
+`<addresses_dir_path>` must contain two json files containing the addresses, which are the result of running the `DeployCoreAndPeriphery.sh` script: `CoreAddresses.json` and `PeripheryAddresses.json`.
 
 ### 5. Transfer the ownership of the core contracts:
 
 ```sh
-./script/production/OwnershipTransfer.sh <solidity_script_dir_path> <core_info_json_file_path>
+./script/production/OwnershipTransferCore.sh <solidity_script_dir_path> <addresses_dir_path>
 ```
 
 i.e.
 ```sh
-./script/production/OwnershipTransfer.sh script/production/arbitrum script/deployments/default/output/CoreInfo.json
+./script/production/OwnershipTransferCore.sh script/production/mainnet script/deployments/default/output
+```
+
+### 6. Transfer the ownership of the periphery contracts:
+
+```sh
+./script/production/OwnershipTransferPeriphery.sh <solidity_script_dir_path> <addresses_dir_path>
+```
+
+i.e.
+```sh
+./script/production/OwnershipTransferPeriphery.sh script/production/mainnet script/deployments/default/output
 ```

@@ -8,22 +8,22 @@ import "evk/EVault/shared/Constants.sol";
 
 import {BasePerspective} from "../implementation/BasePerspective.sol";
 
-/// @title EscrowPerspective
+/// @title EscrowedCollateralPerspective
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A contract that verifies whether a vault has properties of an escrow vault. It allows only one escrow vault
 /// per asset if the vault has no supply cap configured.
-contract EscrowPerspective is BasePerspective {
+contract EscrowedCollateralPerspective is BasePerspective {
     /// @notice A mapping to look up the vault associated with a given asset.
     mapping(address => address) public singletonLookup;
 
-    /// @notice Creates a new EscrowPerspective instance.
+    /// @notice Creates a new EscrowedCollateralPerspective instance.
     /// @param vaultFactory_ The address of the GenericFactory contract.
     constructor(address vaultFactory_) BasePerspective(vaultFactory_) {}
 
     /// @inheritdoc BasePerspective
     function name() public pure virtual override returns (string memory) {
-        return "Escrow Perspective";
+        return "Escrowed Collateral Perspective";
     }
 
     /// @inheritdoc BasePerspective

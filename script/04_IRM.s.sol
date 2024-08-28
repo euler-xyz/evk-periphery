@@ -10,31 +10,31 @@ contract KinkIRM is ScriptUtils {
         string memory inputScriptFileName = "04_KinkIRM_input.json";
         string memory outputScriptFileName = "04_KinkIRM_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address irmFactory = abi.decode(vm.parseJson(json, ".irmFactory"), (address));
+        address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
         uint256 baseRate = abi.decode(vm.parseJson(json, ".baseRate"), (uint256));
         uint256 slope1 = abi.decode(vm.parseJson(json, ".slope1"), (uint256));
         uint256 slope2 = abi.decode(vm.parseJson(json, ".slope2"), (uint256));
         uint32 kink = abi.decode(vm.parseJson(json, ".kink"), (uint32));
 
-        irm = execute(irmFactory, baseRate, slope1, slope2, kink);
+        irm = execute(kinkIRMFactory, baseRate, slope1, slope2, kink);
 
         string memory object;
         object = vm.serializeAddress("irm", "irm", irm);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address irmFactory, uint256 baseRate, uint256 slope1, uint256 slope2, uint32 kink)
+    function deploy(address kinkIRMFactory, uint256 baseRate, uint256 slope1, uint256 slope2, uint32 kink)
         public
         broadcast
         returns (address irm)
     {
-        irm = execute(irmFactory, baseRate, slope1, slope2, kink);
+        irm = execute(kinkIRMFactory, baseRate, slope1, slope2, kink);
     }
 
-    function execute(address irmFactory, uint256 baseRate, uint256 slope1, uint256 slope2, uint32 kink)
+    function execute(address kinkIRMFactory, uint256 baseRate, uint256 slope1, uint256 slope2, uint32 kink)
         public
         returns (address irm)
     {
-        irm = EulerKinkIRMFactory(irmFactory).deploy(baseRate, slope1, slope2, kink);
+        irm = EulerKinkIRMFactory(kinkIRMFactory).deploy(baseRate, slope1, slope2, kink);
     }
 }

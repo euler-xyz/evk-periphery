@@ -19,32 +19,40 @@ contract ChainlinkAdapter is ScriptUtils {
         string memory outputScriptFileName = "03_ChainlinkAdapter_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        bool addToAdapterRegistry = abi.decode(vm.parseJson(json, ".addToAdapterRegistry"), (bool));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
         address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
         address feed = abi.decode(vm.parseJson(json, ".feed"), (address));
         uint256 maxStaleness = abi.decode(vm.parseJson(json, ".maxStaleness"), (uint256));
 
-        adapter = execute(adapterRegistry, base, quote, feed, maxStaleness);
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, quote, feed, maxStaleness);
 
         string memory object;
         object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address adapterRegistry, address base, address quote, address feed, uint256 maxStaleness)
-        public
-        broadcast
-        returns (address adapter)
-    {
-        adapter = execute(adapterRegistry, base, quote, feed, maxStaleness);
+    function deploy(
+        address adapterRegistry,
+        bool addToAdapterRegistry,
+        address base,
+        address quote,
+        address feed,
+        uint256 maxStaleness
+    ) public broadcast returns (address adapter) {
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, quote, feed, maxStaleness);
     }
 
-    function execute(address adapterRegistry, address base, address quote, address feed, uint256 maxStaleness)
-        public
-        returns (address adapter)
-    {
+    function execute(
+        address adapterRegistry,
+        bool addToAdapterRegistry,
+        address base,
+        address quote,
+        address feed,
+        uint256 maxStaleness
+    ) public returns (address adapter) {
         adapter = address(new ChainlinkOracle(base, quote, feed, maxStaleness));
-        SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
+        if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
 
@@ -54,32 +62,40 @@ contract ChronicleAdapter is ScriptUtils {
         string memory outputScriptFileName = "03_ChronicleAdapter_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        bool addToAdapterRegistry = abi.decode(vm.parseJson(json, ".addToAdapterRegistry"), (bool));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
         address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
         address feed = abi.decode(vm.parseJson(json, ".feed"), (address));
         uint256 maxStaleness = abi.decode(vm.parseJson(json, ".maxStaleness"), (uint256));
 
-        adapter = execute(adapterRegistry, base, quote, feed, maxStaleness);
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, quote, feed, maxStaleness);
 
         string memory object;
         object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address adapterRegistry, address base, address quote, address feed, uint256 maxStaleness)
-        public
-        broadcast
-        returns (address adapter)
-    {
-        adapter = execute(adapterRegistry, base, quote, feed, maxStaleness);
+    function deploy(
+        address adapterRegistry,
+        bool addToAdapterRegistry,
+        address base,
+        address quote,
+        address feed,
+        uint256 maxStaleness
+    ) public broadcast returns (address adapter) {
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, quote, feed, maxStaleness);
     }
 
-    function execute(address adapterRegistry, address base, address quote, address feed, uint256 maxStaleness)
-        public
-        returns (address adapter)
-    {
+    function execute(
+        address adapterRegistry,
+        bool addToAdapterRegistry,
+        address base,
+        address quote,
+        address feed,
+        uint256 maxStaleness
+    ) public returns (address adapter) {
         adapter = address(new ChronicleOracle(base, quote, feed, maxStaleness));
-        SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
+        if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
 
@@ -89,21 +105,24 @@ contract LidoAdapter is ScriptUtils {
         string memory outputScriptFileName = "03_LidoAdapter_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        bool addToAdapterRegistry = abi.decode(vm.parseJson(json, ".addToAdapterRegistry"), (bool));
 
-        adapter = execute(adapterRegistry);
+        adapter = execute(adapterRegistry, addToAdapterRegistry);
 
         string memory object;
         object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address adapterRegistry) public broadcast returns (address adapter) {
-        adapter = execute(adapterRegistry);
+    function deploy(address adapterRegistry, bool addToAdapterRegistry) public broadcast returns (address adapter) {
+        adapter = execute(adapterRegistry, addToAdapterRegistry);
     }
 
-    function execute(address adapterRegistry) public returns (address adapter) {
+    function execute(address adapterRegistry, bool addToAdapterRegistry) public returns (address adapter) {
         adapter = address(new LidoOracle());
-        SnapshotRegistry(adapterRegistry).add(adapter, LidoOracle(adapter).STETH(), LidoOracle(adapter).WSTETH());
+        if (addToAdapterRegistry) {
+            SnapshotRegistry(adapterRegistry).add(adapter, LidoOracle(adapter).STETH(), LidoOracle(adapter).WSTETH());
+        }
     }
 }
 
@@ -113,6 +132,7 @@ contract PythAdapter is ScriptUtils {
         string memory outputScriptFileName = "03_PythAdapter_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        bool addToAdapterRegistry = abi.decode(vm.parseJson(json, ".addToAdapterRegistry"), (bool));
         address pyth = abi.decode(vm.parseJson(json, ".pyth"), (address));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
         address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
@@ -120,7 +140,7 @@ contract PythAdapter is ScriptUtils {
         uint256 maxStaleness = abi.decode(vm.parseJson(json, ".maxStaleness"), (uint256));
         uint256 maxConfWidth = abi.decode(vm.parseJson(json, ".maxConfWidth"), (uint256));
 
-        adapter = execute(adapterRegistry, pyth, base, quote, feedId, maxStaleness, maxConfWidth);
+        adapter = execute(adapterRegistry, addToAdapterRegistry, pyth, base, quote, feedId, maxStaleness, maxConfWidth);
 
         string memory object;
         object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
@@ -129,6 +149,7 @@ contract PythAdapter is ScriptUtils {
 
     function deploy(
         address adapterRegistry,
+        bool addToAdapterRegistry,
         address pyth,
         address base,
         address quote,
@@ -136,11 +157,12 @@ contract PythAdapter is ScriptUtils {
         uint256 maxStaleness,
         uint256 maxConfWidth
     ) public broadcast returns (address adapter) {
-        adapter = execute(adapterRegistry, pyth, base, quote, feedId, maxStaleness, maxConfWidth);
+        adapter = execute(adapterRegistry, addToAdapterRegistry, pyth, base, quote, feedId, maxStaleness, maxConfWidth);
     }
 
     function execute(
         address adapterRegistry,
+        bool addToAdapterRegistry,
         address pyth,
         address base,
         address quote,
@@ -149,7 +171,7 @@ contract PythAdapter is ScriptUtils {
         uint256 maxConfWidth
     ) public returns (address adapter) {
         adapter = address(new PythOracle(pyth, base, quote, feedId, maxStaleness, maxConfWidth));
-        SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
+        if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
 
@@ -159,6 +181,7 @@ contract RedstoneAdapter is ScriptUtils {
         string memory outputScriptFileName = "03_RedstoneAdapter_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        bool addToAdapterRegistry = abi.decode(vm.parseJson(json, ".addToAdapterRegistry"), (bool));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
         address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
         bytes memory feed = bytes(abi.decode(vm.parseJson(json, ".feedId"), (string)));
@@ -170,7 +193,7 @@ contract RedstoneAdapter is ScriptUtils {
             feedId := mload(add(feed, 32))
         }
 
-        adapter = execute(adapterRegistry, base, quote, feedId, feedDecimals, maxStaleness);
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, quote, feedId, feedDecimals, maxStaleness);
 
         string memory object;
         object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
@@ -179,17 +202,19 @@ contract RedstoneAdapter is ScriptUtils {
 
     function deploy(
         address adapterRegistry,
+        bool addToAdapterRegistry,
         address base,
         address quote,
         bytes32 feedId,
         uint8 feedDecimals,
         uint256 maxStaleness
     ) public broadcast returns (address adapter) {
-        adapter = execute(adapterRegistry, base, quote, feedId, feedDecimals, maxStaleness);
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, quote, feedId, feedDecimals, maxStaleness);
     }
 
     function execute(
         address adapterRegistry,
+        bool addToAdapterRegistry,
         address base,
         address quote,
         bytes32 feedId,
@@ -203,7 +228,7 @@ contract RedstoneAdapter is ScriptUtils {
             adapter = address(new RedstoneCoreOracle(base, quote, feedId, feedDecimals, maxStaleness));
         }
 
-        SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
+        if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
 
@@ -213,13 +238,14 @@ contract CrossAdapterDeployer is ScriptUtils {
         string memory outputScriptFileName = "03_CrossAdapter_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        bool addToAdapterRegistry = abi.decode(vm.parseJson(json, ".addToAdapterRegistry"), (bool));
         address base = abi.decode(vm.parseJson(json, ".base"), (address));
         address cross = abi.decode(vm.parseJson(json, ".cross"), (address));
         address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
         address oracleBaseCross = abi.decode(vm.parseJson(json, ".oracleBaseCross"), (address));
         address oracleCrossQuote = abi.decode(vm.parseJson(json, ".oracleCrossQuote"), (address));
 
-        adapter = execute(adapterRegistry, base, cross, quote, oracleBaseCross, oracleCrossQuote);
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, cross, quote, oracleBaseCross, oracleCrossQuote);
 
         string memory object;
         object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
@@ -228,17 +254,19 @@ contract CrossAdapterDeployer is ScriptUtils {
 
     function deploy(
         address adapterRegistry,
+        bool addToAdapterRegistry,
         address base,
         address cross,
         address quote,
         address oracleBaseCross,
         address oracleCrossQuote
     ) public broadcast returns (address adapter) {
-        adapter = execute(adapterRegistry, base, cross, quote, oracleBaseCross, oracleCrossQuote);
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, cross, quote, oracleBaseCross, oracleCrossQuote);
     }
 
     function execute(
         address adapterRegistry,
+        bool addToAdapterRegistry,
         address base,
         address cross,
         address quote,
@@ -246,7 +274,7 @@ contract CrossAdapterDeployer is ScriptUtils {
         address oracleCrossQuote
     ) public returns (address adapter) {
         adapter = address(new CrossAdapter(base, cross, quote, oracleBaseCross, oracleCrossQuote));
-        SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
+        if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }
 
@@ -256,13 +284,14 @@ contract UniswapAdapter is ScriptUtils {
         string memory outputScriptFileName = "03_UniswapAdapter_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        bool addToAdapterRegistry = abi.decode(vm.parseJson(json, ".addToAdapterRegistry"), (bool));
         address tokenA = abi.decode(vm.parseJson(json, ".tokenA"), (address));
         address tokenB = abi.decode(vm.parseJson(json, ".tokenB"), (address));
         uint24 fee = abi.decode(vm.parseJson(json, ".fee"), (uint24));
         uint32 twapWindow = abi.decode(vm.parseJson(json, ".twapWindow"), (uint32));
         address uniswapV3Factory = abi.decode(vm.parseJson(json, ".uniswapV3Factory"), (address));
 
-        adapter = execute(adapterRegistry, tokenA, tokenB, fee, twapWindow, uniswapV3Factory);
+        adapter = execute(adapterRegistry, addToAdapterRegistry, tokenA, tokenB, fee, twapWindow, uniswapV3Factory);
 
         string memory object;
         object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
@@ -271,17 +300,19 @@ contract UniswapAdapter is ScriptUtils {
 
     function deploy(
         address adapterRegistry,
+        bool addToAdapterRegistry,
         address tokenA,
         address tokenB,
         uint24 fee,
         uint32 twapWindow,
         address uniswapV3Factory
     ) public broadcast returns (address adapter) {
-        adapter = execute(adapterRegistry, tokenA, tokenB, fee, twapWindow, uniswapV3Factory);
+        adapter = execute(adapterRegistry, addToAdapterRegistry, tokenA, tokenB, fee, twapWindow, uniswapV3Factory);
     }
 
     function execute(
         address adapterRegistry,
+        bool addToAdapterRegistry,
         address tokenA,
         address tokenB,
         uint24 fee,
@@ -289,6 +320,6 @@ contract UniswapAdapter is ScriptUtils {
         address uniswapV3Factory
     ) public returns (address adapter) {
         adapter = address(new UniswapV3Oracle(tokenA, tokenB, fee, twapWindow, uniswapV3Factory));
-        SnapshotRegistry(adapterRegistry).add(adapter, tokenA, tokenB);
+        if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, tokenA, tokenB);
     }
 }

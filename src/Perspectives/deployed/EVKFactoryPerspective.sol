@@ -4,18 +4,18 @@ pragma solidity ^0.8.24;
 
 import {BasePerspective} from "../implementation/BasePerspective.sol";
 
-/// @title EulerFactoryPerspective
+/// @title EVKFactoryPerspective
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice A contract that verifies whether a vault was deployed by the Euler Factory.
-contract EulerFactoryPerspective is BasePerspective {
-    /// @notice Creates a new EulerFactoryPerspective instance.
+/// @notice A contract that verifies whether a vault was deployed by the EVK Factory.
+contract EVKFactoryPerspective is BasePerspective {
+    /// @notice Creates a new EVKFactoryPerspective instance.
     /// @param vaultFactory_ The address of the GenericFactory contract.
     constructor(address vaultFactory_) BasePerspective(vaultFactory_) {}
 
     /// @inheritdoc BasePerspective
     function name() public pure virtual override returns (string memory) {
-        return "Euler Factory Perspective";
+        return "EVK Factory Perspective";
     }
 
     /// @inheritdoc BasePerspective

@@ -3,24 +3,16 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
-import {GovernableWhitelistPerspective} from "../src/Perspectives/deployed/GovernableWhitelistPerspective.sol";
-import {EscrowPerspective} from "../src/Perspectives/deployed/EscrowPerspective.sol";
-import {EulerBasePerspective} from "../src/Perspectives/deployed/EulerBasePerspective.sol";
-import {EulerFactoryPerspective} from "../src/Perspectives/deployed/EulerFactoryPerspective.sol";
+import {EVKFactoryPerspective} from "../src/Perspectives/deployed/EVKFactoryPerspective.sol";
+import {GovernedPerspective} from "../src/Perspectives/deployed/GovernedPerspective.sol";
+import {EscrowedCollateralPerspective} from "../src/Perspectives/deployed/EscrowedCollateralPerspective.sol";
+import {EulerUngovernedPerspective} from "../src/Perspectives/deployed/EulerUngovernedPerspective.sol";
 
 contract Perspectives is ScriptUtils {
-    function run()
-        public
-        broadcast
-        returns (
-            address governableWhitelistPerspective,
-            address escrowPerspective,
-            address eulerBasePerspective,
-            address eulerFactoryPespective
-        )
-    {
+    function run() public broadcast returns (address[] memory perspectives) {
+        string memory inputScriptFileName = "09_Perspectives_input.json";
         string memory outputScriptFileName = "09_Perspectives_output.json";
-        string memory json = getInputConfig("09_Perspectives_input.json");
+        string memory json = getInputConfig(inputScriptFileName);
         address eVaultFactory = abi.decode(vm.parseJson(json, ".eVaultFactory"), (address));
         address oracleRouterFactory = abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address));
         address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
@@ -28,7 +20,7 @@ contract Perspectives is ScriptUtils {
         address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
         address irmRegistry = abi.decode(vm.parseJson(json, ".irmRegistry"), (address));
 
-        (governableWhitelistPerspective, escrowPerspective, eulerBasePerspective, eulerFactoryPespective) = execute(
+        perspectives = execute(
             eVaultFactory,
             oracleRouterFactory,
             oracleAdapterRegistry,
@@ -38,10 +30,11 @@ contract Perspectives is ScriptUtils {
         );
 
         string memory object;
-        object = vm.serializeAddress("perspectives", "governableWhitelistPerspective", governableWhitelistPerspective);
-        object = vm.serializeAddress("perspectives", "escrowPerspective", escrowPerspective);
-        object = vm.serializeAddress("perspectives", "eulerBasePerspective", eulerBasePerspective);
-        object = vm.serializeAddress("perspectives", "eulerFactoryPespective", eulerFactoryPespective);
+        object = vm.serializeAddress("perspectives", "evkFactoryPerspective", perspectives[0]);
+        object = vm.serializeAddress("perspectives", "governedPerspective", perspectives[1]);
+        object = vm.serializeAddress("perspectives", "escrowedCollateralPerspective", perspectives[2]);
+        object = vm.serializeAddress("perspectives", "eulerUngoverned0xPerspective", perspectives[3]);
+        object = vm.serializeAddress("perspectives", "eulerUngovernedNzxPerspective", perspectives[4]);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
@@ -52,17 +45,8 @@ contract Perspectives is ScriptUtils {
         address externalVaultRegistry,
         address kinkIRMFactory,
         address irmRegistry
-    )
-        public
-        broadcast
-        returns (
-            address governableWhitelistPerspective,
-            address escrowPerspective,
-            address eulerBasePerspective,
-            address eulerFactoryPespective
-        )
-    {
-        (governableWhitelistPerspective, escrowPerspective, eulerBasePerspective, eulerFactoryPespective) = execute(
+    ) public broadcast returns (address[] memory perspectives) {
+        perspectives = execute(
             eVaultFactory,
             oracleRouterFactory,
             oracleAdapterRegistry,
@@ -79,33 +63,55 @@ contract Perspectives is ScriptUtils {
         address externalVaultRegistry,
         address kinkIRMFactory,
         address irmRegistry
-    )
-        public
-        returns (
-            address governableWhitelistPerspective,
-            address escrowPerspective,
-            address eulerBasePerspective,
-            address eulerFactoryPespective
-        )
-    {
-        address[] memory recognizedPerspectives = new address[](3);
-        governableWhitelistPerspective = address(new GovernableWhitelistPerspective(getDeployer()));
-        escrowPerspective = address(new EscrowPerspective(eVaultFactory));
+    ) public returns (address[] memory perspectives) {
+        address evkFactoryPerspective = address(new EVKFactoryPerspective(eVaultFactory));
+        address governedPerspective = address(new GovernedPerspective(getDeployer()));
+        address escrowedCollateralPerspective = address(new EscrowedCollateralPerspective(eVaultFactory));
 
-        recognizedPerspectives[0] = governableWhitelistPerspective;
-        recognizedPerspectives[1] = escrowPerspective;
-        recognizedPerspectives[2] = address(0);
-        eulerBasePerspective = address(
-            new EulerBasePerspective(
+        address[] memory recognizedUnitOfAccounts = new address[](2);
+        recognizedUnitOfAccounts[0] = address(840);
+        recognizedUnitOfAccounts[1] = getWETHAddress();
+
+        address[] memory recognizedPerspectives = new address[](2);
+        recognizedPerspectives[0] = escrowedCollateralPerspective;
+        recognizedPerspectives[1] = address(0);
+        address eulerUngoverned0xPerspective = address(
+            new EulerUngovernedPerspective(
+                "Euler Ungoverned 0x Perspective",
                 eVaultFactory,
                 oracleRouterFactory,
                 oracleAdapterRegistry,
                 externalVaultRegistry,
                 kinkIRMFactory,
                 irmRegistry,
-                recognizedPerspectives
+                recognizedPerspectives,
+                recognizedUnitOfAccounts
             )
         );
-        eulerFactoryPespective = address(new EulerFactoryPerspective(eVaultFactory));
+
+        recognizedPerspectives = new address[](3);
+        recognizedPerspectives[0] = governedPerspective;
+        recognizedPerspectives[1] = escrowedCollateralPerspective;
+        recognizedPerspectives[2] = address(0);
+        address eulerUngovernedNzxPerspective = address(
+            new EulerUngovernedPerspective(
+                "Euler Ungoverned nzx Perspective",
+                eVaultFactory,
+                oracleRouterFactory,
+                oracleAdapterRegistry,
+                externalVaultRegistry,
+                kinkIRMFactory,
+                irmRegistry,
+                recognizedPerspectives,
+                recognizedUnitOfAccounts
+            )
+        );
+
+        perspectives = new address[](5);
+        perspectives[0] = evkFactoryPerspective;
+        perspectives[1] = governedPerspective;
+        perspectives[2] = escrowedCollateralPerspective;
+        perspectives[3] = eulerUngoverned0xPerspective;
+        perspectives[4] = eulerUngovernedNzxPerspective;
     }
 }

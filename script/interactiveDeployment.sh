@@ -1,32 +1,19 @@
 #!/bin/bash
 
-function execute_forge_script {
-    local scriptName=$1
-    local shouldVerify=$2
-
-    forge script script/$scriptName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --slow
-
-    if [[ $shouldVerify == "y" ]]; then
-        chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-        broadcastFileName=${scriptName%%:*}
-
-        ./script/utils/verifyContracts.sh "./broadcast/$broadcastFileName/$chainId/run-latest.json"
-    fi
-}
-
 function save_results {
     local jsonName=$1
     local deployment_name=$2
     local deployment_dir="script/deployments/$deployment_name"
-    local timestamp=$(date +%s)
     local chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 
     mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broadcast"
 
     if [[ -f "script/${jsonName}_output.json" ]]; then
-        mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${timestamp}.json"
-        mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${timestamp}.json"
-        mv "./broadcast/${jsonName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${timestamp}.json"
+        local counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
+
+        mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
+        mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"
+        mv "./broadcast/${jsonName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
     else
         rm "script/${jsonName}_input.json"
     fi
@@ -97,9 +84,9 @@ while true; do
     echo "Select an option to deploy:"
     echo "0. ERC20 mock token"
     echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
-    echo "2. Periphery factories (Oracle Router, Oracle Adapter Registry, Kink IRM Factory)"
+    echo "2. Periphery factories and registries"
     echo "3. Oracle adapter"
-    echo "4. Kink IRM"
+    echo "4. IRM"
     echo "5. EVault implementation (modules and implementation contract)"
     echo "6. EVault factory"
     echo "7. EVault"
@@ -172,6 +159,14 @@ while true; do
 
             baseName=03_OracleAdapters
 
+            read -p "Should the adapter be added to the Adapter Registry? (y/n) (default: y): " add_to_adapter_registry
+            add_to_adapter_registry=${add_to_adapter_registry:-y}
+
+            adapter_registry=0x0000000000000000000000000000000000000000
+            if [[ $add_to_adapter_registry != "n" ]]; then
+                read -p "Enter the Adapter Registry address: " adapter_registry
+            fi
+
             case $adapter_choice in
                 0)
                     echo "Deploying Chainlink Adapter..."
@@ -179,19 +174,20 @@ while true; do
                     scriptName=${baseName}.s.sol:ChainlinkAdapter
                     jsonName=03_ChainlinkAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
                     read -p "Enter feed address: " feed
                     read -p "Enter max staleness (in seconds): " max_staleness
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feed "$feed" \
                         --argjson maxStaleness "$max_staleness" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -205,19 +201,20 @@ while true; do
                     scriptName=${baseName}.s.sol:ChronicleAdapter
                     jsonName=03_ChronicleAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
                     read -p "Enter feed address: " feed
                     read -p "Enter max staleness (in seconds): " max_staleness
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feed "$feed" \
                         --argjson maxStaleness "$max_staleness" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -231,9 +228,8 @@ while true; do
                     scriptName=${baseName}.s.sol:LidoAdapter
                     jsonName=03_LidoAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
-
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         '{
                             adapterRegistry: $adapterRegistry
@@ -245,7 +241,6 @@ while true; do
                     scriptName=${baseName}.s.sol:PythAdapter
                     jsonName=03_PythAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter Pyth address: " pyth
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
@@ -254,6 +249,7 @@ while true; do
                     read -p "Enter max confidence width: " max_conf_width
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg pyth "$pyth" \
                         --arg base "$base" \
@@ -262,6 +258,7 @@ while true; do
                         --argjson maxStaleness "$max_staleness" \
                         --argjson maxConfWidth "$max_conf_width" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             pyth: $pyth,
                             base: $base,
@@ -277,7 +274,6 @@ while true; do
                     scriptName=${baseName}.s.sol:RedstoneAdapter
                     jsonName=03_RedstoneAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
                     read -p "Enter feed ID: " feed_id
@@ -285,6 +281,7 @@ while true; do
                     read -p "Enter max staleness (in seconds): " max_staleness
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg quote "$quote" \
@@ -292,6 +289,7 @@ while true; do
                         --argjson feedDecimals "$feed_decimals" \
                         --argjson maxStaleness "$max_staleness" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -306,7 +304,6 @@ while true; do
                     scriptName=${baseName}.s.sol:CrossAdapterDeployer
                     jsonName=03_CrossAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter cross token address: " cross
                     read -p "Enter quote token address: " quote
@@ -314,6 +311,7 @@ while true; do
                     read -p "Enter oracleCrossQuote address: " oracle_cross_quote
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg cross "$cross" \
@@ -321,6 +319,7 @@ while true; do
                         --arg oracleBaseCross "$oracle_base_cross" \
                         --arg oracleCrossQuote "$oracle_cross_quote" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -335,7 +334,6 @@ while true; do
                     scriptName=${baseName}.s.sol:UniswapAdapter
                     jsonName=03_UniswapAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter tokenA address: " token_a
                     read -p "Enter tokenB address: " token_b
                     read -p "Enter fee: " fee
@@ -343,6 +341,7 @@ while true; do
                     read -p "Enter uniswapV3Factory address: " uniswap_v3_factory
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg tokenA "$token_a" \
                         --arg tokenB "$token_b" \
@@ -350,6 +349,7 @@ while true; do
                         --argjson twapWindow "$twap_window" \
                         --arg uniswapV3Factory "$uniswap_v3_factory" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             tokenA: $tokenA,
                             tokenB: $tokenB,
@@ -365,31 +365,45 @@ while true; do
             esac            
             ;;
         4)
-            echo "Deploying kink IRM..."
-            
-            baseName=04_KinkIRM
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
+            echo "Deploying IRM..."
+            echo "Select the type of IRM to deploy:"
+            echo "0. Kink"
+            read -p "Enter your choice (0-0): " irm_choice
 
-            read -p "Enter the IRM Factory address: " irm_factory
-            read -p "Enter base rate SPY: " base_rate
-            read -p "Enter slope1 parameter: " slope1
-            read -p "Enter slope2 parameter: " slope2
-            read -p "Enter kink parameter: " kink
+            baseName=04_IRM
 
-            jq -n \
-                --arg irmFactory "$irm_factory" \
-                --arg baseRate "$base_rate" \
-                --arg slope1 "$slope1" \
-                --arg slope2 "$slope2" \
-                --arg kink "$kink" \
-                '{
-                    irmFactory: $irmFactory,
-                    baseRate: $baseRate,
-                    slope1: $slope1,
-                    slope2: $slope2,
-                    kink: $kink
-                }' --indent 4 > script/${jsonName}_input.json
+            case $irm_choice in
+                0)
+                    echo "Deploying Kink IRM..."
+                    
+                    scriptName=${baseName}.s.sol:KinkIRM
+                    jsonName=04_KinkIRM
+
+                    read -p "Enter the Kink IRM Factory address: " kinkIRMFactory
+                    read -p "Enter base rate SPY: " base_rate
+                    read -p "Enter slope1 parameter: " slope1
+                    read -p "Enter slope2 parameter: " slope2
+                    read -p "Enter kink parameter: " kink
+
+                    jq -n \
+                        --arg kinkIRMFactory "$kinkIRMFactory" \
+                        --argjson baseRate "$base_rate" \
+                        --argjson slope1 "$slope1" \
+                        --argjson slope2 "$slope2" \
+                        --argjson kink "$kink" \
+                        '{
+                            kinkIRMFactory: $kinkIRMFactory,
+                            baseRate: $baseRate,
+                            slope1: $slope1,
+                            slope2: $slope2,
+                            kink: $kink
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid IRM choice. Exiting."
+                    exit 1
+                    ;;
+            esac            
             ;;
         5)
             echo "Deploying EVault implementation..."
@@ -481,11 +495,14 @@ while true; do
             jsonName=$baseName
             
             read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+            read -p "Enter the Kink IRM Factory address: " kink_irm_factory
 
             jq -n \
                 --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                --arg kinkIRMFactory "$kink_irm_factory" \
                 '{
-                    oracleAdapterRegistry: $oracleAdapterRegistry
+                    oracleAdapterRegistry: $oracleAdapterRegistry,
+                    kinkIRMFactory: $kinkIRMFactory
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         9)
@@ -582,6 +599,6 @@ while true; do
             ;;
     esac
 
-    execute_forge_script $scriptName $verify_contracts
+    script/utils/executeForgeScript.sh $scriptName $verify_contracts
     save_results $jsonName "$deployment_name"
 done
