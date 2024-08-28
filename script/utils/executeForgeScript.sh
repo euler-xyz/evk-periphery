@@ -4,8 +4,9 @@ source .env
 
 scriptPath=$1
 shouldVerify=$2
+gasPrice=$(echo "($(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL") * 1.2)/1" | bc)
 
-if ! forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --slow; then
+if ! forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --slow --gas-price $gasPrice; then
     exit 1
 fi
 
