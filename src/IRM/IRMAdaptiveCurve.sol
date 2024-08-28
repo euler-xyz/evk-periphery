@@ -147,7 +147,7 @@ contract IRMAdaptiveCurve is IIRM {
     /// @return The new interest rate at target utilization.
     function computeInterestRateInternal(address vault, int256 utilization) internal view returns (uint256, uint256) {
         // Calculate the normalized distance between current utilization and target utilization.
-        // `err` is normalized to [-1, +1] where -1 is 0% util, 0 is at target, and +1 is 100% util.
+        // `err` is normalized to [-1, +1] where -1 is 0% util, 0 is at target and +1 is 100% util.
         int256 errNormFactor = utilization > TARGET_UTILIZATION ? WAD - TARGET_UTILIZATION : TARGET_UTILIZATION;
         int256 err = (utilization - TARGET_UTILIZATION) * WAD / errNormFactor;
 
@@ -160,6 +160,7 @@ contract IRMAdaptiveCurve is IIRM {
             // First interaction.
             endRateAtTarget = INITIAL_RATE_AT_TARGET;
         } else {
+            // The speed is assumed constant between two updates, but it is in fact not constant because of interest.
             // So the rate is always underestimated.
             int256 speed = ADJUSTMENT_SPEED * err / WAD;
 
@@ -203,6 +204,10 @@ contract IRMAdaptiveCurve is IIRM {
         return rateAtTarget;
     }
 
+    /// @notice Calculate the utilization rate, given cash and borrows from the vault.
+    /// @param cash Amount of assets held directly by the vault.
+    /// @param borrows Amount of assets lent out to borrowers by the vault.
+    /// @return The utilization rate in WAD.
     function _calcUtilization(uint256 cash, uint256 borrows) internal pure returns (int256) {
         int256 totalAssets = int256(cash + borrows);
         if (totalAssets == 0) return 0;
