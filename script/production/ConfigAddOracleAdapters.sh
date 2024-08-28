@@ -35,7 +35,11 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     entry=$(cast call $adapter_registry "entries(address)((uint128,uint128))" $adapter --rpc-url $DEPLOYMENT_RPC_URL)
 
     if [[ $entry == "(0, 0)" ]]; then
-        cast send $adapter_registry "add(address,address,address)()" $adapter $base $quote --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY
+        if cast send $adapter_registry "add(address,address,address)()" $adapter $base $quote --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY > /dev/null; then
+            echo "Successfully added adapter $adapterName ($adapter) to the registry."
+        else
+            echo "Failed to add adapter $adapterName ($adapter) to the registry."
+        fi
     else
         echo "Adapter $adapterName ($adapter) is already added to the registry or has been revoked. Skipping..."
     fi
