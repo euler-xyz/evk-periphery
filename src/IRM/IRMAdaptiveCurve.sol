@@ -44,7 +44,9 @@ contract IRMAdaptiveCurve is IIRM {
     /// @notice Internal cached state of the interest rate model.
     struct IRState {
         /// @dev The current rate at target utilization.
-        uint208 rateAtTarget;
+        uint144 rateAtTarget;
+        /// @dev The previous utilization rate of the vault.
+        int64 lastUtilization;
         /// @dev The timestamp of the last update to the model.
         uint48 lastUpdate;
     }
@@ -103,24 +105,31 @@ contract IRMAdaptiveCurve is IIRM {
     /// @inheritdoc IIRM
     function computeInterestRate(address vault, uint256 cash, uint256 borrows) external returns (uint256) {
         if (msg.sender != vault) revert E_IRMUpdateUnauthorized();
-        (uint256 avgRate, uint256 endRateAtTarget) = computeInterestRateInternal(vault, cash, borrows);
-        irState[vault] = IRState(uint208(endRateAtTarget), uint48(block.timestamp));
-        return avgRate * 1e9; // Extend rate to RAY/sec for EVK.
+        (uint256 rate, uint256 rateAtTarget) = computeInterestRateInternal(vault);
+        int256 utilization = _calcUtilization(cash, borrows);
+        irState[vault] = IRState(uint144(rateAtTarget), int64(utilization), uint48(block.timestamp));
+        return rate * 1e9; // Extend rate to RAY/sec for EVK.
     }
 
     /// @inheritdoc IIRM
-    function computeInterestRateView(address vault, uint256 cash, uint256 borrows) external view returns (uint256) {
-        (uint256 avgRate,) = computeInterestRateInternal(vault, cash, borrows);
-        return avgRate * 1e9; // Extend rate to RAY/sec for EVK.
+    function computeInterestRateView(address vault, uint256, /* cash */ uint256 /* borrows */ )
+        external
+        view
+        returns (uint256)
+    {
+        (uint256 rate,) = computeInterestRateInternal(vault);
+        return rate * 1e9; // Extend rate to RAY/sec for EVK.
     }
 
     /// @notice Perform computation of the new rate at target without mutating state.
     /// @param vault Address of the vault to compute the new interest rate for.
-    /// @param cash Amount of assets held directly by the vault.
-    /// @param borrows Amount of assets lent out to borrowers by the vault.
     /// @return The new rate at target utilization in RAY units.
-    function computeRateAtTargetView(address vault, uint256 cash, uint256 borrows) external view returns (uint256) {
-        (, uint256 rateAtTarget) = computeInterestRateInternal(vault, cash, borrows);
+    function computeRateAtTargetView(address vault, uint256, /* cash */ uint256 /* borrows */ )
+        external
+        view
+        returns (uint256)
+    {
+        (, uint256 rateAtTarget) = computeInterestRateInternal(vault);
         return rateAtTarget * 1e9; // Extend rate to RAY/sec for EVK.
     }
 
@@ -133,33 +142,24 @@ contract IRMAdaptiveCurve is IIRM {
 
     /// @notice Compute the new interest rate and rate at target utilization of a vault.
     /// @param vault Address of the vault to compute the new interest rate for.
-    /// @param cash Amount of assets held directly by the vault.
-    /// @param borrows Amount of assets lent out to borrowers by the vault.
     /// @return The new interest rate at current utilization.
     /// @return The new interest rate at target utilization.
-    function computeInterestRateInternal(address vault, uint256 cash, uint256 borrows)
-        internal
-        view
-        returns (uint256, uint256)
-    {
+    function computeInterestRateInternal(address vault) internal view returns (uint256, uint256) {
         // Calculate utilization rate.
-        int256 totalAssets = int256(cash + borrows);
-        int256 utilization = totalAssets > 0 ? int256(borrows) * WAD / totalAssets : int256(0);
+        int256 utilization = int256(irState[vault].lastUtilization);
 
         // Calculate the normalized distance between current utilization and target utilization.
-        // `err` is normalized to [-1, +1] where -1 is 0% util, 0 is at target and +1 is 100% util.
+        // `err` is normalized to [-1, +1] where -1 is 0% util, 0 is at target, and +1 is 100% util.
         int256 errNormFactor = utilization > TARGET_UTILIZATION ? WAD - TARGET_UTILIZATION : TARGET_UTILIZATION;
         int256 err = (utilization - TARGET_UTILIZATION) * WAD / errNormFactor;
 
         IRState memory state = irState[vault];
         int256 startRateAtTarget = int256(uint256(state.rateAtTarget));
 
-        int256 avgRateAtTarget;
         int256 endRateAtTarget;
 
         if (startRateAtTarget == 0) {
             // First interaction.
-            avgRateAtTarget = INITIAL_RATE_AT_TARGET;
             endRateAtTarget = INITIAL_RATE_AT_TARGET;
         } else {
             // The speed is assumed constant between two updates, but it is in fact not constant because of interest.
@@ -170,21 +170,14 @@ contract IRMAdaptiveCurve is IIRM {
             int256 elapsed = int256(block.timestamp - state.lastUpdate);
             int256 linearAdaptation = speed * elapsed;
 
-            // If linearAdaptation == 0, avgRateAtTarget = endRateAtTarget = startRateAtTarget.
+            // If linearAdaptation == 0, endRateAtTarget = startRateAtTarget.
             if (linearAdaptation == 0) {
-                avgRateAtTarget = startRateAtTarget;
                 endRateAtTarget = startRateAtTarget;
             } else {
-                // Formula of the average rate that should be returned:
-                // avg = 1/T * ∫_0^T curve(startRateAtTarget*exp(speed*x), err) dx
-                // The integral is approximated:
-                // avg ~= curve([startRateAtTarget + endRateAtTarget + 2*startRateAtTarget*exp(speed*T/2)] / 4, err)
                 endRateAtTarget = _newRateAtTarget(startRateAtTarget, linearAdaptation);
-                int256 midRateAtTarget = _newRateAtTarget(startRateAtTarget, linearAdaptation / 2);
-                avgRateAtTarget = (startRateAtTarget + endRateAtTarget + 2 * midRateAtTarget) / 4;
             }
         }
-        return (uint256(_curve(avgRateAtTarget, err)), uint256(endRateAtTarget));
+        return (uint256(_curve(endRateAtTarget, err)), uint256(endRateAtTarget));
     }
 
     /// @notice Calculate the interest rate according to the linear kink model.
@@ -211,5 +204,11 @@ contract IRMAdaptiveCurve is IIRM {
         if (rateAtTarget < MIN_RATE_AT_TARGET) return MIN_RATE_AT_TARGET;
         if (rateAtTarget > MAX_RATE_AT_TARGET) return MAX_RATE_AT_TARGET;
         return rateAtTarget;
+    }
+
+    function _calcUtilization(uint256 cash, uint256 borrows) internal pure returns (int256) {
+        int256 totalAssets = int256(cash + borrows);
+        if (totalAssets == 0) return 0;
+        return int256(borrows) * WAD / totalAssets;
     }
 }
