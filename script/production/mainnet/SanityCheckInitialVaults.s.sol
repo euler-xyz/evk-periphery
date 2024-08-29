@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import "forge-std/console.sol";
-
-import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib} from "../../utils/ScriptUtils.s.sol";
+import "forge-std/Script.sol";
+import {CoreAddressesLib, PeripheryAddressesLib} from "../../utils/ScriptUtils.s.sol";
+import {OracleVerifier} from "../../utils/SanityCheckOracle.s.sol";
 
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {EVault} from "evk/EVault/EVault.sol";
@@ -21,7 +21,7 @@ import {EulerUngovernedPerspective} from "../../../src/Perspectives/deployed/Eul
 import {Swapper} from "../../../src/Swaps/Swapper.sol";
 import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
 
-contract SanityCheckInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib {
+contract SanityCheckInitialVaults is Script, CoreAddressesLib, PeripheryAddressesLib {
     // assets
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -277,6 +277,8 @@ contract SanityCheckInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAdd
             } else {
                 revert("vault not found in perspectives");
             }
+
+            OracleVerifier.verifyOracleConfig(vaults[i]);
         }
 
         // oracle config for escrow
