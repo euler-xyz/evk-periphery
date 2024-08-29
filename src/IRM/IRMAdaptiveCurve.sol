@@ -72,7 +72,7 @@ contract IRMAdaptiveCurve is IIRM {
         int256 _ADJUSTMENT_SPEED
     ) {
         // Validate parameters.
-        if (_TARGET_UTILIZATION < 0 || _TARGET_UTILIZATION > 1e18) {
+        if (_TARGET_UTILIZATION <= 0 || _TARGET_UTILIZATION > 1e18) {
             revert InvalidParams();
         }
         if (_INITIAL_RATE_AT_TARGET < _MIN_RATE_AT_TARGET || _INITIAL_RATE_AT_TARGET > _MAX_RATE_AT_TARGET) {
@@ -82,9 +82,6 @@ contract IRMAdaptiveCurve is IIRM {
             revert InvalidParams();
         }
         if (_MAX_RATE_AT_TARGET < 0.001e18 / YEAR || _MAX_RATE_AT_TARGET > 10e18 / YEAR) {
-            revert InvalidParams();
-        }
-        if (_MIN_RATE_AT_TARGET > _MAX_RATE_AT_TARGET) {
             revert InvalidParams();
         }
         if (_CURVE_STEEPNESS < 1.01e18 || _CURVE_STEEPNESS > 100e18) {
@@ -153,7 +150,6 @@ contract IRMAdaptiveCurve is IIRM {
 
         IRState memory state = irState[vault];
         int256 startRateAtTarget = int256(uint256(state.rateAtTarget));
-
         int256 endRateAtTarget;
 
         if (startRateAtTarget == 0) {
@@ -168,7 +164,6 @@ contract IRMAdaptiveCurve is IIRM {
             int256 elapsed = int256(block.timestamp - state.lastUpdate);
             int256 linearAdaptation = speed * elapsed;
 
-            // If linearAdaptation == 0, endRateAtTarget = startRateAtTarget.
             if (linearAdaptation == 0) {
                 endRateAtTarget = startRateAtTarget;
             } else {

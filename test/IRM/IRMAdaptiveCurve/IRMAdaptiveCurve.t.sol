@@ -22,7 +22,7 @@ contract IRMAdaptiveCurveTest is Test {
     function test_Validation_TargetUtilization(int256 targetUtilization) public {
         vm.expectRevert(IRMAdaptiveCurve.InvalidParams.selector);
         new IRMAdaptiveCurve(
-            bound(targetUtilization, type(int256).min, -1),
+            bound(targetUtilization, type(int256).min, 0),
             INITIAL_RATE_AT_TARGET,
             MIN_RATE_AT_TARGET,
             MAX_RATE_AT_TARGET,
