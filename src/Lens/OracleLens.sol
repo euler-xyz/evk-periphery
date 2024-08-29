@@ -50,13 +50,25 @@ contract OracleLens is Utils {
         view
         returns (OracleDetailedInfo memory)
     {
-        if (oracleAddress == address(0)) {
-            return OracleDetailedInfo({oracle: address(0), name: "", oracleInfo: ""});
+        string memory name;
+        bytes memory oracleInfo;
+
+        {
+            bool success;
+            bytes memory result;
+
+            if (oracleAddress != address(0)) {
+                (success, result) = oracleAddress.staticcall(abi.encodeCall(IPriceOracle.name, ()));
+            }
+
+            if (success && result.length >= 32) {
+                name = abi.decode(result, (string));
+            } else {
+                return OracleDetailedInfo({oracle: oracleAddress, name: "", oracleInfo: ""});
+            }
         }
 
         IOracle oracle = IOracle(oracleAddress);
-        string memory name = oracle.name();
-        bytes memory oracleInfo;
 
         if (_strEq(name, "ChainlinkOracle")) {
             oracleInfo = abi.encode(
