@@ -28,8 +28,8 @@ contract EulerUngovernedPerspectivePricingTest is Test {
 
     function setUp() public {
         router = new EulerRouter(address(1), admin);
-        adapterRegistry = new SnapshotRegistry(admin);
-        externalVaultRegistry = new SnapshotRegistry(admin);
+        adapterRegistry = new SnapshotRegistry(address(1), admin);
+        externalVaultRegistry = new SnapshotRegistry(address(1), admin);
 
         perspective = new EulerUngovernedPerspectiveHarness(
             address(0), address(0), address(adapterRegistry), address(externalVaultRegistry), address(0), address(0)

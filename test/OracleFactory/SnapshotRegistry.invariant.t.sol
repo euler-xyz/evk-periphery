@@ -26,7 +26,7 @@ contract SnapshotRegistryHarness is Test {
     address[] internal revokeHistory;
 
     constructor(address owner) {
-        registry = new SnapshotRegistry(owner);
+        registry = new SnapshotRegistry(address(1), owner);
     }
 
     function getAddHistory() external view returns (ElementConfig[] memory) {

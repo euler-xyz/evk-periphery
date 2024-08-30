@@ -2,13 +2,15 @@
 
 pragma solidity ^0.8.0;
 
+import {Context} from "openzeppelin-contracts/utils/Context.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
+import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 
 /// @title SnapshotRegistry
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Revokeable append-only registry of addresses.
-contract SnapshotRegistry is Ownable {
+contract SnapshotRegistry is EVCUtil, Ownable {
     struct Entry {
         /// @notice The timestamp when the address was added.
         uint128 addedAt;
@@ -42,15 +44,16 @@ contract SnapshotRegistry is Ownable {
     error Registry_AlreadyRevoked();
 
     /// @notice Deploy SnapshotRegistry.
+    /// @param _evc The address of the EVC.
     /// @param _owner The address of the owner.
-    constructor(address _owner) Ownable(_owner) {}
+    constructor(address _evc, address _owner) EVCUtil(_evc) Ownable(_owner) {}
 
     /// @notice Adds an address to the registry.
     /// @param element The address to add.
     /// @param base The corresponding base asset.
     /// @param quote The corresponding quote asset.
     /// @dev Only callable by the owner.
-    function add(address element, address base, address quote) external onlyOwner {
+    function add(address element, address base, address quote) external onlyEVCAccountOwner onlyOwner {
         Entry storage entry = entries[element];
         if (entry.addedAt != 0) revert Registry_AlreadyAdded();
         entry.addedAt = uint128(block.timestamp);
@@ -64,7 +67,7 @@ contract SnapshotRegistry is Ownable {
     /// @notice Revokes an address from the registry.
     /// @param element The address to revoke.
     /// @dev Only callable by the owner.
-    function revoke(address element) external onlyOwner {
+    function revoke(address element) external onlyEVCAccountOwner onlyOwner {
         Entry storage entry = entries[element];
         if (entry.addedAt == 0) revert Registry_NotAdded();
         if (entry.revokedAt != 0) revert Registry_AlreadyRevoked();
@@ -127,5 +130,13 @@ contract SnapshotRegistry is Ownable {
     /// @return The address second in lexicographic order.
     function _sort(address assetA, address assetB) internal pure returns (address, address) {
         return assetA < assetB ? (assetA, assetB) : (assetB, assetA);
+    }
+
+    /// @notice Retrieves the message sender in the context of the EVC.
+    /// @dev This function returns the account on behalf of which the current operation is being performed, which is
+    /// either msg.sender or the account authenticated by the EVC.
+    /// @return The address of the message sender.
+    function _msgSender() internal view override (Context, EVCUtil) returns (address) {
+        return EVCUtil._msgSender();
     }
 }

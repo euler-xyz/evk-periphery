@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 
 import {Test} from "forge-std/Test.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
+import {EthereumVaultConnector, Errors} from "ethereum-vault-connector/EthereumVaultConnector.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 
 contract SnapshotRegistryTest is Test {
@@ -15,6 +16,7 @@ contract SnapshotRegistryTest is Test {
     address internal BASE_B;
     address internal QUOTE_A;
     address internal QUOTE_B;
+    EthereumVaultConnector internal evc;
     SnapshotRegistry internal registry;
 
     function setUp() public {
@@ -26,12 +28,14 @@ contract SnapshotRegistryTest is Test {
         BASE_B = makeAddr("BASE_B");
         QUOTE_A = makeAddr("QUOTE_A");
         QUOTE_B = makeAddr("QUOTE_B");
+        evc = new EthereumVaultConnector();
 
-        registry = new SnapshotRegistry(OWNER);
+        registry = new SnapshotRegistry(address(evc), OWNER);
     }
 
-    /// @dev Owner is set to `msg.sender` in constructor.
-    function testInitalizeOwner() public view {
+    /// @dev EVC address is stored and the owner is set to `msg.sender` in constructor.
+    function testInitalize() public view {
+        assertEq(registry.EVC(), address(evc));
         assertEq(registry.owner(), OWNER);
     }
 
@@ -41,6 +45,8 @@ contract SnapshotRegistryTest is Test {
         timestamp1 = bound(timestamp1, timestamp0, type(uint128).max);
         vm.warp(timestamp0);
 
+        uint256 snapshot = vm.snapshot();
+
         // Event emitted
         vm.expectEmit();
         emit SnapshotRegistry.Added(element, base < quote ? base : quote, base < quote ? quote : base, timestamp0);
@@ -49,6 +55,25 @@ contract SnapshotRegistryTest is Test {
 
         // Entry saved
         (uint128 addedAt, uint128 revokedAt) = registry.entries(element);
+        assertEq(addedAt, timestamp0);
+        assertEq(revokedAt, 0);
+
+        // Valid now
+        assertSingleElement(element, base, quote, timestamp0, true);
+        // Valid in the future
+        assertSingleElement(element, base, quote, timestamp1, true);
+
+        vm.revertTo(snapshot);
+
+        // Try via the EVC
+        // Event emitted
+        vm.expectEmit();
+        emit SnapshotRegistry.Added(element, base < quote ? base : quote, base < quote ? quote : base, timestamp0);
+        vm.prank(OWNER);
+        evc.call(address(registry), OWNER, 0, abi.encodeCall(registry.add, (element, base, quote)));
+
+        // Entry saved
+        (addedAt, revokedAt) = registry.entries(element);
         assertEq(addedAt, timestamp0);
         assertEq(revokedAt, 0);
 
@@ -108,13 +133,17 @@ contract SnapshotRegistryTest is Test {
     function testAddUnauthorized(address caller, address element, address base, address quote, uint256 timestamp)
         public
     {
-        vm.assume(caller != OWNER);
+        vm.assume(caller != address(evc) && caller != OWNER);
         timestamp = bound(timestamp, 1, type(uint128).max);
         vm.warp(timestamp);
 
         // Try to add an element from an unauthorized account
         vm.prank(caller);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, caller));
+        registry.add(element, base, quote);
+
+        vm.prank(address(evc));
+        vm.expectRevert(abi.encodeWithSelector(Errors.EVC_OnBehalfOfAccountNotAuthenticated.selector));
         registry.add(element, base, quote);
     }
 
@@ -168,7 +197,23 @@ contract SnapshotRegistryTest is Test {
 
         // Revoke after time
         vm.warp(timestamp2);
+
+        uint256 snapshot = vm.snapshot();
         registry.revoke(element);
+
+        // Valid at add time
+        assertSingleElement(element, base, quote, timestamp0, true);
+
+        // Valid in the middle
+        assertSingleElement(element, base, quote, timestamp1, true);
+
+        // Invalid in the end
+        assertSingleElement(element, base, quote, timestamp2, false);
+
+        vm.revertTo(snapshot);
+
+        // Try via the EVC
+        evc.call(address(registry), OWNER, 0, abi.encodeCall(registry.revoke, (element)));
 
         // Valid at add time
         assertSingleElement(element, base, quote, timestamp0, true);
@@ -189,7 +234,7 @@ contract SnapshotRegistryTest is Test {
         uint256 timestamp0,
         uint256 timestamp1
     ) public {
-        vm.assume(caller != OWNER);
+        vm.assume(caller != address(evc) && caller != OWNER);
         timestamp0 = bound(timestamp0, 1, type(uint128).max);
         timestamp1 = bound(timestamp1, timestamp0, type(uint128).max);
 
@@ -202,6 +247,10 @@ contract SnapshotRegistryTest is Test {
         vm.warp(timestamp1);
         vm.prank(caller);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, caller));
+        registry.revoke(element);
+
+        vm.prank(address(evc));
+        vm.expectRevert(abi.encodeWithSelector(Errors.EVC_OnBehalfOfAccountNotAuthenticated.selector));
         registry.revoke(element);
     }
 

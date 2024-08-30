@@ -16,8 +16,16 @@ fi
 source .env
 
 read -p "Enter the Adapter Registry address: " adapter_registry
+read -p "Do you want to perform the operation in a batch? (y/n) (default: y): " is_batch
+is_batch=${is_batch:-y}
 
+if [ "$is_batch" == "y" ]; then
+    read -p "Enter the EVC address: " evc
+fi
+
+onBehalfOf=$(cast wallet address --private-key $DEPLOYER_KEY)
 gasPrice=$(echo "($(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL") * 1.2)/1" | bc)
+items="["
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
     adapterName="${columns[3]}"
@@ -35,14 +43,32 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     fi
 
     entry=$(cast call $adapter_registry "entries(address)((uint128,uint128))" $adapter --rpc-url $DEPLOYMENT_RPC_URL)
+    addedAt=$(echo $entry | cut -d'(' -f2 | cut -d',' -f1)
+    revokedAt=$(echo $entry | cut -d',' -f2 | cut -d')' -f1 | tr -d ' ')
 
-    if [[ $entry == "(0, 0)" ]]; then
-        if cast send $adapter_registry "add(address,address,address)()" $adapter $base $quote --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY --legacy --gas-price $gasPrice > /dev/null; then
-            echo "Successfully added adapter $adapterName ($adapter) to the registry."
+    if [[ $addedAt == "0" && $revokedAt == "0" ]]; then
+        if [ "$is_batch" != "y" ]; then
+            if cast send $adapter_registry "add(address,address,address)()" $adapter $base $quote --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY --legacy --gas-price $gasPrice > /dev/null; then
+                echo "Successfully added adapter $adapterName ($adapter) to the registry."
+            else
+                echo "Failed to add adapter $adapterName ($adapter) to the registry."
+            fi
         else
-            echo "Failed to add adapter $adapterName ($adapter) to the registry."
+            echo "Adding adapter add batch item for adapter $adapterName ($adapter)."
+            items+="($adapter_registry,$onBehalfOf,0,$(cast calldata "add(address,address,address)" $adapter $base $quote)),"
         fi
     else
         echo "Adapter $adapterName ($adapter) is already added to the registry or has been revoked. Skipping..."
     fi
 done < <(tr -d '\r' < "$csv_file")
+
+items="${items%,}]"
+
+echo "Executing batch transaction..."
+if [ "$is_batch" == "y" ]; then
+    if cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY --legacy --gas-price $gasPrice > /dev/null; then
+        echo "Batch transaction successful."
+    else
+        echo "Batch transaction failed."
+    fi
+fi

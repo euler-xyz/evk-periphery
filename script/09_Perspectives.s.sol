@@ -84,8 +84,8 @@ contract Perspectives is ScriptUtils {
                 externalVaultRegistry,
                 kinkIRMFactory,
                 irmRegistry,
-                recognizedPerspectives,
-                recognizedUnitOfAccounts
+                recognizedUnitOfAccounts,
+                recognizedPerspectives
             )
         );
 
@@ -102,8 +102,8 @@ contract Perspectives is ScriptUtils {
                 externalVaultRegistry,
                 kinkIRMFactory,
                 irmRegistry,
-                recognizedPerspectives,
-                recognizedUnitOfAccounts
+                recognizedUnitOfAccounts,
+                recognizedPerspectives
             )
         );
 
