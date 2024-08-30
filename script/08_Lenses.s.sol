@@ -13,7 +13,7 @@ contract Lenses is ScriptUtils {
     function run()
         public
         broadcast
-        returns (address accountLens, address oracleLens, address irmlens, address vaultLens, address utilsLens)
+        returns (address accountLens, address oracleLens, address irmLens, address vaultLens, address utilsLens)
     {
         string memory inputScriptFileName = "08_Lenses_input.json";
         string memory outputScriptFileName = "08_Lenses_output.json";
@@ -21,12 +21,12 @@ contract Lenses is ScriptUtils {
         address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
         address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
 
-        (accountLens, oracleLens, irmlens, vaultLens, utilsLens) = execute(oracleAdapterRegistry, kinkIRMFactory);
+        (accountLens, oracleLens, irmLens, vaultLens, utilsLens) = execute(oracleAdapterRegistry, kinkIRMFactory);
 
         string memory object;
         object = vm.serializeAddress("lenses", "accountLens", accountLens);
         object = vm.serializeAddress("lenses", "oracleLens", oracleLens);
-        object = vm.serializeAddress("lenses", "irmlens", irmlens);
+        object = vm.serializeAddress("lenses", "irmLens", irmLens);
         object = vm.serializeAddress("lenses", "vaultLens", vaultLens);
         object = vm.serializeAddress("lenses", "utilsLens", utilsLens);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
@@ -35,19 +35,19 @@ contract Lenses is ScriptUtils {
     function deploy(address oracleAdapterRegistry, address kinkIRMFactory)
         public
         broadcast
-        returns (address accountLens, address oracleLens, address irmlens, address vaultLens, address utilsLens)
+        returns (address accountLens, address oracleLens, address irmLens, address vaultLens, address utilsLens)
     {
-        (accountLens, oracleLens, irmlens, vaultLens, utilsLens) = execute(oracleAdapterRegistry, kinkIRMFactory);
+        (accountLens, oracleLens, irmLens, vaultLens, utilsLens) = execute(oracleAdapterRegistry, kinkIRMFactory);
     }
 
     function execute(address oracleAdapterRegistry, address kinkIRMFactory)
         public
-        returns (address accountLens, address oracleLens, address irmlens, address vaultLens, address utilsLens)
+        returns (address accountLens, address oracleLens, address irmLens, address vaultLens, address utilsLens)
     {
         accountLens = address(new AccountLens());
         oracleLens = address(new OracleLens(oracleAdapterRegistry));
-        irmlens = address(new IRMLens(kinkIRMFactory));
-        vaultLens = address(new VaultLens(address(oracleLens), address(irmlens)));
+        irmLens = address(new IRMLens(kinkIRMFactory));
+        vaultLens = address(new VaultLens(address(oracleLens), address(irmLens)));
         utilsLens = address(new UtilsLens());
     }
 }
