@@ -837,7 +837,6 @@ contract Swaps1Inch is EVaultTestBase {
             })
         );
 
-
         IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
 
         items[0] = IEVC.BatchItem({
