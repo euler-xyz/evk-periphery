@@ -132,6 +132,19 @@ contract SnapshotRegistry is EVCUtil, Ownable {
         return assetA < assetB ? (assetA, assetB) : (assetB, assetA);
     }
 
+    /// @dev Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be
+    /// called by the current owner.
+    /// NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is
+    /// only available to the owner.
+    function renounceOwnership() public virtual override onlyEVCAccountOwner onlyOwner {
+        super.renounceOwnership();
+    }
+
+    /// @dev Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.
+    function transferOwnership(address newOwner) public virtual override onlyEVCAccountOwner onlyOwner {
+        super.transferOwnership(newOwner);
+    }
+
     /// @notice Retrieves the message sender in the context of the EVC.
     /// @dev This function returns the account on behalf of which the current operation is being performed, which is
     /// either msg.sender or the account authenticated by the EVC.
