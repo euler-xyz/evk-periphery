@@ -3,6 +3,8 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
+import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
+import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {EVKFactoryPerspective} from "../src/Perspectives/deployed/EVKFactoryPerspective.sol";
 import {GovernedPerspective} from "../src/Perspectives/deployed/GovernedPerspective.sol";
 import {EscrowedCollateralPerspective} from "../src/Perspectives/deployed/EscrowedCollateralPerspective.sol";
@@ -64,8 +66,23 @@ contract Perspectives is ScriptUtils {
         address kinkIRMFactory,
         address irmRegistry
     ) public returns (address[] memory perspectives) {
+        address evc;
+        {
+            (bool success, bytes memory data) = GenericFactory(eVaultFactory).implementation().staticcall(
+                abi.encodePacked(EVCUtil.EVC.selector, uint256(0), uint256(0))
+            );
+            assert(success && data.length == 32);
+
+            evc = abi.decode(data, (address));
+            require(
+                evc == EVCUtil(oracleAdapterRegistry).EVC() && evc == EVCUtil(externalVaultRegistry).EVC()
+                    && evc == EVCUtil(irmRegistry).EVC(),
+                "EVCs do not match"
+            );
+        }
+
         address evkFactoryPerspective = address(new EVKFactoryPerspective(eVaultFactory));
-        address governedPerspective = address(new GovernedPerspective(getDeployer()));
+        address governedPerspective = address(new GovernedPerspective(evc, getDeployer()));
         address escrowedCollateralPerspective = address(new EscrowedCollateralPerspective(eVaultFactory));
 
         address[] memory recognizedUnitOfAccounts = new address[](2);

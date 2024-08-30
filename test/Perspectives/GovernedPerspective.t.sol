@@ -25,7 +25,7 @@ contract GovernedPerspectiveTest is Test {
             }
         }
 
-        GovernedPerspective perspective = new GovernedPerspective(owner);
+        GovernedPerspective perspective = new GovernedPerspective(address(1), owner);
 
         assertEq(perspective.name(), "Governed Perspective");
 
