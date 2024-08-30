@@ -10,7 +10,7 @@ contract GovernedPerspectiveTest is Test {
     function test_GovernedPerspective(address owner, address nonOwner, uint8 size, uint8 removeIndex, uint256 seed)
         public
     {
-        vm.assume(owner != address(0) && owner != nonOwner);
+        vm.assume(owner != address(0) && owner != address(1) && nonOwner != address(1) && owner != nonOwner);
         vm.assume(size != 0);
         removeIndex = uint8(bound(removeIndex, 0, size - 1));
 
