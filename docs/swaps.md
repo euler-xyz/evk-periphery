@@ -51,7 +51,7 @@ The swaps can be performed in one of 3 modes:
 
   In this mode, the swapper is expected to purchase a specified amount of the output token in exchange for an unknown amount of the input token. The input token amount provided to the swapper acts as an implicit slippage limit. Currently available handlers (Uniswap V2 and V3) will check the current balance of the output token held by the swapper and adjust the amount of token to buy to only purchase the remainder. This feature can be used to construct multi-stage swaps. For instance, in the first stage, most of the token is bought through a dex aggregator, which presumably offers better price, but doesn't provide exact output swaps. The proceeds are directed to the swapper contract. In the second stage another `swap` call is executed, and the remainder is bought directly in Uniswap, where exact output trades are supported.
 
-  In exact output trades, the remaining, unused input token amount is automatically redeposited for the account in a vault specified in `SwapParams.vaultIn`.
+  In exact output trades, the remaining, unused input token amount is automatically redeposited for the account specified in `SwapParams.accountIn` in a vault specified in `SwapParams.vaultIn`.
 
 - target debt (swap and repay)
 
@@ -61,7 +61,7 @@ The swaps can be performed in one of 3 modes:
 
   If at the time the swap is executed, the swapper contract holds more funds than necessary to repay to the target debt, the swap is not carried out, but instead the debt is repaid and any surplus of the output token is deposited for the account in the liability vault. This allows combined swaps to safely target high ratios of exact input swaps vs exact output remainders. The exact input swap doesn't know the exact amount of output that will be received and it can 'over-swap' more than is necessary to repay the debt. Because the surplus doesn't revert the transaction, high ratios of better priced exact input swaps can be targeted by the UI.
 
-  Finally, and similarly to exact output, any unused input will be redeposited for the account.
+  Finally, and similarly to exact output, any unused input will be redeposited for the `accountIn`.
 
 
 ### Handlers
