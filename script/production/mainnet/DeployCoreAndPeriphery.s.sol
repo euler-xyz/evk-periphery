@@ -126,7 +126,7 @@ contract DeployCoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddre
             (
                 lensAddresses.accountLens,
                 lensAddresses.oracleLens,
-                lensAddresses.irmlens,
+                lensAddresses.irmLens,
                 lensAddresses.vaultLens,
                 lensAddresses.utilsLens
             ) = deployer.deploy(peripheryAddresses.oracleAdapterRegistry, peripheryAddresses.kinkIRMFactory);
