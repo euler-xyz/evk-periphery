@@ -2,10 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import "forge-std/console.sol";
+import "forge-std/Script.sol";
+import {CoreAddressesLib, PeripheryAddressesLib} from "../../utils/ScriptUtils.s.sol";
+import {OracleVerifier} from "../../utils/SanityCheckOracle.s.sol";
 
-import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib} from "./ScriptUtils.s.sol";
-
+import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {EVault} from "evk/EVault/EVault.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {TrackingRewardStreams} from "reward-streams/TrackingRewardStreams.sol";
@@ -15,18 +16,12 @@ import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 
-import {OracleLens} from "../../src/Lens/OracleLens.sol";
-import {VaultLens} from "../../src/Lens/VaultLens.sol";
-import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
-import {EulerUngovernedPerspective} from "../../src/Perspectives/deployed/EulerUngovernedPerspective.sol";
-import {Swapper} from "../../src/Swaps/Swapper.sol";
-import {EulerRouterFactory} from "../../src/EulerRouterFactory/EulerRouterFactory.sol";
+import {BasePerspective} from "../../../src/Perspectives/implementation/BasePerspective.sol";
+import {EulerUngovernedPerspective} from "../../../src/Perspectives/deployed/EulerUngovernedPerspective.sol";
+import {Swapper} from "../../../src/Swaps/Swapper.sol";
+import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
 
-interface IEVCUser {
-    function EVC() external view returns (address);
-}
-
-contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib {
+contract SanityCheckInitialDeployment is Script, CoreAddressesLib, PeripheryAddressesLib {
     // assets
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -50,13 +45,13 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
     address internal constant DAO_MULTISIG = 0xcAD001c30E96765aC90307669d578219D4fb1DCe;
 
     // expected admins
-
     address internal constant EVAULT_FACTORY_ADMIN = DAO_MULTISIG;
     address internal constant PROTOCOL_CONFIG_ADMIN = DAO_MULTISIG;
     address internal constant ORACLE_ADAPTER_REGISTRY_ADMIN = EULER_DEPLOYER;
     address internal constant EXTERNAL_VAULT_REGISTRY_ADMIN = EULER_DEPLOYER;
     address internal constant IRM_REGISTRY_ADMIN = EULER_DEPLOYER;
     address internal constant GOVERNED_PERSPECTIVE_ADMIN = EULER_DEPLOYER;
+
     // PROTOCOL_CONFIG_FEE_RECEIVER: feeFlow
     address internal constant FEE_FLOW_PAYMENT_RECEIVER = DAO_MULTISIG;
 
@@ -67,8 +62,6 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
 
         verifyCoreAndPeriphery(coreAddresses, peripheryAddresses);
         verifyVaults(coreAddresses, peripheryAddresses);
-
-        // FIXME: oracle / adapters?
     }
 
     function verifyCoreAndPeriphery(CoreAddresses memory coreAddresses, PeripheryAddresses memory peripheryAddresses)
@@ -92,7 +85,7 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         // eVaultImplementation
         // - immutables: evc, protocolConfig, sequenceRegistry, balanceTracker, permit2
 
-        assert(callWithTrailing(coreAddresses.eVaultImplementation, IEVCUser.EVC.selector) == coreAddresses.evc);
+        assert(callWithTrailing(coreAddresses.eVaultImplementation, EVCUtil.EVC.selector) == coreAddresses.evc);
         assert(
             callWithTrailing(coreAddresses.eVaultImplementation, EVault.balanceTrackerAddress.selector)
                 == coreAddresses.balanceTracker
@@ -110,7 +103,7 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         // balanceTracker
         // - immutables: evc, epochDuration
 
-        assert(IEVCUser(coreAddresses.balanceTracker).EVC() == coreAddresses.evc);
+        assert(EVCUtil(coreAddresses.balanceTracker).EVC() == coreAddresses.evc);
         assert(TrackingRewardStreams(coreAddresses.balanceTracker).EPOCH_DURATION() == 14 days);
 
         // feeFlowControler
@@ -134,26 +127,25 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
 
         // oracleRouterFactory
         // - immutables: evc
-        assert(IEVCUser(peripheryAddresses.oracleRouterFactory).EVC() == coreAddresses.evc);
+        assert(EVCUtil(peripheryAddresses.oracleRouterFactory).EVC() == coreAddresses.evc);
 
         // oracleAdapterRegistry
+        // - evc
         // - owner
+        assert(EVCUtil(peripheryAddresses.oracleAdapterRegistry).EVC() == coreAddresses.evc);
         assert(Ownable(peripheryAddresses.oracleAdapterRegistry).owner() == ORACLE_ADAPTER_REGISTRY_ADMIN);
 
         // externalVaultRegistry
+        // - evc
         // - owner
+        assert(EVCUtil(peripheryAddresses.externalVaultRegistry).EVC() == coreAddresses.evc);
         assert(Ownable(peripheryAddresses.externalVaultRegistry).owner() == EXTERNAL_VAULT_REGISTRY_ADMIN);
 
         // irmRegistry
+        // - evc
         // - owner
+        assert(EVCUtil(peripheryAddresses.irmRegistry).EVC() == coreAddresses.evc);
         assert(Ownable(peripheryAddresses.irmRegistry).owner() == IRM_REGISTRY_ADMIN);
-
-        // escrowedCollateralPerspective
-        // - immutable: vaultFactory
-        assert(
-            address(BasePerspective(peripheryAddresses.escrowedCollateralPerspective).vaultFactory())
-                == coreAddresses.eVaultFactory
-        );
 
         // evkFactoryPerspective
         // - immutable: vaultFactory
@@ -162,8 +154,23 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
                 == coreAddresses.eVaultFactory
         );
 
+        // governedPerspective
+        // - evc
+        // - owner
+        assert(EVCUtil(peripheryAddresses.governedPerspective).EVC() == coreAddresses.evc);
+        assert(Ownable(peripheryAddresses.governedPerspective).owner() == GOVERNED_PERSPECTIVE_ADMIN);
+
+        // escrowedCollateralPerspective
+        // - immutable: vaultFactory
+        assert(
+            address(BasePerspective(peripheryAddresses.escrowedCollateralPerspective).vaultFactory())
+                == coreAddresses.eVaultFactory
+        );
+
         // eulerUngoverned0xPerspective
-        // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory
+        // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry,
+        // irmFactory
+        // - recognizedUnitOfAccounts
         // - recognizedCollateralPerspectives
         assert(
             address(BasePerspective(peripheryAddresses.eulerUngoverned0xPerspective).vaultFactory())
@@ -190,6 +197,9 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
                 == peripheryAddresses.kinkIRMFactory
         );
 
+        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective).isRecognizedUnitOfAccount(USD));
+        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective).isRecognizedUnitOfAccount(WETH));
+
         address[] memory recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective)
             .recognizedCollateralPerspectives();
         assert(recognized[0] == peripheryAddresses.escrowedCollateralPerspective);
@@ -197,7 +207,9 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         assert(recognized.length == 2);
 
         // eulerUngovernedNzxPerspective
-        // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry, irmFactory
+        // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry,
+        // irmFactory
+        // - recognizedUnitOfAccounts
         // - recognizedCollateralPerspectives
         assert(
             address(BasePerspective(peripheryAddresses.eulerUngovernedNzxPerspective).vaultFactory())
@@ -225,17 +237,15 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
                 == peripheryAddresses.kinkIRMFactory
         );
 
+        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective).isRecognizedUnitOfAccount(USD));
+        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective).isRecognizedUnitOfAccount(WETH));
+
         recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective)
             .recognizedCollateralPerspectives();
         assert(recognized[0] == peripheryAddresses.governedPerspective);
         assert(recognized[1] == peripheryAddresses.escrowedCollateralPerspective);
         assert(recognized[2] == address(0));
         assert(recognized.length == 3);
-
-        // governedPerspective
-        // - owner
-
-        assert(Ownable(peripheryAddresses.governedPerspective).owner() == GOVERNED_PERSPECTIVE_ADMIN);
 
         // swapper
         // - immutables: oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02
@@ -250,7 +260,7 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         internal
         view
     {
-        assert(GenericFactory(coreAddresses.eVaultFactory).getProxyListLength() == 8);
+        assert(GenericFactory(coreAddresses.eVaultFactory).getProxyListLength() >= 8);
         address[] memory vaults = GenericFactory(coreAddresses.eVaultFactory).getProxyListSlice(0, 8);
 
         address oracle = EVault(vaults[1]).oracle();
@@ -259,13 +269,15 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
             if (BasePerspective(peripheryAddresses.escrowedCollateralPerspective).isVerified(vaults[i])) {
                 // escrow vaults
                 assert(EVault(vaults[i]).governorAdmin() == address(0));
+                (address hookTarget, uint32 hookedOps) = EVault(vaults[i]).hookConfig();
+                assert(hookTarget == address(0));
+                assert(hookedOps == 0);
             } else if (BasePerspective(peripheryAddresses.governedPerspective).isVerified(vaults[i])) {
                 // managed vaults
                 assert(BasePerspective(peripheryAddresses.governedPerspective).isVerified(vaults[i]));
                 assert(EVault(vaults[i]).governorAdmin() == DAO_MULTISIG);
 
                 // oracle
-
                 assert(oracle == EVault(vaults[i]).oracle());
                 assert(EulerRouterFactory(peripheryAddresses.oracleRouterFactory).isValidDeployment(oracle));
                 assert(EulerRouter(oracle).governor() == DAO_MULTISIG);
@@ -275,9 +287,14 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
                 assert(EVault(vaults[i]).maxLiquidationDiscount() == 0.15e4);
                 assert(EVault(vaults[i]).liquidationCoolOffTime() == 1);
                 assert(EVault(vaults[i]).interestFee() == 0.1e4);
+                (address hookTarget, uint32 hookedOps) = EVault(vaults[i]).hookConfig();
+                assert(hookTarget == address(0));
+                assert(hookedOps == 0);
             } else {
                 revert("vault not found in perspectives");
             }
+
+            OracleVerifier.verifyOracleConfig(vaults[i]);
         }
 
         // oracle config for escrow
@@ -305,7 +322,7 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         (,,, adapter) = EulerRouter(oracle).resolveOracle(1e18, vault, USD);
         assert(adapter == USDTUSD);
 
-        // managed vaults config
+        // governed vaults config
         // WETH
         vault = vaults[1];
         assert(EVault(vault).asset() == WETH);
@@ -316,7 +333,6 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         assert(IRMLinearKink(irm).slope1() == 218407859);
         assert(IRMLinearKink(irm).slope2() == 42500370385);
         assert(IRMLinearKink(irm).kink() == 3865470566);
-
         // escrow WETH
         (uint16 borrowLTV, uint16 liquidationLTV,,,) = EVault(vault).LTVFull(vaults[0]);
         assert(borrowLTV == 0);
@@ -333,19 +349,19 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
         assert(borrowLTV == 0.74e4);
         assert(liquidationLTV == 0.76e4);
-        // managed WETH
+        // governed WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
         assert(borrowLTV == 0);
         assert(liquidationLTV == 0);
-        // managed wstETH
+        // governed wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
         assert(borrowLTV == 0.85e4);
         assert(liquidationLTV == 0.87e4);
-        // managed USDC
+        // governed USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
         assert(borrowLTV == 0.72e4);
         assert(liquidationLTV == 0.74e4);
-        // managed USDT
+        // governed USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
         assert(borrowLTV == 0.72e4);
         assert(liquidationLTV == 0.74e4);
@@ -376,19 +392,19 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
         assert(borrowLTV == 0.74e4);
         assert(liquidationLTV == 0.76e4);
-        // managed WETH
+        // governed WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
         assert(borrowLTV == 0.85e4);
         assert(liquidationLTV == 0.87e4);
-        // managed wstETH
+        // governed wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
         assert(borrowLTV == 0);
         assert(liquidationLTV == 0);
-        // managed USDC
+        // governed USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
         assert(borrowLTV == 0.72e4);
         assert(liquidationLTV == 0.74e4);
-        // managed USDT
+        // governed USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
         assert(borrowLTV == 0.72e4);
         assert(liquidationLTV == 0.74e4);
@@ -419,19 +435,19 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
         assert(borrowLTV == 0.85e4);
         assert(liquidationLTV == 0.87e4);
-        // managed WETH
+        // governed WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
         assert(borrowLTV == 0.79e4);
         assert(liquidationLTV == 0.81e4);
-        // managed wstETH
+        // governed wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
         assert(borrowLTV == 0.76e4);
         assert(liquidationLTV == 0.78e4);
-        // managed USDC
+        // governed USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
         assert(borrowLTV == 0);
         assert(liquidationLTV == 0);
-        // managed USDT
+        // governed USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
         assert(borrowLTV == 0.83e4);
         assert(liquidationLTV == 0.85e4);
@@ -462,24 +478,22 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[6]);
         assert(borrowLTV == 0);
         assert(liquidationLTV == 0);
-        // managed WETH
+        // governed WETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[1]);
         assert(borrowLTV == 0.79e4);
         assert(liquidationLTV == 0.81e4);
-        // managed wstETH
+        // governed wstETH
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[3]);
         assert(borrowLTV == 0.76e4);
         assert(liquidationLTV == 0.78e4);
-        // managed USDC
+        // governed USDC
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[5]);
         assert(borrowLTV == 0.83e4);
         assert(liquidationLTV == 0.85e4);
-        // managed USDT
+        // governed USDT
         (borrowLTV, liquidationLTV,,,) = EVault(vault).LTVFull(vaults[7]);
         assert(borrowLTV == 0);
         assert(liquidationLTV == 0);
-
-        // FIXME add IRM config
     }
 
     function callWithTrailing(address target, bytes4 selector) internal view returns (address) {
@@ -488,24 +502,4 @@ contract DeploymentSanityCheck is ScriptUtils, CoreAddressesLib, PeripheryAddres
         assert(data.length == 32);
         return abi.decode(data, (address));
     }
-
-    // function addToPerspectives(
-    //     CoreAddresses memory coreAddresses,
-    //     PeripheryAddresses memory peripheryAddresses
-    // ) internal {
-    //     assert(GenericFactory(coreAddresses.eVaultFactory).getProxyListLength() == 8);
-    //     address[] memory vaults = GenericFactory(coreAddresses.eVaultFactory).getProxyListSlice(0, 8);
-
-    //     startBroadcast();
-
-    //     for (uint256 i = 0; i < vaults.length; i++) {
-    //         if (i % 2 == 0) {
-    //             BasePerspective(peripheryAddresses.escrowedCollateralPerspective).perspectiveVerify(vaults[i], true);
-    //         } else {
-    //             BasePerspective(peripheryAddresses.governedPerspective).perspectiveVerify(vaults[i], true);
-    //         }
-    //     }
-
-    //     stopBroadcast();
-    // }
 }
