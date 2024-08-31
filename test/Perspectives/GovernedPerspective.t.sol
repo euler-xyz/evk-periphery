@@ -10,7 +10,7 @@ contract GovernedPerspectiveTest is Test {
     function test_GovernedPerspective(address owner, address nonOwner, uint8 size, uint8 removeIndex, uint256 seed)
         public
     {
-        vm.assume(owner != address(0) && owner != nonOwner);
+        vm.assume(owner != address(0) && owner != address(1) && nonOwner != address(1) && owner != nonOwner);
         vm.assume(size != 0);
         removeIndex = uint8(bound(removeIndex, 0, size - 1));
 
@@ -25,7 +25,7 @@ contract GovernedPerspectiveTest is Test {
             }
         }
 
-        GovernedPerspective perspective = new GovernedPerspective(owner);
+        GovernedPerspective perspective = new GovernedPerspective(address(1), owner);
 
         assertEq(perspective.name(), "Governed Perspective");
 
@@ -66,5 +66,38 @@ contract GovernedPerspectiveTest is Test {
         }
         assertFalse(found);
         assertEq(perspective.verifiedLength(), size - 1);
+    }
+
+    function test_GovernedPerspectiveRenounceTransferOwnership() public {
+        address OWNER = makeAddr("OWNER");
+        address OWNER2 = makeAddr("OWNER2");
+        address OWNER3 = makeAddr("OWNER3");
+        GovernedPerspective perspective = new GovernedPerspective(address(1), OWNER);
+
+        assertEq(perspective.owner(), OWNER);
+
+        vm.prank(OWNER2);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, OWNER2));
+        perspective.renounceOwnership();
+
+        vm.prank(OWNER2);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, OWNER2));
+        perspective.transferOwnership(OWNER2);
+
+        vm.prank(OWNER);
+        perspective.transferOwnership(OWNER2);
+        assertEq(perspective.owner(), OWNER2);
+
+        vm.prank(OWNER2);
+        perspective.transferOwnership(OWNER3);
+        assertEq(perspective.owner(), OWNER3);
+
+        vm.prank(OWNER2);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, OWNER2));
+        perspective.renounceOwnership();
+
+        vm.prank(OWNER3);
+        perspective.renounceOwnership();
+        assertEq(perspective.owner(), address(0));
     }
 }

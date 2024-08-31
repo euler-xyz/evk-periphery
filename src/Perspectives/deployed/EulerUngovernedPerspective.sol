@@ -26,8 +26,8 @@ contract EulerUngovernedPerspective is BasePerspective {
     IEulerKinkIRMFactory public immutable irmFactory;
 
     string internal _name;
-    address[] internal _recognizedCollateralPerspectives;
     mapping(address => bool) internal _isRecognizedUnitOfAccount;
+    address[] internal _recognizedCollateralPerspectives;
 
     /// @notice Creates a new EulerUngovernedPerspective instance.
     /// @param name_ The name string for the perspective.
@@ -37,6 +37,7 @@ contract EulerUngovernedPerspective is BasePerspective {
     /// @param externalVaultRegistry_ The address of the external vault registry contract.
     /// @param irmFactory_ The address of the EulerKinkIRMFactory contract.
     /// @param irmRegistry_ The address of the IRM registry contract.
+    /// @param recognizedUnitOfAccounts_ The addresses of the recognized unit of accounts.
     /// @param recognizedCollateralPerspectives_ The addresses of the recognized collateral perspectives. address(0) for
     /// self.
     constructor(
@@ -47,8 +48,8 @@ contract EulerUngovernedPerspective is BasePerspective {
         address externalVaultRegistry_,
         address irmFactory_,
         address irmRegistry_,
-        address[] memory recognizedCollateralPerspectives_,
-        address[] memory recognizedUnitOfAccounts_
+        address[] memory recognizedUnitOfAccounts_,
+        address[] memory recognizedCollateralPerspectives_
     ) BasePerspective(vaultFactory_) {
         _name = name_;
         routerFactory = IEulerRouterFactory(routerFactory_);
@@ -56,11 +57,12 @@ contract EulerUngovernedPerspective is BasePerspective {
         externalVaultRegistry = SnapshotRegistry(externalVaultRegistry_);
         irmFactory = IEulerKinkIRMFactory(irmFactory_);
         irmRegistry = SnapshotRegistry(irmRegistry_);
-        _recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
 
         for (uint256 i = 0; i < recognizedUnitOfAccounts_.length; ++i) {
             _isRecognizedUnitOfAccount[recognizedUnitOfAccounts_[i]] = true;
         }
+
+        _recognizedCollateralPerspectives = recognizedCollateralPerspectives_;
     }
 
     /// @inheritdoc BasePerspective
@@ -68,17 +70,17 @@ contract EulerUngovernedPerspective is BasePerspective {
         return _name;
     }
 
-    /// @notice Returns the list of recognized collateral perspectives
-    /// @return An array of addresses representing the recognized collateral perspectives
-    function recognizedCollateralPerspectives() public view returns (address[] memory) {
-        return _recognizedCollateralPerspectives;
-    }
-
     /// @notice Checks if a given unit of account is recognized by this perspective
     /// @param unitOfAccount The address of the unit of account to check
     /// @return bool True if the unit of account is recognized, false otherwise
     function isRecognizedUnitOfAccount(address unitOfAccount) public view returns (bool) {
         return _isRecognizedUnitOfAccount[unitOfAccount];
+    }
+
+    /// @notice Returns the list of recognized collateral perspectives
+    /// @return An array of addresses representing the recognized collateral perspectives
+    function recognizedCollateralPerspectives() public view returns (address[] memory) {
+        return _recognizedCollateralPerspectives;
     }
 
     /// @inheritdoc BasePerspective

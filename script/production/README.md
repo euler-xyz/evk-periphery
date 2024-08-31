@@ -67,6 +67,17 @@ i.e.
 ./script/production/ConfigAddOracleAdapters.sh "script/deployments/default/output/OracleAdaptersAddresses.csv"
 ```
 
+To revoke the adapters from the Adapters Registry, you can run the `ConfigRemoveOracleAdapters.sh` script and providing the `OracleAdaptersAddresses.csv` file path as an argument.
+
+```sh
+./script/production/ConfigRemoveOracleAdapters.sh <csv_file_path>
+```
+
+i.e.
+```sh
+./script/production/ConfigRemoveOracleAdapters.sh "script/deployments/default/output/OracleAdaptersAddresses.csv"
+```
+
 **Important**
 To avoid deploying duplicate adapters, one can pass the `OracleAdaptersAddresses.csv` from the previous deployment as an argument (optional). The script will read the deployed adapters from the CSV and will not deploy the duplicate ones.
 

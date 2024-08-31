@@ -62,10 +62,10 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         // deploy the oracle-related contracts
         routerFactory = new EulerRouterFactory(address(evc));
         router = EulerRouter(routerFactory.deploy(routerGovernor));
-        adapterRegistry = new SnapshotRegistry(registryOwner);
-        externalVaultRegistry = new SnapshotRegistry(registryOwner);
+        adapterRegistry = new SnapshotRegistry(address(evc), registryOwner);
+        externalVaultRegistry = new SnapshotRegistry(address(evc), registryOwner);
         irmFactory = new EulerKinkIRMFactory();
-        irmRegistry = new SnapshotRegistry(registryOwner);
+        irmRegistry = new SnapshotRegistry(address(evc), registryOwner);
 
         // deploy the IRMs
         irmFactory = new EulerKinkIRMFactory();
@@ -91,8 +91,8 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
             address(externalVaultRegistry),
             address(irmFactory),
             address(irmRegistry),
-            recognizedCollateralPerspectives,
-            recognizedUnitOfAccounts
+            recognizedUnitOfAccounts,
+            recognizedCollateralPerspectives
         );
 
         recognizedCollateralPerspectives[0] = address(escrowedCollateralPerspective);
@@ -104,8 +104,8 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
             address(externalVaultRegistry),
             address(irmFactory),
             address(irmRegistry),
-            recognizedCollateralPerspectives,
-            recognizedUnitOfAccounts
+            recognizedUnitOfAccounts,
+            recognizedCollateralPerspectives
         );
 
         recognizedCollateralPerspectives = new address[](2);
@@ -119,8 +119,8 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
             address(externalVaultRegistry),
             address(irmFactory),
             address(irmRegistry),
-            recognizedCollateralPerspectives,
-            recognizedUnitOfAccounts
+            recognizedUnitOfAccounts,
+            recognizedCollateralPerspectives
         );
 
         // deploy example vaults and configure them

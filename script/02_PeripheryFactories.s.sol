@@ -60,9 +60,9 @@ contract PeripheryFactories is ScriptUtils {
         )
     {
         oracleRouterFactory = address(new EulerRouterFactory(evc));
-        oracleAdapterRegistry = address(new SnapshotRegistry(getDeployer()));
-        externalVaultRegistry = address(new SnapshotRegistry(getDeployer()));
+        oracleAdapterRegistry = address(new SnapshotRegistry(evc, getDeployer()));
+        externalVaultRegistry = address(new SnapshotRegistry(evc, getDeployer()));
         kinkIRMFactory = address(new EulerKinkIRMFactory());
-        irmRegistry = address(new SnapshotRegistry(getDeployer()));
+        irmRegistry = address(new SnapshotRegistry(evc, getDeployer()));
     }
 }
