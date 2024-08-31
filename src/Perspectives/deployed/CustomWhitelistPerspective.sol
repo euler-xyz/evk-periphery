@@ -5,14 +5,14 @@ pragma solidity ^0.8.24;
 import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
 import {BasePerspective} from "../implementation/BasePerspective.sol";
 
-/// @title ImmutableWhitelistPerspective
+/// @title CustomWhitelistPerspective
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A contract that verifies whether a vault is on the defined whitelist.
-contract ImmutableWhitelistPerspective is BasePerspective {
+contract CustomWhitelistPerspective is BasePerspective {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    /// @notice Creates a new ImmutableWhitelistPerspective instance.
+    /// @notice Creates a new CustomWhitelistPerspective instance.
     /// @param whitelist An array of addresses to be added to the whitelist.
     constructor(address[] memory whitelist) BasePerspective(address(0)) {
         for (uint256 i = 0; i < whitelist.length; ++i) {
@@ -23,7 +23,7 @@ contract ImmutableWhitelistPerspective is BasePerspective {
 
     /// @inheritdoc BasePerspective
     function name() public pure virtual override returns (string memory) {
-        return "Immutable Whitelist Perspective";
+        return "Custom Whitelist Perspective";
     }
 
     /// @inheritdoc BasePerspective
