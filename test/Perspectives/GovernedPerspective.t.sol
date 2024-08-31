@@ -67,4 +67,37 @@ contract GovernedPerspectiveTest is Test {
         assertFalse(found);
         assertEq(perspective.verifiedLength(), size - 1);
     }
+
+    function test_GovernedPerspectiveRenounceTransferOwnership() public {
+        address OWNER = makeAddr("OWNER");
+        address OWNER2 = makeAddr("OWNER2");
+        address OWNER3 = makeAddr("OWNER3");
+        GovernedPerspective perspective = new GovernedPerspective(address(1), OWNER);
+
+        assertEq(perspective.owner(), OWNER);
+
+        vm.prank(OWNER2);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, OWNER2));
+        perspective.renounceOwnership();
+
+        vm.prank(OWNER2);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, OWNER2));
+        perspective.transferOwnership(OWNER2);
+
+        vm.prank(OWNER);
+        perspective.transferOwnership(OWNER2);
+        assertEq(perspective.owner(), OWNER2);
+
+        vm.prank(OWNER2);
+        perspective.transferOwnership(OWNER3);
+        assertEq(perspective.owner(), OWNER3);
+
+        vm.prank(OWNER2);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, OWNER2));
+        perspective.renounceOwnership();
+
+        vm.prank(OWNER3);
+        perspective.renounceOwnership();
+        assertEq(perspective.owner(), address(0));
+    }
 }

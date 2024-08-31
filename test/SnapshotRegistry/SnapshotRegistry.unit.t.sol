@@ -321,6 +321,37 @@ contract SnapshotRegistryTest is Test {
         registry.revoke(element);
     }
 
+    function testRenounceTransferOwnership() public {
+        address OWNER2 = makeAddr("OWNER2");
+        address OWNER3 = makeAddr("OWNER3");
+
+        assertEq(registry.owner(), OWNER);
+
+        vm.prank(OWNER2);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, OWNER2));
+        registry.renounceOwnership();
+
+        vm.prank(OWNER2);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, OWNER2));
+        registry.transferOwnership(OWNER2);
+
+        vm.prank(OWNER);
+        registry.transferOwnership(OWNER2);
+        assertEq(registry.owner(), OWNER2);
+
+        vm.prank(OWNER2);
+        registry.transferOwnership(OWNER3);
+        assertEq(registry.owner(), OWNER3);
+
+        vm.prank(OWNER2);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, OWNER2));
+        registry.renounceOwnership();
+
+        vm.prank(OWNER3);
+        registry.renounceOwnership();
+        assertEq(registry.owner(), address(0));
+    }
+
     /// @dev Assert that a given element is valid or invalid at a timestamp and it is the single one for (base, quote)
     /// independent of order.
     function assertSingleElement(address element, address base, address quote, uint256 timestamp, bool isValid)
