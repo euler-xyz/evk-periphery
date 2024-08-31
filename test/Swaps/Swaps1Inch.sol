@@ -138,6 +138,7 @@ contract Swaps1Inch is EVaultTestBase {
                     tokenOut: USDC,
                     amountOut: 0, // ignored
                     vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
                     receiver: address(0), // ignored
                     data: GRT_USDC_injectReceiver(address(eUSDC))
                 })
@@ -186,6 +187,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 0, // ignored
                 vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
                 receiver: address(0), // ignored
                 data: GRT_USDC_injectReceiver(address(swapper))
             })
@@ -195,11 +197,12 @@ contract Swaps1Inch is EVaultTestBase {
             ISwapper.SwapParams({
                 handler: swapper.HANDLER_UNISWAP_V2(),
                 mode: MODE_EXACT_OUT,
-                account: address(0), // ignored
+                account: address(0),
                 tokenIn: GRT,
                 tokenOut: USDC,
                 amountOut: 120e6,
                 vaultIn: address(eGRT),
+                accountIn: user,
                 receiver: address(swapper),
                 data: GRT_USDC_V2_PATH
             })
@@ -262,6 +265,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 0, // ignored
                 vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
                 receiver: address(0), // ignored
                 data: GRT_USDC_injectReceiver(address(swapper))
             })
@@ -271,11 +275,12 @@ contract Swaps1Inch is EVaultTestBase {
             ISwapper.SwapParams({
                 handler: swapper.HANDLER_UNISWAP_V2(),
                 mode: MODE_EXACT_OUT,
-                account: user,
+                account: address(0),
                 tokenIn: GRT,
                 tokenOut: USDC,
                 amountOut: 130e6,
                 vaultIn: address(eGRT),
+                accountIn: user,
                 receiver: address(swapper),
                 data: GRT_USDC_V2_PATH
             })
@@ -324,6 +329,90 @@ contract Swaps1Inch is EVaultTestBase {
         assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
+    function test_swapperOneInchV5_exectOutGRTUSDC_twoSteps_fromSubaccount() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        address subAccount = getSubAccount(user, 5);
+        deal(GRT, user, 100_000e18);
+        eGRT.deposit(100_000e18, subAccount);
+
+        bytes[] memory multicallItems = new bytes[](3);
+        multicallItems[0] = abi.encodeCall(
+            Swapper.swap,
+            ISwapper.SwapParams({
+                handler: swapper.HANDLER_ONE_INCH(),
+                mode: MODE_EXACT_IN,
+                account: address(0), // ignored
+                tokenIn: GRT,
+                tokenOut: USDC,
+                amountOut: 0, // ignored
+                vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
+                receiver: address(0), // ignored
+                data: GRT_USDC_injectReceiver(address(swapper))
+            })
+        );
+        multicallItems[1] = abi.encodeCall(
+            Swapper.swap,
+            ISwapper.SwapParams({
+                handler: swapper.HANDLER_UNISWAP_V2(),
+                mode: MODE_EXACT_OUT,
+                account: address(0),
+                tokenIn: GRT,
+                tokenOut: USDC,
+                amountOut: 130e6,
+                vaultIn: address(eGRT),
+                accountIn: subAccount,
+                receiver: address(swapper),
+                data: GRT_USDC_V2_PATH
+            })
+        );
+        multicallItems[2] = abi.encodeCall(Swapper.sweep, (USDC, 0, address(eUSDC)));
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: subAccount,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1500e18, address(swapper), subAccount))
+        });
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(Swapper.multicall, multicallItems)
+        });
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyAmountMinAndSkim, (address(eUSDC), user, 130e6, type(uint256).max))
+        });
+
+        evc.batch(items);
+
+        // vaults
+        assertEq(eGRT.totalSupply(), 198960.107617856350262041e18);
+        assertEq(eGRT.totalAssets(), 198960.107617856350262041e18);
+        assertEq(eUSDC.totalSupply(), 130e6);
+        assertEq(eUSDC.totalAssets(), 130e6);
+
+        // account
+        assertEq(eGRT.balanceOf(user), 100_000e18);
+        assertEq(eGRT.maxWithdraw(user), 100_000e18);
+        assertEq(eGRT.balanceOf(subAccount), 98960107617856350262041);
+        assertEq(eGRT.maxWithdraw(subAccount), 98960107617856350262041);
+        assertEq(eUSDC.balanceOf(user), 130e6);
+        assertEq(eUSDC.maxWithdraw(user), 130e6);
+
+        // swapper
+        assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
+        assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
+        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
+        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
+    }
+
     function test_swapperOneInchV5_exectInGRTUSDC_insufficientAmountIn() external {
         setupFork(GRT_USDC_BLOCK, false);
 
@@ -350,6 +439,7 @@ contract Swaps1Inch is EVaultTestBase {
                     tokenOut: USDC,
                     amountOut: 0, // ignored
                     vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
                     receiver: address(0), // ignored
                     data: GRT_USDC_injectReceiver(address(eUSDC))
                 })
@@ -381,6 +471,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 0, // ignored
                 vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
                 receiver: address(0), // ignored
                 data: GRT_USDC_injectReceiver(address(swapper))
             })
@@ -395,6 +486,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 200e6,
                 vaultIn: address(eGRT),
+                accountIn: user,
                 receiver: address(swapper),
                 data: GRT_USDC_V2_PATH
             })
@@ -440,6 +532,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 0, // ignored
                 vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
                 receiver: address(0), // ignored
                 data: GRT_USDC_injectReceiver(address(swapper))
             })
@@ -454,6 +547,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 200e6,
                 vaultIn: address(eGRT),
+                accountIn: user,
                 receiver: address(swapper),
                 data: GRT_USDC_V3_PATH
             })
@@ -511,6 +605,7 @@ contract Swaps1Inch is EVaultTestBase {
                     tokenOut: USDC,
                     amountOut: 0, // ignored
                     vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
                     receiver: address(0), // ignored
                     data: GRT_USDC_injectReceiver(address(eUSDC))
                 })
@@ -554,6 +649,7 @@ contract Swaps1Inch is EVaultTestBase {
                     tokenOut: USDC,
                     amountOut: 0, // ignored
                     vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
                     receiver: address(0), // ignored
                     data: GRT_USDC_injectReceiver(address(user))
                 })
@@ -597,6 +693,7 @@ contract Swaps1Inch is EVaultTestBase {
                     tokenOut: USDC,
                     amountOut: 0, // ignored
                     vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
                     receiver: address(0), // ignored
                     data: GRT_USDC_injectReceiver(address(eUSDC))
                 })
@@ -640,6 +737,7 @@ contract Swaps1Inch is EVaultTestBase {
                     tokenOut: USDC,
                     amountOut: 0, // ignored
                     vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
                     receiver: address(0), // ignored
                     data: GRT_USDC_injectReceiver(address(eUSDC))
                 })
@@ -683,6 +781,7 @@ contract Swaps1Inch is EVaultTestBase {
                     tokenOut: USDC,
                     amountOut: 0, // ignored
                     vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
                     receiver: address(0), // ignored
                     data: GRT_USDC_injectReceiver(address(eUSDC))
                 })
@@ -717,6 +816,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 0, // ignored
                 vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
                 receiver: address(0), // ignored
                 data: GRT_USDC_injectReceiver(address(swapper))
             })
@@ -731,6 +831,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 0,
                 vaultIn: address(eGRT),
+                accountIn: user,
                 receiver: address(eUSDC),
                 data: GRT_USDC_V2_PATH
             })
@@ -779,6 +880,92 @@ contract Swaps1Inch is EVaultTestBase {
         assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
+    function test_swapperOneInchV5_GRTUSDC_swapAndRepay_V2_swapFromSubaccount() external {
+        setupFork(GRT_USDC_BLOCK, true);
+
+        evc.enableController(user, address(eUSDC));
+        eUSDC.borrow(130e6, user);
+
+        address subAccount = getSubAccount(user, 5);
+        deal(GRT, user, 100_000e18);
+        eGRT.deposit(100_000e18, subAccount);
+
+        bytes[] memory multicallItems = new bytes[](2);
+        multicallItems[0] = abi.encodeCall(
+            Swapper.swap,
+            ISwapper.SwapParams({
+                handler: swapper.HANDLER_ONE_INCH(),
+                mode: MODE_EXACT_IN,
+                account: address(0), // ignored
+                tokenIn: GRT,
+                tokenOut: USDC,
+                amountOut: 0, // ignored
+                vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
+                receiver: address(0), // ignored
+                data: GRT_USDC_injectReceiver(address(swapper))
+            })
+        );
+        multicallItems[1] = abi.encodeCall(
+            Swapper.swap,
+            ISwapper.SwapParams({
+                handler: swapper.HANDLER_UNISWAP_V2(),
+                mode: MODE_TARGET_DEBT,
+                account: user,
+                tokenIn: GRT,
+                tokenOut: USDC,
+                amountOut: 0,
+                vaultIn: address(eGRT),
+                accountIn: subAccount,
+                receiver: address(eUSDC),
+                data: GRT_USDC_V2_PATH
+            })
+        );
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: subAccount,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1500e18, address(swapper), subAccount))
+        });
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(Swapper.multicall, multicallItems)
+        });
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyDebtMax, (address(eUSDC), user, 0, type(uint256).max))
+        });
+
+        evc.batch(items);
+
+        uint256 secondaryAmountIn = 39.892382143649737959e18;
+
+        // vaults
+        assertEq(eGRT.totalSupply(), 200_000e18 - 1000e18 - secondaryAmountIn);
+        assertEq(eGRT.totalAssets(), 200_000e18 - 1000e18 - secondaryAmountIn);
+        assertEq(eUSDC.totalSupply(), 100_000e6);
+        assertEq(eUSDC.totalAssets(), 100_000e6);
+
+        // account
+        assertEq(eGRT.balanceOf(user), 100_000e18);
+        assertEq(eGRT.balanceOf(subAccount), 100_000e18 - 1000e18 - secondaryAmountIn);
+        assertEq(eUSDC.balanceOf(user), 0);
+        assertEq(eUSDC.debtOf(user), 0);
+
+        // swapper
+        assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
+        assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
+        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
+        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
+    }
+
     function test_swapperOneInchV5_GRTUSDC_swapAndRepay_V3() external {
         setupFork(GRT_USDC_BLOCK, true);
 
@@ -796,6 +983,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 0, // ignored
                 vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
                 receiver: address(0), // ignored
                 data: GRT_USDC_injectReceiver(address(swapper))
             })
@@ -810,6 +998,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 0,
                 vaultIn: address(eGRT),
+                accountIn: user,
                 receiver: address(eUSDC),
                 data: GRT_USDC_V3_PATH
             })
@@ -875,6 +1064,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 0, // ignored
                 vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
                 receiver: address(0), // ignored
                 data: GRT_USDC_injectReceiver(address(swapper))
             })
@@ -889,6 +1079,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: USDC,
                 amountOut: 0,
                 vaultIn: address(eGRT),
+                accountIn: user,
                 receiver: address(eUSDC),
                 data: GRT_USDC_V2_PATH
             })
@@ -962,6 +1153,7 @@ contract Swaps1Inch is EVaultTestBase {
                     tokenOut: STETH,
                     amountOut: 0, // ignored
                     vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
                     receiver: address(0), // ignored
                     data: USDT_STETH_injectReceiver(address(eSTETH))
                 })
@@ -1021,6 +1213,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: STETH,
                 amountOut: 0, // ignored
                 vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
                 receiver: address(0), // ignored
                 data: USDT_STETH_injectReceiver(address(swapper))
             })
@@ -1035,6 +1228,7 @@ contract Swaps1Inch is EVaultTestBase {
                 tokenOut: STETH,
                 amountOut: 0,
                 vaultIn: address(eUSDT),
+                accountIn: user,
                 receiver: address(eSTETH),
                 data: USDT_STETH_V2_PATH
             })

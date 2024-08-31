@@ -78,7 +78,7 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         }
 
         // return unused input token after exact output swap
-        _deposit(params.tokenIn, params.vaultIn, 0, params.account);
+        _deposit(params.tokenIn, params.vaultIn, 0, params.accountIn);
     }
 
     /// @inheritdoc ISwapper
