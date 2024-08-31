@@ -24,7 +24,6 @@ if [ "$is_batch" == "y" ]; then
 fi
 
 onBehalfOf=$(cast wallet address --private-key $DEPLOYER_KEY)
-gasPrice=$(echo "($(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL") * 1.2)/1" | bc)
 items="["
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
@@ -48,6 +47,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
     if [[ $addedAt == "0" && $revokedAt == "0" ]]; then
         if [ "$is_batch" != "y" ]; then
+            gasPrice=$(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL")
+
             if cast send $adapter_registry "add(address,address,address)()" $adapter $base $quote --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY --legacy --gas-price $gasPrice > /dev/null; then
                 echo "Successfully added adapter $adapterName ($adapter) to the registry."
             else
@@ -66,7 +67,7 @@ items="${items%,}]"
 
 echo "Executing batch transaction..."
 if [ "$is_batch" == "y" ]; then
-    if cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY --legacy --gas-price $gasPrice > /dev/null; then
+    if cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY --legacy > /dev/null; then
         echo "Batch transaction successful."
     else
         echo "Batch transaction failed."
