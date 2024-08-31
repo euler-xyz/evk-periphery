@@ -46,12 +46,12 @@ contract GovernedPerspective is EVCUtil, Ownable, BasePerspective {
     /// called by the current owner.
     /// NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is
     /// only available to the owner.
-    function renounceOwnership() public virtual override onlyEVCAccountOwner onlyOwner {
+    function renounceOwnership() public virtual override onlyEVCAccountOwner {
         super.renounceOwnership();
     }
 
     /// @dev Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.
-    function transferOwnership(address newOwner) public virtual override onlyEVCAccountOwner onlyOwner {
+    function transferOwnership(address newOwner) public virtual override onlyEVCAccountOwner {
         super.transferOwnership(newOwner);
     }
 
