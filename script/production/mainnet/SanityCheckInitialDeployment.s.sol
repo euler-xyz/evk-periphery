@@ -21,7 +21,7 @@ import {EulerUngovernedPerspective} from "../../../src/Perspectives/deployed/Eul
 import {Swapper} from "../../../src/Swaps/Swapper.sol";
 import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
 
-contract SanityCheckInitialVaults is Script, CoreAddressesLib, PeripheryAddressesLib {
+contract SanityCheckInitialDeployment is Script, CoreAddressesLib, PeripheryAddressesLib {
     // assets
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -68,7 +68,7 @@ contract SanityCheckInitialVaults is Script, CoreAddressesLib, PeripheryAddresse
         internal
         view
     {
-        // Nothing to check in: evc, sequenceRegistry, accountLens, utilsLens, kinkIRMFactory, swapVerifier
+        // Nothing to check in: evc, accountLens, utilsLens, kinkIRMFactory, swapVerifier
 
         // eVaultFactory
         // - upgradeAdmin
@@ -130,15 +130,21 @@ contract SanityCheckInitialVaults is Script, CoreAddressesLib, PeripheryAddresse
         assert(EVCUtil(peripheryAddresses.oracleRouterFactory).EVC() == coreAddresses.evc);
 
         // oracleAdapterRegistry
+        // - evc
         // - owner
+        assert(EVCUtil(peripheryAddresses.oracleAdapterRegistry).EVC() == coreAddresses.evc);
         assert(Ownable(peripheryAddresses.oracleAdapterRegistry).owner() == ORACLE_ADAPTER_REGISTRY_ADMIN);
 
         // externalVaultRegistry
+        // - evc
         // - owner
+        assert(EVCUtil(peripheryAddresses.externalVaultRegistry).EVC() == coreAddresses.evc);
         assert(Ownable(peripheryAddresses.externalVaultRegistry).owner() == EXTERNAL_VAULT_REGISTRY_ADMIN);
 
         // irmRegistry
+        // - evc
         // - owner
+        assert(EVCUtil(peripheryAddresses.irmRegistry).EVC() == coreAddresses.evc);
         assert(Ownable(peripheryAddresses.irmRegistry).owner() == IRM_REGISTRY_ADMIN);
 
         // evkFactoryPerspective
@@ -149,7 +155,9 @@ contract SanityCheckInitialVaults is Script, CoreAddressesLib, PeripheryAddresse
         );
 
         // governedPerspective
+        // - evc
         // - owner
+        assert(EVCUtil(peripheryAddresses.governedPerspective).EVC() == coreAddresses.evc);
         assert(Ownable(peripheryAddresses.governedPerspective).owner() == GOVERNED_PERSPECTIVE_ADMIN);
 
         // escrowedCollateralPerspective
@@ -161,7 +169,8 @@ contract SanityCheckInitialVaults is Script, CoreAddressesLib, PeripheryAddresse
 
         // eulerUngoverned0xPerspective
         // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry,
-        // kinkIRMFactory
+        // irmFactory
+        // - recognizedUnitOfAccounts
         // - recognizedCollateralPerspectives
         assert(
             address(BasePerspective(peripheryAddresses.eulerUngoverned0xPerspective).vaultFactory())
@@ -188,6 +197,9 @@ contract SanityCheckInitialVaults is Script, CoreAddressesLib, PeripheryAddresse
                 == peripheryAddresses.kinkIRMFactory
         );
 
+        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective).isRecognizedUnitOfAccount(USD));
+        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective).isRecognizedUnitOfAccount(WETH));
+
         address[] memory recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective)
             .recognizedCollateralPerspectives();
         assert(recognized[0] == peripheryAddresses.escrowedCollateralPerspective);
@@ -196,7 +208,8 @@ contract SanityCheckInitialVaults is Script, CoreAddressesLib, PeripheryAddresse
 
         // eulerUngovernedNzxPerspective
         // - immutables: vaultFactory, routerFactory, adapterRegistry, externalVaultRegistry, irmRegistry,
-        // kinkIRMFactory
+        // irmFactory
+        // - recognizedUnitOfAccounts
         // - recognizedCollateralPerspectives
         assert(
             address(BasePerspective(peripheryAddresses.eulerUngovernedNzxPerspective).vaultFactory())
@@ -223,6 +236,9 @@ contract SanityCheckInitialVaults is Script, CoreAddressesLib, PeripheryAddresse
             address(EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective).irmFactory())
                 == peripheryAddresses.kinkIRMFactory
         );
+
+        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective).isRecognizedUnitOfAccount(USD));
+        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective).isRecognizedUnitOfAccount(WETH));
 
         recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective)
             .recognizedCollateralPerspectives();
