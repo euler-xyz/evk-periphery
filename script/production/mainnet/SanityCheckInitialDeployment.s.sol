@@ -68,7 +68,7 @@ contract SanityCheckInitialDeployment is Script, CoreAddressesLib, PeripheryAddr
         internal
         view
     {
-        // Nothing to check in: evc, accountLens, utilsLens, kinkIRMFactory, swapVerifier
+        // Nothing to check in: evc, sequenceRegistry, accountLens, utilsLens, kinkIRMFactory, swapVerifier
 
         // eVaultFactory
         // - upgradeAdmin
