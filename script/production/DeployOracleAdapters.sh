@@ -262,7 +262,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         exit 1
     fi
 
-    script/utils/executeForgeScript.sh $scriptName $verify_contracts > /dev/null 2>&1
+    script/utils/executeForgeScript.sh $scriptName $verify_contracts
 
     if [[ -f "script/${jsonName}_output.json" ]]; then
         counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
