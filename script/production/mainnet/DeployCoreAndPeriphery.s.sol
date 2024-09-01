@@ -80,8 +80,14 @@ contract DeployCoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddre
         // deploy swapper
         {
             Swap deployer = new Swap();
-            (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) =
-                deployer.deploy(ONE_INCH_AGGREGATOR_V6, UNISWAP_ROUTER_V2, UNISWAP_ROUTER_V3, UNISWAP_ROUTER_02);
+            (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) = deployer.deploy(
+                coreAddresses.evc,
+                coreAddresses.permit2,
+                ONE_INCH_AGGREGATOR_V6,
+                UNISWAP_ROUTER_V2,
+                UNISWAP_ROUTER_V3,
+                UNISWAP_ROUTER_02
+            );
         }
         // deploy fee flow
         {

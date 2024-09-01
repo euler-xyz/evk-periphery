@@ -41,6 +41,10 @@ interface ISwapper {
         bytes data;
     }
 
+    /// @notice Returns the address of the Permit2 contract used for token approvals
+    /// @return The address of the Permit2 contract
+    function permit2Address() external view returns (address);
+
     /// @notice Execute a swap (and possibly repay or deposit) according to the SwapParams configuration
     /// @param params Configuration of the swap
     function swap(SwapParams calldata params) external;
@@ -75,6 +79,12 @@ interface ISwapper {
     /// @param amountMin Minimum amount of tokens to transfer. If unavailable, the operation is a no-op
     /// @param to Address to send the tokens to
     function sweep(address token, uint256 amountMin, address to) external;
+
+    /// @notice Transfers tokens from the caller to this contract
+    /// @param token The address of the token to transfer
+    /// @param amount The amount of tokens to transfer
+    /// @dev This function uses the permit2 contract for the transfer if available
+    function pullToken(address token, uint256 amount) external;
 
     /// @notice Call multiple functions of the contract
     /// @param calls Array of encoded payloads

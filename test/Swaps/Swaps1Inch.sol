@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.23;
 
+import {EthereumVaultConnector} from "ethereum-vault-connector/EthereumVaultConnector.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IEVault, IERC4626, IERC20} from "evk/EVault/IEVault.sol";
@@ -51,7 +52,8 @@ contract Swaps1Inch is EVaultTestBase {
         user = makeAddr("user");
         user2 = makeAddr("user2");
 
-        swapper = new Swapper(oneInchAggregatorV5, uniswapRouterV2, uniswapRouterV3, uniswapRouter02);
+        swapper =
+            new Swapper(address(evc), permit2, oneInchAggregatorV5, uniswapRouterV2, uniswapRouterV3, uniswapRouter02);
         swapVerifier = new SwapVerifier();
 
         if (bytes(FORK_RPC_URL).length != 0) {

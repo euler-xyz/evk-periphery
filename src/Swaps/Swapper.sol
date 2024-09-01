@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
 import {SafeERC20Lib} from "evk/EVault/shared/lib/SafeERC20Lib.sol";
 import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
@@ -17,7 +18,7 @@ import {UniswapAutoRouterHandler} from "./handlers/UniswapAutoRouterHandler.sol"
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Untrusted helper contract for EVK for performing swaps and swaps to repay
-contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapAutoRouterHandler {
+contract Swapper is EVCUtil, OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapAutoRouterHandler {
     bytes32 public constant HANDLER_ONE_INCH = bytes32("1Inch");
     bytes32 public constant HANDLER_UNISWAP_V2 = bytes32("UniswapV2");
     bytes32 public constant HANDLER_UNISWAP_V3 = bytes32("UniswapV3");
@@ -26,6 +27,7 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
     uint256 internal constant REENTRANCYLOCK_UNLOCKED = 1;
     uint256 internal constant REENTRANCYLOCK_LOCKED = 2;
 
+    address internal immutable permit2;
     uint256 private reentrancyLock;
 
     error Swapper_UnknownMode();
@@ -46,12 +48,27 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         if (isExternal) reentrancyLock = REENTRANCYLOCK_UNLOCKED;
     }
 
-    constructor(address oneInchAggregator, address uniswapRouterV2, address uniswapRouterV3, address uniswapRouter02)
+    constructor(
+        address _evc,
+        address _permit2,
+        address oneInchAggregator,
+        address uniswapRouterV2,
+        address uniswapRouterV3,
+        address uniswapRouter02
+    )
+        EVCUtil(_evc)
         OneInchHandler(oneInchAggregator)
         UniswapV2Handler(uniswapRouterV2)
         UniswapV3Handler(uniswapRouterV3)
         UniswapAutoRouterHandler(uniswapRouter02)
-    {}
+    {
+        permit2 = _permit2;
+    }
+
+    /// @inheritdoc ISwapper
+    function permit2Address() public view returns (address) {
+        return permit2;
+    }
 
     /// @inheritdoc ISwapper
     function swap(SwapParams memory params) public externalLock {
@@ -108,6 +125,11 @@ contract Swapper is OneInchHandler, UniswapV2Handler, UniswapV3Handler, UniswapA
         if (balance >= amountMin) {
             SafeERC20Lib.safeTransfer(IERC20(token), to, balance);
         }
+    }
+
+    /// @inheritdoc ISwapper
+    function pullToken(address token, uint256 amount) public externalLock {
+        SafeERC20Lib.safeTransferFrom(IERC20(token), _msgSender(), address(this), amount, permit2);
     }
 
     /// @inheritdoc ISwapper
