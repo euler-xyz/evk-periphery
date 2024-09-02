@@ -31,8 +31,14 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     adapter="${columns[4]}"
     base="${columns[5]}"
     quote="${columns[6]}"
+    whitelist="${columns[7]}"
 
     if [[ "$adapter" == "Adapter" ]]; then
+        continue
+    fi
+
+    if [[ "$whitelist" != "Yes" ]]; then
+        echo "Adapter $adapterName ($adapter) should not be whitelisted. Skipping..."
         continue
     fi
 

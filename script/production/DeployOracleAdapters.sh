@@ -73,15 +73,21 @@ if [ -f "$past_oracle_adapters_addresses_path" ]; then
 fi
 
 if [[ ! -f "$oracleAdaptersAddresses" ]]; then
-    echo "Asset,Quote,Provider,Adapter Name,Adapter,Base,Quote" > "$oracleAdaptersAddresses"
+    echo "Asset,Quote,Provider,Adapter Name,Adapter,Base,Quote,Whitelist" > "$oracleAdaptersAddresses"
 fi
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
     provider_index="${columns[2]}"
     deploy_index="${columns[3]}"
+    whitelist_index="${columns[4]}"
+    add_to_adapter_registry_override=$add_to_adapter_registry
 
     if [[ "$deploy_index" == "Deploy" || "$deploy_index" == "No" ]]; then
         continue
+    fi
+
+    if [[ "$whitelist_index" == "No" ]]; then
+        add_to_adapter_registry_override="n"
     fi
 
     adapterName="${provider_index// /}_${columns[0]}/${columns[1]}"
@@ -103,7 +109,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[9]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
@@ -125,7 +131,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[9]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
@@ -152,7 +158,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         fi
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
@@ -166,7 +172,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[9]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
@@ -188,7 +194,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[7]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[6]}" \
             --arg quote "${columns[7]}" \
@@ -212,7 +218,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[8]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg pyth "${columns[6]}" \
             --arg base "${columns[7]}" \
@@ -241,7 +247,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[8]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[6]}" \
             --arg cross "${columns[7]}" \
@@ -269,7 +275,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         adapter=$(jq -r '.adapter' "script/${jsonName}_output.json")
 
         echo "Successfully deployed $adapterName: $adapter"
-        echo "${columns[0]},${columns[1]},${columns[2]},${adapterName},${adapter},$base,$quote" >> "$oracleAdaptersAddresses"
+        echo "${columns[0]},${columns[1]},${columns[2]},${adapterName},${adapter},$base,$quote,${columns[4]}" >> "$oracleAdaptersAddresses"
 
         mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
         mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"
