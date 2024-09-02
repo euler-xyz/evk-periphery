@@ -7,6 +7,7 @@ import {SnapshotRegistry} from "../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {ChainlinkOracle} from "euler-price-oracle/adapter/chainlink/ChainlinkOracle.sol";
 import {ChronicleOracle} from "euler-price-oracle/adapter/chronicle/ChronicleOracle.sol";
 import {LidoOracle} from "euler-price-oracle/adapter/lido/LidoOracle.sol";
+import {LidoFundamentalOracle} from "euler-price-oracle/adapter/lido/LidoFundamentalOracle.sol";
 import {PythOracle} from "euler-price-oracle/adapter/pyth/PythOracle.sol";
 import {RedstoneCoreOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreOracle.sol";
 //import {RedstoneCoreArbitrumOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreArbitrumOracle.sol";
@@ -122,6 +123,35 @@ contract LidoAdapter is ScriptUtils {
         adapter = address(new LidoOracle());
         if (addToAdapterRegistry) {
             SnapshotRegistry(adapterRegistry).add(adapter, LidoOracle(adapter).STETH(), LidoOracle(adapter).WSTETH());
+        }
+    }
+}
+
+contract LidoFundamentalAdapter is ScriptUtils {
+    function run() public broadcast returns (address adapter) {
+        string memory inputScriptFileName = "03_LidoFundamentalAdapter_input.json";
+        string memory outputScriptFileName = "03_LidoFundamentalAdapter_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        bool addToAdapterRegistry = abi.decode(vm.parseJson(json, ".addToAdapterRegistry"), (bool));
+
+        adapter = execute(adapterRegistry, addToAdapterRegistry);
+
+        string memory object;
+        object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address adapterRegistry, bool addToAdapterRegistry) public broadcast returns (address adapter) {
+        adapter = execute(adapterRegistry, addToAdapterRegistry);
+    }
+
+    function execute(address adapterRegistry, bool addToAdapterRegistry) public returns (address adapter) {
+        adapter = address(new LidoFundamentalOracle());
+        if (addToAdapterRegistry) {
+            SnapshotRegistry(adapterRegistry).add(
+                adapter, LidoFundamentalOracle(adapter).WETH(), LidoFundamentalOracle(adapter).WSTETH()
+            );
         }
     }
 }

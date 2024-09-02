@@ -243,6 +243,11 @@ struct LidoOracleInfo {
     address quote;
 }
 
+struct LidoFundamentalOracleInfo {
+    address base;
+    address quote;
+}
+
 struct PythOracleInfo {
     address pyth;
     address base;

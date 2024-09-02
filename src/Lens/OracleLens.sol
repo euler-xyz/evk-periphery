@@ -15,6 +15,7 @@ interface IOracle is IPriceOracle {
     function oracleCrossQuote() external view returns (address);
     function feed() external view returns (address);
     function pyth() external view returns (address);
+    function WETH() external view returns (address);
     function STETH() external view returns (address);
     function WSTETH() external view returns (address);
     function tokenA() external view returns (address);
@@ -91,6 +92,8 @@ contract OracleLens is Utils {
             );
         } else if (_strEq(name, "LidoOracle")) {
             oracleInfo = abi.encode(LidoOracleInfo({base: oracle.WSTETH(), quote: oracle.STETH()}));
+        } else if (_strEq(name, "LidoFundamentalOracle")) {
+            oracleInfo = abi.encode(LidoFundamentalOracleInfo({base: oracle.WSTETH(), quote: oracle.WETH()}));
         } else if (_strEq(name, "PythOracle")) {
             oracleInfo = abi.encode(
                 PythOracleInfo({
