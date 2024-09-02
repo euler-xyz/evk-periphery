@@ -90,6 +90,18 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
     if [[ "$provider" == *Cross* ]]; then
         adapterName="${provider// /}_${baseSymbol}/${quoteSymbol}=${oracleBaseCross}+${oracleCrossQuote}"
+        oracleBaseCross=$(find_adapter_address "${oracleBaseCross}" "$past_oracle_adapters_addresses_path")
+        oracleCrossQuote=$(find_adapter_address "${oracleCrossQuote}" "$past_oracle_adapters_addresses_path")
+
+        if [[ ! "$oracleBaseCross" =~ ^0x ]]; then
+            echo "Skipping deployment of $adapterName. Missing oracle adapter: $oracleBaseCross"
+            continue
+        fi
+
+        if [[ ! "$oracleCrossQuote" =~ ^0x ]]; then
+            echo "Skipping deployment of $adapterName. Missing oracle adapter: $oracleCrossQuote"
+            continue
+        fi
     else
         adapterName="${provider// /}_${baseSymbol}/${quoteSymbol}"
     fi
@@ -265,9 +277,6 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         scriptName=${baseName}.s.sol:CrossAdapterDeployer
         jsonName=03_CrossAdapter
 
-        columns[9]=$(find_adapter_address "${oracleBaseCross}" "$past_oracle_adapters_addresses_path")
-        columns[10]=$(find_adapter_address "${oracleCrossQuote}" "$past_oracle_adapters_addresses_path")
-
         base="${columns[6]}"
         quote="${columns[8]}"
 
@@ -277,8 +286,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --arg base "${columns[6]}" \
             --arg cross "${columns[7]}" \
             --arg quote "${columns[8]}" \
-            --arg oracleBaseCross "${columns[9]}" \
-            --arg oracleCrossQuote "${columns[10]}" \
+            --arg oracleBaseCross "${oracleBaseCross}" \
+            --arg oracleCrossQuote "${oracleCrossQuote}" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
