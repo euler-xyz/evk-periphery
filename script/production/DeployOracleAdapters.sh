@@ -6,8 +6,6 @@ find_adapter_address() {
     local result="$adapter_name"
 
     if [[ ! "$adapter_name" =~ ^0x ]]; then
-        adapter_name="${adapter_name//[/}"
-        adapter_name="${adapter_name//]/}"
         adapter_name=$(echo "$adapter_name" | tr '[:upper:]' '[:lower:]')
         
         if [[ -f "$adapters_list" ]]; then
@@ -77,20 +75,40 @@ if [[ ! -f "$oracleAdaptersAddresses" ]]; then
 fi
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
-    provider_index="${columns[2]}"
-    deploy_index="${columns[3]}"
-    whitelist_index="${columns[4]}"
+    baseSymbol="${columns[0]}"
+    quoteSymbol="${columns[1]}"
+    provider="${columns[2]}"
+    shouldDeploy="${columns[3]}"
+    shouldWhitelist="${columns[4]}"
+    oracleBaseCross="${columns[9]//[\[\]]}"
+    oracleCrossQuote="${columns[10]//[\[\]]}"
     add_to_adapter_registry_override=$add_to_adapter_registry
 
-    if [[ "$deploy_index" == "Deploy" || "$deploy_index" == "No" ]]; then
+    if [[ "$shouldDeploy" == "Deploy" || "$shouldDeploy" == "No" ]]; then
         continue
     fi
 
-    if [[ "$whitelist_index" == "No" ]]; then
-        add_to_adapter_registry_override="n"
+    if [[ "$provider" == *Cross* ]]; then
+        adapterName="${provider// /}_${baseSymbol}/${quoteSymbol}=${oracleBaseCross}+${oracleCrossQuote}"
+        oracleBaseCross=$(find_adapter_address "${oracleBaseCross}" "$past_oracle_adapters_addresses_path")
+        oracleCrossQuote=$(find_adapter_address "${oracleCrossQuote}" "$past_oracle_adapters_addresses_path")
+
+        if [[ ! "$oracleBaseCross" =~ ^0x ]]; then
+            echo "Skipping deployment of $adapterName. Missing oracle adapter: $oracleBaseCross"
+            continue
+        fi
+
+        if [[ ! "$oracleCrossQuote" =~ ^0x ]]; then
+            echo "Skipping deployment of $adapterName. Missing oracle adapter: $oracleCrossQuote"
+            continue
+        fi
+    else
+        adapterName="${provider// /}_${baseSymbol}/${quoteSymbol}"
     fi
 
-    adapterName="${provider_index// /}_${columns[0]}/${columns[1]}"
+    if [[ "$shouldWhitelist" == "No" ]]; then
+        add_to_adapter_registry_override="n"
+    fi
 
     if [[ "$avoid_duplicates" == "y" ]]; then
         adapterAddress=$(find_adapter_address "$adapterName" "$past_oracle_adapters_addresses_path")
@@ -101,7 +119,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         fi
     fi
 
-    if [[ "$provider_index" == "Chainlink" ]]; then
+    if [[ "$provider" == "Chainlink" ]]; then
         scriptName=${baseName}.s.sol:ChainlinkAdapter
         jsonName=03_ChainlinkAdapter
 
@@ -123,7 +141,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 feed: $feed,
                 maxStaleness: $maxStaleness
             }' --indent 4 > script/${jsonName}_input.json
-    elif [[ "$provider_index" == "Chronicle" ]]; then
+    elif [[ "$provider" == "Chronicle" ]]; then
         scriptName=${baseName}.s.sol:ChronicleAdapter
         jsonName=03_ChronicleAdapter
 
@@ -145,13 +163,13 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 feed: $feed,
                 maxStaleness: $maxStaleness
             }' --indent 4 > script/${jsonName}_input.json
-    elif [[ "$provider_index" == "Lido" ]]; then
+    elif [[ "$provider" == "Lido" ]]; then
         scriptName=${baseName}.s.sol:LidoAdapter
         jsonName=03_LidoAdapter
 
         if [[ $chainId == "1" ]]; then
-            base=0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84
-            quote=0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0
+            base=0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0
+            quote=0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84
         else
             base=""
             quote=""
@@ -164,7 +182,26 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry
             }' --indent 4 > script/${jsonName}_input.json
-    elif [[ "$provider_index" == "RedStone Classic" ]]; then
+    elif [[ "$provider" == "Lido Fundamental" ]]; then
+        scriptName=${baseName}.s.sol:LidoFundamentalAdapter
+        jsonName=03_LidoFundamentalAdapter
+
+        if [[ $chainId == "1" ]]; then
+            base=0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0
+            quote=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+        else
+            base=""
+            quote=""
+        fi
+
+        jq -n \
+            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
+            --arg adapterRegistry "$adapter_registry" \
+            '{
+                addToAdapterRegistry: $addToAdapterRegistry,
+                adapterRegistry: $adapterRegistry
+            }' --indent 4 > script/${jsonName}_input.json
+    elif [[ "$provider" == "RedStone Classic" ]]; then
         scriptName=${baseName}.s.sol:ChainlinkAdapter
         jsonName=03_ChainlinkAdapter
 
@@ -186,7 +223,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 feed: $feed,
                 maxStaleness: $maxStaleness
             }' --indent 4 > script/${jsonName}_input.json
-    elif [[ "$provider_index" == "RedStone Core" ]]; then
+    elif [[ "$provider" == "RedStone Core" ]]; then
         scriptName=${baseName}.s.sol:RedstoneAdapter
         jsonName=03_RedstoneAdapter
 
@@ -210,7 +247,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 feedDecimals: $feedDecimals,
                 maxStaleness: $maxStaleness
             }' --indent 4 > script/${jsonName}_input.json
-    elif [[ "$provider_index" == "Pyth" ]]; then
+    elif [[ "$provider" == "Pyth" ]]; then
         scriptName=${baseName}.s.sol:PythAdapter
         jsonName=03_PythAdapter
 
@@ -236,12 +273,9 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 maxStaleness: $maxStaleness,
                 maxConfWidth: $maxConfWidth
             }' --indent 4 > script/${jsonName}_input.json
-    elif [[ "$provider_index" == *Cross* ]]; then
+    elif [[ "$provider" == *Cross* ]]; then
         scriptName=${baseName}.s.sol:CrossAdapterDeployer
         jsonName=03_CrossAdapter
-
-        columns[9]=$(find_adapter_address "${columns[9]}" "$past_oracle_adapters_addresses_path")
-        columns[10]=$(find_adapter_address "${columns[10]}" "$past_oracle_adapters_addresses_path")
 
         base="${columns[6]}"
         quote="${columns[8]}"
@@ -252,8 +286,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --arg base "${columns[6]}" \
             --arg cross "${columns[7]}" \
             --arg quote "${columns[8]}" \
-            --arg oracleBaseCross "${columns[9]}" \
-            --arg oracleCrossQuote "${columns[10]}" \
+            --arg oracleBaseCross "${oracleBaseCross}" \
+            --arg oracleCrossQuote "${oracleCrossQuote}" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
@@ -275,7 +309,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         adapter=$(jq -r '.adapter' "script/${jsonName}_output.json")
 
         echo "Successfully deployed $adapterName: $adapter"
-        echo "${columns[0]},${columns[1]},${columns[2]},${adapterName},${adapter},$base,$quote,${columns[4]}" >> "$oracleAdaptersAddresses"
+        echo "${baseSymbol},${quoteSymbol},${provider},${adapterName},${adapter},$base,$quote,${shouldWhitelist}" >> "$oracleAdaptersAddresses"
 
         mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
         mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"

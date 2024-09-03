@@ -155,7 +155,8 @@ while true; do
             echo "4. Redstone"
             echo "5. Cross"
             echo "6. Uniswap"
-            read -p "Enter your choice (0-6): " adapter_choice
+            echo "7. Lido Fundamental"
+            read -p "Enter your choice (0-7): " adapter_choice
 
             baseName=03_OracleAdapters
 
@@ -356,6 +357,19 @@ while true; do
                             fee: $fee,
                             twapWindow: $twapWindow,
                             uniswapV3Factory: $uniswapV3Factory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                7)
+                    echo "Deploying Lido Fundamental Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:LidoFundamentalAdapter
+                    jsonName=03_LidoFundamentalAdapter
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        '{
+                            adapterRegistry: $adapterRegistry
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)

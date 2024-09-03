@@ -197,8 +197,12 @@ contract SanityCheckInitialDeployment is Script, CoreAddressesLib, PeripheryAddr
                 == peripheryAddresses.kinkIRMFactory
         );
 
-        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective).isRecognizedUnitOfAccount(USD));
-        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective).isRecognizedUnitOfAccount(WETH));
+        assert(
+            EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective).isRecognizedUnitOfAccount(USD)
+        );
+        assert(
+            EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective).isRecognizedUnitOfAccount(WETH)
+        );
 
         address[] memory recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngoverned0xPerspective)
             .recognizedCollateralPerspectives();
@@ -237,8 +241,12 @@ contract SanityCheckInitialDeployment is Script, CoreAddressesLib, PeripheryAddr
                 == peripheryAddresses.kinkIRMFactory
         );
 
-        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective).isRecognizedUnitOfAccount(USD));
-        assert(EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective).isRecognizedUnitOfAccount(WETH));
+        assert(
+            EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective).isRecognizedUnitOfAccount(USD)
+        );
+        assert(
+            EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective).isRecognizedUnitOfAccount(WETH)
+        );
 
         recognized = EulerUngovernedPerspective(peripheryAddresses.eulerUngovernedNzxPerspective)
             .recognizedCollateralPerspectives();
