@@ -56,27 +56,18 @@ i.e.
 
 The above command must be run for each oracle provider/oracle type. If you choose to add the oracle adapters to the Adapters Registry while deploying, you will be prompted for the Adapter Registry address which you should have obtained in step 1.
 
-If you decided not to add the oracle adapters to the Adapters Registry, you can add them later by running the `ConfigAddOracleAdapters.sh` script and providing the `OracleAdaptersAddresses.csv` file path as an argument. The CSV file is the result of running the `DeployOracleAdapters.sh` script and can be found in the deployment directory.
+If you decided not to add the oracle adapters to the Adapters Registry, you can add them later by running the `ConfigWhitelistOracleAdapters.sh` script and providing the `OracleAdaptersAddresses.csv` file path as an argument. The CSV file is the result of running the `DeployOracleAdapters.sh` script and can be found in the deployment directory.
 
 ```sh
-./script/production/ConfigAddOracleAdapters.sh <csv_file_path>
+./script/production/ConfigWhitelistOracleAdapters.sh <csv_file_path>
 ```
 
 i.e.
 ```sh
-./script/production/ConfigAddOracleAdapters.sh "script/deployments/default/output/OracleAdaptersAddresses.csv"
+./script/production/ConfigWhitelistOracleAdapters.sh "script/deployments/default/output/OracleAdaptersAddresses.csv"
 ```
 
-To revoke the adapters from the Adapters Registry, you can run the `ConfigRemoveOracleAdapters.sh` script and providing the `OracleAdaptersAddresses.csv` file path as an argument.
-
-```sh
-./script/production/ConfigRemoveOracleAdapters.sh <csv_file_path>
-```
-
-i.e.
-```sh
-./script/production/ConfigRemoveOracleAdapters.sh "script/deployments/default/output/OracleAdaptersAddresses.csv"
-```
+To revoke the adapters from the Adapters Registry, you can run the `ConfigWhitelistOracleAdapters.sh` script and providing the `OracleAdaptersAddresses.csv` with modified `Whitelist` column values set to `No`.
 
 **Important**
 To avoid deploying duplicate adapters, one can pass the `OracleAdaptersAddresses.csv` from the previous deployment as an argument (optional). The script will read the deployed adapters from the CSV and will not deploy the duplicate ones.
