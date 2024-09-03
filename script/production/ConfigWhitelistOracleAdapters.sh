@@ -63,7 +63,10 @@ done < <(tr -d '\r' < "$csv_file")
 items="${items%,}]"
 
 echo "Executing batch transaction..."
-if cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY --legacy; then
+currentGasPrice=$(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL")
+gasPrice=$(echo "if ($currentGasPrice * 1.25 > 2000000000) ($currentGasPrice * 1.25)/1 else 2000000000" | bc)
+
+if cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY --legacy --gas-price $gasPrice; then
     echo "Batch transaction successful."
 else
     echo "Batch transaction failed."
