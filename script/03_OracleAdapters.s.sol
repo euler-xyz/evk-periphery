@@ -122,7 +122,7 @@ contract LidoAdapter is ScriptUtils {
     function execute(address adapterRegistry, bool addToAdapterRegistry) public returns (address adapter) {
         adapter = address(new LidoOracle());
         if (addToAdapterRegistry) {
-            SnapshotRegistry(adapterRegistry).add(adapter, LidoOracle(adapter).STETH(), LidoOracle(adapter).WSTETH());
+            SnapshotRegistry(adapterRegistry).add(adapter, LidoOracle(adapter).WSTETH(), LidoOracle(adapter).STETH());
         }
     }
 }
@@ -150,7 +150,7 @@ contract LidoFundamentalAdapter is ScriptUtils {
         adapter = address(new LidoFundamentalOracle());
         if (addToAdapterRegistry) {
             SnapshotRegistry(adapterRegistry).add(
-                adapter, LidoFundamentalOracle(adapter).WETH(), LidoFundamentalOracle(adapter).WSTETH()
+                adapter, LidoFundamentalOracle(adapter).WSTETH(), LidoFundamentalOracle(adapter).WETH()
             );
         }
     }
