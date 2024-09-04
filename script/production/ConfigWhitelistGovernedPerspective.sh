@@ -23,7 +23,7 @@ items="["
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
     vault="${columns[0]}"
-    whitelist="${columns[1]}"
+    whitelist="${columns[2]}"
 
     if [[ "$vault" == "Vault" ]]; then
         continue
