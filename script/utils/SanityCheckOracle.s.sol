@@ -37,7 +37,7 @@ library OracleVerifier {
         address oracle = IEVault(vault).oracle();
         address[] memory collaterals = IEVault(vault).LTVList();
 
-        console.log("Checking oracle config for %s", IEVault(vault).symbol());
+        console.log("Checking oracle config for %s (%s)", IEVault(vault).symbol(), vault);
         if (collaterals.length == 0) {
             require(unitOfAccount == address(0), "unitOfAccount is not zero");
             require(oracle == address(0), "oracle is not zero");
