@@ -106,13 +106,15 @@ library OracleVerifier {
             uint256 scaledPrice = price * 1e6 / (quote == address(840) ? 1e18 : 10 ** IEVault(quote).decimals());
             uint256 integerPart = scaledPrice / 1e6;
             uint256 fractionalPart = scaledPrice % 1e6;
-            string memory zeros = string(abi.encodePacked(
-                fractionalPart < 100000 ? "0" : "",
-                fractionalPart < 10000 ? "0" : "",
-                fractionalPart < 1000 ? "0" : "",
-                fractionalPart < 100 ? "0" : "",
-                fractionalPart < 10 ? "0" : ""
-            ));
+            string memory zeros = string(
+                abi.encodePacked(
+                    fractionalPart < 100000 ? "0" : "",
+                    fractionalPart < 10000 ? "0" : "",
+                    fractionalPart < 1000 ? "0" : "",
+                    fractionalPart < 100 ? "0" : "",
+                    fractionalPart < 10 ? "0" : ""
+                )
+            );
             console.log("  %s.%s%s", integerPart, zeros, fractionalPart);
         }
     }

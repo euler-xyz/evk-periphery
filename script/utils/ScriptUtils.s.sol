@@ -3,10 +3,16 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Script.sol";
+import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
+import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
+import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
+import {IEVault} from "evk/EVault/IEVault.sol";
+import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
+import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 
-contract ScriptUtils is Script {
+abstract contract ScriptUtils is Script {
     modifier broadcast() {
         vm.startBroadcast(vm.envUint("DEPLOYER_KEY"));
         _;
@@ -44,9 +50,139 @@ contract ScriptUtils is Script {
             revert("getWETHAddress: Unsupported chain");
         }
     }
+
+    function encodeAmountCap(address asset, uint16 amountNoDecimals) internal view returns (uint16) {
+        uint256 decimals = ERC20(asset).decimals();
+        uint16 result;
+
+        if (amountNoDecimals >= 100) {
+            uint256 scale = Math.log10(amountNoDecimals);
+            result = uint16(((amountNoDecimals / 10 ** (scale - 2)) << 6) | (scale + decimals));
+        } else {
+            result = uint16((100 * amountNoDecimals << 6) | decimals);
+        }
+
+        require(
+            AmountCapLib.resolve(AmountCap.wrap(result)) == amountNoDecimals * 10 ** decimals,
+            "encodeAmountCap: incorrect encoding"
+        );
+
+        return result;
+    }
+
+    function encodeAmountCaps(address[] storage assets, uint16[] storage amountsNoDecimals)
+        internal
+        view
+        returns (uint16[] memory)
+    {
+        require(
+            assets.length == amountsNoDecimals.length,
+            "encodeAmountCaps: assets and amountsNoDecimals must have the same length"
+        );
+
+        uint16[] memory result = new uint16[](assets.length);
+        for (uint256 i = 0; i < assets.length; ++i) {
+            result[i] = encodeAmountCap(assets[i], amountsNoDecimals[i]);
+        }
+        return result;
+    }
 }
 
-contract CoreAddressesLib is Script {
+abstract contract BatchBuilder is ScriptUtils {
+    IEVC.BatchItem[] private items;
+
+    function addBatchItem(address targetContract, bytes memory data) internal {
+        addBatchItem(targetContract, getDeployer(), data);
+    }
+
+    function addBatchItem(address targetContract, address onBehalfOfAccount, bytes memory data) internal {
+        addBatchItem(targetContract, onBehalfOfAccount, 0, data);
+    }
+
+    function addBatchItem(address targetContract, address onBehalfOfAccount, uint256 value, bytes memory data)
+        internal
+    {
+        items.push(
+            IEVC.BatchItem({
+                targetContract: targetContract,
+                onBehalfOfAccount: onBehalfOfAccount,
+                value: value,
+                data: data
+            })
+        );
+    }
+
+    function clearBatchItems() internal {
+        delete items;
+    }
+
+    function executeBatchItems(address evc) internal broadcast {
+        IEVC(evc).batch(items);
+        clearBatchItems();
+    }
+
+    function perspectiveVerify(address perspective, address vault) internal {
+        addBatchItem(perspective, abi.encodeCall(BasePerspective.perspectiveVerify, (vault, true)));
+    }
+
+    function transferGovernance(address oracleRouter, address newGovernor) internal {
+        addBatchItem(oracleRouter, abi.encodeCall(EulerRouter(oracleRouter).transferGovernance, (newGovernor)));
+    }
+
+    function govSetConfig(address oracleRouter, address base, address quote, address oracle) internal {
+        addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetConfig, (base, quote, oracle)));
+    }
+
+    function govSetResolvedVault(address oracleRouter, address vault, bool set) internal {
+        addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetResolvedVault, (vault, set)));
+    }
+
+    function setGovernorAdmin(address vault, address newGovernorAdmin) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setGovernorAdmin, (newGovernorAdmin)));
+    }
+
+    function setFeeReceiver(address vault, address newFeeReceiver) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setFeeReceiver, (newFeeReceiver)));
+    }
+
+    function setLTV(address vault, address collateral, uint16 borrowLTV, uint16 liquidationLTV, uint32 rampDuration)
+        internal
+    {
+        addBatchItem(
+            vault, abi.encodeCall(IEVault(vault).setLTV, (collateral, borrowLTV, liquidationLTV, rampDuration))
+        );
+    }
+
+    function setMaxLiquidationDiscount(address vault, uint16 newDiscount) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setMaxLiquidationDiscount, (newDiscount)));
+    }
+
+    function setLiquidationCoolOffTime(address vault, uint16 newCoolOffTime) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setLiquidationCoolOffTime, (newCoolOffTime)));
+    }
+
+    function setInterestRateModel(address vault, address newModel) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestRateModel, (newModel)));
+    }
+
+    function setHookConfig(address vault, address newHookTarget, uint32 newHookedOps) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setHookConfig, (newHookTarget, newHookedOps)));
+    }
+
+    function setConfigFlags(address vault, uint32 newConfigFlags) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setConfigFlags, (newConfigFlags)));
+    }
+
+    function setCaps(address vault, uint16 supplyCap, uint16 borrowCap) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setCaps, (supplyCap, borrowCap)));
+    }
+
+    function setInterestFee(address vault, uint16 newInterestFee) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestFee, (newInterestFee)));
+    }
+}
+
+abstract contract CoreAddressesLib is Script {
     struct CoreAddresses {
         address evc;
         address protocolConfig;
@@ -80,7 +216,7 @@ contract CoreAddressesLib is Script {
     }
 }
 
-contract PeripheryAddressesLib is Script {
+abstract contract PeripheryAddressesLib is Script {
     struct PeripheryAddresses {
         address oracleRouterFactory;
         address oracleAdapterRegistry;
@@ -138,7 +274,7 @@ contract PeripheryAddressesLib is Script {
     }
 }
 
-contract LensAddressesLib is Script {
+abstract contract LensAddressesLib is Script {
     struct LensAddresses {
         address accountLens;
         address oracleLens;

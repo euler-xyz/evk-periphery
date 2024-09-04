@@ -465,7 +465,7 @@ while true; do
             echo "Deploying EVault..."
 
             baseName=07_EVault
-            scriptName=${baseName}Deployer.s.sol
+            scriptName=${baseName}.s.sol:EVaultDeployer
             jsonName=$baseName
 
             read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle
