@@ -71,10 +71,6 @@ function verify_broadcast {
 
                 ((index++))
 
-                if [[ $contractName == "MetaProxy" ]]; then
-                    continue
-                fi
-
                 verify_contract $contractAddress $contractName "$constructorArgs"
 
                 if [[ $contractName == *Proxy* && $VERIFIER_URL == *scan.io/api* ]]; then
