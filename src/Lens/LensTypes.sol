@@ -218,8 +218,10 @@ struct OracleDetailedInfo {
 struct EulerRouterInfo {
     address governor;
     address fallbackOracle;
-    address[] resolvedOracles;
     OracleDetailedInfo fallbackOracleInfo;
+    address[] bases;
+    address[] quotes;
+    address[] resolvedOracles;
     OracleDetailedInfo[] resolvedOraclesInfo;
 }
 

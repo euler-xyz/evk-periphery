@@ -49,10 +49,12 @@ contract OracleLensCrossTest is Test {
         CrossAdapter crossAdapter =
             new CrossAdapter(base, cross, quote, address(oracleBaseCross), address(oracleCrossQuote));
 
-        OracleDetailedInfo memory crossAdapterData = lens.getOracleInfo(address(crossAdapter), arrOf(base), quote);
-        OracleDetailedInfo memory oracleBaseCrossData = lens.getOracleInfo(address(oracleBaseCross), arrOf(base), cross);
+        OracleDetailedInfo memory crossAdapterData =
+            lens.getOracleInfo(address(crossAdapter), arrOf(base), arrOf(quote));
+        OracleDetailedInfo memory oracleBaseCrossData =
+            lens.getOracleInfo(address(oracleBaseCross), arrOf(base), arrOf(cross));
         OracleDetailedInfo memory oracleCrossQuoteData =
-            lens.getOracleInfo(address(oracleCrossQuote), arrOf(cross), quote);
+            lens.getOracleInfo(address(oracleCrossQuote), arrOf(cross), arrOf(quote));
 
         assertEq(crossAdapterData.name, "CrossAdapter");
         CrossAdapterInfo memory crossAdapterInfo = abi.decode(crossAdapterData.oracleInfo, (CrossAdapterInfo));
