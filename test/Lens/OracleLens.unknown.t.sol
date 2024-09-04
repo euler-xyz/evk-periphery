@@ -16,7 +16,7 @@ contract OracleLensUnknownTest is Test {
 
     function testUnknownOracle() public {
         address oracle = address(new UnknownPriceOracle());
-        OracleDetailedInfo memory data = lens.getOracleInfo(oracle, new address[](0), address(0));
+        OracleDetailedInfo memory data = lens.getOracleInfo(oracle, new address[](0), new address[](0));
 
         assertEq(data.oracle, oracle);
         assertEq(data.name, "");

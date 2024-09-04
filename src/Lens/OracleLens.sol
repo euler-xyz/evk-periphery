@@ -46,7 +46,7 @@ contract OracleLens is Utils {
         adapterRegistry = SnapshotRegistry(_adapterRegistry);
     }
 
-    function getOracleInfo(address oracleAddress, address[] calldata bases, address unitOfAccount)
+    function getOracleInfo(address oracleAddress, address[] calldata bases, address[] calldata quotes)
         public
         view
         returns (OracleDetailedInfo memory)
@@ -69,51 +69,53 @@ contract OracleLens is Utils {
             }
         }
 
-        IOracle oracle = IOracle(oracleAddress);
-
         if (_strEq(name, "ChainlinkOracle")) {
             oracleInfo = abi.encode(
                 ChainlinkOracleInfo({
-                    base: oracle.base(),
-                    quote: oracle.quote(),
-                    feed: oracle.feed(),
-                    feedDescription: IOracle(oracle.feed()).description(),
-                    maxStaleness: oracle.maxStaleness()
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    feed: IOracle(oracleAddress).feed(),
+                    feedDescription: IOracle(IOracle(oracleAddress).feed()).description(),
+                    maxStaleness: IOracle(oracleAddress).maxStaleness()
                 })
             );
         } else if (_strEq(name, "ChronicleOracle")) {
             oracleInfo = abi.encode(
                 ChronicleOracleInfo({
-                    base: oracle.base(),
-                    quote: oracle.quote(),
-                    feed: oracle.feed(),
-                    maxStaleness: oracle.maxStaleness()
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    feed: IOracle(oracleAddress).feed(),
+                    maxStaleness: IOracle(oracleAddress).maxStaleness()
                 })
             );
         } else if (_strEq(name, "LidoOracle")) {
-            oracleInfo = abi.encode(LidoOracleInfo({base: oracle.WSTETH(), quote: oracle.STETH()}));
+            oracleInfo = abi.encode(
+                LidoOracleInfo({base: IOracle(oracleAddress).WSTETH(), quote: IOracle(oracleAddress).STETH()})
+            );
         } else if (_strEq(name, "LidoFundamentalOracle")) {
-            oracleInfo = abi.encode(LidoFundamentalOracleInfo({base: oracle.WSTETH(), quote: oracle.WETH()}));
+            oracleInfo = abi.encode(
+                LidoFundamentalOracleInfo({base: IOracle(oracleAddress).WSTETH(), quote: IOracle(oracleAddress).WETH()})
+            );
         } else if (_strEq(name, "PythOracle")) {
             oracleInfo = abi.encode(
                 PythOracleInfo({
-                    pyth: oracle.pyth(),
-                    base: oracle.base(),
-                    quote: oracle.quote(),
-                    feedId: oracle.feedId(),
-                    maxStaleness: oracle.maxStaleness(),
-                    maxConfWidth: oracle.maxConfWidth()
+                    pyth: IOracle(oracleAddress).pyth(),
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    feedId: IOracle(oracleAddress).feedId(),
+                    maxStaleness: IOracle(oracleAddress).maxStaleness(),
+                    maxConfWidth: IOracle(oracleAddress).maxConfWidth()
                 })
             );
         } else if (_strEq(name, "RedstoneCoreOracle")) {
-            (uint208 cachePrice, uint48 cachePriceTimestamp) = oracle.cache();
+            (uint208 cachePrice, uint48 cachePriceTimestamp) = IOracle(oracleAddress).cache();
             oracleInfo = abi.encode(
                 RedstoneCoreOracleInfo({
-                    base: oracle.base(),
-                    quote: oracle.quote(),
-                    feedId: oracle.feedId(),
-                    maxStaleness: oracle.maxStaleness(),
-                    feedDecimals: oracle.feedDecimals(),
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    feedId: IOracle(oracleAddress).feedId(),
+                    maxStaleness: IOracle(oracleAddress).maxStaleness(),
+                    feedDecimals: IOracle(oracleAddress).feedDecimals(),
                     cachePrice: cachePrice,
                     cachePriceTimestamp: cachePriceTimestamp
                 })
@@ -121,23 +123,23 @@ contract OracleLens is Utils {
         } else if (_strEq(name, "UniswapV3Oracle")) {
             oracleInfo = abi.encode(
                 UniswapV3OracleInfo({
-                    tokenA: oracle.tokenA(),
-                    tokenB: oracle.tokenB(),
-                    pool: oracle.pool(),
-                    fee: oracle.fee(),
-                    twapWindow: oracle.twapWindow()
+                    tokenA: IOracle(oracleAddress).tokenA(),
+                    tokenB: IOracle(oracleAddress).tokenB(),
+                    pool: IOracle(oracleAddress).pool(),
+                    fee: IOracle(oracleAddress).fee(),
+                    twapWindow: IOracle(oracleAddress).twapWindow()
                 })
             );
         } else if (_strEq(name, "CrossAdapter")) {
-            address oracleBaseCross = oracle.oracleBaseCross();
-            address oracleCrossQuote = oracle.oracleCrossQuote();
-            OracleDetailedInfo memory oracleBaseCrossInfo = getOracleInfo(oracleBaseCross, bases, unitOfAccount);
-            OracleDetailedInfo memory oracleCrossQuoteInfo = getOracleInfo(oracleCrossQuote, bases, unitOfAccount);
+            address oracleBaseCross = IOracle(oracleAddress).oracleBaseCross();
+            address oracleCrossQuote = IOracle(oracleAddress).oracleCrossQuote();
+            OracleDetailedInfo memory oracleBaseCrossInfo = getOracleInfo(oracleBaseCross, bases, quotes);
+            OracleDetailedInfo memory oracleCrossQuoteInfo = getOracleInfo(oracleCrossQuote, bases, quotes);
             oracleInfo = abi.encode(
                 CrossAdapterInfo({
-                    base: oracle.base(),
-                    cross: oracle.cross(),
-                    quote: oracle.quote(),
+                    base: IOracle(oracleAddress).base(),
+                    cross: IOracle(oracleAddress).cross(),
+                    quote: IOracle(oracleAddress).quote(),
                     oracleBaseCross: oracleBaseCross,
                     oracleCrossQuote: oracleCrossQuote,
                     oracleBaseCrossInfo: oracleBaseCrossInfo,
@@ -145,27 +147,31 @@ contract OracleLens is Utils {
                 })
             );
         } else if (_strEq(name, "EulerRouter")) {
+            require(bases.length == quotes.length, "OracleLens: invalid input");
+
             address[] memory resolvedOracles = new address[](bases.length);
             OracleDetailedInfo[] memory resolvedOraclesInfo = new OracleDetailedInfo[](bases.length);
             for (uint256 i = 0; i < bases.length; ++i) {
-                try oracle.resolveOracle(0, bases[i], unitOfAccount) returns (
+                try IOracle(oracleAddress).resolveOracle(0, bases[i], quotes[i]) returns (
                     uint256, address, address, address resolvedOracle
                 ) {
                     resolvedOracles[i] = resolvedOracle;
-                    resolvedOraclesInfo[i] = getOracleInfo(resolvedOracle, bases, unitOfAccount);
+                    resolvedOraclesInfo[i] = getOracleInfo(resolvedOracle, bases, quotes);
                 } catch {
                     resolvedOracles[i] = address(0);
                     resolvedOraclesInfo[i] = OracleDetailedInfo({oracle: address(0), name: "", oracleInfo: ""});
                 }
             }
 
-            address fallbackOracle = oracle.fallbackOracle();
+            address fallbackOracle = IOracle(oracleAddress).fallbackOracle();
 
             oracleInfo = abi.encode(
                 EulerRouterInfo({
-                    governor: oracle.governor(),
-                    fallbackOracle: oracle.fallbackOracle(),
-                    fallbackOracleInfo: getOracleInfo(fallbackOracle, bases, unitOfAccount),
+                    governor: IOracle(oracleAddress).governor(),
+                    fallbackOracle: IOracle(oracleAddress).fallbackOracle(),
+                    fallbackOracleInfo: getOracleInfo(fallbackOracle, bases, quotes),
+                    bases: bases,
+                    quotes: quotes,
                     resolvedOracles: resolvedOracles,
                     resolvedOraclesInfo: resolvedOraclesInfo
                 })
