@@ -115,7 +115,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
         jq -n \
             --argjson addToAdapterRegistry false \
-            --arg adapterRegistry "$adapter_registry" \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
             --arg feed "${columns[10]}" \
@@ -137,7 +137,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
         jq -n \
             --argjson addToAdapterRegistry false \
-            --arg adapterRegistry "$adapter_registry" \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
             --arg feed "${columns[10]}" \
@@ -164,7 +164,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
         jq -n \
             --argjson addToAdapterRegistry false \
-            --arg adapterRegistry "$adapter_registry" \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry
@@ -183,7 +183,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
         jq -n \
             --argjson addToAdapterRegistry false \
-            --arg adapterRegistry "$adapter_registry" \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry
@@ -197,7 +197,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
         jq -n \
             --argjson addToAdapterRegistry false \
-            --arg adapterRegistry "$adapter_registry" \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
             --arg feed "${columns[10]}" \
@@ -219,7 +219,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
         jq -n \
             --argjson addToAdapterRegistry false \
-            --arg adapterRegistry "$adapter_registry" \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
             --arg base "${columns[6]}" \
             --arg quote "${columns[7]}" \
             --arg feedId "${columns[8]}" \
@@ -243,7 +243,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
         jq -n \
             --argjson addToAdapterRegistry false \
-            --arg adapterRegistry "$adapter_registry" \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
             --arg pyth "${columns[6]}" \
             --arg base "${columns[7]}" \
             --arg quote "${columns[8]}" \
@@ -260,6 +260,27 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 maxStaleness: $maxStaleness,
                 maxConfWidth: $maxConfWidth
             }' --indent 4 > script/${jsonName}_input.json
+    elif [[ "$provider" == "RateProvider" ]]; then
+        scriptName=${baseName}.s.sol:RateProviderAdapter
+        jsonName=03_RateProviderAdapter
+
+        base="${columns[6]}"
+        quote="${columns[7]}"
+        rateProvider="${columns[8]}"
+
+        jq -n \
+            --argjson addToAdapterRegistry false \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
+            --arg base "${columns[6]}" \
+            --arg quote "${columns[7]}" \
+            --arg rateProvider "${columns[8]}" \
+            '{
+                addToAdapterRegistry: $addToAdapterRegistry,
+                adapterRegistry: $adapterRegistry,
+                base: $base,
+                quote: $quote,
+                rateProvider: $rateProvider
+            }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider" == *Cross* ]]; then
         scriptName=${baseName}.s.sol:CrossAdapterDeployer
         jsonName=03_CrossAdapter
@@ -269,7 +290,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
         jq -n \
             --argjson addToAdapterRegistry false \
-            --arg adapterRegistry "$adapter_registry" \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
             --arg base "${columns[6]}" \
             --arg cross "${columns[7]}" \
             --arg quote "${columns[8]}" \
@@ -296,7 +317,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         adapter=$(jq -r '.adapter' "script/${jsonName}_output.json")
 
         echo "Successfully deployed $adapterName: $adapter"
-        echo "${baseSymbol},${quoteSymbol},${provider},${adapterName},${adapter},$base,$quote,${shouldWhitelist}" >> "$oracleAdaptersAddresses"
+        echo "$baseSymbol,$quoteSymbol,$provider,$adapterName,$adapter,$base,$quote,$shouldWhitelist" >> "$oracleAdaptersAddresses"
 
         mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
         mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"
