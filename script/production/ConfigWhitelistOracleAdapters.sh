@@ -6,17 +6,20 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
+source .env
+
 csv_file="$1"
+addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
+evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
+adapter_registry=$(jq -r '.oracleAdapterRegistry' "$addresses_dir_path/PeripheryAddresses.json")
 
 if ! script/utils/checkEnvironment.sh; then
     echo "Environment check failed. Exiting."
     exit 1
 fi
 
-source .env
-
-read -p "Enter the EVC address: " evc
-read -p "Enter the Adapter Registry address: " adapter_registry
+echo "The EVC address is: $evc"
+echo "The Adapter Registry address is: $adapter_registry"
 
 onBehalfOf=$(cast wallet address --private-key $DEPLOYER_KEY)
 items="["

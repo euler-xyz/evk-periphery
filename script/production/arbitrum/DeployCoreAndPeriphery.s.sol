@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib} from "../../utils/ScriptUtils.s.sol";
+import {ScriptUtils} from "../../utils/ScriptUtils.s.sol";
 import {Integrations} from "../../01_Integrations.s.sol";
 import {PeripheryFactories} from "../../02_PeripheryFactories.s.sol";
 import {EVaultImplementation} from "../../05_EVaultImplementation.s.sol";
@@ -14,7 +14,7 @@ import {FeeFlow} from "../../11_FeeFlow.s.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
-contract DeployCoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib {
+contract DeployCoreAndPeriphery is ScriptUtils {
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
     address internal constant ONE_INCH_AGGREGATOR_V6 = 0x111111125421cA6dc452d289314280a0f8842A65;

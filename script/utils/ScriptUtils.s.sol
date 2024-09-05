@@ -12,81 +12,7 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 
-abstract contract ScriptUtils is Script {
-    modifier broadcast() {
-        vm.startBroadcast(vm.envUint("DEPLOYER_KEY"));
-        _;
-        vm.stopBroadcast();
-    }
-
-    function startBroadcast() internal {
-        vm.startBroadcast(vm.envUint("DEPLOYER_KEY"));
-    }
-
-    function stopBroadcast() internal {
-        vm.stopBroadcast();
-    }
-
-    function getDeployer() internal view returns (address) {
-        address deployer = vm.addr(vm.envOr("DEPLOYER_KEY", uint256(1)));
-        return deployer == vm.addr(1) ? address(this) : deployer;
-    }
-
-    function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {
-        string memory root = vm.projectRoot();
-        return string.concat(root, "/script/", jsonFile);
-    }
-
-    function getInputConfig(string memory jsonFile) internal view returns (string memory) {
-        return vm.readFile(getInputConfigFilePath(jsonFile));
-    }
-
-    function getWETHAddress() internal view returns (address) {
-        if (block.chainid == 1) {
-            return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        } else if (block.chainid == 42161) {
-            return 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
-        } else {
-            revert("getWETHAddress: Unsupported chain");
-        }
-    }
-
-    function encodeAmountCap(address asset, uint16 amountNoDecimals) internal view returns (uint16) {
-        uint256 decimals = ERC20(asset).decimals();
-        uint16 result;
-
-        if (amountNoDecimals >= 100) {
-            uint256 scale = Math.log10(amountNoDecimals);
-            result = uint16(((amountNoDecimals / 10 ** (scale - 2)) << 6) | (scale + decimals));
-        } else {
-            result = uint16((100 * amountNoDecimals << 6) | decimals);
-        }
-
-        require(
-            AmountCapLib.resolve(AmountCap.wrap(result)) == amountNoDecimals * 10 ** decimals,
-            "encodeAmountCap: incorrect encoding"
-        );
-
-        return result;
-    }
-
-    function encodeAmountCaps(address[] storage assets, uint16[] storage amountsNoDecimals)
-        internal
-        view
-        returns (uint16[] memory)
-    {
-        require(
-            assets.length == amountsNoDecimals.length,
-            "encodeAmountCaps: assets and amountsNoDecimals must have the same length"
-        );
-
-        uint16[] memory result = new uint16[](assets.length);
-        for (uint256 i = 0; i < assets.length; ++i) {
-            result[i] = encodeAmountCap(assets[i], amountsNoDecimals[i]);
-        }
-        return result;
-    }
-}
+import "forge-std/console.sol";
 
 abstract contract CoreAddressesLib is Script {
     struct CoreAddresses {
@@ -109,8 +35,10 @@ abstract contract CoreAddressesLib is Script {
         result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
     }
 
-    function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory) {
-        return CoreAddresses({
+    function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory result) {
+        if (bytes(json).length == 0) return result;
+
+        result = CoreAddresses({
             evc: abi.decode(vm.parseJson(json, ".evc"), (address)),
             protocolConfig: abi.decode(vm.parseJson(json, ".protocolConfig"), (address)),
             sequenceRegistry: abi.decode(vm.parseJson(json, ".sequenceRegistry"), (address)),
@@ -161,8 +89,14 @@ abstract contract PeripheryAddressesLib is Script {
         );
     }
 
-    function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
-        return PeripheryAddresses({
+    function deserializePeripheryAddresses(string memory json)
+        internal
+        pure
+        returns (PeripheryAddresses memory result)
+    {
+        if (bytes(json).length == 0) return result;
+
+        result = PeripheryAddresses({
             oracleRouterFactory: abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address)),
             oracleAdapterRegistry: abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address)),
             externalVaultRegistry: abi.decode(vm.parseJson(json, ".externalVaultRegistry"), (address)),
@@ -197,8 +131,10 @@ abstract contract LensAddressesLib is Script {
         result = vm.serializeAddress("lensAddresses", "utilsLens", Addresses.utilsLens);
     }
 
-    function deserializeLensAddresses(string memory json) internal pure returns (LensAddresses memory) {
-        return LensAddresses({
+    function deserializeLensAddresses(string memory json) internal pure returns (LensAddresses memory result) {
+        if (bytes(json).length == 0) return result;
+
+        result = LensAddresses({
             accountLens: abi.decode(vm.parseJson(json, ".accountLens"), (address)),
             oracleLens: abi.decode(vm.parseJson(json, ".oracleLens"), (address)),
             irmLens: abi.decode(vm.parseJson(json, ".irmLens"), (address)),
@@ -208,17 +144,101 @@ abstract contract LensAddressesLib is Script {
     }
 }
 
-abstract contract BatchBuilder is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib {
+abstract contract ScriptUtils is Script, CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib {
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
     IEVC.BatchItem[] private items;
 
     constructor() {
-        coreAddresses = deserializeCoreAddresses(getInputConfig("CoreAddresses.json"));
-        peripheryAddresses = deserializePeripheryAddresses(getInputConfig("PeripheryAddresses.json"));
-        lensAddresses = deserializeLensAddresses(getInputConfig("LensAddresses.json"));
+        coreAddresses = deserializeCoreAddresses(getAddressesJson("CoreAddresses.json"));
+        peripheryAddresses = deserializePeripheryAddresses(getAddressesJson("PeripheryAddresses.json"));
+        lensAddresses = deserializeLensAddresses(getAddressesJson("LensAddresses.json"));
     }
+
+    modifier broadcast() {
+        vm.startBroadcast(vm.envUint("DEPLOYER_KEY"));
+        _;
+        vm.stopBroadcast();
+    }
+
+    function startBroadcast() internal {
+        vm.startBroadcast(vm.envUint("DEPLOYER_KEY"));
+    }
+
+    function stopBroadcast() internal {
+        vm.stopBroadcast();
+    }
+
+    function getDeployer() internal view returns (address) {
+        address deployer = vm.addr(vm.envOr("DEPLOYER_KEY", uint256(1)));
+        return deployer == vm.addr(1) ? address(this) : deployer;
+    }
+
+    function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {
+        string memory root = vm.projectRoot();
+        return string.concat(root, "/script/", jsonFile);
+    }
+
+    function getInputConfig(string memory jsonFile) internal view returns (string memory) {
+        return vm.readFile(getInputConfigFilePath(jsonFile));
+    }
+
+    function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
+        string memory addressesDirPath = vm.envOr("ADDRESSES_DIR_PATH", string(""));
+        if (bytes(addressesDirPath).length == 0) return "";
+        return vm.readFile(string.concat(addressesDirPath, "/", jsonFile));
+    }
+
+    function getWETHAddress() internal view returns (address) {
+        if (block.chainid == 1) {
+            return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        } else if (block.chainid == 42161) {
+            return 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+        } else {
+            revert("getWETHAddress: Unsupported chain");
+        }
+    }
+
+    function encodeAmountCap(address asset, uint16 amountNoDecimals) internal view returns (uint16) {
+        uint256 decimals = ERC20(asset).decimals();
+        uint16 result;
+
+        if (amountNoDecimals >= 100) {
+            uint256 scale = Math.log10(amountNoDecimals);
+            result = uint16(((amountNoDecimals / 10 ** (scale - 2)) << 6) | (scale + decimals));
+        } else {
+            result = uint16((100 * amountNoDecimals << 6) | decimals);
+        }
+
+        require(
+            AmountCapLib.resolve(AmountCap.wrap(result)) == amountNoDecimals * 10 ** decimals,
+            "encodeAmountCap: incorrect encoding"
+        );
+
+        return result;
+    }
+
+    function encodeAmountCaps(address[] storage assets, uint16[] storage amountsNoDecimals)
+        internal
+        view
+        returns (uint16[] memory)
+    {
+        require(
+            assets.length == amountsNoDecimals.length,
+            "encodeAmountCaps: assets and amountsNoDecimals must have the same length"
+        );
+
+        uint16[] memory result = new uint16[](assets.length);
+        for (uint256 i = 0; i < assets.length; ++i) {
+            result[i] = encodeAmountCap(assets[i], amountsNoDecimals[i]);
+        }
+        return result;
+    }
+}
+
+abstract contract BatchBuilder is ScriptUtils {
+    IEVC.BatchItem[] internal items;
 
     function addBatchItem(address targetContract, bytes memory data) internal {
         addBatchItem(targetContract, getDeployer(), data);

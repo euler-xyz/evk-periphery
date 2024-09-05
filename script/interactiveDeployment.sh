@@ -233,6 +233,7 @@ while true; do
                         --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
@@ -369,6 +370,7 @@ while true; do
                         --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
