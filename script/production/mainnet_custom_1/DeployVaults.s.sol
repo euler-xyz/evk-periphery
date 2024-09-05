@@ -2,8 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import {BatchBuilder} from "../../utils/ScriptUtils.s.sol";
+import {BatchBuilder, IEVault} from "../../utils/ScriptUtils.s.sol";
 import {OracleVerifier} from "../../utils/SanityCheckOracle.s.sol";
+import {PerspectiveVerifier} from "../../utils/PerspectiveCheck.s.sol";
 import {EVaultDeployer, OracleRouterDeployer} from "../../07_EVault.s.sol";
 
 /*
@@ -19,7 +20,22 @@ to run:
    9. ./script/production/ExecuteSolidityScript.sh script/production/mainnet_custom_1/DeployVaults.s.sol
 */
 
-contract DeployInitialVaults is BatchBuilder {
+/*
+Euler TODOs:
+   1. deploy rate provider adapters for: ezETH, amphrETH, steakLRT, rstETH
+   2. deploy fixed rate adapter for: oETH
+   3. add the deployed adapters to the registry
+   4. add woETH vault to the external vault registry
+*/
+
+contract DeployVaults is BatchBuilder {
+    // final governor addresses
+    address internal constant MULTISIG = 0x38afC3aA2c76b4cA1F8e1DabA68e998e1F4782DB;
+    address internal constant ORACLE_ROUTER_GOVERNOR = MULTISIG;
+    address internal constant GOVERNED_VAULTS_GOVERNOR = MULTISIG;
+    address internal constant GOVERNED_VAULTS_FEE_RECEIVER = MULTISIG;
+
+    // assets
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address internal constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address internal constant cbETH = 0xBe9895146f7AF43049ca1c1AE358B0541Ea49704;
@@ -34,37 +50,32 @@ contract DeployInitialVaults is BatchBuilder {
     address internal constant pzETH = 0x8c9532a60E0E7C6BbD2B2c1303F63aCE1c3E9811;
     address internal constant rstETH = 0x7a4EffD87C2f3C55CA251080b1343b605f327E3a;
 
-    // TODO: add oracle adapters
-    address internal constant wstETHETH = address(0);
-    address internal constant cbETHETH = address(0);
-    address internal constant rETHETH = address(0);
-    address internal constant woETHETH = address(0);
-    address internal constant ETHPlusETH = address(0);
-    address internal constant weETHETH = address(0);
-    address internal constant ezETHETH = address(0);
-    address internal constant rsETHETH = address(0);
-    address internal constant amphrETHETH = address(0);
-    address internal constant steakLRTETH = address(0);
-    address internal constant pzETHETH = address(0);
-    address internal constant rstETHETH = address(0);
+    // oracle adapters
+    address internal constant wstETHETH = 0x7c37aB8Cd76Ee8888ad7F19C1F8a3A6D1622e9B8;
+    address internal constant cbETHETH = 0xD41641d2D8b3B0DCaEdFab917AA4c140C4dBAb77;
+    address internal constant rETHETH = 0xE39Da17508ec3fE7806a58b0aBe15A2df742cBfE;
+    address internal constant oETHETH = 0x3576293Ba6Adacba1A81397db889558Dd91A8519; // fixme fixed rate adapter
+    address internal constant ETHPlusETH = 0xD4dF645c88767275fE1C22709BE415bD7B509199;
+    address internal constant weETHETH = 0x04F50861b2CeC7831B27b74b565EfEeCeABED4Fd;
+    address internal constant ezETHETH = 0xAAd4F7BB5FB661181D500829e60010043833a85B; // fixme
+    address internal constant rsETHETH = 0xB0dC8194eCA11EF10B4451BD596ed29049a2cf7c;
+    address internal constant amphrETHETH = 0xE634d83f8E016B04e51F2516e6086b5f238675C7; // fixme
+    address internal constant steakLRTETH =0xfaA7b3a4b5c3f54a934a2e33D34C7bC099f96CCE; // fixme
+    address internal constant pzETHETH = 0x0E45B0bc6D05872E355cca26f14ec5519E302db6;
+    address internal constant rstETHETH = 0x86c64cB21f88fA9E2c46b61c35889E75f08FDce1; // fixme
 
     // Base=0% APY  Kink(90%)=2.7% APY  Max=82.7% APY
     // baseRate=0 slope1=218407859 slope2=42500370385 kink=3865470566
     // already deployed at https://etherscan.io/address/0x3fF20b354dCc623073647e4F2a2cD955A45Defb1#readContract
     address internal constant IRM = 0x3fF20b354dCc623073647e4F2a2cD955A45Defb1;
 
-    // TODO: add multisig
-    address internal constant MULTISIG = address(0);
-    address internal constant ORACLE_ROUTER_GOVERNOR = MULTISIG;
-    address internal constant GOVERNED_VAULTS_GOVERNOR = MULTISIG;
-    address internal constant GOVERNED_VAULTS_FEE_RECEIVER = MULTISIG;
-
     mapping(address => address) internal escrowVaults;
     mapping(address => address) internal governedVaults;
 
     address oracleRouter;
-    address[] internal assetsList;
-    address[] internal oracleAdaptersList;
+    address[] internal assets;
+    bool[] internal isAssetERC4626;
+    address[] internal oracleAdapters;
     uint16[] internal escrowSupplyCaps;
     uint16[] internal governedMaxLiquidationDiscounts;
     uint16[] internal governedInterestFees;
@@ -72,15 +83,16 @@ contract DeployInitialVaults is BatchBuilder {
     uint16[][] internal LTVs;
 
     constructor() {
-        assetsList         = [wstETH,    cbETH,    rETH,    woETH,    ETHPlus,    weETH,    ezETH,    rsETH,    amphrETH,    steakLRT,    pzETH,    rstETH];
-        oracleAdaptersList = [wstETHETH, cbETHETH, rETHETH, woETHETH, ETHPlusETH, weETHETH, ezETHETH, rsETHETH, amphrETHETH, steakLRTETH, pzETHETH, rstETHETH];
-        escrowSupplyCaps   = [20_000,    600,      10_000,  3_000,    500,        12_000,   3_000,    4_000,    7_000,       7_000,       7_000,    7_000];
-        escrowSupplyCaps = encodeAmountCaps(assetsList, escrowSupplyCaps);        
+        assets           = [wstETH,    cbETH,    rETH,    woETH,   ETHPlus,    weETH,    ezETH,    rsETH,    amphrETH,    steakLRT,    pzETH,    rstETH];
+        isAssetERC4626   = [false,     false,    false,   true,    false,      false,    false,    false,    false,       false,       false,    false];
+        oracleAdapters   = [wstETHETH, cbETHETH, rETHETH, oETHETH, ETHPlusETH, weETHETH, ezETHETH, rsETHETH, amphrETHETH, steakLRTETH, pzETHETH, rstETHETH];
+        escrowSupplyCaps = [20_000,    600,      10_000,  3_000,   500,        12_000,   3_000,    4_000,    7_000,       7_000,       7_000,    7_000];
+        escrowSupplyCaps = encodeAmountCaps(assets, escrowSupplyCaps);
 
         //                                 WETH     wstETH
-        governedMaxLiquidationDiscounts = [0.1e4,   0.1e4];
-        governedInterestFees            = [0.1e4,   0.1e4];
-        governedInterestRateModels      = [IRM,     IRM];
+        governedMaxLiquidationDiscounts = [0.15e4,   0.15e4];
+        governedInterestFees            = [0.10e4,   0.10e4];
+        governedInterestRateModels      = [IRM,      IRM];
         LTVs            = /* wstETH   */ [[0.945e4, 0.000e4],
                           /* cbETH    */  [0.860e4, 0.000e4],
                           /* rETH     */  [0.860e4, 0.000e4],
@@ -96,9 +108,6 @@ contract DeployInitialVaults is BatchBuilder {
     }
 
     function run() public returns (address eWETH, address eWstETH) {
-        CoreAddresses memory coreAddresses = deserializeCoreAddresses(vm.readFile(vm.envString("CORE_ADDRESSES_PATH")));
-        PeripheryAddresses memory peripheryAddresses = deserializePeripheryAddresses(vm.readFile(vm.envString("PERIPHERY_ADDRESSES_PATH")));
-
         // deploy the oracle router
         {
             OracleRouterDeployer deployer = new OracleRouterDeployer();
@@ -108,8 +117,8 @@ contract DeployInitialVaults is BatchBuilder {
         // deploy the vaults
         {
             EVaultDeployer deployer = new EVaultDeployer();
-            for (uint256 i = 0; i < assetsList.length; ++i) {
-                address asset = assetsList[i];
+            for (uint256 i = 0; i < assets.length; ++i) {
+                address asset = assets[i];
                 escrowVaults[asset] = deployer.deploy(coreAddresses.eVaultFactory, true, asset);
             }
             governedVaults[WETH] = deployer.deploy(coreAddresses.eVaultFactory, true, WETH, oracleRouter, WETH);
@@ -117,16 +126,22 @@ contract DeployInitialVaults is BatchBuilder {
         }
 
         // configure the oracle router
-        for (uint256 i = 0; i < assetsList.length; ++i) {
-            address asset = assetsList[i];
+        for (uint256 i = 0; i < assets.length; ++i) {
+            address asset = assets[i];
             govSetResolvedVault(oracleRouter, escrowVaults[asset], true);
-            govSetConfig(oracleRouter, asset, WETH, oracleAdaptersList[i]);
+
+            if (isAssetERC4626[i]) {
+                govSetResolvedVault(oracleRouter, asset, true);
+                govSetConfig(oracleRouter, IEVault(asset).asset(), WETH, oracleAdapters[i]);
+            } else {
+                govSetConfig(oracleRouter, asset, WETH, oracleAdapters[i]);
+            }
         }
         transferGovernance(oracleRouter, ORACLE_ROUTER_GOVERNOR);
 
         // configure the escrow vaults and verify them by the escrow perspective
-        for (uint256 i = 0; i < assetsList.length; ++i) {
-            address vault = escrowVaults[assetsList[i]];
+        for (uint256 i = 0; i < assets.length; ++i) {
+            address vault = escrowVaults[assets[i]];
             setCaps(vault, escrowSupplyCaps[i], 0);
             setHookConfig(vault, address(0), 0);
             setGovernorAdmin(vault, address(0));
@@ -142,8 +157,8 @@ contract DeployInitialVaults is BatchBuilder {
             setInterestFee(vault, governedInterestFees[i]);
             setFeeReceiver(vault, GOVERNED_VAULTS_FEE_RECEIVER);
 
-            for (uint256 j = 0; j < assetsList.length; ++j) {
-                address collateral = escrowVaults[assetsList[j]];
+            for (uint256 j = 0; j < assets.length; ++j) {
+                address collateral = escrowVaults[assets[j]];
                 uint16 ltv = LTVs[j][i];
 
                 if (ltv != 0) setLTV(vault, collateral, ltv - 0.025e4, ltv, 0);
@@ -158,6 +173,18 @@ contract DeployInitialVaults is BatchBuilder {
         // sanity check the oracle config
         OracleVerifier.verifyOracleConfig(governedVaults[WETH]);
         OracleVerifier.verifyOracleConfig(governedVaults[wstETH]);
+
+        // sanity perspective check
+        PerspectiveVerifier.verifyPerspective(
+            peripheryAddresses.eulerUngoverned0xPerspective,
+            governedVaults[WETH],
+            PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR
+        );
+        PerspectiveVerifier.verifyPerspective(
+            peripheryAddresses.eulerUngoverned0xPerspective,
+            governedVaults[wstETH],
+            PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR
+        );
 
         // prepare the results
         eWETH = governedVaults[WETH];
