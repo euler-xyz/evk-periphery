@@ -11,15 +11,12 @@ to run:
    1. curl -L https://foundry.paradigm.xyz | bash
    2. foundryup
    3. git clone https://github.com/euler-xyz/evk-periphery.git && cd evk-periphery
-   4. git checkout custom-deployment-1 && cp .env.example .env
-   5. git clone https://github.com/euler-xyz/euler-interfaces.git
-   6. prepare the .env file
-   7. forge install && forge compile
-   8. GAS_PRICE=fixme && source .env && \
-         CORE_ADDRESSES_PATH=euler-interfaces/addresses/1/CoreAddresses.json \
-         PERIPHERY_ADDRESSES_PATH=euler-interfaces/addresses/1/PeripheryAddresses.json \
-         forge script script/production/mainnet_custom_1/DeployVaults.s.sol --broadcast --legacy --slow \
-         --rpc-url $DEPLOYMENT_RPC_URL --with-gas-price $GAS_PRICE
+   4. git clone https://github.com/euler-xyz/euler-interfaces.git
+   5. git checkout custom-deployment-1 && cp .env.example .env
+   6. sed -i '' 's|^ADDRESSES_DIR_PATH=.*|ADDRESSES_DIR_PATH="euler-interfaces/addresses/1"|' ./.env
+   7. add the DEPLOYMENT_RPC_URL and the DEPLOYER_KEY in the .env file
+   8. forge install && forge compile
+   9. ./script/production/ExecuteSolidityScript.sh script/production/mainnet_custom_1/DeployVaults.s.sol
 */
 
 contract DeployInitialVaults is BatchBuilder {
