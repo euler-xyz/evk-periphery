@@ -88,100 +88,6 @@ abstract contract ScriptUtils is Script {
     }
 }
 
-abstract contract BatchBuilder is ScriptUtils {
-    IEVC.BatchItem[] private items;
-
-    function addBatchItem(address targetContract, bytes memory data) internal {
-        addBatchItem(targetContract, getDeployer(), data);
-    }
-
-    function addBatchItem(address targetContract, address onBehalfOfAccount, bytes memory data) internal {
-        addBatchItem(targetContract, onBehalfOfAccount, 0, data);
-    }
-
-    function addBatchItem(address targetContract, address onBehalfOfAccount, uint256 value, bytes memory data)
-        internal
-    {
-        items.push(
-            IEVC.BatchItem({
-                targetContract: targetContract,
-                onBehalfOfAccount: onBehalfOfAccount,
-                value: value,
-                data: data
-            })
-        );
-    }
-
-    function clearBatchItems() internal {
-        delete items;
-    }
-
-    function executeBatchItems(address evc) internal broadcast {
-        IEVC(evc).batch(items);
-        clearBatchItems();
-    }
-
-    function perspectiveVerify(address perspective, address vault) internal {
-        addBatchItem(perspective, abi.encodeCall(BasePerspective.perspectiveVerify, (vault, true)));
-    }
-
-    function transferGovernance(address oracleRouter, address newGovernor) internal {
-        addBatchItem(oracleRouter, abi.encodeCall(EulerRouter(oracleRouter).transferGovernance, (newGovernor)));
-    }
-
-    function govSetConfig(address oracleRouter, address base, address quote, address oracle) internal {
-        addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetConfig, (base, quote, oracle)));
-    }
-
-    function govSetResolvedVault(address oracleRouter, address vault, bool set) internal {
-        addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetResolvedVault, (vault, set)));
-    }
-
-    function setGovernorAdmin(address vault, address newGovernorAdmin) internal {
-        addBatchItem(vault, abi.encodeCall(IEVault(vault).setGovernorAdmin, (newGovernorAdmin)));
-    }
-
-    function setFeeReceiver(address vault, address newFeeReceiver) internal {
-        addBatchItem(vault, abi.encodeCall(IEVault(vault).setFeeReceiver, (newFeeReceiver)));
-    }
-
-    function setLTV(address vault, address collateral, uint16 borrowLTV, uint16 liquidationLTV, uint32 rampDuration)
-        internal
-    {
-        addBatchItem(
-            vault, abi.encodeCall(IEVault(vault).setLTV, (collateral, borrowLTV, liquidationLTV, rampDuration))
-        );
-    }
-
-    function setMaxLiquidationDiscount(address vault, uint16 newDiscount) internal {
-        addBatchItem(vault, abi.encodeCall(IEVault(vault).setMaxLiquidationDiscount, (newDiscount)));
-    }
-
-    function setLiquidationCoolOffTime(address vault, uint16 newCoolOffTime) internal {
-        addBatchItem(vault, abi.encodeCall(IEVault(vault).setLiquidationCoolOffTime, (newCoolOffTime)));
-    }
-
-    function setInterestRateModel(address vault, address newModel) internal {
-        addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestRateModel, (newModel)));
-    }
-
-    function setHookConfig(address vault, address newHookTarget, uint32 newHookedOps) internal {
-        addBatchItem(vault, abi.encodeCall(IEVault(vault).setHookConfig, (newHookTarget, newHookedOps)));
-    }
-
-    function setConfigFlags(address vault, uint32 newConfigFlags) internal {
-        addBatchItem(vault, abi.encodeCall(IEVault(vault).setConfigFlags, (newConfigFlags)));
-    }
-
-    function setCaps(address vault, uint16 supplyCap, uint16 borrowCap) internal {
-        addBatchItem(vault, abi.encodeCall(IEVault(vault).setCaps, (supplyCap, borrowCap)));
-    }
-
-    function setInterestFee(address vault, uint16 newInterestFee) internal {
-        addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestFee, (newInterestFee)));
-    }
-}
-
 abstract contract CoreAddressesLib is Script {
     struct CoreAddresses {
         address evc;
@@ -299,6 +205,113 @@ abstract contract LensAddressesLib is Script {
             vaultLens: abi.decode(vm.parseJson(json, ".vaultLens"), (address)),
             utilsLens: abi.decode(vm.parseJson(json, ".utilsLens"), (address))
         });
+    }
+}
+
+abstract contract BatchBuilder is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib {
+    CoreAddresses internal coreAddresses;
+    PeripheryAddresses internal peripheryAddresses;
+    LensAddresses internal lensAddresses;
+    IEVC.BatchItem[] private items;
+
+    constructor() {
+        coreAddresses = deserializeCoreAddresses(getInputConfig("CoreAddresses.json"));
+        peripheryAddresses = deserializePeripheryAddresses(getInputConfig("PeripheryAddresses.json"));
+        lensAddresses = deserializeLensAddresses(getInputConfig("LensAddresses.json"));
+    }
+
+    function addBatchItem(address targetContract, bytes memory data) internal {
+        addBatchItem(targetContract, getDeployer(), data);
+    }
+
+    function addBatchItem(address targetContract, address onBehalfOfAccount, bytes memory data) internal {
+        addBatchItem(targetContract, onBehalfOfAccount, 0, data);
+    }
+
+    function addBatchItem(address targetContract, address onBehalfOfAccount, uint256 value, bytes memory data)
+        internal
+    {
+        items.push(
+            IEVC.BatchItem({
+                targetContract: targetContract,
+                onBehalfOfAccount: onBehalfOfAccount,
+                value: value,
+                data: data
+            })
+        );
+    }
+
+    function clearBatchItems() internal {
+        delete items;
+    }
+
+    function getBatchCalldata() internal view returns (bytes memory) {
+        return abi.encodeCall(IEVC.batch, (items));
+    }
+
+    function executeBatch() internal broadcast {
+        IEVC(coreAddresses.evc).batch(items);
+        clearBatchItems();
+    }
+
+    function perspectiveVerify(address perspective, address vault) internal {
+        addBatchItem(perspective, abi.encodeCall(BasePerspective.perspectiveVerify, (vault, true)));
+    }
+
+    function transferGovernance(address oracleRouter, address newGovernor) internal {
+        addBatchItem(oracleRouter, abi.encodeCall(EulerRouter(oracleRouter).transferGovernance, (newGovernor)));
+    }
+
+    function govSetConfig(address oracleRouter, address base, address quote, address oracle) internal {
+        addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetConfig, (base, quote, oracle)));
+    }
+
+    function govSetResolvedVault(address oracleRouter, address vault, bool set) internal {
+        addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetResolvedVault, (vault, set)));
+    }
+
+    function setGovernorAdmin(address vault, address newGovernorAdmin) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setGovernorAdmin, (newGovernorAdmin)));
+    }
+
+    function setFeeReceiver(address vault, address newFeeReceiver) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setFeeReceiver, (newFeeReceiver)));
+    }
+
+    function setLTV(address vault, address collateral, uint16 borrowLTV, uint16 liquidationLTV, uint32 rampDuration)
+        internal
+    {
+        addBatchItem(
+            vault, abi.encodeCall(IEVault(vault).setLTV, (collateral, borrowLTV, liquidationLTV, rampDuration))
+        );
+    }
+
+    function setMaxLiquidationDiscount(address vault, uint16 newDiscount) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setMaxLiquidationDiscount, (newDiscount)));
+    }
+
+    function setLiquidationCoolOffTime(address vault, uint16 newCoolOffTime) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setLiquidationCoolOffTime, (newCoolOffTime)));
+    }
+
+    function setInterestRateModel(address vault, address newModel) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestRateModel, (newModel)));
+    }
+
+    function setHookConfig(address vault, address newHookTarget, uint32 newHookedOps) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setHookConfig, (newHookTarget, newHookedOps)));
+    }
+
+    function setConfigFlags(address vault, uint32 newConfigFlags) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setConfigFlags, (newConfigFlags)));
+    }
+
+    function setCaps(address vault, uint16 supplyCap, uint16 borrowCap) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setCaps, (supplyCap, borrowCap)));
+    }
+
+    function setInterestFee(address vault, uint16 newInterestFee) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestFee, (newInterestFee)));
     }
 }
 

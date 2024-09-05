@@ -2,12 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils} from "../../utils/ScriptUtils.s.sol";
+import {BatchBuilder} from "../../utils/ScriptUtils.s.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
-import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 
-contract ConfigSDAI is ScriptUtils {
+contract ConfigSDAI is BatchBuilder {
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address internal constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
@@ -33,38 +32,42 @@ contract ConfigSDAI is ScriptUtils {
         riskOffVaults[USDT] = 0x313603FA690301b0CaeEf8069c065862f9162162;
     }
 
-    function run() public view returns (bytes memory) {
+    function run() public returns (bytes memory) {
         // configure the oracle router
-        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](7);
-        items[0].targetContract = ORACLE_ROUTER;
-        items[0].onBehalfOfAccount = ORACLE_ROUTER_GOVERNOR;
-        items[0].data = abi.encodeCall(EulerRouter.govSetConfig, (DAI, USD, DAIUSD));
-
-        items[1].targetContract = ORACLE_ROUTER;
-        items[1].onBehalfOfAccount = ORACLE_ROUTER_GOVERNOR;
-        items[1].data = abi.encodeCall(EulerRouter.govSetResolvedVault, (sDAI, true));
-
-        items[2].targetContract = ORACLE_ROUTER;
-        items[2].onBehalfOfAccount = ORACLE_ROUTER_GOVERNOR;
-        items[2].data = abi.encodeCall(EulerRouter.govSetResolvedVault, (escrowVaultSDAI, true));
+        addBatchItem(
+            ORACLE_ROUTER, ORACLE_ROUTER_GOVERNOR, abi.encodeCall(EulerRouter.govSetConfig, (DAI, USD, DAIUSD))
+        );
+        addBatchItem(
+            ORACLE_ROUTER, ORACLE_ROUTER_GOVERNOR, abi.encodeCall(EulerRouter.govSetResolvedVault, (sDAI, true))
+        );
+        addBatchItem(
+            ORACLE_ROUTER,
+            ORACLE_ROUTER_GOVERNOR,
+            abi.encodeCall(EulerRouter.govSetResolvedVault, (escrowVaultSDAI, true))
+        );
 
         // configure the LTVs
-        items[3].targetContract = riskOffVaults[WETH];
-        items[3].onBehalfOfAccount = RISK_OFF_VAULTS_GOVERNOR;
-        items[3].data = abi.encodeCall(IEVault(riskOffVaults[WETH]).setLTV, (escrowVaultSDAI, 0.74e4, 0.76e4, 0));
+        addBatchItem(
+            riskOffVaults[WETH],
+            RISK_OFF_VAULTS_GOVERNOR,
+            abi.encodeCall(IEVault(riskOffVaults[WETH]).setLTV, (escrowVaultSDAI, 0.74e4, 0.76e4, 0))
+        );
+        addBatchItem(
+            riskOffVaults[wstETH],
+            RISK_OFF_VAULTS_GOVERNOR,
+            abi.encodeCall(IEVault(riskOffVaults[wstETH]).setLTV, (escrowVaultSDAI, 0.74e4, 0.76e4, 0))
+        );
+        addBatchItem(
+            riskOffVaults[USDC],
+            RISK_OFF_VAULTS_GOVERNOR,
+            abi.encodeCall(IEVault(riskOffVaults[USDC]).setLTV, (escrowVaultSDAI, 0.85e4, 0.87e4, 0))
+        );
+        addBatchItem(
+            riskOffVaults[USDT],
+            RISK_OFF_VAULTS_GOVERNOR,
+            abi.encodeCall(IEVault(riskOffVaults[USDT]).setLTV, (escrowVaultSDAI, 0.85e4, 0.87e4, 0))
+        );
 
-        items[4].targetContract = riskOffVaults[wstETH];
-        items[4].onBehalfOfAccount = RISK_OFF_VAULTS_GOVERNOR;
-        items[4].data = abi.encodeCall(IEVault(riskOffVaults[wstETH]).setLTV, (escrowVaultSDAI, 0.74e4, 0.76e4, 0));
-
-        items[5].targetContract = riskOffVaults[USDC];
-        items[5].onBehalfOfAccount = RISK_OFF_VAULTS_GOVERNOR;
-        items[5].data = abi.encodeCall(IEVault(riskOffVaults[USDC]).setLTV, (escrowVaultSDAI, 0.85e4, 0.87e4, 0));
-
-        items[6].targetContract = riskOffVaults[USDT];
-        items[6].onBehalfOfAccount = RISK_OFF_VAULTS_GOVERNOR;
-        items[6].data = abi.encodeCall(IEVault(riskOffVaults[USDT]).setLTV, (escrowVaultSDAI, 0.85e4, 0.87e4, 0));
-
-        return abi.encodeCall(IEVC.batch, (items));
+        return getBatchCalldata();
     }
 }
