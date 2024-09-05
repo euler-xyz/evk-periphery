@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils, BatchBuilder, CoreAddressesLib, PeripheryAddressesLib} from "../../utils/ScriptUtils.s.sol";
+import {BatchBuilder} from "../../utils/ScriptUtils.s.sol";
 import {OracleVerifier} from "../../utils/SanityCheckOracle.s.sol";
 import {EVaultDeployer, OracleRouterDeployer} from "../../07_EVault.s.sol";
 
@@ -22,7 +22,7 @@ to run:
          --rpc-url $DEPLOYMENT_RPC_URL --with-gas-price $GAS_PRICE
 */
 
-contract DeployInitialVaults is ScriptUtils, BatchBuilder, CoreAddressesLib, PeripheryAddressesLib {
+contract DeployInitialVaults is BatchBuilder {
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address internal constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address internal constant cbETH = 0xBe9895146f7AF43049ca1c1AE358B0541Ea49704;
@@ -156,7 +156,7 @@ contract DeployInitialVaults is ScriptUtils, BatchBuilder, CoreAddressesLib, Per
             setGovernorAdmin(vault, GOVERNED_VAULTS_GOVERNOR);
         }
         
-        executeBatchItems(coreAddresses.evc);
+        executeBatch();
 
         // sanity check the oracle config
         OracleVerifier.verifyOracleConfig(governedVaults[WETH]);
