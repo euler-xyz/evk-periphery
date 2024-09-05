@@ -21,6 +21,9 @@ quote_style = "double"
 number_underscore = "preserve"
 override_spacing = true
 wrap_comments = true
+ignore = [
+    "script/production/mainnet_custom_1/DeployVaults.s.sol"
+]
 
 [profile.default.fuzz]
 max_test_rejects = 1_000_000
