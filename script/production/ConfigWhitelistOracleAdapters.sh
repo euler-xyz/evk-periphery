@@ -73,6 +73,11 @@ done < <(tr -d '\r' < "$csv_file")
 
 items="${items%,}]"
 
+if [[ "$@" == *"--dry-run"* ]]; then
+    echo "Dry run. Exiting..."
+    exit 0
+fi
+
 echo "Executing batch transaction..."
 currentGasPrice=$(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL")
 gasPrice=$(echo "if ($currentGasPrice * 1.25 > 2000000000) ($currentGasPrice * 1.25)/1 else 2000000000" | bc)
