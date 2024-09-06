@@ -94,7 +94,8 @@ while true; do
     echo "9. Perspectives"
     echo "10. Swap"
     echo "11. Fee Flow"
-    read -p "Enter your choice (0-11): " choice
+    echo "12. EVault Factory Governor"
+    read -p "Enter your choice (0-12): " choice
 
     case $choice in
         0)
@@ -607,7 +608,13 @@ while true; do
                     priceMultiplier: $priceMultiplier,
                     minInitPrice: $minInitPrice
                 }' --indent 4 > script/${jsonName}_input.json
-
+            ;;
+        12)
+            echo "Deploying EVault Factory Governor..."
+            
+            baseName=12_FactoryGovernor
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
             ;;
         *)
             echo "Invalid choice. Exiting."
