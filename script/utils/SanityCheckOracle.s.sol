@@ -81,7 +81,7 @@ library OracleVerifier {
         uint256 price;
 
         (bool success, bytes memory result) =
-            oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (10 ** IEVault(base).decimals(), base, quote)));
+            oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (10 ** IEVault(base).decimals(), finalBase, quote)));
 
         if (success) {
             require(result.length == 32, "result length is not 32");
