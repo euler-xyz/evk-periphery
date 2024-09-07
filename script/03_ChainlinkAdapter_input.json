@@ -1,8 +1,0 @@
-{
-    "addToAdapterRegistry": false,
-    "adapterRegistry": "",
-    "base": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
-    "quote": "0x0000000000000000000000000000000000000348",
-    "feed": "0xA027702dbb89fbd58938e4324ac03B58d812b0E1",
-    "maxStaleness": 7200
-}
