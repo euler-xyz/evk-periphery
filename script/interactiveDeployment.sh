@@ -94,7 +94,8 @@ while true; do
     echo "9. Perspectives"
     echo "10. Swap"
     echo "11. Fee Flow"
-    read -p "Enter your choice (0-11): " choice
+    echo "12. EVault Factory Governor"
+    read -p "Enter your choice (0-12): " choice
 
     case $choice in
         0)
@@ -233,6 +234,7 @@ while true; do
                         --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
@@ -369,6 +371,7 @@ while true; do
                         --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
@@ -465,7 +468,7 @@ while true; do
             echo "Deploying EVault..."
 
             baseName=07_EVault
-            scriptName=${baseName}Deployer.s.sol
+            scriptName=${baseName}.s.sol:EVaultDeployer
             jsonName=$baseName
 
             read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle
@@ -605,7 +608,13 @@ while true; do
                     priceMultiplier: $priceMultiplier,
                     minInitPrice: $minInitPrice
                 }' --indent 4 > script/${jsonName}_input.json
-
+            ;;
+        12)
+            echo "Deploying EVault Factory Governor..."
+            
+            baseName=12_FactoryGovernor
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
             ;;
         *)
             echo "Invalid choice. Exiting."

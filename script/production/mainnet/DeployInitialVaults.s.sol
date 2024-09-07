@@ -2,16 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib} from "../../utils/ScriptUtils.s.sol";
+import {BatchBuilder} from "../../utils/ScriptUtils.s.sol";
 import {KinkIRM} from "../../04_IRM.s.sol";
-import {EVaultDeployer} from "../../07_EVault.s.sol";
-import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
-import {BasePerspective} from "../../../src/Perspectives/implementation/BasePerspective.sol";
-import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
-import {IEVault} from "evk/EVault/IEVault.sol";
-import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
+import {EVaultDeployer, OracleRouterDeployer} from "../../07_EVault.s.sol";
 
-contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib {
+contract DeployInitialVaults is BatchBuilder {
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address internal constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
@@ -29,6 +24,7 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
     address internal constant ORACLE_ROUTER_GOVERNOR = DAO_MULTISIG;
     address internal constant RISK_OFF_VAULTS_GOVERNOR = DAO_MULTISIG;
 
+    address oracleRouter;
     mapping(address => address) internal escrowVaults;
     mapping(address => address) internal riskOffVaults;
 
@@ -56,15 +52,11 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
     }
 
     function run() public returns (address[] memory) {
-        address deployerAddress = getDeployer();
-        CoreAddresses memory coreAddresses = deserializeCoreAddresses(getInputConfig("CoreAddresses.json"));
-        PeripheryAddresses memory peripheryAddresses =
-            deserializePeripheryAddresses(getInputConfig("PeripheryAddresses.json"));
-
         // deploy the oracle router
-        startBroadcast();
-        address oracleRouter = EulerRouterFactory(peripheryAddresses.oracleRouterFactory).deploy(getDeployer());
-        stopBroadcast();
+        {
+            OracleRouterDeployer deployer = new OracleRouterDeployer();
+            oracleRouter = deployer.deploy(peripheryAddresses.oracleRouterFactory);
+        }
 
         // deploy the IRMs
         {
@@ -90,100 +82,42 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
             EVaultDeployer deployer = new EVaultDeployer();
             for (uint256 i = 0; i < assetsList.length; ++i) {
                 address asset = assetsList[i];
-
-                (, escrowVaults[asset]) =
-                    deployer.deploy(address(0), false, coreAddresses.eVaultFactory, true, asset, address(0), address(0));
-
-                (, riskOffVaults[asset]) =
-                    deployer.deploy(address(0), false, coreAddresses.eVaultFactory, true, asset, oracleRouter, USD);
+                escrowVaults[asset] = deployer.deploy(coreAddresses.eVaultFactory, true, asset);
+                riskOffVaults[asset] = deployer.deploy(coreAddresses.eVaultFactory, true, asset, oracleRouter, USD);
             }
         }
 
         // configure the oracle router
-        startBroadcast();
-        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3 * assetsList.length + 1);
-
         for (uint256 i = 0; i < assetsList.length; ++i) {
             address asset = assetsList[i];
-            uint256 index = 3 * i;
-
-            items[index].targetContract = oracleRouter;
-            items[index].onBehalfOfAccount = deployerAddress;
-            items[index].data = abi.encodeCall(EulerRouter.govSetConfig, (asset, USD, oracleAdaptersList[i]));
-
-            items[index + 1].targetContract = oracleRouter;
-            items[index + 1].onBehalfOfAccount = deployerAddress;
-            items[index + 1].data = abi.encodeCall(EulerRouter.govSetResolvedVault, (escrowVaults[asset], true));
-
-            items[index + 2].targetContract = oracleRouter;
-            items[index + 2].onBehalfOfAccount = deployerAddress;
-            items[index + 2].data = abi.encodeCall(EulerRouter.govSetResolvedVault, (riskOffVaults[asset], true));
+            govSetConfig(oracleRouter, asset, USD, oracleAdaptersList[i]);
+            govSetResolvedVault(oracleRouter, escrowVaults[asset], true);
+            govSetResolvedVault(oracleRouter, riskOffVaults[asset], true);
         }
-
-        // transfer the oracle router governance
-        items[items.length - 1].targetContract = oracleRouter;
-        items[items.length - 1].onBehalfOfAccount = deployerAddress;
-        items[items.length - 1].data =
-            abi.encodeCall(EulerRouter(oracleRouter).transferGovernance, (ORACLE_ROUTER_GOVERNOR));
-
-        IEVC(coreAddresses.evc).batch(items);
+        transferGovernance(oracleRouter, ORACLE_ROUTER_GOVERNOR);
 
         // configure the LTVs
-        setLTVs(coreAddresses, riskOffVaults, escrowVaults, riskOffEscrowLTVs);
-        setLTVs(coreAddresses, riskOffVaults, riskOffVaults, riskOffRiskOffLTVs);
+        setLTVs(riskOffVaults, escrowVaults, riskOffEscrowLTVs);
+        setLTVs(riskOffVaults, riskOffVaults, riskOffRiskOffLTVs);
 
-        items = new IEVC.BatchItem[](10 * assetsList.length);
         for (uint256 i = 0; i < assetsList.length; ++i) {
-            address asset = assetsList[i];
-            uint256 index = 10 * i;
-
             // configure the escrow vaults and verify them by the escrow perspective
-            items[index].targetContract = escrowVaults[asset];
-            items[index].onBehalfOfAccount = deployerAddress;
-            items[index].data = abi.encodeCall(IEVault(escrowVaults[asset]).setHookConfig, (address(0), 0));
-
-            items[index + 1].targetContract = escrowVaults[asset];
-            items[index + 1].onBehalfOfAccount = deployerAddress;
-            items[index + 1].data = abi.encodeCall(IEVault(escrowVaults[asset]).setGovernorAdmin, (address(0)));
-
-            items[index + 2].targetContract = peripheryAddresses.escrowedCollateralPerspective;
-            items[index + 2].onBehalfOfAccount = deployerAddress;
-            items[index + 2].data = abi.encodeCall(BasePerspective.perspectiveVerify, (escrowVaults[asset], true));
+            address vault = escrowVaults[assetsList[i]];
+            setHookConfig(vault, address(0), 0);
+            setGovernorAdmin(vault, address(0));
+            perspectiveVerify(peripheryAddresses.escrowedCollateralPerspective, vault);
 
             // configure the riskOff vaults and verify them by the whitelist perspective
-            items[index + 3].targetContract = riskOffVaults[asset];
-            items[index + 3].onBehalfOfAccount = deployerAddress;
-            items[index + 3].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setMaxLiquidationDiscount, (0.15e4));
-
-            items[index + 4].targetContract = riskOffVaults[asset];
-            items[index + 4].onBehalfOfAccount = deployerAddress;
-            items[index + 4].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setLiquidationCoolOffTime, (1));
-
-            items[index + 5].targetContract = riskOffVaults[asset];
-            items[index + 5].onBehalfOfAccount = deployerAddress;
-            items[index + 5].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setInterestRateModel, (irmList[i]));
-
-            items[index + 6].targetContract = riskOffVaults[asset];
-            items[index + 6].onBehalfOfAccount = deployerAddress;
-            items[index + 6].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setInterestFee, (0.1e4));
-
-            items[index + 7].targetContract = riskOffVaults[asset];
-            items[index + 7].onBehalfOfAccount = deployerAddress;
-            items[index + 7].data = abi.encodeCall(IEVault(riskOffVaults[asset]).setHookConfig, (address(0), 0));
-
-            items[index + 8].targetContract = riskOffVaults[asset];
-            items[index + 8].onBehalfOfAccount = deployerAddress;
-            items[index + 8].data =
-                abi.encodeCall(IEVault(riskOffVaults[asset]).setGovernorAdmin, (RISK_OFF_VAULTS_GOVERNOR));
-
-            items[index + 9].targetContract = peripheryAddresses.governedPerspective;
-            items[index + 9].onBehalfOfAccount = deployerAddress;
-            items[index + 9].data = abi.encodeCall(BasePerspective.perspectiveVerify, (riskOffVaults[asset], true));
+            vault = riskOffVaults[assetsList[i]];
+            setMaxLiquidationDiscount(vault, 0.15e4);
+            setLiquidationCoolOffTime(vault, 1);
+            setInterestRateModel(vault, irmList[i]);
+            setHookConfig(vault, address(0), 0);
+            setGovernorAdmin(vault, RISK_OFF_VAULTS_GOVERNOR);
+            perspectiveVerify(peripheryAddresses.governedPerspective, vault);
         }
 
-        IEVC(coreAddresses.evc).batch(items);
-
-        stopBroadcast();
+        executeBatch();
 
         // prepare the results
         address[] memory result = new address[](2 * assetsList.length);
@@ -196,33 +130,16 @@ contract DeployInitialVaults is ScriptUtils, CoreAddressesLib, PeripheryAddresse
     }
 
     function setLTVs(
-        CoreAddresses memory coreAddresses,
         mapping(address => address) storage vaults,
         mapping(address => address) storage collaterals,
         uint16[][] storage ltvs
     ) internal {
-        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](assetsList.length * assetsList.length - assetsList.length);
-        address deployerAddress = getDeployer();
-
-        uint256 index;
         for (uint256 i = 0; i < assetsList.length; ++i) {
             for (uint256 j = 0; j < assetsList.length; ++j) {
-                if (i == j) continue;
-
-                address collateralAsset = assetsList[i];
-                address vaultAsset = assetsList[j];
                 uint16 ltv = ltvs[i][j];
 
-                items[index].targetContract = vaults[vaultAsset];
-                items[index].onBehalfOfAccount = deployerAddress;
-                items[index].data = abi.encodeCall(
-                    IEVault(vaults[vaultAsset]).setLTV, (collaterals[collateralAsset], ltv - 0.02e4, ltv, 0)
-                );
-
-                ++index;
+                if (ltv != 0) setLTV(vaults[assetsList[j]], collaterals[assetsList[i]], ltv - 0.02e4, ltv, 0);
             }
         }
-
-        IEVC(coreAddresses.evc).batch(items);
     }
 }

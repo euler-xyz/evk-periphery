@@ -2,8 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "forge-std/Script.sol";
-import {CoreAddressesLib, PeripheryAddressesLib} from "../../utils/ScriptUtils.s.sol";
+import {ScriptUtils} from "../../utils/ScriptUtils.s.sol";
 import {OracleVerifier} from "../../utils/SanityCheckOracle.s.sol";
 
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
@@ -21,7 +20,7 @@ import {EulerUngovernedPerspective} from "../../../src/Perspectives/deployed/Eul
 import {Swapper} from "../../../src/Swaps/Swapper.sol";
 import {EulerRouterFactory} from "../../../src/EulerRouterFactory/EulerRouterFactory.sol";
 
-contract SanityCheckInitialDeployment is Script, CoreAddressesLib, PeripheryAddressesLib {
+contract SanityCheckInitialDeployment is ScriptUtils {
     // assets
     address internal constant USD = address(840);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -56,10 +55,6 @@ contract SanityCheckInitialDeployment is Script, CoreAddressesLib, PeripheryAddr
     address internal constant FEE_FLOW_PAYMENT_RECEIVER = DAO_MULTISIG;
 
     function run() public view {
-        CoreAddresses memory coreAddresses = deserializeCoreAddresses(vm.readFile(vm.envString("CORE_ADDRESSES_PATH")));
-        PeripheryAddresses memory peripheryAddresses =
-            deserializePeripheryAddresses(vm.readFile(vm.envString("PERIPHERY_ADDRESSES_PATH")));
-
         verifyCoreAndPeriphery(coreAddresses, peripheryAddresses);
         verifyVaults(coreAddresses, peripheryAddresses);
     }

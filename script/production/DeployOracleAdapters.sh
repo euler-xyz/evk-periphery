@@ -35,7 +35,7 @@ if [ ! -z "$2" ] && [[ ! -f "$2" ]]; then
 fi
 
 csv_file="$1"
-past_oracle_adapters_addresses_path="$2"
+csv_oracle_adapters_addresses_path="$2"
 
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}
@@ -57,17 +57,12 @@ mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broad
 
 baseName=03_OracleAdapters
 
-read -p "Should the adapter be added to the Adapter Registry? (y/n) (default: n): " add_to_adapter_registry
-add_to_adapter_registry=${add_to_adapter_registry:-n}
-
-adapter_registry=0x0000000000000000000000000000000000000000
-if [[ $add_to_adapter_registry != "n" ]]; then
-    read -p "Enter the Adapter Registry address: " adapter_registry
-fi
-
-if [ -f "$past_oracle_adapters_addresses_path" ]; then
-    read -p "Should avoid deploying duplicates based on the provided $oracleAdaptersAddresses file? (y/n) (default: y): " avoid_duplicates
+if [ -f "$csv_oracle_adapters_addresses_path" ]; then
+    read -p "Shall we avoid deploying duplicates based on the provided $csv_oracle_adapters_addresses_path file? (y/n) (default: y): " avoid_duplicates
     avoid_duplicates=${avoid_duplicates:-y}
+
+    read -p "Shall we add deployed adapters directly to the provided $csv_oracle_adapters_addresses_path file? (y/n) (default: n): " add_to_csv
+    add_to_csv=${add_to_csv:-n}
 fi
 
 if [[ ! -f "$oracleAdaptersAddresses" ]]; then
@@ -82,7 +77,6 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     shouldWhitelist="${columns[4]}"
     oracleBaseCross="${columns[9]//[\[\]]}"
     oracleCrossQuote="${columns[10]//[\[\]]}"
-    add_to_adapter_registry_override=$add_to_adapter_registry
 
     if [[ "$shouldDeploy" == "Deploy" || "$shouldDeploy" == "No" ]]; then
         continue
@@ -90,8 +84,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
     if [[ "$provider" == *Cross* ]]; then
         adapterName="${provider// /}_${baseSymbol}/${quoteSymbol}=${oracleBaseCross}+${oracleCrossQuote}"
-        oracleBaseCross=$(find_adapter_address "${oracleBaseCross}" "$past_oracle_adapters_addresses_path")
-        oracleCrossQuote=$(find_adapter_address "${oracleCrossQuote}" "$past_oracle_adapters_addresses_path")
+        oracleBaseCross=$(find_adapter_address "${oracleBaseCross}" "$csv_oracle_adapters_addresses_path")
+        oracleCrossQuote=$(find_adapter_address "${oracleCrossQuote}" "$csv_oracle_adapters_addresses_path")
 
         if [[ ! "$oracleBaseCross" =~ ^0x ]]; then
             echo "Skipping deployment of $adapterName. Missing oracle adapter: $oracleBaseCross"
@@ -106,12 +100,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         adapterName="${provider// /}_${baseSymbol}/${quoteSymbol}"
     fi
 
-    if [[ "$shouldWhitelist" == "No" ]]; then
-        add_to_adapter_registry_override="n"
-    fi
-
     if [[ "$avoid_duplicates" == "y" ]]; then
-        adapterAddress=$(find_adapter_address "$adapterName" "$past_oracle_adapters_addresses_path")
+        adapterAddress=$(find_adapter_address "$adapterName" "$csv_oracle_adapters_addresses_path")
 
         if [[ "$adapterAddress" =~ ^0x ]]; then
             echo "Skipping deployment of $adapterName. Adapter already deployed: $adapterAddress"
@@ -127,7 +117,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[9]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry false \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
@@ -149,7 +139,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[9]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry false \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
@@ -176,7 +166,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         fi
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry false \
             --arg adapterRegistry "$adapter_registry" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
@@ -195,7 +185,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         fi
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry false \
             --arg adapterRegistry "$adapter_registry" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
@@ -209,7 +199,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[9]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry false \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
@@ -231,7 +221,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[7]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry false \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[6]}" \
             --arg quote "${columns[7]}" \
@@ -255,7 +245,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[8]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry false \
             --arg adapterRegistry "$adapter_registry" \
             --arg pyth "${columns[6]}" \
             --arg base "${columns[7]}" \
@@ -281,7 +271,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         quote="${columns[8]}"
 
         jq -n \
-            --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry_override\" 'if $val != "n" then true else false end')" \
+            --argjson addToAdapterRegistry false \
             --arg adapterRegistry "$adapter_registry" \
             --arg base "${columns[6]}" \
             --arg cross "${columns[7]}" \
@@ -302,14 +292,24 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         exit 1
     fi
 
+    if [[ "$@" == *"--dry-run"* ]]; then
+        echo "Dry run: Deploying $adapterName..."
+        continue
+    fi
+
     script/utils/executeForgeScript.sh $scriptName $verify_contracts
 
     if [[ -f "script/${jsonName}_output.json" ]]; then
         counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
         adapter=$(jq -r '.adapter' "script/${jsonName}_output.json")
+        entry="${baseSymbol},${quoteSymbol},${provider},${adapterName},${adapter},$base,$quote,${shouldWhitelist}"
 
         echo "Successfully deployed $adapterName: $adapter"
-        echo "${baseSymbol},${quoteSymbol},${provider},${adapterName},${adapter},$base,$quote,${shouldWhitelist}" >> "$oracleAdaptersAddresses"
+        echo "$entry" >> "$oracleAdaptersAddresses"
+
+        if [[ "$add_to_csv" == "y" ]]; then
+            echo "$entry" >> "$csv_oracle_adapters_addresses_path"
+        fi
 
         mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
         mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"

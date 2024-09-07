@@ -44,6 +44,18 @@ contract EVaultDeployer is ScriptUtils {
             execute(oracleRouterFactory, deployRouterForOracle, eVaultFactory, upgradable, asset, oracle, unitOfAccount);
     }
 
+    function deploy(address eVaultFactory, bool upgradable, address asset, address oracle, address unitOfAccount)
+        public
+        broadcast
+        returns (address eVault)
+    {
+        (, eVault) = execute(address(0), false, eVaultFactory, upgradable, asset, oracle, unitOfAccount);
+    }
+
+    function deploy(address eVaultFactory, bool upgradable, address asset) public broadcast returns (address eVault) {
+        (, eVault) = execute(address(0), false, eVaultFactory, upgradable, asset, address(0), address(0));
+    }
+
     function execute(
         address oracleRouterFactory,
         bool deployRouterForOracle,
@@ -66,5 +78,28 @@ contract EVaultDeployer is ScriptUtils {
                 abi.encodePacked(asset, deployRouterForOracle ? oracleRouter : oracle, unitOfAccount)
             )
         );
+    }
+}
+
+contract OracleRouterDeployer is ScriptUtils {
+    function run() public broadcast returns (address oracleRouter) {
+        string memory inputScriptFileName = "07_OracleRouter_input.json";
+        string memory outputScriptFileName = "07_OracleRouter_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address oracleRouterFactory = abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address));
+
+        oracleRouter = execute(oracleRouterFactory);
+
+        string memory object;
+        object = vm.serializeAddress("oracleRouter", "oracleRouter", oracleRouter);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address oracleRouterFactory) public broadcast returns (address oracleRouter) {
+        oracleRouter = execute(oracleRouterFactory);
+    }
+
+    function execute(address oracleRouterFactory) public returns (address oracleRouter) {
+        oracleRouter = EulerRouterFactory(oracleRouterFactory).deploy(getDeployer());
     }
 }
