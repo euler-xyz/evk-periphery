@@ -13,6 +13,8 @@ import {RedstoneCoreOracle} from "euler-price-oracle/adapter/redstone/RedstoneCo
 //import {RedstoneCoreArbitrumOracle} from "euler-price-oracle/adapter/redstone/RedstoneCoreArbitrumOracle.sol";
 import {CrossAdapter} from "euler-price-oracle/adapter/CrossAdapter.sol";
 import {UniswapV3Oracle} from "euler-price-oracle/adapter/uniswap/UniswapV3Oracle.sol";
+import {FixedRateOracle} from "euler-price-oracle/adapter/fixed/FixedRateOracle.sol";
+import {RateProviderOracle} from "euler-price-oracle/adapter/rate/RateProviderOracle.sol";
 
 contract ChainlinkAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
@@ -351,5 +353,80 @@ contract UniswapAdapter is ScriptUtils {
     ) public returns (address adapter) {
         adapter = address(new UniswapV3Oracle(tokenA, tokenB, fee, twapWindow, uniswapV3Factory));
         if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, tokenA, tokenB);
+    }
+}
+
+contract FixedRateAdapter is ScriptUtils {
+    function run() public broadcast returns (address adapter) {
+        string memory inputScriptFileName = "03_FixedRateAdapter_input.json";
+        string memory outputScriptFileName = "03_FixedRateAdapter_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        bool addToAdapterRegistry = abi.decode(vm.parseJson(json, ".addToAdapterRegistry"), (bool));
+        address base = abi.decode(vm.parseJson(json, ".base"), (address));
+        address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
+        uint256 rate = abi.decode(vm.parseJson(json, ".rate"), (uint256));
+
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, quote, rate);
+
+        string memory object;
+        object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address adapterRegistry, bool addToAdapterRegistry, address base, address quote, uint256 rate)
+        public
+        broadcast
+        returns (address adapter)
+    {
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, quote, rate);
+    }
+
+    function execute(address adapterRegistry, bool addToAdapterRegistry, address base, address quote, uint256 rate)
+        public
+        returns (address adapter)
+    {
+        adapter = address(new FixedRateOracle(base, quote, rate));
+        if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
+    }
+}
+
+contract RateProviderAdapter is ScriptUtils {
+    function run() public broadcast returns (address adapter) {
+        string memory inputScriptFileName = "03_RateProviderAdapter_input.json";
+        string memory outputScriptFileName = "03_RateProviderAdapter_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address adapterRegistry = abi.decode(vm.parseJson(json, ".adapterRegistry"), (address));
+        bool addToAdapterRegistry = abi.decode(vm.parseJson(json, ".addToAdapterRegistry"), (bool));
+        address base = abi.decode(vm.parseJson(json, ".base"), (address));
+        address quote = abi.decode(vm.parseJson(json, ".quote"), (address));
+        address rateProvider = abi.decode(vm.parseJson(json, ".rateProvider"), (address));
+
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, quote, rateProvider);
+
+        string memory object;
+        object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(
+        address adapterRegistry,
+        bool addToAdapterRegistry,
+        address base,
+        address quote,
+        address rateProvider
+    ) public broadcast returns (address adapter) {
+        adapter = execute(adapterRegistry, addToAdapterRegistry, base, quote, rateProvider);
+    }
+
+    function execute(
+        address adapterRegistry,
+        bool addToAdapterRegistry,
+        address base,
+        address quote,
+        address rateProvider
+    ) public returns (address adapter) {
+        adapter = address(new RateProviderOracle(base, quote, rateProvider));
+        if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }

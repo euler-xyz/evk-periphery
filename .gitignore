@@ -7,3 +7,6 @@ broadcast/
 
 # Dotenv file
 .env
+
+# Scripts temporary files
+script/*.json
