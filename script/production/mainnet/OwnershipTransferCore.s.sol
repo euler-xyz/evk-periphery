@@ -14,8 +14,10 @@ contract OwnershipTransferCore is ScriptUtils {
     address internal constant PROTOCOL_CONFIG_ADMIN = EULER_DAO;
     address internal constant EVAULT_FACTORY_GOVERNOR_ADMIN = EULER_DAO;
 
-    function run() public {
-        startBroadcast();
+    function transferOwnership() internal {
+        // if called by admin, the script will remove itself from default admin role in factory governor
+        require(getDeployer() != EVAULT_FACTORY_GOVERNOR_ADMIN); 
+
         ProtocolConfig(coreAddresses.protocolConfig).setAdmin(PROTOCOL_CONFIG_ADMIN);
         FactoryGovernor(coreAddresses.eVaultFactoryGovernor).grantRole(
             FactoryGovernor(coreAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE(), EVAULT_FACTORY_GOVERNOR_ADMIN
@@ -27,6 +29,11 @@ contract OwnershipTransferCore is ScriptUtils {
             FactoryGovernor(coreAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE(), getDeployer()
         );
         GenericFactory(coreAddresses.eVaultFactory).setUpgradeAdmin(coreAddresses.eVaultFactoryGovernor);
+    }
+
+    function run() public {
+        startBroadcast();
+        transferOwnership();
         stopBroadcast();
     }
 }
