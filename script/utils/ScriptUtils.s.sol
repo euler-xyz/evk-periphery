@@ -173,7 +173,7 @@ abstract contract ScriptUtils is Script, CoreAddressesLib, PeripheryAddressesLib
         vm.stopBroadcast();
     }
 
-    function getDeployer() internal view returns (address) {
+    function getDeployer() internal view virtual returns (address) {
         address deployer = vm.addr(vm.envOr("DEPLOYER_KEY", uint256(1)));
         return deployer == vm.addr(1) ? address(this) : deployer;
     }
