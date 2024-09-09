@@ -23,6 +23,7 @@ abstract contract CoreAddressesLib is Script {
         address permit2;
         address eVaultImplementation;
         address eVaultFactory;
+        address eVaultFactoryGovernor;
     }
 
     function serializeCoreAddresses(CoreAddresses memory Addresses) internal returns (string memory result) {
@@ -33,6 +34,7 @@ abstract contract CoreAddressesLib is Script {
         result = vm.serializeAddress("coreAddresses", "permit2", Addresses.permit2);
         result = vm.serializeAddress("coreAddresses", "eVaultImplementation", Addresses.eVaultImplementation);
         result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
+        result = vm.serializeAddress("coreAddresses", "eVaultFactoryGovernor", Addresses.eVaultFactoryGovernor);
     }
 
     function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory result) {
@@ -45,7 +47,8 @@ abstract contract CoreAddressesLib is Script {
             balanceTracker: abi.decode(vm.parseJson(json, ".balanceTracker"), (address)),
             permit2: abi.decode(vm.parseJson(json, ".permit2"), (address)),
             eVaultImplementation: abi.decode(vm.parseJson(json, ".eVaultImplementation"), (address)),
-            eVaultFactory: abi.decode(vm.parseJson(json, ".eVaultFactory"), (address))
+            eVaultFactory: abi.decode(vm.parseJson(json, ".eVaultFactory"), (address)),
+            eVaultFactoryGovernor: abi.decode(vm.parseJson(json, ".eVaultFactoryGovernor"), (address))
         });
     }
 }

@@ -11,6 +11,7 @@ import {Lenses} from "../../08_Lenses.s.sol";
 import {Perspectives} from "../../09_Perspectives.s.sol";
 import {Swap} from "../../10_Swap.s.sol";
 import {FeeFlow} from "../../11_FeeFlow.s.sol";
+import {FactoryGovernorDeployer} from "../../12_FactoryGovernor.s.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
@@ -76,6 +77,11 @@ contract DeployCoreAndPeriphery is ScriptUtils {
             EVaultFactory deployer = new EVaultFactory();
             coreAddresses.eVaultFactory = deployer.deploy(coreAddresses.eVaultImplementation);
         }
+        // deploy factory governor
+        {
+            FactoryGovernorDeployer deployer = new FactoryGovernorDeployer();
+            coreAddresses.eVaultFactoryGovernor = deployer.deploy();
+        }
         // deploy swapper
         {
             Swap deployer = new Swap();
@@ -89,7 +95,7 @@ contract DeployCoreAndPeriphery is ScriptUtils {
                 coreAddresses.evc,
                 FEE_FLOW_INIT_PRICE,
                 FEE_FLOW_PAYMENT_TOKEN,
-                FEE_FLOW_PAYMENT_RECEIVER == address(0) ? getDeployer() : FEE_FLOW_PAYMENT_RECEIVER,
+                FEE_FLOW_PAYMENT_RECEIVER,
                 FEE_FLOW_EPOCH_PERIOD,
                 FEE_FLOW_PRICE_MULTIPLIER,
                 FEE_FLOW_MIN_INIT_PRICE
