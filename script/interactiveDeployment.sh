@@ -157,7 +157,9 @@ while true; do
             echo "5. Cross"
             echo "6. Uniswap"
             echo "7. Lido Fundamental"
-            read -p "Enter your choice (0-7): " adapter_choice
+            echo "8. Fixed Rate"
+            echo "9. Rate Provider"
+            read -p "Enter your choice (0-9): " adapter_choice
 
             baseName=03_OracleAdapters
 
@@ -373,6 +375,54 @@ while true; do
                         '{
                             addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                8)
+                    echo "Deploying Fixed Rate Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:FixedRateAdapter
+                    jsonName=03_FixedRateAdapter
+
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter rate: " rate
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --argjson rate "$rate" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            base: $base,
+                            quote: $quote,
+                            rate: $rate
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                9)
+                    echo "Deploying Rate Provider Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:RateProviderAdapter
+                    jsonName=03_RateProviderAdapter
+
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter rate provider address: " rate_provider
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --arg rateProvider "$rate_provider" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            base: $base,
+                            quote: $quote,
+                            rateProvider: $rateProvider
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
