@@ -11,7 +11,7 @@ import {EVault} from "evk/EVault/EVault.sol";
 
 /// @notice The tests operate on a fork. Create a .env file with FORK_RPC_URL as per foundry docs
 contract FactoryGovernorScriptsTest is Test, OwnershipTransferCore {
-    uint256 constant BLOCK_NUMBER = 20712274;
+    uint256 constant BLOCK_NUMBER = 20714777;
 
     address internal constant EVAULT_FACTORY = 0x29a56a1b8214D9Cf7c5561811750D5cBDb45CC8e;
     address internal constant PROTOCOL_CONFIG = 0x4cD6BF1D183264c02Be7748Cb5cd3A47d013351b;
@@ -20,7 +20,7 @@ contract FactoryGovernorScriptsTest is Test, OwnershipTransferCore {
     address internal constant DEPLOYER = 0xEe009FAF00CF54C1B4387829aF7A8Dc5f0c8C8C5;
 
     // SET AFTER DEPLOYMENT
-    address internal constant FACTORY_GOVERNOR = address(0);
+    address internal constant FACTORY_GOVERNOR = 0x799E9b58895d7D10306cA6C4cAb51728B142a224;
 
     uint256 mainnetFork;
 
@@ -34,6 +34,7 @@ contract FactoryGovernorScriptsTest is Test, OwnershipTransferCore {
     constructor () OwnershipTransferCore() {
         coreAddresses.eVaultFactory = EVAULT_FACTORY;
         coreAddresses.protocolConfig = PROTOCOL_CONFIG;
+        coreAddresses.eVaultFactoryGovernor = FACTORY_GOVERNOR;
     }
     function getDeployer() internal pure override returns (address) {
         return DEPLOYER;
@@ -45,8 +46,8 @@ contract FactoryGovernorScriptsTest is Test, OwnershipTransferCore {
         mainnetFork = vm.createSelectFork(FORK_RPC_URL);
         vm.rollFork(BLOCK_NUMBER);
 
-        if (coreAddresses.eVaultFactoryGovernor == address(0))
-            coreAddresses.eVaultFactoryGovernor = address(new FactoryGovernor(getDeployer()));
+        // if (coreAddresses.eVaultFactoryGovernor == address(0))
+        //     coreAddresses.eVaultFactoryGovernor = address(new FactoryGovernor(getDeployer()));
 
         factoryGovernor = FactoryGovernor(coreAddresses.eVaultFactoryGovernor);
         factory = GenericFactory(coreAddresses.eVaultFactory);
@@ -54,23 +55,21 @@ contract FactoryGovernorScriptsTest is Test, OwnershipTransferCore {
         eUSDC = EVault(EUSDC2);
 
         // temporarily set upgrade admin on factory and protocol config back to euler deployer
-        startHoax(EULER_DAO);
-        factory.setUpgradeAdmin(DEPLOYER);
-        protocolConfig.setAdmin(DEPLOYER);
+        // factory.setUpgradeAdmin(DEPLOYER);
+        // protocolConfig.setAdmin(DEPLOYER);
 
-        startHoax(DEPLOYER);
-        transferOwnership();
+
+        // startHoax(DEPLOYER);
+        startHoax(EULER_DAO);
+        GenericFactory(coreAddresses.eVaultFactory).setUpgradeAdmin(coreAddresses.eVaultFactoryGovernor);
+
+        // transferOwnership();
         vm.stopPrank();
     }
 
     function shouldSkip() internal view returns (bool) {
         if (bytes(FORK_RPC_URL).length == 0) return true;
-
-        if (factory.upgradeAdmin() != FACTORY_GOVERNOR) return false;
-        if (factoryGovernor.getRoleMember(factoryGovernor.DEFAULT_ADMIN_ROLE(), 0) != EVAULT_FACTORY_GOVERNOR_ADMIN) return false;
-        if (protocolConfig.admin() != PROTOCOL_CONFIG_ADMIN) return false;
-
-        return true;
+        return false;
     }
 
     function test_OwnershipTransferScript_newProtocolConfigAdmin() external {
