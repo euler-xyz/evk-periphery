@@ -409,18 +409,23 @@ contract RateProviderAdapter is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address adapterRegistry, bool addToAdapterRegistry, address base, address quote, address rateProvider)
-        public
-        broadcast
-        returns (address adapter)
-    {
+    function deploy(
+        address adapterRegistry,
+        bool addToAdapterRegistry,
+        address base,
+        address quote,
+        address rateProvider
+    ) public broadcast returns (address adapter) {
         adapter = execute(adapterRegistry, addToAdapterRegistry, base, quote, rateProvider);
     }
 
-    function execute(address adapterRegistry, bool addToAdapterRegistry, address base, address quote, address rateProvider)
-        public
-        returns (address adapter)
-    {
+    function execute(
+        address adapterRegistry,
+        bool addToAdapterRegistry,
+        address base,
+        address quote,
+        address rateProvider
+    ) public returns (address adapter) {
         adapter = address(new RateProviderOracle(base, quote, rateProvider));
         if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
