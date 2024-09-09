@@ -20,14 +20,6 @@ to run:
    9. ./script/production/ExecuteSolidityScript.sh script/production/mainnet_custom_1/DeployVaults.s.sol
 */
 
-/*
-Euler TODOs:
-   1. deploy rate provider adapters for: ezETH, amphrETH, steakLRT, rstETH
-   2. deploy fixed rate adapter for: oETH
-   3. add the deployed adapters to the registry
-   4. add woETH vault to the external vault registry
-*/
-
 contract DeployVaults is BatchBuilder {
     // final governor addresses
     address internal constant MULTISIG = 0x38afC3aA2c76b4cA1F8e1DabA68e998e1F4782DB;
@@ -54,15 +46,15 @@ contract DeployVaults is BatchBuilder {
     address internal constant wstETHETH = 0x7c37aB8Cd76Ee8888ad7F19C1F8a3A6D1622e9B8;
     address internal constant cbETHETH = 0xD41641d2D8b3B0DCaEdFab917AA4c140C4dBAb77;
     address internal constant rETHETH = 0xE39Da17508ec3fE7806a58b0aBe15A2df742cBfE;
-    address internal constant oETHETH = 0x3576293Ba6Adacba1A81397db889558Dd91A8519; // fixme fixed rate adapter
+    address internal constant oETHETH = 0xC499881FCc94d6755532e2C80b474858a564D637;
     address internal constant ETHPlusETH = 0xD4dF645c88767275fE1C22709BE415bD7B509199;
     address internal constant weETHETH = 0x04F50861b2CeC7831B27b74b565EfEeCeABED4Fd;
-    address internal constant ezETHETH = 0xAAd4F7BB5FB661181D500829e60010043833a85B; // fixme
+    address internal constant ezETHETH = 0x2E5c0B799eFbe406b98b7D5aDA26d6CD31734D6d;
     address internal constant rsETHETH = 0xB0dC8194eCA11EF10B4451BD596ed29049a2cf7c;
-    address internal constant amphrETHETH = 0xE634d83f8E016B04e51F2516e6086b5f238675C7; // fixme
-    address internal constant steakLRTETH =0xfaA7b3a4b5c3f54a934a2e33D34C7bC099f96CCE; // fixme
+    address internal constant amphrETHETH = 0x517Cb608a08875FF60407F0209a87e093955A6C6;
+    address internal constant steakLRTETH =0xc09B45b31b7DD7B7bEcb348f1Df192C6948986B9;
     address internal constant pzETHETH = 0x0E45B0bc6D05872E355cca26f14ec5519E302db6;
-    address internal constant rstETHETH = 0x86c64cB21f88fA9E2c46b61c35889E75f08FDce1; // fixme
+    address internal constant rstETHETH = 0x804C4fC1eb2202332eabaB8d2d81b1A5Cd48D875;
 
     // Base=0% APY  Kink(90%)=2.7% APY  Max=82.7% APY
     // baseRate=0 slope1=218407859 slope2=42500370385 kink=3865470566
