@@ -100,6 +100,15 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         adapterName="${provider// /}_${baseSymbol}/${quoteSymbol}"
     fi
 
+    for i in "${!columns[@]}"; do
+        stripped=$(echo "${columns[$i]}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+        if [[ "$stripped" != "${columns[$i]}" ]]; then
+            echo "Skipping deployment of $adapterName. Whitespace detected in column $i"
+            continue
+        fi
+    done
+
     if [[ "$avoid_duplicates" == "y" ]]; then
         adapterAddress=$(find_adapter_address "$adapterName" "$csv_oracle_adapters_addresses_path")
 
