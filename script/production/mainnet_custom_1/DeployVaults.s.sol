@@ -99,7 +99,7 @@ contract DeployVaults is BatchBuilder {
                           /* rstETH   */  [0.900e4, 0.900e4]];
     }
 
-    function run() public returns (address eWETH, address eWstETH) {
+    function run() public returns (address[] memory) {
         // deploy the oracle router
         {
             OracleRouterDeployer deployer = new OracleRouterDeployer();
@@ -162,6 +162,7 @@ contract DeployVaults is BatchBuilder {
         executeBatch();
 
         // sanity check the oracle config and perspectives
+        address[] memory results = new address[](assets.length + 2);
         for (uint256 i = 0; i < assets.length; ++i) {
             OracleVerifier.verifyOracleConfig(escrowVaults[assets[i]]);
             PerspectiveVerifier.verifyPerspective(
@@ -169,6 +170,7 @@ contract DeployVaults is BatchBuilder {
                 escrowVaults[assets[i]],
                 PerspectiveVerifier.E__GOVERNOR
             );
+            results[i] = escrowVaults[assets[i]];
         }
 
         for (uint256 i = 0; i < 2; ++i) {
@@ -180,10 +182,9 @@ contract DeployVaults is BatchBuilder {
                 vault,
                 PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR | PerspectiveVerifier.E__LTV_COLLATERAL_RECOGNITION
             );
+            results[i + assets.length] = vault;
         }
 
-        // prepare the results
-        eWETH = governedVaults[WETH];
-        eWstETH = governedVaults[wstETH];
+        return results;
     }
 }
