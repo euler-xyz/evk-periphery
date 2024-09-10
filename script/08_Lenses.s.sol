@@ -47,7 +47,7 @@ contract Lenses is ScriptUtils {
         accountLens = address(new AccountLens());
         oracleLens = address(new OracleLens(oracleAdapterRegistry));
         irmLens = address(new IRMLens(kinkIRMFactory));
-        vaultLens = address(new VaultLens(address(oracleLens), address(irmLens)));
+        vaultLens = address(new VaultLens(getDeployer(), address(oracleLens), address(irmLens)));
         utilsLens = address(new UtilsLens());
     }
 }
