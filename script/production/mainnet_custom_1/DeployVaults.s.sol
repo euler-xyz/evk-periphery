@@ -131,13 +131,12 @@ contract DeployVaults is BatchBuilder {
         }
         transferGovernance(oracleRouter, ORACLE_ROUTER_GOVERNOR);
 
-        // configure the escrow vaults and verify them by the escrow perspective
+        // configure the escrow vaults retaining the governorship
         for (uint256 i = 0; i < assets.length; ++i) {
             address vault = escrowVaults[assets[i]];
             setCaps(vault, escrowSupplyCaps[i], 0);
             setHookConfig(vault, address(0), 0);
-            setGovernorAdmin(vault, address(0));
-            perspectiveVerify(peripheryAddresses.escrowedCollateralPerspective, vault);
+            setGovernorAdmin(vault, GOVERNED_VAULTS_GOVERNOR);
         }
 
         // configure the governed vaults
@@ -162,21 +161,26 @@ contract DeployVaults is BatchBuilder {
         
         executeBatch();
 
-        // sanity check the oracle config
-        OracleVerifier.verifyOracleConfig(governedVaults[WETH]);
-        OracleVerifier.verifyOracleConfig(governedVaults[wstETH]);
+        // sanity check the oracle config and perspectives
+        for (uint256 i = 0; i < assets.length; ++i) {
+            OracleVerifier.verifyOracleConfig(escrowVaults[assets[i]]);
+            PerspectiveVerifier.verifyPerspective(
+                peripheryAddresses.escrowedCollateralPerspective,
+                escrowVaults[assets[i]],
+                PerspectiveVerifier.E__GOVERNOR
+            );
+        }
 
-        // sanity perspective check
-        PerspectiveVerifier.verifyPerspective(
-            peripheryAddresses.eulerUngoverned0xPerspective,
-            governedVaults[WETH],
-            PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR
-        );
-        PerspectiveVerifier.verifyPerspective(
-            peripheryAddresses.eulerUngoverned0xPerspective,
-            governedVaults[wstETH],
-            PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR
-        );
+        for (uint256 i = 0; i < 2; ++i) {
+            address vault = i == 0 ? governedVaults[WETH] : governedVaults[wstETH];
+            
+            OracleVerifier.verifyOracleConfig(vault);
+            PerspectiveVerifier.verifyPerspective(
+                peripheryAddresses.eulerUngoverned0xPerspective,
+                vault,
+                PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR | PerspectiveVerifier.E__LTV_COLLATERAL_RECOGNITION
+            );
+        }
 
         // prepare the results
         eWETH = governedVaults[WETH];
