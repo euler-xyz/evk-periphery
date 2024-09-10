@@ -277,6 +277,18 @@ struct UniswapV3OracleInfo {
     uint32 twapWindow;
 }
 
+struct FixedRateOracleInfo {
+    address base;
+    address quote;
+    uint256 rate;
+}
+
+struct RateProviderOracleInfo {
+    address base;
+    address quote;
+    address rateProvider;
+}
+
 struct CrossAdapterInfo {
     address base;
     address cross;
