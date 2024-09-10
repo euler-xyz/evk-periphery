@@ -31,6 +31,8 @@ interface IOracle is IPriceOracle {
     function fallbackOracle() external view returns (address);
     function resolvedVaults(address) external view returns (address);
     function cache() external view returns (uint208, uint48);
+    function rate() external view returns (uint256);
+    function rateProvider() external view returns (address);
     function resolveOracle(uint256 inAmount, address base, address quote)
         external
         view
@@ -128,6 +130,22 @@ contract OracleLens is Utils {
                     pool: IOracle(oracleAddress).pool(),
                     fee: IOracle(oracleAddress).fee(),
                     twapWindow: IOracle(oracleAddress).twapWindow()
+                })
+            );
+        } else if (_strEq(name, "FixedRateOracle")) {
+            oracleInfo = abi.encode(
+                FixedRateOracleInfo({
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    rate: IOracle(oracleAddress).rate()
+                })
+            );
+        } else if (_strEq(name, "RateProviderOracle")) {
+            oracleInfo = abi.encode(
+                RateProviderOracleInfo({
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    rateProvider: IOracle(oracleAddress).rateProvider()
                 })
             );
         } else if (_strEq(name, "CrossAdapter")) {
