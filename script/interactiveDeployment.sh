@@ -527,21 +527,97 @@ while true; do
             ;;
         8)
             echo "Deploying lenses..."
+            echo "Select the type of lens to deploy:"
+            echo "0. All (Account Lens, Oracle Lens, IRM Lens, Vault Lens, Utils Lens)"
+            echo "1. Account Lens"
+            echo "2. Vault Lens"
+            echo "3. Oracle Lens"
+            echo "4. IRM Lens"
+            echo "5. Utils Lens"
+            read -p "Enter your choice (0-5): " lens_choice
             
             baseName=08_Lenses
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
-            
-            read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
-            read -p "Enter the Kink IRM Factory address: " kink_irm_factory
 
-            jq -n \
-                --arg oracleAdapterRegistry "$oracle_adapter_registry" \
-                --arg kinkIRMFactory "$kink_irm_factory" \
-                '{
-                    oracleAdapterRegistry: $oracleAdapterRegistry,
-                    kinkIRMFactory: $kinkIRMFactory
-                }' --indent 4 > script/${jsonName}_input.json
+            case $lens_choice in
+                0)
+                    echo "Deploying all lenses..."
+                    
+                    scriptName=${baseName}.s.sol:Lenses
+                    jsonName=08_Lenses
+
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+
+                    jq -n \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        '{
+                            oracleAdapterRegistry: $oracleAdapterRegistry,
+                            kinkIRMFactory: $kinkIRMFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Account Lens..."
+                    
+                    scriptName=${baseName}.s.sol:LensAccountDeployer
+                    jsonName=08_LensAccount
+                    ;;
+                2)
+                    echo "Deploying Vault Lens..."
+                    
+                    scriptName=${baseName}.s.sol:LensVaultDeployer
+                    jsonName=08_LensVault
+                    
+                    read -p "Enter the Oracle Lens address: " oracle_lens
+                    read -p "Enter the IRM Lens address: " irm_lens
+
+                    jq -n \
+                        --arg oracleLens "$oracle_lens" \
+                        --arg irmLens "$irm_lens" \
+                        '{
+                            oracleLens: $oracleLens,
+                            irmLens: $irmLens
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                3)
+                    echo "Deploying Oracle Lens..."
+
+                    scriptName=${baseName}.s.sol:LensOracleDeployer
+                    jsonName=08_LensOracle
+
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+
+                    jq -n \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        '{
+                            oracleAdapterRegistry: $oracleAdapterRegistry
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                4)
+                    echo "Deploying IRM Lens..."
+
+                    scriptName=${baseName}.s.sol:LensIRMDeployer
+                    jsonName=08_LensIRM
+
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+
+                    jq -n \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        '{
+                            kinkIRMFactory: $kinkIRMFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                5)
+                    echo "Deploying Utils Lens..."
+
+                    scriptName=${baseName}.s.sol:LensUtilsDeployer
+                    jsonName=08_LensUtils
+                    ;;
+                *)
+                    echo "Invalid lens choice. Exiting."
+                    exit 1
+                    ;;
+            esac            
             ;;
         9)
             echo "Deploying Perspectives..."
