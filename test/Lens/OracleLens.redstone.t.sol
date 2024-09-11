@@ -19,9 +19,7 @@ contract OracleLensRedstoneCoreTest is RedstoneCoreOracleHelper {
         mockPrice(s);
         setPrice(s);
 
-        address[] memory bases = new address[](1);
-        bases[0] = s.base;
-        OracleDetailedInfo memory data = lens.getOracleInfo(oracle, bases, s.quote);
+        OracleDetailedInfo memory data = lens.getOracleInfo(oracle, new address[](0), new address[](0));
 
         assertEq(data.name, "RedstoneCoreOracle");
         RedstoneCoreOracleInfo memory oracleInfo = abi.decode(data.oracleInfo, (RedstoneCoreOracleInfo));

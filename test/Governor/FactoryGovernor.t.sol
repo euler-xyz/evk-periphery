@@ -128,7 +128,9 @@ contract FactoryGovernorTests is EVaultTestBase {
     }
 
     function test_FactoryGovernor_adminCanUpgradeImplementation() external {
-        address newImplementation = address(1);
+        address newImplementation = makeAddr("newImplementation");
+        vm.etch(newImplementation, "123");
+
         // admin can't call factory directly
         vm.prank(admin);
         vm.expectRevert();
@@ -157,7 +159,8 @@ contract FactoryGovernorTests is EVaultTestBase {
     }
 
     function test_FactoryGovernor_onlyAdminCanDoAdminCall() external {
-        address newImplementation = address(1);
+        address newImplementation = makeAddr("newImplementation");
+        vm.etch(newImplementation, "123");
 
         // but can set implementation through FactoryGovernor
         vm.prank(guardian);
