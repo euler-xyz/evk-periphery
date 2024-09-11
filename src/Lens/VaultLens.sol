@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {IRewardStreams} from "reward-streams/interfaces/IRewardStreams.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IIRM, IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
@@ -13,22 +12,14 @@ import {Utils} from "./Utils.sol";
 import "evk/EVault/shared/types/AmountCap.sol";
 import "./LensTypes.sol";
 
-contract VaultLens is Ownable, Utils {
+contract VaultLens is Utils {
     address internal constant USD = address(840);
 
-    OracleLens public oracleLens;
-    IRMLens public irmLens;
+    OracleLens public immutable oracleLens;
+    IRMLens public immutable irmLens;
 
-    constructor(address _owner, address _oracleLens, address _irmLens) Ownable(_owner) {
+    constructor(address _oracleLens, address _irmLens) {
         oracleLens = OracleLens(_oracleLens);
-        irmLens = IRMLens(_irmLens);
-    }
-
-    function setOracleLens(address _oracleLens) public onlyOwner {
-        oracleLens = OracleLens(_oracleLens);
-    }
-
-    function setIRMLens(address _irmLens) public onlyOwner {
         irmLens = IRMLens(_irmLens);
     }
 
