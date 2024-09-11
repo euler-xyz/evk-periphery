@@ -71,7 +71,13 @@ contract OracleLensEulerRouterTest is Test {
         bases[2] = USDC;
         bases[3] = USDT;
 
-        OracleDetailedInfo memory data = lens.getOracleInfo(address(router), bases, USD);
+        address[] memory quotes = new address[](4);
+        quotes[0] = USD;
+        quotes[1] = USD;
+        quotes[2] = USD;
+        quotes[3] = USD;
+
+        OracleDetailedInfo memory data = lens.getOracleInfo(address(router), bases, quotes);
         assertEq(data.name, "EulerRouter");
 
         EulerRouterInfo memory routerInfo = abi.decode(data.oracleInfo, (EulerRouterInfo));

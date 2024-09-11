@@ -218,8 +218,10 @@ struct OracleDetailedInfo {
 struct EulerRouterInfo {
     address governor;
     address fallbackOracle;
-    address[] resolvedOracles;
     OracleDetailedInfo fallbackOracleInfo;
+    address[] bases;
+    address[] quotes;
+    address[] resolvedOracles;
     OracleDetailedInfo[] resolvedOraclesInfo;
 }
 
@@ -273,6 +275,18 @@ struct UniswapV3OracleInfo {
     address pool;
     uint24 fee;
     uint32 twapWindow;
+}
+
+struct FixedRateOracleInfo {
+    address base;
+    address quote;
+    uint256 rate;
+}
+
+struct RateProviderOracleInfo {
+    address base;
+    address quote;
+    address rateProvider;
 }
 
 struct CrossAdapterInfo {

@@ -91,22 +91,26 @@ contract VaultLens is Utils {
         result.collateralPriceInfo = new AssetPriceInfo[](result.collateralLTVInfo.length);
 
         address[] memory bases = new address[](result.collateralLTVInfo.length + 1);
+        address[] memory quotes = new address[](result.collateralLTVInfo.length + 1);
         bases[0] = result.asset;
+        quotes[0] = result.unitOfAccount;
         for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
             bases[i + 1] = result.collateralLTVInfo[i].collateral;
+            quotes[i + 1] = result.unitOfAccount;
             result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
         }
 
-        result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, result.unitOfAccount);
+        result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, quotes);
 
         if (result.oracle == address(0)) {
             address unitOfAccount = result.unitOfAccount == address(0) ? USD : result.unitOfAccount;
             result.backupAssetPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
 
             bases = new address[](1);
+            quotes = new address[](1);
             bases[0] = result.asset;
-            result.backupAssetOracleInfo =
-                oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, unitOfAccount);
+            quotes[0] = unitOfAccount;
+            result.backupAssetOracleInfo = oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, quotes);
         }
 
         return result;
@@ -211,7 +215,7 @@ contract VaultLens is Utils {
         view
         returns (VaultInterestRateModelInfo memory)
     {
-        require(cash.length == borrows.length, "EVaultLens: invalid input");
+        require(cash.length == borrows.length, "VaultLens: invalid input");
 
         VaultInterestRateModelInfo memory result;
 
