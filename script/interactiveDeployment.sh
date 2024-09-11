@@ -19,26 +19,6 @@ function save_results {
     fi
 }
 
-if ! command -v jq &> /dev/null
-then
-    echo "jq could not be found. Please install jq first."
-    echo "You can install jq by running: sudo apt-get install jq"
-    exit 1
-fi
-
-if [[ ! -d "$(pwd)/script" ]]; then
-    echo "Error: script directory does not exist in the current directory."
-    echo "Please ensure this script is run from the top project directory."
-    exit 1
-fi
-
-if [[ -f .env ]]; then
-    source .env
-else
-    echo "Error: .env file does not exist. Please create it and try again."
-    exit 1
-fi
-
 echo ""
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
@@ -47,7 +27,6 @@ read -p "Do you want to deploy on a local fork? (y/n) (default: y): " local_fork
 local_fork=${local_fork:-y}
 
 if [[ $local_fork == "y" ]]; then
-    # Check if Anvil is running
     if ! pgrep -x "anvil" > /dev/null; then
         echo "Anvil is not running. Please start Anvil and try again."
         echo "You can spin up a local fork with the following command:"
@@ -56,28 +35,20 @@ if [[ $local_fork == "y" ]]; then
     fi  
 fi
 
-if [ -z "$DEPLOYMENT_RPC_URL" ]; then
-    echo "Error: DEPLOYMENT_RPC_URL environment variable is not set. Please set it and try again."
-    exit 1
-fi
-
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}
 
 if [[ $verify_contracts == "y" ]]; then
-    if [ -z "$VERIFIER_URL" ]; then
-        echo "Error: VERIFIER_URL environment variable is not set. Please set it and try again."
-        exit 1
-    fi
-
-    if [ -z "$VERIFIER_API_KEY" ]; then
-        echo "Error: VERIFIER_API_KEY environment variable is not set. Please set it and try again."
-        exit 1
-    fi
+    verify_contracts="--verify"
 fi
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
+
+if ! script/utils/checkEnvironment.sh $verify_contracts; then
+    echo "Environment check failed. Exiting."
+    exit 1
+fi
 
 while true; do
     echo ""
@@ -672,6 +643,6 @@ while true; do
             ;;
     esac
 
-    script/utils/executeForgeScript.sh $scriptName $verify_contracts
+    script/utils/executeForgeScript.sh $scriptName $verify_contracts --broadcast
     save_results $jsonName "$deployment_name"
 done

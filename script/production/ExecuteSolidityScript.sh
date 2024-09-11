@@ -9,8 +9,17 @@ source .env
 scriptPath="${1#script/}"
 scriptName=$(basename "$1")
 
+broadcast="--broadcast"
+if [[ "$@" == *"--dry-run"* ]]; then
+    broadcast=""
+fi
+
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}
+
+if [[ $verify_contracts == "y" ]]; then
+    verify_contracts="--verify"
+fi
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
@@ -20,7 +29,7 @@ if ! script/utils/checkEnvironment.sh $verify_contracts; then
     exit 1
 fi
 
-if script/utils/executeForgeScript.sh "$scriptPath" $verify_contracts; then
+if script/utils/executeForgeScript.sh "$scriptPath" $verify_contracts $broadcast; then
     deployment_dir="script/deployments/$deployment_name"
     chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 
