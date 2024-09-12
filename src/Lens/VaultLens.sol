@@ -113,7 +113,7 @@ contract VaultLens is Utils {
 
                     quotes[0] = result.unitOfAccount;
                 } else {
-                    quotes[0] = backupUnitOfAccounts[i];
+                    quotes[0] = backupUnitOfAccounts[i - 1];
                 }
 
                 result.backupAssetPriceInfo = getAssetPriceInfo(bases[0], quotes[0]);
@@ -374,7 +374,7 @@ contract VaultLens is Utils {
             result.oracle = adapters[i];
 
             (bool success, bytes memory data) =
-                result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (result.amountIn, asset, unitOfAccount)));
+                result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (amountIn, asset, unitOfAccount)));
 
             if (success && data.length >= 32) {
                 result.amountOutMid = abi.decode(data, (uint256));
