@@ -81,7 +81,7 @@ contract DeployVaults is BatchBuilder {
         escrowSupplyCaps = [20_000,    600,      10_000,  3_000,   500,        12_000,   3_000,    4_000,    7_000,       7_000,       7_000,    7_000];
         escrowSupplyCaps = encodeAmountCaps(assets, escrowSupplyCaps);
 
-        //                                 WETH     wstETH
+        //                                   WETH     wstETH
         borrowableMaxLiquidationDiscounts = [0.15e4,   0.15e4];
         borrowableInterestFees            = [0.10e4,   0.10e4];
         borrowableInterestRateModels      = [IRM,      IRM];
