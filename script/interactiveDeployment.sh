@@ -19,6 +19,8 @@ function save_results {
     fi
 }
 
+source .env
+
 echo ""
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."

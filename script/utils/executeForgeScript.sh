@@ -11,8 +11,13 @@ if [[ $chainId == "1" ]]; then
     gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
 fi
 
-if [[ "$@" == *"--broadcast"* ]]; then
-    broadcast="--broadcast"
+if [[ $chainId == "1" ]]; then
+    gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
+fi
+
+broadcast="--broadcast"
+if [[ "$@" == *"--dry-run"* ]]; then
+    broadcast=""
 fi
 
 if ! forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $broadcast --legacy --slow --with-gas-price $gasPrice; then
