@@ -24,8 +24,8 @@ contract DeployVaults is BatchBuilder {
     // final governor addresses
     address internal constant MULTISIG = 0x38afC3aA2c76b4cA1F8e1DabA68e998e1F4782DB;
     address internal constant ORACLE_ROUTER_GOVERNOR = MULTISIG;
-    address internal constant GOVERNED_VAULTS_GOVERNOR = MULTISIG;
-    address internal constant GOVERNED_VAULTS_FEE_RECEIVER = MULTISIG;
+    address internal constant VAULTS_GOVERNOR = MULTISIG;
+    address internal constant BORROWABLE_VAULTS_FEE_RECEIVER = MULTISIG;
 
     // assets
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -62,16 +62,16 @@ contract DeployVaults is BatchBuilder {
     address internal constant IRM = 0x3fF20b354dCc623073647e4F2a2cD955A45Defb1;
 
     mapping(address => address) internal escrowVaults;
-    mapping(address => address) internal governedVaults;
+    mapping(address => address) internal borrowableVaults;
 
     address oracleRouter;
     address[] internal assets;
     bool[] internal isAssetERC4626;
     address[] internal oracleAdapters;
     uint16[] internal escrowSupplyCaps;
-    uint16[] internal governedMaxLiquidationDiscounts;
-    uint16[] internal governedInterestFees;
-    address[] internal governedInterestRateModels;
+    uint16[] internal borrowableMaxLiquidationDiscounts;
+    uint16[] internal borrowableInterestFees;
+    address[] internal borrowableInterestRateModels;
     uint16[][] internal LTVs;
 
     constructor() {
@@ -82,21 +82,21 @@ contract DeployVaults is BatchBuilder {
         escrowSupplyCaps = encodeAmountCaps(assets, escrowSupplyCaps);
 
         //                                 WETH     wstETH
-        governedMaxLiquidationDiscounts = [0.15e4,   0.15e4];
-        governedInterestFees            = [0.10e4,   0.10e4];
-        governedInterestRateModels      = [IRM,      IRM];
-        LTVs            = /* wstETH   */ [[0.945e4, 0.000e4],
-                          /* cbETH    */  [0.860e4, 0.000e4],
-                          /* rETH     */  [0.860e4, 0.000e4],
-                          /* woETH    */  [0.860e4, 0.000e4],
-                          /* ETHPlus  */  [0.860e4, 0.000e4],
-                          /* weETH    */  [0.860e4, 0.000e4],
-                          /* ezETH    */  [0.945e4, 0.000e4],
-                          /* rsETH    */  [0.860e4, 0.000e4],
-                          /* amphrETH */  [0.900e4, 0.900e4],
-                          /* steakLRT */  [0.900e4, 0.900e4],
-                          /* pzETH    */  [0.900e4, 0.900e4],
-                          /* rstETH   */  [0.900e4, 0.900e4]];
+        borrowableMaxLiquidationDiscounts = [0.15e4,   0.15e4];
+        borrowableInterestFees            = [0.10e4,   0.10e4];
+        borrowableInterestRateModels      = [IRM,      IRM];
+        LTVs              = /* wstETH   */ [[0.945e4, 0.000e4],
+                            /* cbETH    */  [0.860e4, 0.000e4],
+                            /* rETH     */  [0.860e4, 0.000e4],
+                            /* woETH    */  [0.860e4, 0.000e4],
+                            /* ETHPlus  */  [0.860e4, 0.000e4],
+                            /* weETH    */  [0.860e4, 0.000e4],
+                            /* ezETH    */  [0.945e4, 0.000e4],
+                            /* rsETH    */  [0.860e4, 0.000e4],
+                            /* amphrETH */  [0.900e4, 0.900e4],
+                            /* steakLRT */  [0.900e4, 0.900e4],
+                            /* pzETH    */  [0.900e4, 0.900e4],
+                            /* rstETH   */  [0.900e4, 0.900e4]];
     }
 
     function run() public returns (address[] memory) {
@@ -113,8 +113,8 @@ contract DeployVaults is BatchBuilder {
                 address asset = assets[i];
                 escrowVaults[asset] = deployer.deploy(coreAddresses.eVaultFactory, true, asset);
             }
-            governedVaults[WETH] = deployer.deploy(coreAddresses.eVaultFactory, true, WETH, oracleRouter, WETH);
-            governedVaults[wstETH] = deployer.deploy(coreAddresses.eVaultFactory, true, wstETH, oracleRouter, WETH);
+            borrowableVaults[WETH] = deployer.deploy(coreAddresses.eVaultFactory, true, WETH, oracleRouter, WETH);
+            borrowableVaults[wstETH] = deployer.deploy(coreAddresses.eVaultFactory, true, wstETH, oracleRouter, WETH);
         }
 
         // configure the oracle router
@@ -136,17 +136,17 @@ contract DeployVaults is BatchBuilder {
             address vault = escrowVaults[assets[i]];
             setCaps(vault, escrowSupplyCaps[i], 0);
             setHookConfig(vault, address(0), 0);
-            setGovernorAdmin(vault, GOVERNED_VAULTS_GOVERNOR);
+            setGovernorAdmin(vault, VAULTS_GOVERNOR);
         }
 
         // configure the governed vaults
         for (uint256 i = 0; i < 2; ++i) {
-            address vault = i == 0 ? governedVaults[WETH] : governedVaults[wstETH];
-            setMaxLiquidationDiscount(vault, governedMaxLiquidationDiscounts[i]);
+            address vault = i == 0 ? borrowableVaults[WETH] : borrowableVaults[wstETH];
+            setMaxLiquidationDiscount(vault, borrowableMaxLiquidationDiscounts[i]);
             setLiquidationCoolOffTime(vault, 1);
-            setInterestRateModel(vault, governedInterestRateModels[i]);
-            setInterestFee(vault, governedInterestFees[i]);
-            setFeeReceiver(vault, GOVERNED_VAULTS_FEE_RECEIVER);
+            setInterestRateModel(vault, borrowableInterestRateModels[i]);
+            setInterestFee(vault, borrowableInterestFees[i]);
+            setFeeReceiver(vault, BORROWABLE_VAULTS_FEE_RECEIVER);
 
             for (uint256 j = 0; j < assets.length; ++j) {
                 address collateral = escrowVaults[assets[j]];
@@ -156,7 +156,7 @@ contract DeployVaults is BatchBuilder {
             }
 
             setHookConfig(vault, address(0), 0);
-            setGovernorAdmin(vault, GOVERNED_VAULTS_GOVERNOR);
+            setGovernorAdmin(vault, VAULTS_GOVERNOR);
         }
         
         executeBatch();
@@ -174,7 +174,7 @@ contract DeployVaults is BatchBuilder {
         }
 
         for (uint256 i = 0; i < 2; ++i) {
-            address vault = i == 0 ? governedVaults[WETH] : governedVaults[wstETH];
+            address vault = i == 0 ? borrowableVaults[WETH] : borrowableVaults[wstETH];
             
             OracleVerifier.verifyOracleConfig(vault);
             PerspectiveVerifier.verifyPerspective(
