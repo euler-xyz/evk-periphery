@@ -20,7 +20,7 @@ contract VaultLens is Utils {
     constructor(address _oracleLens, address _irmLens) {
         oracleLens = OracleLens(_oracleLens);
         irmLens = IRMLens(_irmLens);
-        backupUnitOfAccounts = [address(840), _getWETHAddress()];
+        backupUnitOfAccounts = [address(840), _getWETHAddress(), 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB];
     }
 
     function getVaultInfoFull(address vault) public view returns (VaultInfoFull memory) {
@@ -117,10 +117,16 @@ contract VaultLens is Utils {
                 }
 
                 result.backupAssetPriceInfo = getAssetPriceInfo(bases[0], quotes[0]);
-                result.backupAssetOracleInfo =
-                    oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, quotes);
 
-                if (!result.backupAssetPriceInfo.queryFailure) {
+                if (
+                    !result.backupAssetPriceInfo.queryFailure
+                        || oracleLens.isStalePullOracle(
+                            result.backupAssetPriceInfo.oracle, result.backupAssetPriceInfo.queryFailureReason
+                        )
+                ) {
+                    result.backupAssetOracleInfo =
+                        oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, quotes);
+
                     break;
                 }
             }
