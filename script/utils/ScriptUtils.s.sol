@@ -187,7 +187,11 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
 
     function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
         string memory addressesDirPath = vm.envOr("ADDRESSES_DIR_PATH", string(""));
-        if (bytes(addressesDirPath).length == 0) return "";
+
+        if (bytes(addressesDirPath).length == 0) {
+            revert("getAddressesJson: ADDRESSES_DIR_PATH environment variable is not set");
+        }
+
         return vm.readFile(string.concat(addressesDirPath, "/", jsonFile));
     }
 
