@@ -351,14 +351,17 @@ contract VaultLens is Utils {
         uint256 amountIn = result.amountIn;
 
         if (adapters.length == 0) {
-            (bool success1, bytes memory data1) = asset.staticcall(abi.encodeCall(IEVault(asset).asset, ()));
-            (bool success2, bytes memory data2) =
+            (bool success, bytes memory data) =
                 asset.staticcall(abi.encodeCall(IEVault(asset).convertToAssets, (amountIn)));
 
-            if (success1 && success2 && data1.length >= 32 && data2.length >= 32) {
-                asset = abi.decode(data1, (address));
-                amountIn = abi.decode(data2, (uint256));
-                adapters = oracleLens.getValidAdapters(asset, unitOfAccount);
+            if (success && data.length >= 32) {
+                amountIn = abi.decode(data, (uint256));
+                (success, data) = asset.staticcall(abi.encodeCall(IEVault(asset).asset, ()));
+
+                if (success && data.length >= 32) {
+                    asset = abi.decode(data, (address));
+                    adapters = oracleLens.getValidAdapters(asset, unitOfAccount);
+                }
             }
         }
 
