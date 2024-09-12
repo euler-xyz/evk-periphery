@@ -19,6 +19,8 @@ function save_results {
     fi
 }
 
+source .env
+
 echo ""
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
@@ -719,6 +721,6 @@ while true; do
             ;;
     esac
 
-    script/utils/executeForgeScript.sh $scriptName $verify_contracts --broadcast
+    script/utils/executeForgeScript.sh $scriptName $verify_contracts
     save_results $jsonName "$deployment_name"
 done
