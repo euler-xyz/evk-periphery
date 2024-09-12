@@ -2,14 +2,12 @@
 
 pragma solidity ^0.8.0;
 
-import "forge-std/Script.sol";
+import {ScriptUtils} from "./ScriptUtils.s.sol";
 import {VaultLens} from "../../src/Lens/VaultLens.sol";
 import "../../src/Lens/LensTypes.sol";
 
-contract VaultLensCall is Script {
+contract VaultLensCall is ScriptUtils {
     function run() public view returns (VaultInfoFull memory) {
-        address lens = vm.envAddress("VAULT_LENS_ADDRESS");
-        address vault = vm.envAddress("VAULT_ADDRESS");
-        return VaultLens(lens).getVaultInfoFull(vault);
+        return VaultLens(lensAddresses.vaultLens).getVaultInfoFull(vm.envAddress("VAULT_ADDRESS"));
     }
 }
