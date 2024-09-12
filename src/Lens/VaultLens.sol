@@ -13,14 +13,14 @@ import "evk/EVault/shared/types/AmountCap.sol";
 import "./LensTypes.sol";
 
 contract VaultLens is Utils {
-    address internal constant USD = address(840);
-
     OracleLens public immutable oracleLens;
     IRMLens public immutable irmLens;
+    address[] internal backupUnitOfAccounts;
 
     constructor(address _oracleLens, address _irmLens) {
         oracleLens = OracleLens(_oracleLens);
         irmLens = IRMLens(_irmLens);
+        backupUnitOfAccounts = [address(840), _getWETHAddress()];
     }
 
     function getVaultInfoFull(address vault) public view returns (VaultInfoFull memory) {
@@ -103,14 +103,27 @@ contract VaultLens is Utils {
         result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, quotes);
 
         if (result.oracle == address(0)) {
-            address unitOfAccount = result.unitOfAccount == address(0) ? USD : result.unitOfAccount;
-            result.backupAssetPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
+            for (uint256 i = 0; i < backupUnitOfAccounts.length + 1; ++i) {
+                bases = new address[](1);
+                quotes = new address[](1);
+                bases[0] = result.asset;
 
-            bases = new address[](1);
-            quotes = new address[](1);
-            bases[0] = result.asset;
-            quotes[0] = unitOfAccount;
-            result.backupAssetOracleInfo = oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, quotes);
+                if (i == 0) {
+                    if (result.unitOfAccount == address(0)) continue;
+
+                    quotes[0] = result.unitOfAccount;
+                } else {
+                    quotes[0] = backupUnitOfAccounts[i];
+                }
+
+                result.backupAssetPriceInfo = getAssetPriceInfo(bases[0], quotes[0]);
+                result.backupAssetOracleInfo =
+                    oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, quotes);
+
+                if (!result.backupAssetPriceInfo.queryFailure) {
+                    break;
+                }
+            }
         }
 
         return result;
@@ -335,6 +348,19 @@ contract VaultLens is Utils {
         result.amountIn = 10 ** _getDecimals(asset);
 
         address[] memory adapters = oracleLens.getValidAdapters(asset, unitOfAccount);
+        uint256 amountIn = result.amountIn;
+
+        if (adapters.length == 0) {
+            (bool success1, bytes memory data1) = asset.staticcall(abi.encodeCall(IEVault(asset).asset, ()));
+            (bool success2, bytes memory data2) =
+                asset.staticcall(abi.encodeCall(IEVault(asset).convertToAssets, (amountIn)));
+
+            if (success1 && success2 && data1.length >= 32 && data2.length >= 32) {
+                asset = abi.decode(data1, (address));
+                amountIn = abi.decode(data2, (uint256));
+                adapters = oracleLens.getValidAdapters(asset, unitOfAccount);
+            }
+        }
 
         if (adapters.length == 0) {
             result.queryFailure = true;
@@ -348,10 +374,19 @@ contract VaultLens is Utils {
                 result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (result.amountIn, asset, unitOfAccount)));
 
             if (success && data.length >= 32) {
-                result.amountOutMid = result.amountOutBid = result.amountOutAsk = abi.decode(data, (uint256));
+                result.amountOutMid = abi.decode(data, (uint256));
             } else {
                 result.queryFailure = true;
                 result.queryFailureReason = data;
+            }
+
+            (success, data) =
+                result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuotes, (amountIn, asset, unitOfAccount)));
+
+            if (success && data.length >= 64) {
+                (result.amountOutBid, result.amountOutAsk) = abi.decode(data, (uint256, uint256));
+            } else {
+                result.queryFailure = true;
             }
 
             if (!result.queryFailure) break;

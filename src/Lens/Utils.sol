@@ -37,6 +37,16 @@ abstract contract Utils {
         return success && data.length >= 32 ? abi.decode(data, (uint8)) : 18;
     }
 
+    function _getWETHAddress() internal view returns (address) {
+        if (block.chainid == 1) {
+            return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        } else if (block.chainid == 42161) {
+            return 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+        } else {
+            revert("Unsupported chain");
+        }
+    }
+
     function _computeSupplySPY(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
         internal
         pure
