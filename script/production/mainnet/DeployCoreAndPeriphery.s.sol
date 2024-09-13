@@ -12,6 +12,7 @@ import {Perspectives} from "../../09_Perspectives.s.sol";
 import {Swap} from "../../10_Swap.s.sol";
 import {FeeFlow} from "../../11_FeeFlow.s.sol";
 import {FactoryGovernorDeployer} from "../../12_FactoryGovernor.s.sol";
+import {TermsOfUseSignerDeployer} from "../../13_TermsOfUseSigner.s.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
@@ -125,6 +126,11 @@ contract DeployCoreAndPeriphery is ScriptUtils {
             peripheryAddresses.escrowedCollateralPerspective = perspectives[2];
             peripheryAddresses.eulerUngoverned0xPerspective = perspectives[3];
             peripheryAddresses.eulerUngovernedNzxPerspective = perspectives[4];
+        }
+        // deploy terms of use signer
+        {
+            TermsOfUseSignerDeployer deployer = new TermsOfUseSignerDeployer();
+            peripheryAddresses.termsOfUseSigner = deployer.deploy(coreAddresses.evc);
         }
         // deploy lenses
         {

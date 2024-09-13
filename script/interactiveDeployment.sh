@@ -68,7 +68,8 @@ while true; do
     echo "10. Swap"
     echo "11. Fee Flow"
     echo "12. EVault Factory Governor"
-    read -p "Enter your choice (0-12): " choice
+    echo "13. Terms of Use Signer"
+    read -p "Enter your choice (0-13): " choice
 
     case $choice in
         0)
@@ -714,6 +715,21 @@ while true; do
             baseName=12_FactoryGovernor
             scriptName=${baseName}.s.sol
             jsonName=$baseName
+            ;;
+        13)
+            echo "Deploying Terms of Use Signer..."
+
+            baseName=13_TermsOfUseSigner
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            read -p "Enter the EVC address: " evc
+
+            jq -n \
+                --arg evc "$evc" \
+                '{
+                    evc: $evc
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         *)
             echo "Invalid choice. Exiting."
