@@ -17,6 +17,10 @@ function verify_broadcast {
     local transactions=$(jq -c '.transactions[]' $tmpFileName)
     rm $tmpFileName
 
+    if [ $(echo "$transactions" | wc -l) -eq 1 ]; then
+        sleep 5
+    fi
+
     for tx in $transactions; do
         local transactionType=$(echo $tx | jq -r '.transactionType')
         local contractAddress=$(echo $tx | jq -r '.contractAddress')
