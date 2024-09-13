@@ -6,17 +6,20 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
+source .env
+
 csv_file="$1"
+addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
+evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
+governed_perspective=$(jq -r '.governedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
 
 if ! script/utils/checkEnvironment.sh; then
     echo "Environment check failed. Exiting."
     exit 1
 fi
 
-source .env
-
-read -p "Enter the EVC address: " evc
-read -p "Enter the Governed Perspective address: " governed_perspective
+echo "The EVC address is: $evc"
+echo "The Governed Perspective address is: $governed_perspective"
 
 onBehalfOf=$(cast wallet address --private-key $DEPLOYER_KEY)
 items="["
@@ -51,6 +54,11 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 done < <(tr -d '\r' < "$csv_file")
 
 items="${items%,}]"
+
+if [[ "$@" == *"--dry-run"* ]]; then
+    echo "Dry run. Exiting..."
+    exit 0
+fi
 
 echo "Executing batch transaction..."
 currentGasPrice=$(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL")

@@ -16,9 +16,7 @@ contract OracleLensChronicleTest is ChronicleOracleHelper {
 
     function testChronicleOracle(FuzzableState memory s) public {
         setUpState(s);
-        address[] memory bases = new address[](1);
-        bases[0] = s.base;
-        OracleDetailedInfo memory data = lens.getOracleInfo(oracle, bases, s.quote);
+        OracleDetailedInfo memory data = lens.getOracleInfo(oracle, new address[](0), new address[](0));
 
         assertEq(data.name, "ChronicleOracle");
         ChronicleOracleInfo memory oracleInfo = abi.decode(data.oracleInfo, (ChronicleOracleInfo));

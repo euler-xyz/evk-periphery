@@ -94,7 +94,8 @@ while true; do
     echo "9. Perspectives"
     echo "10. Swap"
     echo "11. Fee Flow"
-    read -p "Enter your choice (0-11): " choice
+    echo "12. EVault Factory Governor"
+    read -p "Enter your choice (0-12): " choice
 
     case $choice in
         0)
@@ -156,7 +157,9 @@ while true; do
             echo "5. Cross"
             echo "6. Uniswap"
             echo "7. Lido Fundamental"
-            read -p "Enter your choice (0-7): " adapter_choice
+            echo "8. Fixed Rate"
+            echo "9. Rate Provider"
+            read -p "Enter your choice (0-9): " adapter_choice
 
             baseName=03_OracleAdapters
 
@@ -233,6 +236,7 @@ while true; do
                         --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
@@ -369,7 +373,56 @@ while true; do
                         --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                8)
+                    echo "Deploying Fixed Rate Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:FixedRateAdapter
+                    jsonName=03_FixedRateAdapter
+
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter rate: " rate
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --argjson rate "$rate" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            base: $base,
+                            quote: $quote,
+                            rate: $rate
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                9)
+                    echo "Deploying Rate Provider Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:RateProviderAdapter
+                    jsonName=03_RateProviderAdapter
+
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter rate provider address: " rate_provider
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --arg rateProvider "$rate_provider" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            base: $base,
+                            quote: $quote,
+                            rateProvider: $rateProvider
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
@@ -465,7 +518,7 @@ while true; do
             echo "Deploying EVault..."
 
             baseName=07_EVault
-            scriptName=${baseName}Deployer.s.sol
+            scriptName=${baseName}.s.sol:EVaultDeployer
             jsonName=$baseName
 
             read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle
@@ -605,7 +658,13 @@ while true; do
                     priceMultiplier: $priceMultiplier,
                     minInitPrice: $minInitPrice
                 }' --indent 4 > script/${jsonName}_input.json
-
+            ;;
+        12)
+            echo "Deploying EVault Factory Governor..."
+            
+            baseName=12_FactoryGovernor
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
             ;;
         *)
             echo "Invalid choice. Exiting."

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib} from "../../utils/ScriptUtils.s.sol";
+import {ScriptUtils} from "../../utils/ScriptUtils.s.sol";
 import {Integrations} from "../../01_Integrations.s.sol";
 import {PeripheryFactories} from "../../02_PeripheryFactories.s.sol";
 import {EVaultImplementation} from "../../05_EVaultImplementation.s.sol";
@@ -11,10 +11,11 @@ import {Lenses} from "../../08_Lenses.s.sol";
 import {Perspectives} from "../../09_Perspectives.s.sol";
 import {Swap} from "../../10_Swap.s.sol";
 import {FeeFlow} from "../../11_FeeFlow.s.sol";
+import {FactoryGovernorDeployer} from "../../12_FactoryGovernor.s.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
-contract DeployCoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib {
+contract DeployCoreAndPeriphery is ScriptUtils {
     address internal constant EUL = 0xd9Fcd98c322942075A5C3860693e9f4f03AAE07b;
 
     address internal constant ONE_INCH_AGGREGATOR_V6 = 0x111111125421cA6dc452d289314280a0f8842A65;
@@ -77,6 +78,11 @@ contract DeployCoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddre
             EVaultFactory deployer = new EVaultFactory();
             coreAddresses.eVaultFactory = deployer.deploy(coreAddresses.eVaultImplementation);
         }
+        // deploy factory governor
+        {
+            FactoryGovernorDeployer deployer = new FactoryGovernorDeployer();
+            coreAddresses.eVaultFactoryGovernor = deployer.deploy();
+        }
         // deploy swapper
         {
             Swap deployer = new Swap();
@@ -90,7 +96,7 @@ contract DeployCoreAndPeriphery is ScriptUtils, CoreAddressesLib, PeripheryAddre
                 coreAddresses.evc,
                 FEE_FLOW_INIT_PRICE,
                 FEE_FLOW_PAYMENT_TOKEN,
-                FEE_FLOW_PAYMENT_RECEIVER == address(0) ? getDeployer() : FEE_FLOW_PAYMENT_RECEIVER,
+                FEE_FLOW_PAYMENT_RECEIVER,
                 FEE_FLOW_EPOCH_PERIOD,
                 FEE_FLOW_PRICE_MULTIPLIER,
                 FEE_FLOW_MIN_INIT_PRICE
