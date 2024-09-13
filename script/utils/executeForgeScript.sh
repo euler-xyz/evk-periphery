@@ -11,10 +11,6 @@ if [[ $chainId == "1" ]]; then
     gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
 fi
 
-if [[ $chainId == "1" ]]; then
-    gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
-fi
-
 broadcast="--broadcast"
 if [[ "$@" == *"--dry-run"* ]]; then
     broadcast=""
