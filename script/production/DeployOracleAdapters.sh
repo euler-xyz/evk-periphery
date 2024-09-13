@@ -40,6 +40,10 @@ csv_oracle_adapters_addresses_path="$2"
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}
 
+if [[ $verify_contracts == "y" ]]; then
+    verify_contracts="--verify"
+fi
+
 if ! script/utils/checkEnvironment.sh $verify_contracts; then
     echo "Environment check failed. Exiting."
     exit 1
@@ -99,6 +103,15 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     else
         adapterName="${provider// /}_${baseSymbol}/${quoteSymbol}"
     fi
+
+    for i in "${!columns[@]}"; do
+        stripped=$(echo "${columns[$i]}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+        if [[ "$stripped" != "${columns[$i]}" ]]; then
+            echo "Skipping deployment of $adapterName. Whitespace detected in column $i"
+            continue
+        fi
+    done
 
     if [[ "$avoid_duplicates" == "y" ]]; then
         adapterAddress=$(find_adapter_address "$adapterName" "$csv_oracle_adapters_addresses_path")

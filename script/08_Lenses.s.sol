@@ -51,3 +51,113 @@ contract Lenses is ScriptUtils {
         utilsLens = address(new UtilsLens());
     }
 }
+
+contract LensAccountDeployer is ScriptUtils {
+    function run() public broadcast returns (address accountLens) {
+        string memory outputScriptFileName = "08_LensAccount_output.json";
+
+        accountLens = execute();
+
+        string memory object;
+        object = vm.serializeAddress("lens", "accountLens", accountLens);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy() public broadcast returns (address accountLens) {
+        accountLens = address(new AccountLens());
+    }
+
+    function execute() public returns (address accountLens) {
+        accountLens = address(new AccountLens());
+    }
+}
+
+contract LensOracleDeployer is ScriptUtils {
+    function run() public broadcast returns (address oracleLens) {
+        string memory inputScriptFileName = "08_LensOracle_input.json";
+        string memory outputScriptFileName = "08_LensOracle_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
+
+        oracleLens = execute(oracleAdapterRegistry);
+
+        string memory object;
+        object = vm.serializeAddress("lens", "oracleLens", oracleLens);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address oracleAdapterRegistry) public broadcast returns (address oracleLens) {
+        oracleLens = execute(oracleAdapterRegistry);
+    }
+
+    function execute(address oracleAdapterRegistry) public returns (address oracleLens) {
+        oracleLens = address(new OracleLens(oracleAdapterRegistry));
+    }
+}
+
+contract LensIRMDeployer is ScriptUtils {
+    function run() public broadcast returns (address irmLens) {
+        string memory inputScriptFileName = "08_LensIRM_input.json";
+        string memory outputScriptFileName = "08_LensIRM_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
+
+        irmLens = execute(kinkIRMFactory);
+
+        string memory object;
+        object = vm.serializeAddress("lens", "irmLens", irmLens);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address kinkIRMFactory) public broadcast returns (address irmLens) {
+        irmLens = execute(kinkIRMFactory);
+    }
+
+    function execute(address kinkIRMFactory) public returns (address irmLens) {
+        irmLens = address(new IRMLens(kinkIRMFactory));
+    }
+}
+
+contract LensVaultDeployer is ScriptUtils {
+    function run() public broadcast returns (address vaultLens) {
+        string memory inputScriptFileName = "08_LensVault_input.json";
+        string memory outputScriptFileName = "08_LensVault_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address oracleLens = abi.decode(vm.parseJson(json, ".oracleLens"), (address));
+        address irmLens = abi.decode(vm.parseJson(json, ".irmLens"), (address));
+
+        vaultLens = execute(oracleLens, irmLens);
+
+        string memory object;
+        object = vm.serializeAddress("lens", "vaultLens", vaultLens);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address oracleLens, address irmLens) public broadcast returns (address vaultLens) {
+        vaultLens = execute(oracleLens, irmLens);
+    }
+
+    function execute(address oracleLens, address irmLens) public returns (address vaultLens) {
+        vaultLens = address(new VaultLens(oracleLens, irmLens));
+    }
+}
+
+contract LensUtilsDeployer is ScriptUtils {
+    function run() public broadcast returns (address utilsLens) {
+        string memory outputScriptFileName = "08_LensUtils_output.json";
+
+        utilsLens = execute();
+
+        string memory object;
+        object = vm.serializeAddress("lens", "utilsLens", utilsLens);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy() public broadcast returns (address utilsLens) {
+        utilsLens = execute();
+    }
+
+    function execute() public returns (address utilsLens) {
+        utilsLens = address(new UtilsLens());
+    }
+}
