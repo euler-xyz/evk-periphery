@@ -298,3 +298,52 @@ struct CrossAdapterInfo {
     OracleDetailedInfo oracleBaseCrossInfo;
     OracleDetailedInfo oracleCrossQuoteInfo;
 }
+
+struct EulerEarnInfoFull {
+    uint256 timestamp;
+    address vault;
+    string vaultName;
+    string vaultSymbol;
+    uint256 vaultDecimals;
+    address asset;
+    string assetName;
+    string assetSymbol;
+    uint256 assetDecimals;
+    // address unitOfAccount;
+    // string unitOfAccountName;
+    // string unitOfAccountSymbol;
+    // uint256 unitOfAccountDecimals;
+    uint256 totalShares;
+    uint256 totalCash;
+    uint256 totalBorrowed;
+    uint256 totalAssets;
+    uint256 accumulatedFeesShares;
+    uint256 accumulatedFeesAssets;
+    address governorFeeReceiver;
+    address protocolFeeReceiver;
+    uint256 protocolFeeShare;
+    uint256 interestFee;
+    uint256 hookedOperations;
+    // uint256 configFlags;
+    // uint256 supplyCap;
+    // uint256 borrowCap;
+    // uint256 maxLiquidationDiscount;
+    uint256 harvestCooldownTime;
+    // address dToken;
+    // address oracle;
+    // address interestRateModel;
+    address hookTarget;
+    address evc;
+    // address protocolConfig;
+    address balanceTracker;
+    address permit2;
+    address creator;
+    // address governorAdmin;
+    // VaultInterestRateModelInfo irmInfo;
+    // LTVInfo[] collateralLTVInfo;
+    // AssetPriceInfo liabilityPriceInfo;
+    // AssetPriceInfo[] collateralPriceInfo;
+    // OracleDetailedInfo oracleInfo;
+    // AssetPriceInfo backupAssetPriceInfo;
+    // OracleDetailedInfo backupAssetOracleInfo;
+}
