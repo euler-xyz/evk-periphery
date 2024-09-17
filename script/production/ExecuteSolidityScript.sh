@@ -6,7 +6,8 @@ if [ -z "$1" ]; then
 fi
 
 source .env
-scriptPath="${1#script/}"
+scriptPath="${1#./}"
+scriptPath="${scriptPath#script/}"
 scriptName=$(basename "$1")
 
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
