@@ -171,6 +171,22 @@ contract AccountLens is Utils {
         }
 
         if (!result.liquidityInfo.queryFailure) {
+            for (uint256 i = 0; i < collaterals.length; ++i) {
+                (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).LTVBorrow, (collaterals[i])));
+
+                if (success && data.length >= 32) {
+                    collateralValues[i] = result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateralValue * CONFIG_SCALE / abi.decode(data, (uint16));
+                } else {
+                    collateralValues[i] = 0;
+                }
+
+                result.liquidityInfo.collateralLiquidityRawInfo[i].collateral = collaterals[i];
+                result.liquidityInfo.collateralLiquidityRawInfo[i].collateralValue = collateralValues[i];
+                result.liquidityInfo.collateralValueRaw += collateralValues[i];
+            }
+        }
+
+        if (!result.liquidityInfo.queryFailure) {
             result.liquidityInfo.timeToLiquidation =
                 _calculateTimeToLiquidation(vault, result.liquidityInfo.liabilityValue, collaterals, collateralValues);
         }
