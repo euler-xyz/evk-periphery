@@ -301,6 +301,7 @@ struct CrossAdapterInfo {
 
 struct EulerEarnInfoFull {
     uint256 timestamp;
+    address balanceTracker;
     address vault;
     string vaultName;
     string vaultSymbol;
@@ -309,41 +310,28 @@ struct EulerEarnInfoFull {
     string assetName;
     string assetSymbol;
     uint256 assetDecimals;
-    // address unitOfAccount;
-    // string unitOfAccountName;
-    // string unitOfAccountSymbol;
-    // uint256 unitOfAccountDecimals;
     uint256 totalShares;
-    uint256 totalCash;
-    uint256 totalBorrowed;
     uint256 totalAssets;
-    uint256 accumulatedFeesShares;
-    uint256 accumulatedFeesAssets;
-    address governorFeeReceiver;
-    address protocolFeeReceiver;
-    uint256 protocolFeeShare;
-    uint256 interestFee;
-    uint256 hookedOperations;
-    // uint256 configFlags;
-    // uint256 supplyCap;
-    // uint256 borrowCap;
-    // uint256 maxLiquidationDiscount;
-    uint256 harvestCooldownTime;
-    // address dToken;
-    // address oracle;
-    // address interestRateModel;
+    uint256 totalAssetsDeposited;
+    uint256 totalAllocated;
+    uint256 totalAssetsAllocatable;
+    uint256 totalAllocationPoints;
+    uint256 interestAccrued;
+    uint40 lastInterestUpdate;
+    uint40 interestSmearEnd;
+    uint168 interestLeft;
+    address feeRecipient;
+    uint96 performanceFee;
     address hookTarget;
-    address evc;
-    // address protocolConfig;
-    address balanceTracker;
-    address permit2;
-    address creator;
-    // address governorAdmin;
-    // VaultInterestRateModelInfo irmInfo;
-    // LTVInfo[] collateralLTVInfo;
-    // AssetPriceInfo liabilityPriceInfo;
-    // AssetPriceInfo[] collateralPriceInfo;
-    // OracleDetailedInfo oracleInfo;
-    // AssetPriceInfo backupAssetPriceInfo;
-    // OracleDetailedInfo backupAssetOracleInfo;
+    uint256 hookedOperations;
+    uint256 lastHarvestTimestamp;
+    EulerEarnStrategyInfo[] strategies;
+}
+
+struct EulerEarnStrategyInfo {
+    address startegy;
+    uint120 allocated;
+    uint96 allocationPoints;
+    uint120 cap;
+    bool isInEmergencyStatus;
 }
