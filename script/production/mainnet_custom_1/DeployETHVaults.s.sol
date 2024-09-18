@@ -17,10 +17,10 @@ to run:
    6. sed -i '' 's|^ADDRESSES_DIR_PATH=.*|ADDRESSES_DIR_PATH="euler-interfaces/addresses/1"|' ./.env
    7. add the DEPLOYMENT_RPC_URL and the DEPLOYER_KEY in the .env file
    8. forge install && forge compile
-   9. ./script/production/ExecuteSolidityScript.sh script/production/mainnet_custom_1/DeployVaults.s.sol
+   9. ./script/production/ExecuteSolidityScript.sh script/production/mainnet_custom_1/DeployETHVaults.s.sol
 */
 
-contract DeployVaults is BatchBuilder {
+contract DeployETHVaults is BatchBuilder {
     // final governor addresses
     address internal constant MULTISIG = 0x38afC3aA2c76b4cA1F8e1DabA68e998e1F4782DB;
     address internal constant ORACLE_ROUTER_GOVERNOR = MULTISIG;
@@ -64,7 +64,7 @@ contract DeployVaults is BatchBuilder {
     mapping(address => address) internal escrowVaults;
     mapping(address => address) internal borrowableVaults;
 
-    address oracleRouter;
+    address internal oracleRouter;
     address[] internal assets;
     bool[] internal isAssetERC4626;
     address[] internal oracleAdapters;
@@ -139,9 +139,9 @@ contract DeployVaults is BatchBuilder {
             setGovernorAdmin(vault, VAULTS_GOVERNOR);
         }
 
-        // configure the governed vaults
+        // configure the borrowable vaults
         for (uint256 i = 0; i < 2; ++i) {
-            address vault = i == 0 ? borrowableVaults[WETH] : borrowableVaults[wstETH];
+            address vault = borrowableVaults[assets[i]];
             setMaxLiquidationDiscount(vault, borrowableMaxLiquidationDiscounts[i]);
             setLiquidationCoolOffTime(vault, 1);
             setInterestRateModel(vault, borrowableInterestRateModels[i]);
@@ -174,7 +174,7 @@ contract DeployVaults is BatchBuilder {
         }
 
         for (uint256 i = 0; i < 2; ++i) {
-            address vault = i == 0 ? borrowableVaults[WETH] : borrowableVaults[wstETH];
+            address vault = borrowableVaults[assets[i]];
             
             OracleVerifier.verifyOracleConfig(vault);
             PerspectiveVerifier.verifyPerspective(
