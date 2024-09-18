@@ -19,25 +19,7 @@ function save_results {
     fi
 }
 
-if ! command -v jq &> /dev/null
-then
-    echo "jq could not be found. Please install jq first."
-    echo "You can install jq by running: sudo apt-get install jq"
-    exit 1
-fi
-
-if [[ ! -d "$(pwd)/script" ]]; then
-    echo "Error: script directory does not exist in the current directory."
-    echo "Please ensure this script is run from the top project directory."
-    exit 1
-fi
-
-if [[ -f .env ]]; then
-    source .env
-else
-    echo "Error: .env file does not exist. Please create it and try again."
-    exit 1
-fi
+source .env
 
 echo ""
 echo "Welcome to the deployment script!"
@@ -47,7 +29,6 @@ read -p "Do you want to deploy on a local fork? (y/n) (default: y): " local_fork
 local_fork=${local_fork:-y}
 
 if [[ $local_fork == "y" ]]; then
-    # Check if Anvil is running
     if ! pgrep -x "anvil" > /dev/null; then
         echo "Anvil is not running. Please start Anvil and try again."
         echo "You can spin up a local fork with the following command:"
@@ -56,28 +37,20 @@ if [[ $local_fork == "y" ]]; then
     fi  
 fi
 
-if [ -z "$DEPLOYMENT_RPC_URL" ]; then
-    echo "Error: DEPLOYMENT_RPC_URL environment variable is not set. Please set it and try again."
-    exit 1
-fi
-
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}
 
 if [[ $verify_contracts == "y" ]]; then
-    if [ -z "$VERIFIER_URL" ]; then
-        echo "Error: VERIFIER_URL environment variable is not set. Please set it and try again."
-        exit 1
-    fi
-
-    if [ -z "$VERIFIER_API_KEY" ]; then
-        echo "Error: VERIFIER_API_KEY environment variable is not set. Please set it and try again."
-        exit 1
-    fi
+    verify_contracts="--verify"
 fi
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
+
+if ! script/utils/checkEnvironment.sh $verify_contracts; then
+    echo "Environment check failed. Exiting."
+    exit 1
+fi
 
 while true; do
     echo ""
@@ -556,21 +529,97 @@ while true; do
             ;;
         8)
             echo "Deploying lenses..."
+            echo "Select the type of lens to deploy:"
+            echo "0. All (Account Lens, Oracle Lens, IRM Lens, Vault Lens, Utils Lens)"
+            echo "1. Account Lens"
+            echo "2. Vault Lens"
+            echo "3. Oracle Lens"
+            echo "4. IRM Lens"
+            echo "5. Utils Lens"
+            read -p "Enter your choice (0-5): " lens_choice
             
             baseName=08_Lenses
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
-            
-            read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
-            read -p "Enter the Kink IRM Factory address: " kink_irm_factory
 
-            jq -n \
-                --arg oracleAdapterRegistry "$oracle_adapter_registry" \
-                --arg kinkIRMFactory "$kink_irm_factory" \
-                '{
-                    oracleAdapterRegistry: $oracleAdapterRegistry,
-                    kinkIRMFactory: $kinkIRMFactory
-                }' --indent 4 > script/${jsonName}_input.json
+            case $lens_choice in
+                0)
+                    echo "Deploying all lenses..."
+                    
+                    scriptName=${baseName}.s.sol:Lenses
+                    jsonName=08_Lenses
+
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+
+                    jq -n \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        '{
+                            oracleAdapterRegistry: $oracleAdapterRegistry,
+                            kinkIRMFactory: $kinkIRMFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Account Lens..."
+                    
+                    scriptName=${baseName}.s.sol:LensAccountDeployer
+                    jsonName=08_LensAccount
+                    ;;
+                2)
+                    echo "Deploying Vault Lens..."
+                    
+                    scriptName=${baseName}.s.sol:LensVaultDeployer
+                    jsonName=08_LensVault
+                    
+                    read -p "Enter the Oracle Lens address: " oracle_lens
+                    read -p "Enter the IRM Lens address: " irm_lens
+
+                    jq -n \
+                        --arg oracleLens "$oracle_lens" \
+                        --arg irmLens "$irm_lens" \
+                        '{
+                            oracleLens: $oracleLens,
+                            irmLens: $irmLens
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                3)
+                    echo "Deploying Oracle Lens..."
+
+                    scriptName=${baseName}.s.sol:LensOracleDeployer
+                    jsonName=08_LensOracle
+
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+
+                    jq -n \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        '{
+                            oracleAdapterRegistry: $oracleAdapterRegistry
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                4)
+                    echo "Deploying IRM Lens..."
+
+                    scriptName=${baseName}.s.sol:LensIRMDeployer
+                    jsonName=08_LensIRM
+
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+
+                    jq -n \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        '{
+                            kinkIRMFactory: $kinkIRMFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                5)
+                    echo "Deploying Utils Lens..."
+
+                    scriptName=${baseName}.s.sol:LensUtilsDeployer
+                    jsonName=08_LensUtils
+                    ;;
+                *)
+                    echo "Invalid lens choice. Exiting."
+                    exit 1
+                    ;;
+            esac            
             ;;
         9)
             echo "Deploying Perspectives..."

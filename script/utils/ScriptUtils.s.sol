@@ -12,9 +12,17 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 
-import "forge-std/console.sol";
+abstract contract ScriptExtended is Script {
+    function getAddressFromJson(string memory json, string memory key) internal pure returns (address) {
+        try vm.parseJsonAddress(json, key) returns (address result) {
+            return result;
+        } catch {
+            revert(string(abi.encodePacked("getAddressFromJson: failed to parse JSON for key: ", key)));
+        }
+    }
+}
 
-abstract contract CoreAddressesLib is Script {
+abstract contract CoreAddressesLib is ScriptExtended {
     struct CoreAddresses {
         address evc;
         address protocolConfig;
@@ -37,23 +45,21 @@ abstract contract CoreAddressesLib is Script {
         result = vm.serializeAddress("coreAddresses", "eVaultFactoryGovernor", Addresses.eVaultFactoryGovernor);
     }
 
-    function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory result) {
-        if (bytes(json).length == 0) return result;
-
-        result = CoreAddresses({
-            evc: abi.decode(vm.parseJson(json, ".evc"), (address)),
-            protocolConfig: abi.decode(vm.parseJson(json, ".protocolConfig"), (address)),
-            sequenceRegistry: abi.decode(vm.parseJson(json, ".sequenceRegistry"), (address)),
-            balanceTracker: abi.decode(vm.parseJson(json, ".balanceTracker"), (address)),
-            permit2: abi.decode(vm.parseJson(json, ".permit2"), (address)),
-            eVaultImplementation: abi.decode(vm.parseJson(json, ".eVaultImplementation"), (address)),
-            eVaultFactory: abi.decode(vm.parseJson(json, ".eVaultFactory"), (address)),
-            eVaultFactoryGovernor: abi.decode(vm.parseJson(json, ".eVaultFactoryGovernor"), (address))
+    function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory) {
+        return CoreAddresses({
+            evc: getAddressFromJson(json, ".evc"),
+            protocolConfig: getAddressFromJson(json, ".protocolConfig"),
+            sequenceRegistry: getAddressFromJson(json, ".sequenceRegistry"),
+            balanceTracker: getAddressFromJson(json, ".balanceTracker"),
+            permit2: getAddressFromJson(json, ".permit2"),
+            eVaultImplementation: getAddressFromJson(json, ".eVaultImplementation"),
+            eVaultFactory: getAddressFromJson(json, ".eVaultFactory"),
+            eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor")
         });
     }
 }
 
-abstract contract PeripheryAddressesLib is Script {
+abstract contract PeripheryAddressesLib is ScriptExtended {
     struct PeripheryAddresses {
         address oracleRouterFactory;
         address oracleAdapterRegistry;
@@ -92,32 +98,26 @@ abstract contract PeripheryAddressesLib is Script {
         );
     }
 
-    function deserializePeripheryAddresses(string memory json)
-        internal
-        pure
-        returns (PeripheryAddresses memory result)
-    {
-        if (bytes(json).length == 0) return result;
-
-        result = PeripheryAddresses({
-            oracleRouterFactory: abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address)),
-            oracleAdapterRegistry: abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address)),
-            externalVaultRegistry: abi.decode(vm.parseJson(json, ".externalVaultRegistry"), (address)),
-            kinkIRMFactory: abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address)),
-            irmRegistry: abi.decode(vm.parseJson(json, ".irmRegistry"), (address)),
-            swapper: abi.decode(vm.parseJson(json, ".swapper"), (address)),
-            swapVerifier: abi.decode(vm.parseJson(json, ".swapVerifier"), (address)),
-            feeFlowController: abi.decode(vm.parseJson(json, ".feeFlowController"), (address)),
-            evkFactoryPerspective: abi.decode(vm.parseJson(json, ".evkFactoryPerspective"), (address)),
-            governedPerspective: abi.decode(vm.parseJson(json, ".governedPerspective"), (address)),
-            escrowedCollateralPerspective: abi.decode(vm.parseJson(json, ".escrowedCollateralPerspective"), (address)),
-            eulerUngoverned0xPerspective: abi.decode(vm.parseJson(json, ".eulerUngoverned0xPerspective"), (address)),
-            eulerUngovernedNzxPerspective: abi.decode(vm.parseJson(json, ".eulerUngovernedNzxPerspective"), (address))
+    function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
+        return PeripheryAddresses({
+            oracleRouterFactory: getAddressFromJson(json, ".oracleRouterFactory"),
+            oracleAdapterRegistry: getAddressFromJson(json, ".oracleAdapterRegistry"),
+            externalVaultRegistry: getAddressFromJson(json, ".externalVaultRegistry"),
+            kinkIRMFactory: getAddressFromJson(json, ".kinkIRMFactory"),
+            irmRegistry: getAddressFromJson(json, ".irmRegistry"),
+            swapper: getAddressFromJson(json, ".swapper"),
+            swapVerifier: getAddressFromJson(json, ".swapVerifier"),
+            feeFlowController: getAddressFromJson(json, ".feeFlowController"),
+            evkFactoryPerspective: getAddressFromJson(json, ".evkFactoryPerspective"),
+            governedPerspective: getAddressFromJson(json, ".governedPerspective"),
+            escrowedCollateralPerspective: getAddressFromJson(json, ".escrowedCollateralPerspective"),
+            eulerUngoverned0xPerspective: getAddressFromJson(json, ".eulerUngoverned0xPerspective"),
+            eulerUngovernedNzxPerspective: getAddressFromJson(json, ".eulerUngovernedNzxPerspective")
         });
     }
 }
 
-abstract contract LensAddressesLib is Script {
+abstract contract LensAddressesLib is ScriptExtended {
     struct LensAddresses {
         address accountLens;
         address oracleLens;
@@ -134,20 +134,18 @@ abstract contract LensAddressesLib is Script {
         result = vm.serializeAddress("lensAddresses", "utilsLens", Addresses.utilsLens);
     }
 
-    function deserializeLensAddresses(string memory json) internal pure returns (LensAddresses memory result) {
-        if (bytes(json).length == 0) return result;
-
-        result = LensAddresses({
-            accountLens: abi.decode(vm.parseJson(json, ".accountLens"), (address)),
-            oracleLens: abi.decode(vm.parseJson(json, ".oracleLens"), (address)),
-            irmLens: abi.decode(vm.parseJson(json, ".irmLens"), (address)),
-            vaultLens: abi.decode(vm.parseJson(json, ".vaultLens"), (address)),
-            utilsLens: abi.decode(vm.parseJson(json, ".utilsLens"), (address))
+    function deserializeLensAddresses(string memory json) internal pure returns (LensAddresses memory) {
+        return LensAddresses({
+            accountLens: getAddressFromJson(json, ".accountLens"),
+            oracleLens: getAddressFromJson(json, ".oracleLens"),
+            irmLens: getAddressFromJson(json, ".irmLens"),
+            vaultLens: getAddressFromJson(json, ".vaultLens"),
+            utilsLens: getAddressFromJson(json, ".utilsLens")
         });
     }
 }
 
-abstract contract ScriptUtils is Script, CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib {
+abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib {
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
@@ -189,7 +187,11 @@ abstract contract ScriptUtils is Script, CoreAddressesLib, PeripheryAddressesLib
 
     function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
         string memory addressesDirPath = vm.envOr("ADDRESSES_DIR_PATH", string(""));
-        if (bytes(addressesDirPath).length == 0) return "";
+
+        if (bytes(addressesDirPath).length == 0) {
+            revert("getAddressesJson: ADDRESSES_DIR_PATH environment variable is not set");
+        }
+
         return vm.readFile(string.concat(addressesDirPath, "/", jsonFile));
     }
 

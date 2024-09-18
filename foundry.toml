@@ -23,6 +23,7 @@ number_underscore = "preserve"
 override_spacing = true
 wrap_comments = true
 ignore = [
+    "script/production/mainnet/DeployCBBTC.s.sol",
     "script/production/mainnet_custom_1/DeployVaults.s.sol"
 ]
 

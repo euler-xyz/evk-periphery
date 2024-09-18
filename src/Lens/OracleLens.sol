@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {Utils} from "./Utils.sol";
 import {SnapshotRegistry} from "../SnapshotRegistry/SnapshotRegistry.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
+import {Errors} from "euler-price-oracle/lib/Errors.sol";
 import "./LensTypes.sol";
 
 interface IOracle is IPriceOracle {
@@ -197,6 +198,25 @@ contract OracleLens is Utils {
         }
 
         return OracleDetailedInfo({oracle: oracleAddress, name: name, oracleInfo: oracleInfo});
+    }
+
+    function isStalePullOracle(address oracleAddress, bytes calldata failureReason) public view returns (bool) {
+        bool success;
+        bytes memory result;
+
+        if (oracleAddress != address(0)) {
+            (success, result) = oracleAddress.staticcall(abi.encodeCall(IPriceOracle.name, ()));
+        }
+
+        if (success && result.length >= 32) {
+            string memory name = abi.decode(result, (string));
+            bytes4 failureReasonSelector = bytes4(failureReason);
+
+            return (_strEq(name, "PythOracle") && failureReasonSelector == Errors.PriceOracle_InvalidAnswer.selector)
+                || (_strEq(name, "RedstoneCoreOracle") && failureReasonSelector == Errors.PriceOracle_TooStale.selector);
+        } else {
+            return false;
+        }
     }
 
     function getValidAdapters(address base, address quote) public view returns (address[] memory) {
