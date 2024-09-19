@@ -37,32 +37,35 @@ contract DeployBTCVaults is BatchBuilder {
     // oracle adapters
     address internal constant WBTCBTC = 0xc38B1ae5f9bDd68D44b354fD06b16488Be4Bc0d4;
     address internal constant CBBTCBTC = 0x14C855046e91E91033Aaff3191EA6717Fb759A05;
-    address internal constant LBTCBTC = address(0); // fixme
+    address internal constant LBTCBTC = 0x8a14C0190385cA8D9Ac7a134af39f7EBb13D5782;
 
-    mapping(address => address) internal escrowVaults;
-    mapping(address => address) internal borrowableVaults;
+    mapping(address => address) internal vaults;
 
     address internal oracleRouter;
     address[] internal assets;
     address[] internal oracleAdapters;
-    uint16[] internal escrowSupplyCaps; // fixme
-    uint16[] internal borrowableMaxLiquidationDiscounts;
-    uint16[] internal borrowableInterestFees;
-    address[] internal borrowableInterestRateModels;
-    uint16[][] internal borrowableEscrowLTVs;
+    uint16[] internal supplyCaps;
+    uint16[] internal borrowCaps;
+    uint16[] internal maxLiquidationDiscounts;
+    uint16[] internal interestFees;
+    address[] internal interestRateModels;
+    uint16[][] internal LTVs;
 
     constructor() {
-        assets           = [WBTC,    CBBTC,    LBTC];
-        oracleAdapters   = [WBTCBTC, CBBTCBTC, LBTCBTC];
-        escrowSupplyCaps = [0,       0,        0]; // fixme
-        escrowSupplyCaps = encodeAmountCaps(assets, escrowSupplyCaps); // fixme
+        assets         = [WBTC,    CBBTC,    LBTC];
+        oracleAdapters = [WBTCBTC, CBBTCBTC, LBTCBTC];
+        supplyCaps     = [0,       0,        0]; // fixme
+        borrowCaps     = [0,       0,        0]; // fixme
+        supplyCaps     = encodeAmountCaps(assets, supplyCaps); // fixme
+        borrowCaps     = encodeAmountCaps(assets, borrowCaps); // fixme
 
-        //                                    WBTC      CBBTC
-        borrowableMaxLiquidationDiscounts =  [0.15e4,   0.15e4];
-        borrowableInterestFees            =  [0.10e4,   0.10e4];
-        borrowableEscrowLTVs  /* WBTC  */ = [[0.000e4, 0.000e4],
-                              /* CBBTC */    [0.000e4, 0.000e4],
-                              /* LBTC  */    [0.945e4, 0.945e4]];
+        //                          WBTC     CBBTC     LBTC
+        maxLiquidationDiscounts =  [0.150e4, 0.150e4, 0.150e4];
+        interestFees            =  [0.100e4, 0.100e4, 0.100e4];
+        
+        LTVs                    = [[0.000e4, 0.945e4, 0.945e4],  // WBTC
+                                   [0.945e4, 0.000e4, 0.945e4],  // CBBTC
+                                   [0.945e4, 0.945e4, 0.000e4]]; // LBTC
     }
 
     function run() public returns (address[] memory) {
@@ -71,11 +74,11 @@ contract DeployBTCVaults is BatchBuilder {
             KinkIRM deployer = new KinkIRM();
 
             // fixme
-            // Base=0% APY  Kink(90%)=2% APY  Max=?% APY
-            address IRM = deployer.deploy(peripheryAddresses.kinkIRMFactory, );
+            // Base=0% APY  Kink(90%)=2% APY  Max=8% APY
+            address IRM = deployer.deploy(peripheryAddresses.kinkIRMFactory, 0, 162339942, 4217210302, 3865470566);
 
-            //                              WBTC  CBBTC
-            borrowableInterestRateModels = [IRM,  IRM];
+            //                    WBTC  CBBTC  LBTC
+            interestRateModels = [IRM,  IRM,   IRM];
         }
 
         // deploy the oracle router
@@ -87,40 +90,32 @@ contract DeployBTCVaults is BatchBuilder {
         // deploy the vaults
         {
             EVaultDeployer deployer = new EVaultDeployer();
-            escrowVaults[LBTC] = deployer.deploy(coreAddresses.eVaultFactory, true, asset);
-            borrowableVaults[WBTC] = deployer.deploy(coreAddresses.eVaultFactory, true, WBTC, oracleRouter, BTC);
-            borrowableVaults[CBBTC] = deployer.deploy(coreAddresses.eVaultFactory, true, CBBTC, oracleRouter, BTC);
+            for (uint256 i = 0; i < assets.length; ++i) {
+                address asset = assets[i];
+                vaults[asset] = deployer.deploy(coreAddresses.eVaultFactory, true, asset, oracleRouter, BTC);
+            }
         }
 
         // configure the oracle router
-        govSetResolvedVault(oracleRouter, escrowVaults[LBTC], true);
-        govSetResolvedVault(oracleRouter, borrowableVaults[WBTC], true);
-        govSetResolvedVault(oracleRouter, borrowableVaults[CBBTC], true);
-
         for (uint256 i = 0; i < assets.length; ++i) {
-            govSetConfig(oracleRouter, assets[i], BTC, oracleAdapters[i]);
+            address asset = assets[i];
+            govSetResolvedVault(oracleRouter, vaults[asset], true);
+            govSetConfig(oracleRouter, asset, BTC, oracleAdapters[i]);
         }
         transferGovernance(oracleRouter, ORACLE_ROUTER_GOVERNOR);
 
-        // configure the LBTC escrow vault retaining the governorship
-        {
-            address vault = escrowVaults[assets[i]];
-            setCaps(vault, escrowSupplyCaps[i], 0); // fixme
-            setHookConfig(vault, address(0), 0);
-            setGovernorAdmin(vault, VAULTS_GOVERNOR);
-        }
-
-        // configure the borrowable vaults
-        for (uint256 i = 0; i < 2; ++i) {
-            address vault = borrowableVaults[assets[i]];
-            setMaxLiquidationDiscount(vault, borrowableMaxLiquidationDiscounts[i]);
+        // configure the vaults
+        for (uint256 i = 0; i < assets.length; ++i) {
+            address vault = vaults[assets[i]];
+            setMaxLiquidationDiscount(vault, maxLiquidationDiscounts[i]);
             setLiquidationCoolOffTime(vault, 1);
-            setInterestRateModel(vault, borrowableInterestRateModels[i]);
-            setInterestFee(vault, borrowableInterestFees[i]);
+            setInterestRateModel(vault, interestRateModels[i]);
+            setInterestFee(vault, interestFees[i]);
             setFeeReceiver(vault, BORROWABLE_VAULTS_FEE_RECEIVER);
+            setCaps(vault, supplyCaps[i], borrowCaps[i]);
 
             for (uint256 j = 0; j < assets.length; ++j) {
-                address collateral = escrowVaults[assets[j]];
+                address collateral = vaults[assets[j]];
                 uint16 ltv = LTVs[j][i];
 
                 if (ltv != 0) setLTV(vault, collateral, ltv - 0.025e4, ltv, 0);
@@ -133,25 +128,19 @@ contract DeployBTCVaults is BatchBuilder {
         executeBatch();
 
         // sanity check the oracle config and perspectives
-        address[] memory results = new address[](3);
-        OracleVerifier.verifyOracleConfig(escrowVaults[LBTC]);
-        PerspectiveVerifier.verifyPerspective(
-            peripheryAddresses.escrowedCollateralPerspective,
-            escrowVaults[LBTC],
-            PerspectiveVerifier.E__GOVERNOR
-        );
-        results[i] = escrowVaults[LBTC];
+        address[] memory results = new address[](assets.length);
+        for (uint256 i = 0; i < assets.length; ++i) {
+            address vault = vaults[assets[i]];
 
-        for (uint256 i = 0; i < 2; ++i) {
-            address vault = borrowableVaults[assets[i]];
-            
             OracleVerifier.verifyOracleConfig(vault);
+            
             PerspectiveVerifier.verifyPerspective(
                 peripheryAddresses.eulerUngoverned0xPerspective,
                 vault,
                 PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR | PerspectiveVerifier.E__LTV_COLLATERAL_RECOGNITION
             );
-            results[i + 1] = vault;
+            
+            results[i] = vault;
         }
 
         return results;

@@ -24,7 +24,8 @@ override_spacing = true
 wrap_comments = true
 ignore = [
     "script/production/mainnet/DeployCBBTC.s.sol",
-    "script/production/mainnet_custom_1/DeployVaults.s.sol"
+    "script/production/mainnet_custom_1/DeployETHVaults.s.sol",
+    "script/production/mainnet_custom_1/DeployBTCVaults.s.sol"
 ]
 
 [profile.default.fuzz]
