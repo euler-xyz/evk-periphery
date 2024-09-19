@@ -176,11 +176,14 @@ contract AccountLens is Utils {
         }
 
         if (!result.liquidityInfo.queryFailure) {
+            result.liquidityInfo.collateralLiquidityRawInfo = new CollateralLiquidityInfo[](collaterals.length);
+
             for (uint256 i = 0; i < collaterals.length; ++i) {
                 (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).LTVBorrow, (collaterals[i])));
 
                 if (success && data.length >= 32) {
-                    collateralValues[i] = result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateralValue * CONFIG_SCALE / abi.decode(data, (uint16));
+                    collateralValues[i] = result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateralValue
+                        * CONFIG_SCALE / abi.decode(data, (uint16));
                 } else {
                     collateralValues[i] = 0;
                 }
