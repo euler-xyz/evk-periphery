@@ -299,9 +299,8 @@ struct CrossAdapterInfo {
     OracleDetailedInfo oracleCrossQuoteInfo;
 }
 
-struct EulerEarnInfoFull {
+struct EulerEarnVaultInfoFull {
     uint256 timestamp;
-    address balanceTracker;
     address vault;
     string vaultName;
     string vaultSymbol;
@@ -313,25 +312,43 @@ struct EulerEarnInfoFull {
     uint256 totalShares;
     uint256 totalAssets;
     uint256 totalAssetsDeposited;
-    uint256 totalAllocated;
+    uint256 totalAssetsAllocated;
     uint256 totalAssetsAllocatable;
     uint256 totalAllocationPoints;
     uint256 interestAccrued;
-    uint40 lastInterestUpdate;
-    uint40 interestSmearEnd;
-    uint168 interestLeft;
-    address feeRecipient;
-    uint96 performanceFee;
-    address hookTarget;
-    uint256 hookedOperations;
+    uint256 lastInterestUpdate;
+    uint256 interestSmearEnd;
+    uint256 interestLeft;
     uint256 lastHarvestTimestamp;
-    EulerEarnStrategyInfo[] strategies;
+    uint256 performanceFee;
+    address feeReceiver;
+    uint256 hookedOperations;
+    address hookTarget;
+    address evc;
+    address balanceTracker;
+    address permit2;
+    bool isHarvestCoolDownCheckOn;
+    EulerEarnVaultAccessControlInfo accessControlInfo;
+    EulerEarnVaultStrategyInfo[] strategies;
 }
 
-struct EulerEarnStrategyInfo {
-    address startegy;
-    uint120 allocated;
-    uint96 allocationPoints;
-    uint120 cap;
-    bool isInEmergencyStatus;
+struct EulerEarnVaultAccessControlInfo {
+    address[] defaultAdmins;
+    address[] guardianAdmins;
+    address[] strategyOperatorAdmins;
+    address[] yieldAggregatorManagerAdmins;
+    address[] withdrawalQueueManagerAdmins;
+    address[] guardians;
+    address[] strategyOperators;
+    address[] yieldAggregatorManagers;
+    address[] withdrawalQueueManagers;
+}
+
+struct EulerEarnVaultStrategyInfo {
+    address strategy;
+    uint256 assetsAllocated;
+    uint256 allocationPoints;
+    uint256 allocationCap;
+    bool isActive;
+    bool isInEmergency;
 }

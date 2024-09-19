@@ -126,4 +126,9 @@ interface IYieldAggregator {
     function getPastVotes(address _account, uint256 _timepoint) external view returns (uint256);
     function getPastTotalSupply(uint256 _timepoint) external view returns (uint256);
     function delegates(address _account) external view returns (address);
+
+    // to be added in the original IYieldAggregator
+    function EVC() external view returns (address);
+    function permit2Address() external view returns (address);
+    function isHarvestCoolDownCheckOn() external view returns (bool);
 }
