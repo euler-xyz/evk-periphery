@@ -102,7 +102,12 @@ contract AccountLens is Utils {
         result.assetsAccount = IEVault(result.asset).balanceOf(account);
         result.shares = IEVault(vault).balanceOf(account);
         result.assets = IEVault(vault).convertToAssets(result.shares);
-        result.borrowed = IEVault(vault).debtOf(account);
+
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).debtOf, (account)));
+
+        if (success && data.length >= 32) {
+            result.borrowed = abi.decode(data, (uint256));
+        }
 
         result.assetAllowanceVault = IEVault(result.asset).allowance(account, vault);
 
