@@ -132,7 +132,8 @@ while true; do
             echo "7. Lido Fundamental"
             echo "8. Fixed Rate"
             echo "9. Rate Provider"
-            read -p "Enter your choice (0-9): " adapter_choice
+            echo "10. Pendle"
+            read -p "Enter your choice (0-10): " adapter_choice
 
             baseName=03_OracleAdapters
 
@@ -396,6 +397,36 @@ while true; do
                             base: $base,
                             quote: $quote,
                             rateProvider: $rateProvider
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                10)
+                    echo "Deploying Pendle Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:PendleAdapter
+                    jsonName=03_PendleAdapter
+
+                    read -p "Enter Pendle Oracle address: " pendle_oracle
+                    read -p "Enter Pendle Market address: " pendle_market
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter twapWindow: " twap_window
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg pendleOracle "$pendle_oracle" \
+                        --arg pendleMarket "$pendle_market" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --argjson twapWindow "$twap_window" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            pendleOracle: $pendleOracle,
+                            pendleMarket: $pendleMarket,
+                            base: $base,
+                            quote: $quote,
+                            twapWindow: $twapWindow
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)

@@ -340,6 +340,30 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 oracleBaseCross: $oracleBaseCross,
                 oracleCrossQuote: $oracleCrossQuote
             }' --indent 4 > script/${jsonName}_input.json
+    elif [[ "$provider" == "Pendle" ]]; then
+        scriptName=${baseName}.s.sol:PendleAdapter
+        jsonName=03_PendleAdapter
+
+        base="${columns[8]}"
+        quote="${columns[9]}"
+
+        jq -n \
+            --argjson addToAdapterRegistry false \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
+            --arg pendleOracle "${columns[6]}" \
+            --arg pendleMarket "${columns[7]}" \
+            --arg base "${columns[8]}" \
+            --arg quote "${columns[9]}" \
+            --argjson twapWindow "${columns[10]}" \
+            '{
+                addToAdapterRegistry: $addToAdapterRegistry,
+                adapterRegistry: $adapterRegistry,
+                pendleOracle: $pendleOracle,
+                pendleMarket: $pendleMarket,
+                base: $base,
+                quote: $quote,
+                twapWindow: $twapWindow
+            }' --indent 4 > script/${jsonName}_input.json
     else
         echo "Error!"
         exit 1
