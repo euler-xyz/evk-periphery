@@ -6,6 +6,7 @@ import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {StorageSlot} from "openzeppelin-contracts/utils/StorageSlot.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {Set, SetStorage} from "ethereum-vault-connector/Set.sol";
+import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {AmountCap} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IHookTarget} from "evk/interfaces/IHookTarget.sol";
@@ -38,16 +39,24 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
 
     /// @notice Struct to store policy information for a vault.
     struct PolicyStorage {
-        /// @notice The set of accepted attesters.
-        SetStorage attesters;
-        /// @notice The constant threshold for incoming transfers.
-        AmountCap inConstantThreshold;
-        /// @notice The accumulated threshold for incoming transfers.
-        AmountCap inAccumulatedThreshold;
-        /// @notice The constant threshold for outgoing transfers.
-        AmountCap outConstantThreshold;
-        /// @notice The accumulated threshold for outgoing transfers.
-        AmountCap outAccumulatedThreshold;
+        /// @notice Whether the vault is authenticated.
+        bool isAuthenticated;
+        /// @notice The max operations counter threshold per 3 minutes that can be executed without attestation.
+        uint32 operationCounterThreshold;
+        /// @notice The normalized timestamp of the last update, rounded down to the nearest one minute interval.
+        uint48 updateTimestampNormalized;
+        /// @notice Packed operation counters for the last three one minute intervals. The least significant 32 bits
+        /// represent the current one minute window.
+        /// @dev Structured as [32 bits window][32 bits window][32 bits window].
+        uint96 operationCountersPacked;
+        /// @notice The constant amount threshold for incoming transfers.
+        AmountCap inConstantAmountThreshold;
+        /// @notice The accumulated amount threshold for incoming transfers.
+        AmountCap inAccumulatedAmountThreshold;
+        /// @notice The constant amount threshold for outgoing transfers.
+        AmountCap outConstantAmountThreshold;
+        /// @notice The accumulated amount threshold for outgoing transfers.
+        AmountCap outAccumulatedAmountThreshold;
     }
 
     /// @notice Enum representing the type of transfer.
@@ -58,21 +67,37 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
         Out
     }
 
+    /// @notice The number of bits used to represent each window in the packed operation counters.
+    uint256 internal constant WINDOW_BITS = 32;
+
+    /// @notice The duration of a single time window for operation counting.
+    uint256 internal constant WINDOW_PERIOD = 60;
+
+    /// @notice The EVault factory contract.
+    GenericFactory internal immutable eVaultFactory;
+
     /// @notice The security validator contract.
     ISecurityValidator internal immutable validator;
 
     /// @notice The immutable ID of the attester controller
     bytes32 internal immutable controllerId;
 
+    /// @notice Mapping of vault addresses to their set of accepted attesters.
+    mapping(address vault => SetStorage) internal attesters;
+
     /// @notice Mapping of vault addresses to their policy storage.
-    mapping(address => PolicyStorage) internal policies;
+    mapping(address vault => PolicyStorage) internal policies;
 
     /// @notice Mapping of address prefixes to their operation counter.
-    mapping(bytes19 => uint256) internal operationCounters;
+    mapping(bytes19 addressPrefix => uint256) internal operationCounters;
 
     /// @notice Emitted when the attester controller ID is updated
     /// @param attesterControllerId The new attester controller ID
     event AttesterControllerUpdated(bytes32 attesterControllerId);
+
+    /// @notice Emitted when the vault is authenticated.
+    /// @param vault The address of the vault.
+    event AuthenticateVault(address indexed vault);
 
     /// @notice Emitted when accepted attesters are inserted for a vault.
     /// @param vault The address of the vault.
@@ -86,16 +111,19 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
 
     /// @notice Emitted when a policy thresholds are set for a vault.
     /// @param vault The address of the vault.
-    /// @param inConstantThreshold The constant threshold for incoming transfers.
-    /// @param inAccumulatedThreshold The accumulated threshold for incoming transfers.
-    /// @param outConstantThreshold The constant threshold for outgoing transfers.
-    /// @param outAccumulatedThreshold The accumulated threshold for outgoing transfers.
+    /// @param operationCounterThreshold The max operations counter threshold per 3 minutes that can be executed
+    /// without attestation.
+    /// @param inConstantAmountThreshold The constant amount threshold for incoming transfers.
+    /// @param inAccumulatedAmountThreshold The accumulated amount threshold for incoming transfers.
+    /// @param outConstantAmountThreshold The constant amount threshold for outgoing transfers.
+    /// @param outAccumulatedAmountThreshold The accumulated amount threshold for outgoing transfers.
     event SetPolicyThresholds(
         address indexed vault,
-        uint16 inConstantThreshold,
-        uint16 inAccumulatedThreshold,
-        uint16 outConstantThreshold,
-        uint16 outAccumulatedThreshold
+        uint32 operationCounterThreshold,
+        uint16 inConstantAmountThreshold,
+        uint16 inAccumulatedAmountThreshold,
+        uint16 outConstantAmountThreshold,
+        uint16 outAccumulatedAmountThreshold
     );
 
     /// @notice Error thrown when the caller is not authorized to perform an operation.
@@ -103,8 +131,12 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
 
     /// @notice Constructor to initialize the contract with the EVC and validator addresses.
     /// @param _evc The address of the EVC contract.
+    /// @param _eVaultFactory The address of the EVault factory contract.
     /// @param _securityValidator The address of the security validator contract.
-    constructor(address _evc, address _securityValidator, bytes32 _controllerId) EVCUtil(_evc) {
+    constructor(address _evc, address _eVaultFactory, address _securityValidator, bytes32 _controllerId)
+        EVCUtil(_evc)
+    {
+        eVaultFactory = GenericFactory(_eVaultFactory);
         validator = ISecurityValidator(_securityValidator);
         controllerId = _controllerId;
         emit AttesterControllerUpdated(_controllerId);
@@ -121,8 +153,19 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     }
 
     /// @inheritdoc IHookTarget
-    function isHookTarget() external pure override returns (bytes4) {
-        return this.isHookTarget.selector;
+    /// @dev This function returns the expected magic value only if the caller is a proxy deployed by the recognized
+    /// EVault factory.
+    function isHookTarget() external view override returns (bytes4) {
+        if (eVaultFactory.isProxy(msg.sender)) {
+            return this.isHookTarget.selector;
+        }
+        return 0;
+    }
+
+    /// @notice Retrieves the address of the EVault factory contract
+    /// @return The address of the EVault factory contract
+    function getEVaultFactory() external view returns (address) {
+        return address(eVaultFactory);
     }
 
     /// @notice Retrieves the address of the security validator contract
@@ -141,7 +184,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @param vault The address of the vault.
     /// @param attester The address of the attester to be added.
     function addPolicyAttester(address vault, address attester) external onlyEVCAccountOwner onlyGovernor(vault) {
-        if (policies[vault].attesters.insert(attester)) {
+        if (attesters[vault].insert(attester)) {
             emit AddPolicyAttester(vault, attester);
         }
     }
@@ -150,7 +193,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @param vault The address of the vault.
     /// @param attester The address of the attester to be removed.
     function removePolicyAttester(address vault, address attester) external onlyEVCAccountOwner onlyGovernor(vault) {
-        if (policies[vault].attesters.remove(attester)) {
+        if (attesters[vault].remove(attester)) {
             emit RemovePolicyAttester(vault, attester);
         }
     }
@@ -159,63 +202,90 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @param vault The address of the vault.
     /// @return An array of addresses representing the accepted attesters for the specified vault.
     function getPolicyAttesters(address vault) external view returns (address[] memory) {
-        return policies[vault].attesters.get();
+        return attesters[vault].get();
     }
 
     /// @notice Sets the policy thresholds for a given vault.
     /// @param vault The address of the vault.
-    /// @param inConstantThreshold The constant threshold for incoming transfers.
-    /// @param inAccumulatedThreshold The accumulated threshold for incoming transfers.
-    /// @param outConstantThreshold The constant threshold for outgoing transfers.
-    /// @param outAccumulatedThreshold The accumulated threshold for outgoing transfers.
+    /// @param operationCounterThreshold The max operations counter threshold per 3 minutes that can be executed
+    /// without attestation.
+    /// @param inConstantAmountThreshold The constant amount threshold for incoming transfers.
+    /// @param inAccumulatedAmountThreshold The accumulated amount threshold for incoming transfers.
+    /// @param outConstantAmountThreshold The constant amount threshold for outgoing transfers.
+    /// @param outAccumulatedAmountThreshold The accumulated amount threshold for outgoing transfers.
     function setPolicyThresholds(
         address vault,
-        uint16 inConstantThreshold,
-        uint16 inAccumulatedThreshold,
-        uint16 outConstantThreshold,
-        uint16 outAccumulatedThreshold
+        uint32 operationCounterThreshold,
+        uint16 inConstantAmountThreshold,
+        uint16 inAccumulatedAmountThreshold,
+        uint16 outConstantAmountThreshold,
+        uint16 outAccumulatedAmountThreshold
     ) external onlyEVCAccountOwner onlyGovernor(vault) {
         PolicyStorage storage policyStorage = policies[vault];
-        policyStorage.inConstantThreshold = AmountCap.wrap(inConstantThreshold);
-        policyStorage.inAccumulatedThreshold = AmountCap.wrap(inAccumulatedThreshold);
-        policyStorage.outConstantThreshold = AmountCap.wrap(outConstantThreshold);
-        policyStorage.outAccumulatedThreshold = AmountCap.wrap(outAccumulatedThreshold);
+        policyStorage.operationCounterThreshold = operationCounterThreshold;
+        policyStorage.inConstantAmountThreshold = AmountCap.wrap(inConstantAmountThreshold);
+        policyStorage.inAccumulatedAmountThreshold = AmountCap.wrap(inAccumulatedAmountThreshold);
+        policyStorage.outConstantAmountThreshold = AmountCap.wrap(outConstantAmountThreshold);
+        policyStorage.outAccumulatedAmountThreshold = AmountCap.wrap(outAccumulatedAmountThreshold);
 
         emit SetPolicyThresholds(
-            vault, inConstantThreshold, inAccumulatedThreshold, outConstantThreshold, outAccumulatedThreshold
+            vault,
+            operationCounterThreshold,
+            inConstantAmountThreshold,
+            inAccumulatedAmountThreshold,
+            outConstantAmountThreshold,
+            outAccumulatedAmountThreshold
         );
     }
 
     /// @notice Retrieves the policy thresholds for a given vault.
     /// @param vault The address of the vault.
-    /// @return inConstantThreshold The constant threshold for incoming transfers.
-    /// @return inAccumulatedThreshold The accumulated threshold for incoming transfers.
-    /// @return outConstantThreshold The constant threshold for outgoing transfers.
-    /// @return outAccumulatedThreshold The accumulated threshold for outgoing transfers.
-    function getPolicyThresholds(address vault) external view returns (uint16, uint16, uint16, uint16) {
+    /// @return operationCounterThreshold The max operations counter threshold per 3 minutes that can be executed
+    /// without attestation.
+    /// @return inConstantAmountThreshold The constant amount threshold for incoming transfers.
+    /// @return inAccumulatedAmountThreshold The accumulated amount threshold for incoming transfers.
+    /// @return outConstantAmountThreshold The constant amount threshold for outgoing transfers.
+    /// @return outAccumulatedAmountThreshold The accumulated amount threshold for outgoing transfers.
+    function getPolicyThresholds(address vault) external view returns (uint32, uint16, uint16, uint16, uint16) {
         PolicyStorage storage policyStorage = policies[vault];
         return (
-            AmountCap.unwrap(policyStorage.inConstantThreshold),
-            AmountCap.unwrap(policyStorage.inAccumulatedThreshold),
-            AmountCap.unwrap(policyStorage.outConstantThreshold),
-            AmountCap.unwrap(policyStorage.outAccumulatedThreshold)
+            policyStorage.operationCounterThreshold,
+            AmountCap.unwrap(policyStorage.inConstantAmountThreshold),
+            AmountCap.unwrap(policyStorage.inAccumulatedAmountThreshold),
+            AmountCap.unwrap(policyStorage.outConstantAmountThreshold),
+            AmountCap.unwrap(policyStorage.outAccumulatedAmountThreshold)
         );
     }
 
     /// @notice Retrieves the resolved policy thresholds for a given vault.
     /// @param vault The address of the vault.
-    /// @return inConstantThreshold The constant threshold for incoming transfers.
-    /// @return inAccumulatedThreshold The accumulated threshold for incoming transfers.
-    /// @return outConstantThreshold The constant threshold for outgoing transfers.
-    /// @return outAccumulatedThreshold The accumulated threshold for outgoing transfers.
-    function getPolicyThresholdsResolved(address vault) external view returns (uint256, uint256, uint256, uint256) {
+    /// @return operationCounterThreshold The max operations counter threshold per 3 minutes that can be executed
+    /// without attestation.
+    /// @return inConstantAmountThreshold The constant amount threshold for incoming transfers.
+    /// @return inAccumulatedAmountThreshold The accumulated amount threshold for incoming transfers.
+    /// @return outConstantAmountThreshold The constant amount threshold for outgoing transfers.
+    /// @return outAccumulatedAmountThreshold The accumulated amount threshold for outgoing transfers.
+    function getPolicyThresholdsResolved(address vault)
+        external
+        view
+        returns (uint256, uint256, uint256, uint256, uint256)
+    {
         PolicyStorage storage policyStorage = policies[vault];
         return (
-            policyStorage.inConstantThreshold.resolve(),
-            policyStorage.inAccumulatedThreshold.resolve(),
-            policyStorage.outConstantThreshold.resolve(),
-            policyStorage.outAccumulatedThreshold.resolve()
+            policyStorage.operationCounterThreshold,
+            policyStorage.inConstantAmountThreshold.resolve(),
+            policyStorage.inAccumulatedAmountThreshold.resolve(),
+            policyStorage.outConstantAmountThreshold.resolve(),
+            policyStorage.outAccumulatedAmountThreshold.resolve()
         );
+    }
+
+    /// @notice Retrieves the current operation counter for a given vault over the last 3 minutes.
+    /// @dev This operation counter only counts operations that have been executed without attestation.
+    /// @param vault The address of the vault
+    /// @return The current operation counter for the vault
+    function getOperationCounter(address vault) external view returns (uint256) {
+        return updateVaultOperationCounter(policies[vault]) - 1;
     }
 
     /// @notice Saves an attestation.
@@ -294,48 +364,71 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @param referenceAmount The reference amount for the transfer.
     /// @param hashable Additional data to be hashed.
     function executeCheckpoint(TransferType transferType, uint256 referenceAmount, bytes memory hashable) internal {
+        PolicyStorage memory policy = policies[msg.sender];
+        if (!policy.isAuthenticated) {
+            authenticateVault(msg.sender);
+        }
+
         address sender = caller();
-        uint256 operationCounter = updateOperationCounter(sender);
+        uint256 accountOperationCounter = updateAccountOperationCounter(sender);
+        uint256 vaultOperationCounter = updateVaultOperationCounter(policy);
         uint256 accumulatedAmount = updateAccumulatedAmount(transferType, msg.sender, referenceAmount);
-        (uint256 constantThreshold, uint256 accumulatedThreshold) = resolveThresholds(msg.sender, transferType);
+        (uint256 operationCounterThreshold, uint256 constantAmountThreshold, uint256 accumulatedAmountThreshold) =
+            resolveThresholds(transferType, policy);
 
         if (
-            (referenceAmount >= constantThreshold || accumulatedAmount >= accumulatedThreshold)
-                && !evc.isSimulationInProgress()
+            vaultOperationCounter >= operationCounterThreshold || referenceAmount >= constantAmountThreshold
+                || accumulatedAmount >= accumulatedAmountThreshold
         ) {
-            // to prevent replay attacks, the hash must depend on:
-            // - the vault address that is a caller of the hook target
-            // - the operation type executed (function selector)
-            // - the quantized reference amount that allows for runtime changes within an acceptable range
-            // - the static parameters of the operation
-            // - the authenticated account that executes the operation
-            // - the operation counter associated with the authenticated account
-            validator.executeCheckpoint(
-                keccak256(
-                    abi.encode(
-                        msg.sender,
-                        bytes4(msg.data),
-                        log1_01(int256(referenceAmount)),
-                        hashable,
-                        sender,
-                        operationCounter
+            if (!evc.isSimulationInProgress()) {
+                // to prevent replay attacks, the hash must depend on:
+                // - the vault address that is a caller of the hook target
+                // - the operation type executed (function selector)
+                // - the quantized reference amount that allows for runtime changes within an acceptable range
+                // - the static parameters of the operation
+                // - the authenticated account that executes the operation
+                // - the operation counter associated with the authenticated account
+                validator.executeCheckpoint(
+                    keccak256(
+                        abi.encode(
+                            msg.sender,
+                            bytes4(msg.data),
+                            log1_01(referenceAmount),
+                            hashable,
+                            sender,
+                            accountOperationCounter
+                        )
                     )
-                )
-            );
+                );
 
-            // this check must be done after the checkpoint is executed so that at this point, in case the
-            // storeAttestation function is used instead of the saveAttestation function, the current attester must be
-            // already defined by the validator contract
-            if (!isAttestationInProgress()) {
-                revert HTA_Unauthorized();
+                // this check must be done after the checkpoint is executed so that at this point, in case the
+                // storeAttestation function is used instead of the saveAttestation function, the current attester must
+                // be
+                // already defined by the validator contract
+                if (!isAttestationInProgress()) {
+                    revert HTA_Unauthorized();
+                }
             }
+        } else {
+            // apply the operation counter update only if the checkpoint does not need to be executed
+            policies[msg.sender] = policy;
+        }
+    }
+
+    /// @notice Authenticates the vault if it is a proxy deployed by the recognized eVault factory.
+    function authenticateVault(address vault) internal {
+        if (eVaultFactory.isProxy(msg.sender)) {
+            policies[vault].isAuthenticated = true;
+            emit AuthenticateVault(msg.sender);
+        } else {
+            revert HTA_Unauthorized();
         }
     }
 
     /// @notice Updates the operation counter for a given account.
     /// @param account The account for which the operation counter is updated.
     /// @return The updated operation counter.
-    function updateOperationCounter(address account) internal returns (uint256) {
+    function updateAccountOperationCounter(address account) internal returns (uint256) {
         bytes19 prefix = _getAddressPrefix(account);
         uint256 counter = operationCounters[prefix] + 1;
         operationCounters[prefix] = counter;
@@ -357,42 +450,68 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
         return accumulatedAmount;
     }
 
+    /// @notice Updates the vault operation counter.
+    /// @dev The update is only applied in policy memory. For the update to be persisted, update the policy storage.
+    /// @param policy The policy for the vault.
+    /// @return The total updated vault operation counter over all the windows.
+    function updateVaultOperationCounter(PolicyStorage memory policy) internal view returns (uint256) {
+        uint256 timeElapsed = block.timestamp - policy.updateTimestampNormalized;
+        uint256 counters = policy.operationCountersPacked;
+
+        if (timeElapsed >= WINDOW_PERIOD) {
+            // shift based on windows passed (if > 2, this will zero out all counters)
+            counters = (counters << ((timeElapsed / WINDOW_PERIOD) * WINDOW_BITS)) | 1;
+        } else {
+            // increment the counter for the current window
+            counters = counters + 1;
+        }
+
+        policy.updateTimestampNormalized = uint48(block.timestamp - (block.timestamp % WINDOW_PERIOD));
+        policy.operationCountersPacked = uint96(counters);
+
+        return uint32(counters) + uint32(counters >> WINDOW_BITS) + uint32(counters >> (2 * WINDOW_BITS));
+    }
+
     /// @notice Checks if an attestation is in progress.
     /// @return True if an attestation is in progress, false otherwise.
     function isAttestationInProgress() internal view returns (bool) {
         address currentAttester = validator.getCurrentAttester();
-        return currentAttester != address(0) && policies[msg.sender].attesters.contains(currentAttester);
+        return currentAttester != address(0) && attesters[msg.sender].contains(currentAttester);
     }
 
-    /// @notice Resolves the constant and accumulated thresholds for a given vault and transfer type.
-    /// @param vault The address of the vault.
+    /// @notice Resolves the thresholds for a given vault and transfer type.
     /// @param transferType The type of transfer (In or Out).
-    /// @return constantThreshold The resolved constant threshold.
-    /// @return accumulatedThreshold The resolved accumulated threshold.
-    function resolveThresholds(address vault, TransferType transferType)
+    /// @param policy The policy for the vault.
+    /// @return operationCounterThreshold The operation counter threshold.
+    /// @return constantAmountThreshold The resolved constant amount threshold.
+    /// @return accumulatedAmountThreshold The resolved accumulated amount threshold.
+    function resolveThresholds(TransferType transferType, PolicyStorage memory policy)
         internal
-        view
-        returns (uint256 constantThreshold, uint256 accumulatedThreshold)
+        pure
+        returns (uint256 operationCounterThreshold, uint256 constantAmountThreshold, uint256 accumulatedAmountThreshold)
     {
-        PolicyStorage storage policy = policies[vault];
+        operationCounterThreshold = policy.operationCounterThreshold;
+        if (operationCounterThreshold == 0) {
+            operationCounterThreshold = type(uint256).max;
+        }
 
         if (transferType == TransferType.In) {
-            constantThreshold = policy.inConstantThreshold.resolve();
-            accumulatedThreshold = policy.inAccumulatedThreshold.resolve();
+            constantAmountThreshold = policy.inConstantAmountThreshold.resolve();
+            accumulatedAmountThreshold = policy.inAccumulatedAmountThreshold.resolve();
         } else {
-            constantThreshold = policy.outConstantThreshold.resolve();
-            accumulatedThreshold = policy.outAccumulatedThreshold.resolve();
+            constantAmountThreshold = policy.outConstantAmountThreshold.resolve();
+            accumulatedAmountThreshold = policy.outAccumulatedAmountThreshold.resolve();
         }
     }
 
     /// @notice Calculates the logarithm base 1.01 of a given number.
     /// @param x The number to calculate the logarithm for.
     /// @return The logarithm base 1.01 of the given number.
-    function log1_01(int256 x) internal pure returns (int256) {
-        if (x == 0) return type(int256).max;
+    function log1_01(uint256 x) internal pure returns (uint256) {
+        if (x == 0) return type(uint256).max;
 
         // log1.01(x) = ln(x) / ln(1.01) = lnWad(x * 1e18) / lnWad(1.01 * 1e18)
-        return FixedPointMathLib.lnWad(x * 1e18) / 9950330853168082;
+        return uint256(FixedPointMathLib.lnWad(int256(x * 1e18))) / 9950330853168082;
     }
 
     /// @notice Retrieves the caller address from the calldata.

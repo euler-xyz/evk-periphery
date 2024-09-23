@@ -11,9 +11,12 @@ The primary purpose of the `HookTargetFirewall` is to enforce security policies 
 1. Each vault can have its own security policy, including:
     - A set of accepted attesters
     - Thresholds for incoming and outgoing transfers (both constant and accumulated within a transaction)
+    - An operation counter threshold to limit the frequency of operations that do not require attestation
 2. The contract intercepts key vault operations like `deposit`, `withdraw`, `mint`, `redeem`, `borrow`, and `repay`, validating them against the stored policy.
 3. For transactions exceeding defined thresholds, `HookTargetFirewall` requires an appropriate attestation to be obtained and saved in the `SecurityValidator` contract prior to the operation being executed.
-4. The contract implements an operation counter to prevent replay attacks and preserve the integrity of operations even if they do not require checkpoints to be executed. Operation counter is incremented for each intercepted operation.
+4. The contract implements a sliding window mechanism to track frequency of operations that do not require attestation, using bit manipulation for gas-efficient storage and calculation.
+5. The contract implements an operation counter to prevent replay attacks and preserve the integrity of operations even if they do not require attestation. Operation counter is incremented for each intercepted operation.
+6. The firewall ensures that only authorized vaults (proxies deployed by the recognized EVault factory) can use it.
 
 ## How It Works
 
@@ -48,3 +51,15 @@ The reference amount is quantized using a logarithmic function (`log1.01`) befor
 ### Handling of Maximum Values
 
 When operations involve `type(uint256).max` as an amount (often used to represent "all available" in token operations), special handling is required. The `HookTargetFirewall` resolves these maximum values to concrete asset amounts before applying thresholds and computing checkpoint hashes.
+
+### Operation Counter Mechanism
+
+The `HookTargetFirewall` uses a sliding window approach to track frequency of operations that do not require attestation:
+
+1. It uses a `uint96` to store three 32-bit counters, each representing a 1-minute window.
+2. As time passes, the counters are shifted, and new operations increment the current window's counter.
+3. The total operation count over the last 3 minutes is used to determine if the operation frequency threshold has been exceeded.
+
+### Vault Authentication
+
+The `HookTargetFirewall` ensures that only authorized vaults can use its services. It uses the `GenericFactory` contract to verify that the calling vault is a proxy deployed by the recognized EVault factory.
