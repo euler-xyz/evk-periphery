@@ -39,7 +39,7 @@ contract Lenses is ScriptUtils {
     }
 
     function execute(address oracleAdapterRegistry, address kinkIRMFactory) public returns (address[] memory lenses) {
-        lenses = new address[](5);
+        lenses = new address[](6);
         lenses[0] = address(new AccountLens());
         lenses[1] = address(new OracleLens(oracleAdapterRegistry));
         lenses[2] = address(new IRMLens(kinkIRMFactory));
