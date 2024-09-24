@@ -74,6 +74,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address escrowedCollateralPerspective;
         address eulerUngoverned0xPerspective;
         address eulerUngovernedNzxPerspective;
+        address termsOfUseSigner;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -96,6 +97,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress(
             "peripheryAddresses", "eulerUngovernedNzxPerspective", Addresses.eulerUngovernedNzxPerspective
         );
+        result = vm.serializeAddress("peripheryAddresses", "termsOfUseSigner", Addresses.termsOfUseSigner);
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -112,7 +114,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             governedPerspective: getAddressFromJson(json, ".governedPerspective"),
             escrowedCollateralPerspective: getAddressFromJson(json, ".escrowedCollateralPerspective"),
             eulerUngoverned0xPerspective: getAddressFromJson(json, ".eulerUngoverned0xPerspective"),
-            eulerUngovernedNzxPerspective: getAddressFromJson(json, ".eulerUngovernedNzxPerspective")
+            eulerUngovernedNzxPerspective: getAddressFromJson(json, ".eulerUngovernedNzxPerspective"),
+            termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner")
         });
     }
 }
