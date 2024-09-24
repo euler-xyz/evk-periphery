@@ -533,10 +533,11 @@ while true; do
             echo "0. All (Account Lens, Oracle Lens, IRM Lens, Vault Lens, Utils Lens)"
             echo "1. Account Lens"
             echo "2. Vault Lens"
-            echo "3. Oracle Lens"
-            echo "4. IRM Lens"
-            echo "5. Utils Lens"
-            read -p "Enter your choice (0-5): " lens_choice
+            echo "3. Euler Earn Vault Lens"
+            echo "4. Oracle Lens"
+            echo "5. IRM Lens"
+            echo "6. Utils Lens"
+            read -p "Enter your choice (0-6): " lens_choice
             
             baseName=08_Lenses
 
@@ -571,17 +572,37 @@ while true; do
                     jsonName=08_LensVault
                     
                     read -p "Enter the Oracle Lens address: " oracle_lens
+                    read -p "Enter the Utils Lens address: " utils_lens
                     read -p "Enter the IRM Lens address: " irm_lens
 
                     jq -n \
                         --arg oracleLens "$oracle_lens" \
+                        --arg utilsLens "$utils_lens" \
                         --arg irmLens "$irm_lens" \
                         '{
                             oracleLens: $oracleLens,
+                            utilsLens: $utilsLens,
                             irmLens: $irmLens
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 3)
+                    echo "Deploying Euler Earn Vault Lens..."
+                    
+                    scriptName=${baseName}.s.sol:LensEulerEarnVaultDeployer
+                    jsonName=08_LensEulerEarnVault
+                    
+                    read -p "Enter the Oracle Lens address: " oracle_lens
+                    read -p "Enter the Utils Lens address: " utils_lens
+
+                    jq -n \
+                        --arg oracleLens "$oracle_lens" \
+                        --arg utilsLens "$utils_lens" \
+                        '{
+                            oracleLens: $oracleLens,
+                            utilsLens: $utilsLens
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                4)
                     echo "Deploying Oracle Lens..."
 
                     scriptName=${baseName}.s.sol:LensOracleDeployer
@@ -595,7 +616,7 @@ while true; do
                             oracleAdapterRegistry: $oracleAdapterRegistry
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
-                4)
+                5)
                     echo "Deploying IRM Lens..."
 
                     scriptName=${baseName}.s.sol:LensIRMDeployer
@@ -609,11 +630,19 @@ while true; do
                             kinkIRMFactory: $kinkIRMFactory
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
-                5)
+                6)
                     echo "Deploying Utils Lens..."
 
                     scriptName=${baseName}.s.sol:LensUtilsDeployer
                     jsonName=08_LensUtils
+                    
+                    read -p "Enter the Oracle Lens address: " oracle_lens
+
+                    jq -n \
+                        --arg oracleLens "$oracle_lens" \
+                        '{
+                            oracleLens: $oracleLens
+                        }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
                     echo "Invalid lens choice. Exiting."

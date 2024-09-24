@@ -129,13 +129,15 @@ contract DeployCoreAndPeriphery is ScriptUtils {
         // deploy lenses
         {
             Lenses deployer = new Lenses();
-            (
-                lensAddresses.accountLens,
-                lensAddresses.oracleLens,
-                lensAddresses.irmLens,
-                lensAddresses.vaultLens,
-                lensAddresses.utilsLens
-            ) = deployer.deploy(peripheryAddresses.oracleAdapterRegistry, peripheryAddresses.kinkIRMFactory);
+            address[] memory lenses =
+                deployer.deploy(peripheryAddresses.oracleAdapterRegistry, peripheryAddresses.kinkIRMFactory);
+
+            lensAddresses.accountLens = lenses[0];
+            lensAddresses.oracleLens = lenses[1];
+            lensAddresses.irmLens = lenses[2];
+            lensAddresses.utilsLens = lenses[3];
+            lensAddresses.vaultLens = lenses[4];
+            lensAddresses.eulerEarnVaultLens = lenses[5];
         }
 
         // save results

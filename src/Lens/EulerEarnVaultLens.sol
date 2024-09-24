@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
+import {OracleLens} from "./OracleLens.sol";
+import {UtilsLens} from "./UtilsLens.sol";
 import "./IYieldAggregator.sol"; // to be imported from the aggregator repo
 import "./ConstantsLib.sol"; // to be imported from the aggregator repo
 import {Utils} from "./Utils.sol";
@@ -9,6 +11,16 @@ import "evk/EVault/shared/types/AmountCap.sol";
 import "./LensTypes.sol";
 
 contract EulerEarnVaultLens is Utils {
+    OracleLens public immutable oracleLens;
+    UtilsLens public immutable utilsLens;
+    address[] internal backupUnitOfAccounts;
+
+    constructor(address _oracleLens, address _utilsLens) {
+        oracleLens = OracleLens(_oracleLens);
+        utilsLens = UtilsLens(_utilsLens);
+        backupUnitOfAccounts = [address(840), _getWETHAddress(), 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB];
+    }
+
     function getVaultInfoFull(address vault) public view returns (EulerEarnVaultInfoFull memory) {
         EulerEarnVaultInfoFull memory result;
 
@@ -58,9 +70,29 @@ contract EulerEarnVaultLens is Utils {
                 assetsAllocated: strategy.allocated,
                 allocationPoints: strategy.allocationPoints,
                 allocationCap: uint120(strategy.cap.resolve()),
-                isActive: strategy.status == IYieldAggregator.StrategyStatus.Active,
                 isInEmergency: strategy.status == IYieldAggregator.StrategyStatus.Emergency
             });
+        }
+
+        address[] memory bases = new address[](1);
+        address[] memory quotes = new address[](1);
+        for (uint256 i = 0; i < backupUnitOfAccounts.length; ++i) {
+            bases[0] = result.asset;
+            quotes[0] = backupUnitOfAccounts[i];
+
+            result.backupAssetPriceInfo = utilsLens.getAssetPriceInfo(bases[0], quotes[0]);
+
+            if (
+                !result.backupAssetPriceInfo.queryFailure
+                    || oracleLens.isStalePullOracle(
+                        result.backupAssetPriceInfo.oracle, result.backupAssetPriceInfo.queryFailureReason
+                    )
+            ) {
+                result.backupAssetOracleInfo =
+                    oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, quotes);
+
+                break;
+            }
         }
 
         return result;

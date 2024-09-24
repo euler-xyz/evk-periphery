@@ -330,6 +330,8 @@ struct EulerEarnVaultInfoFull {
     bool isHarvestCoolDownCheckOn;
     EulerEarnVaultAccessControlInfo accessControlInfo;
     EulerEarnVaultStrategyInfo[] strategies;
+    AssetPriceInfo backupAssetPriceInfo;
+    OracleDetailedInfo backupAssetOracleInfo;
 }
 
 struct EulerEarnVaultAccessControlInfo {
@@ -349,6 +351,5 @@ struct EulerEarnVaultStrategyInfo {
     uint256 assetsAllocated;
     uint256 allocationPoints;
     uint256 allocationCap;
-    bool isActive;
     bool isInEmergency;
 }
