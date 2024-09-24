@@ -221,6 +221,7 @@ struct EulerRouterInfo {
     OracleDetailedInfo fallbackOracleInfo;
     address[] bases;
     address[] quotes;
+    address[][] resolvedAssets;
     address[] resolvedOracles;
     OracleDetailedInfo[] resolvedOraclesInfo;
 }
