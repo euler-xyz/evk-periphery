@@ -15,7 +15,7 @@ import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 /// @notice A contract that allows users to sign the terms of use.
 contract TermsOfUseSigner is EVCUtil {
     /// @notice Mapping to store timestamp of last signature for each account and terms of use hash
-    mapping(address => mapping(bytes32 => uint256)) public termsOfUseLastSignatureTimestamps;
+    mapping(address => mapping(bytes32 => uint256)) internal termsOfUseLastSignatureTimestamps;
 
     /// @notice Emitted when the terms of use is signed by an account
     /// @param account The address of the account that signed the terms of use
