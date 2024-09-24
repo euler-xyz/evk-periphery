@@ -561,7 +561,7 @@ while true; do
         8)
             echo "Deploying lenses..."
             echo "Select the type of lens to deploy:"
-            echo "0. All (Account Lens, Oracle Lens, IRM Lens, Vault Lens, Utils Lens)"
+            echo "0. All (Account Lens, Vault Lens, Euler Earn Vault Lens, Oracle Lens, IRM Lens, Utils Lens)"
             echo "1. Account Lens"
             echo "2. Vault Lens"
             echo "3. Euler Earn Vault Lens"
