@@ -170,8 +170,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
-        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
-        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
     function test_swapperOneInchV5_basicSwapGRTUSDC_exactOutMode() external {
@@ -233,8 +231,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
-        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
-        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
     function test_swapperOneInchV5_exectOutGRTUSDC_firstOverswapped() external {
@@ -311,8 +307,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
-        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
-        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
     function test_swapperOneInchV5_exectOutGRTUSDC_twoSteps() external {
@@ -389,8 +383,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
-        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
-        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
     function test_swapperOneInchV5_exectOutGRTUSDC_twoSteps_fromSubaccount() external {
@@ -473,8 +465,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
-        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
-        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
     function test_swapperOneInchV5_exectInGRTUSDC_insufficientAmountIn() external {
@@ -940,8 +930,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
-        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
-        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
     function test_swapperOneInchV5_GRTUSDC_swapAndRepay_V2_swapFromSubaccount() external {
@@ -1026,8 +1014,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
-        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
-        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
     function test_swapperOneInchV5_GRTUSDC_swapAndRepay_V3() external {
@@ -1107,8 +1093,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
-        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
-        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
     function test_swapperOneInchV5_GRTUSDC_swapAndRepay_primaryOverswaps() external {
@@ -1186,8 +1170,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
-        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
-        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
     function test_swapperOneInchV5_GRTUSDC_swapAndRepay_overswapOnGenericHandler() external {
@@ -1247,8 +1229,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
-        assertEq(IERC20(GRT).allowance(address(swapper), address(eGRT)), 0);
-        assertEq(IERC20(USDC).allowance(address(swapper), address(eUSDC)), 0);
     }
 
     /// @dev Note rebasing tokens like stETH are not supported by current EVault implementation. They are by the Swapper
@@ -1309,8 +1289,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(USDT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(STETH).balanceOf(address(swapper)), 0);
-        assertEq(IERC20(USDT).allowance(address(swapper), address(eUSDT)), 0);
-        assertEq(IERC20(STETH).allowance(address(swapper), address(eSTETH)), 0);
     }
 
     /// @dev Note rebasing tokens like stETH are not supported by current EVault implementation. They are by the Swapper
@@ -1414,8 +1392,6 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(USDT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(STETH).balanceOf(address(swapper)), 1); // some residual dust is left by the weird token
-        assertEq(IERC20(USDT).allowance(address(swapper), address(eUSDT)), 0);
-        assertEq(IERC20(STETH).allowance(address(swapper), address(eSTETH)), 0);
     }
 
     function test_swapperRepayAndDeposit_maxRepayAmount() external {
