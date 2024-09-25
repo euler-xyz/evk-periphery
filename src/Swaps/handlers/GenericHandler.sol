@@ -16,9 +16,11 @@ abstract contract GenericHandler is BaseHandler {
 
         if (params.mode == MODE_TARGET_DEBT) resolveParams(params); // set repay amount in params.amountOut
 
-        setMaxAllowance(params.tokenIn, target);
+        safeApproveWithRetry(params.tokenIn, target, type(uint256).max);
 
         (bool success, bytes memory result) = target.call(payload);
         if (!success) RevertBytes.revertBytes(result);
+
+        removeAllowance(params.tokenIn, target);
     }
 }
