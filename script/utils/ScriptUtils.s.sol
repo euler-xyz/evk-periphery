@@ -215,7 +215,9 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         uint256 decimals = ERC20(asset).decimals();
         uint16 result;
 
-        if (amountNoDecimals >= 100) {
+        if (amountNoDecimals == type(uint16).max) {
+            return 0;
+        } else if (amountNoDecimals >= 100) {
             uint256 scale = Math.log10(amountNoDecimals);
             result = uint16(((amountNoDecimals / 10 ** (scale - 2)) << 6) | (scale + decimals));
         } else {
