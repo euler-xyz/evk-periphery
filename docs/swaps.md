@@ -45,13 +45,15 @@ Finally a `multicall` function allows chaining all of the above to execute compl
 The swaps can be performed in one of 3 modes:
 - exact input 
 
-  In this mode, all of the provided input token is expected to be swapped for an unknown amount of the output token. The proceeds are expected to be sent to a vault, to be skimmed by the user, or back to the swapper contract. The latter option is useful when performing complex, multi-stage swaps, where the output token is accumulated in the swapper before being consumed at the end of the operation. Note that the available handlers (1Inch and Uniswap Auto Router) execute a payload encoded off-chain, so a lot of the parameters passed to the `swap` funtion will be ignored and only the amount of input token encoded in the payload will be swapped, even if the swapper holds more.
+  In this mode, all of the provided input token is expected to be swapped for an unknown amount of the output token. The proceeds are expected to be sent to a vault, to be skimmed by the user, or back to the swapper contract. The latter option is useful when performing complex, multi-stage swaps, where the output token is accumulated in the swapper before being consumed at the end of the operation. Note that the available handler (`GenericHandler`) executes a payload encoded off-chain, so a lot of the parameters passed to the `swap` funtion will be ignored and only the amount of input token encoded in the payload will be swapped, even if the swapper holds more.
 
 - exact output
 
   In this mode, the swapper is expected to purchase a specified amount of the output token in exchange for an unknown amount of the input token. The input token amount provided to the swapper acts as an implicit slippage limit. Currently available handlers (Uniswap V2 and V3) will check the current balance of the output token held by the swapper and adjust the amount of token to buy to only purchase the remainder. This feature can be used to construct multi-stage swaps. For instance, in the first stage, most of the token is bought through a dex aggregator, which presumably offers better price, but doesn't provide exact output swaps. The proceeds are directed to the swapper contract. In the second stage another `swap` call is executed, and the remainder is bought directly in Uniswap, where exact output trades are supported.
 
   In exact output trades, the remaining, unused input token amount is automatically redeposited for the account specified in `SwapParams.accountIn` in a vault specified in `SwapParams.vaultIn`.
+
+  Note that the generic handler can also be invoked in exact output mode. The swap will be executed as per the request encoded off-chain, but swapper will attempt to return unused input token balance if any.
 
 - target debt (swap and repay)
 
@@ -63,18 +65,20 @@ The swaps can be performed in one of 3 modes:
 
   Finally, and similarly to exact output, any unused input will be redeposited for the `accountIn`.
 
+  Note that the generic handler can also be invoked in target debt mode. In such a case there will be no on-chain modification to the swap payload, but swapper will attempt a repay and return of the unused input as per swap params.
+
 
 ### Handlers
 
 The swapper contract executes trades using external providers like 1Inch or Uniswap. Internal handler modules take care of interfacing with the provider. They are enumerated by a `bytes32` encoded string. The available handlers are listed as constants in `Swapper.sol`.
 
-- 1Inch handler
+- Generic handler
 
-  Only supports `exact input` mode. Executes a payload returned by [1Inch API](https://portal.1inch.dev/documentation/swap/introduction) on the aggregator contract.
+  Executes arbitrary call on arbitrary target address. Presumably they are calls to swap providers. For example a payload returned by [1Inch API](https://portal.1inch.dev/documentation/swap/introduction) on the aggregator contract or payloads created with [Uniswap's Auto Router](https://github.com/Uniswap/smart-order-router) on [SwapRouter02](https://etherscan.io/address/0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45)
 
-- Uniswap Auto Router handler
+  Generic handler accepts all 3 swapping modes, although for most swap providers only exact input is natively available. Although the off-chain data will not be modified to match the actual on-chain conditions during execution, swapper will carry out post processing according to the swap mode: returning unused input token in exact output mode or repaying debt in target debt mode. See F5 in [Common flows](#common-flows-in-evk) for one possible use case.
 
-  Supports `exact input` and `exact output` modes. Executes payloads created with [Uniswap's Auto Router](https://github.com/Uniswap/smart-order-router) on [SwapRouter02](https://etherscan.io/address/0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45). Payload is simply executed in both modes, so in exact output, the handler will not try to update the amount bought with balance already present in the swapper, as the other uniswap handlers.
+  The data passed to the handler in `SwapParams.data` should be an abi encoded tuple: target contract address and call data
 
 - Uniswap V2 handler
 
@@ -98,7 +102,7 @@ F1. Swap exact amount of deposits from one EVault (A) to another (B)
 - fetch a swap payload from either 1Inch api or Uniswap Auto Router, setting B as the receiver
 - create EVC batch call with the following items:
   - `A.withdraw` the required input token amount to the swapper contract 
-  - `Swapper.swap` - `exact input` on the selected handler
+  - `Swapper.swap` - `exact input` on the generic handler
   - `SwapVerifier.verifyAmountMinAndSkim` Check a minimum required amount was bought for the input, according to slippage settings and claim it for the user.
 
 F2. Swap deposits from one EVault (A) to exact amount of another (B)
@@ -106,7 +110,7 @@ F2. Swap deposits from one EVault (A) to exact amount of another (B)
 - create EVC batch with the following items:
   - `A.withdraw` to the swapper contract. The amount must cover all of the estimated swap costs with some extra, to account for slippage
   - `swapper.multicall` with the following items:
-    - `Swapper.swap` - `exact input` with the off-chain payload
+    - `Swapper.swap` - `exact input` on the generic handler with the off-chain payload
     - `Swapper.swap` - `exact output` on one of the supportin handlers (Uni V2/V3) with the user specified `amountOut`. The receiver can be either the swapper contract or B vault.
     - `Swapper.sweep` the output token, into the B vault
   - `SwapVerifier.verifyAmountMinAndSkim` check a minimum required amount was bought and claim the funds for the user. Because exact output swaps are not guaranteed to be exact always, a small slippage could be allowed.
@@ -127,9 +131,8 @@ F4. Sell deposits from one vault (A) to repay debt in another (B)
 F5. Sell deposit from one vault (A) to repay debt in another (B) when exact output is unavailable
 
 For some token pairs, the exact output swap might not be available at all, or the price impact might be too big due to poor liquidity in Uniswap. In such cases to repay the full debt:
-- find an exact input payload on 1Inch or Uniswap Auto Router, to buy slightly **more** of the output token than is necessary to repay the debt, taking into account slippage on exchanges and interest accrual between the payload generation and transaction execution. E.g., binary search input amount that yields 102% of the current debt. Set the receiver to the liability vault.
+- find an exact input payload on 1Inch or Uniswap Auto Router, to buy slightly **more** of the output token than is necessary to repay the debt, taking into account slippage on exchanges and interest accrual between the payload generation and transaction execution. E.g., binary search input amount that yields 102% of the current debt (2% slippage limit). Set the receiver to the liability vault.
 - create EVC batch with the following items:
   - `A.withdraw` the required input token amount to the swapper contract
-  - `Swapper.swap` - `exact input` on the selected handler
-  - `SwapVerifier.verifyAmountMinAndSkim` check that the minimum required amount was bought and claim it for the user
-  - `B.repayWithShares` setting the amount to max uint256. Debt should be removed to zero, with the remainder of the output token deposited in B vault for the borrower.
+  - `Swapper.swap` - `target debt` on the generic handler. The `amountOut` should be set to the amount of debt the user requested to have after the operation. Set to zero, to repay full debt.
+  - `SwapVerifier.verifyDebtMax` check that the user's debt matches the expectations
