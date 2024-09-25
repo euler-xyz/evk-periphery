@@ -125,16 +125,18 @@ abstract contract LensAddressesLib is ScriptExtended {
         address accountLens;
         address oracleLens;
         address irmLens;
-        address vaultLens;
         address utilsLens;
+        address vaultLens;
+        address eulerEarnVaultLens;
     }
 
     function serializeLensAddresses(LensAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("lensAddresses", "accountLens", Addresses.accountLens);
         result = vm.serializeAddress("lensAddresses", "oracleLens", Addresses.oracleLens);
         result = vm.serializeAddress("lensAddresses", "irmLens", Addresses.irmLens);
-        result = vm.serializeAddress("lensAddresses", "vaultLens", Addresses.vaultLens);
         result = vm.serializeAddress("lensAddresses", "utilsLens", Addresses.utilsLens);
+        result = vm.serializeAddress("lensAddresses", "vaultLens", Addresses.vaultLens);
+        result = vm.serializeAddress("lensAddresses", "eulerEarnVaultLens", Addresses.eulerEarnVaultLens);
     }
 
     function deserializeLensAddresses(string memory json) internal pure returns (LensAddresses memory) {
@@ -142,8 +144,9 @@ abstract contract LensAddressesLib is ScriptExtended {
             accountLens: getAddressFromJson(json, ".accountLens"),
             oracleLens: getAddressFromJson(json, ".oracleLens"),
             irmLens: getAddressFromJson(json, ".irmLens"),
+            utilsLens: getAddressFromJson(json, ".utilsLens"),
             vaultLens: getAddressFromJson(json, ".vaultLens"),
-            utilsLens: getAddressFromJson(json, ".utilsLens")
+            eulerEarnVaultLens: getAddressFromJson(json, ".eulerEarnVaultLens")
         });
     }
 }
