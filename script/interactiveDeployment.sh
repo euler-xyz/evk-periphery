@@ -698,7 +698,7 @@ while true; do
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
                 '{
                     uniswapRouterV2: $uniswapRouterV2,
-                    uniswapRouterV3: $uniswapRouterV3,
+                    uniswapRouterV3: $uniswapRouterV3
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         11)
