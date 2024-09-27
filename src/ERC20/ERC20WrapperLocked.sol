@@ -57,10 +57,25 @@ contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     {}
 
     /// @notice Sets the whitelist status for an account
+    /// @dev If the account is being whitelisted, all the locked amounts are removed resulting in all the tokens being
+    /// unlocked. If the account being removed from the whitelist, the current account balance is locked.
     /// @param account The address to set the whitelist status for
     /// @param status The whitelist status to set
     function setWhitelistStatus(address account, bool status) public onlyEVCAccountOwner onlyOwner {
         if (isWhitelisted[account] != status) {
+            if (status) {
+                EnumerableMap.UintToUintMap storage map = lockedAmounts[account];
+                uint256[] memory lockTimestamps = map.keys();
+                for (uint256 i = 0; i < lockTimestamps.length; ++i) {
+                    map.remove(lockTimestamps[i]);
+                }
+            } else {
+                uint256 amount = balanceOf(account);
+                if (amount != 0) {
+                    lockedAmounts[account].set(_getNormalizedTimestamp(), amount);
+                }
+            }
+
             isWhitelisted[account] = status;
             emit WhitelistStatus(account, status);
         }
@@ -185,11 +200,12 @@ contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param account The address to check
     /// @return Two arrays: normalized lock timestamps and corresponding amounts
     function getLockedAmounts(address account) public view returns (uint256[] memory, uint256[] memory) {
-        uint256[] memory lockTimestamp = lockedAmounts[account].keys();
+        EnumerableMap.UintToUintMap storage map = lockedAmounts[account];
+        uint256[] memory lockTimestamp = map.keys();
         uint256[] memory amounts = new uint256[](lockTimestamp.length);
 
         for (uint256 i = 0; i < lockTimestamp.length; i++) {
-            amounts[i] = lockedAmounts[account].get(lockTimestamp[i]);
+            amounts[i] = map.get(lockTimestamp[i]);
         }
 
         return (lockTimestamp, amounts);
@@ -202,7 +218,7 @@ contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param to Address to transfer to
     /// @param amount Amount to transfer
     function _update(address from, address to, uint256 amount) internal virtual override {
-        if (to != address(0) && !isWhitelisted[to]) {
+        if (to != address(0) && amount != 0 && !isWhitelisted[to]) {
             EnumerableMap.UintToUintMap storage map = lockedAmounts[to];
             uint256 normalizedTimestamp = _getNormalizedTimestamp();
             (, uint256 currentAmount) = map.tryGet(normalizedTimestamp);
