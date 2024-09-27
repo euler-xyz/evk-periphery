@@ -36,6 +36,16 @@ contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param status The new whitelist status
     event WhitelistStatus(address indexed account, bool status);
 
+    /// @notice Emitted when a new lock is created for an account
+    /// @param account The address of the account for which the lock was created
+    /// @param lockTimestamp The normalized timestamp of the created lock
+    event LockCreated(address indexed account, uint256 indexed lockTimestamp);
+
+    /// @notice Emitted when a lock is removed for an account
+    /// @param account The address of the account for which the lock was removed
+    /// @param lockTimestamp The normalized timestamp of the removed lock
+    event LockRemoved(address indexed account, uint256 indexed lockTimestamp);
+
     /// @notice Modifier to restrict function access to whitelisted addresses
     /// @param account The address to check for whitelist status
     modifier onlyWhitelisted(address account) {
@@ -68,11 +78,14 @@ contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
                 uint256[] memory lockTimestamps = map.keys();
                 for (uint256 i = 0; i < lockTimestamps.length; ++i) {
                     map.remove(lockTimestamps[i]);
+                    emit LockRemoved(account, lockTimestamps[i]);
                 }
             } else {
                 uint256 amount = balanceOf(account);
                 if (amount != 0) {
-                    lockedAmounts[account].set(_getNormalizedTimestamp(), amount);
+                    uint256 normalizedTimestamp = _getNormalizedTimestamp();
+                    lockedAmounts[account].set(normalizedTimestamp, amount);
+                    emit LockCreated(account, normalizedTimestamp);
                 }
             }
 
@@ -148,7 +161,10 @@ contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
         address sender = _msgSender();
         (uint256 receiverAmount, uint256 burnAmount) = getWithdrawAmountsByLockTimestamp(sender, lockTimestamp);
 
-        lockedAmounts[sender].remove(lockTimestamp);
+        if (lockedAmounts[sender].remove(lockTimestamp)) {
+            emit LockRemoved(sender, lockTimestamp);
+        }
+
         _burn(sender, receiverAmount + burnAmount);
         asset.safeTransfer(account, receiverAmount);
         asset.safeTransfer(BURN_ADDRESS, burnAmount);
@@ -222,7 +238,10 @@ contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
             EnumerableMap.UintToUintMap storage map = lockedAmounts[to];
             uint256 normalizedTimestamp = _getNormalizedTimestamp();
             (, uint256 currentAmount) = map.tryGet(normalizedTimestamp);
-            map.set(normalizedTimestamp, currentAmount + amount);
+
+            if (map.set(normalizedTimestamp, currentAmount + amount)) {
+                emit LockCreated(to, normalizedTimestamp);
+            }
         }
 
         super._update(from, to, amount);
@@ -249,7 +268,7 @@ contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
         //        +----------+----------+----------> Time (days)
         //        0       period1    period2
 
-        if (lockTimestamp >= block.timestamp) return 0;
+        if (lockTimestamp > block.timestamp) return 0;
 
         unchecked {
             // period1: 30 days; period2: 90 days
