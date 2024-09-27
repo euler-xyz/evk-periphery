@@ -23,7 +23,7 @@ contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     uint256 internal constant SCALE = 1e4;
 
     /// @notice Address used for burning tokens
-    address internal immutable BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+    address internal constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     /// @notice Mapping to store whitelist status of addresses
     mapping(address => bool) public isWhitelisted;
