@@ -249,7 +249,7 @@ contract ERC20WrapperLockedTest is Test {
         );
         vm.assume(receiver != address(0) && receiver != account);
         vm.assume(amount < type(uint256).max / 1e4);
-        delta = bound(delta, 0, 100 days);
+        delta = bound(delta, 0, 200 days);
 
         vm.warp(timestamp);
         mint(owner, amount);
@@ -270,10 +270,10 @@ contract ERC20WrapperLockedTest is Test {
         uint256 expectedAmount;
         if (delta <= 30 days) {
             expectedAmount = amount / 5;
-        } else if (delta >= 90 days) {
+        } else if (delta >= 180 days) {
             expectedAmount = amount;
         } else {
-            expectedAmount = ((delta - 30 days) * 0.6e4 / 60 days + 0.2e4) * amount / 1e4;
+            expectedAmount = ((delta - 30 days) * 0.6e4 / 150 days + 0.2e4) * amount / 1e4;
         }
         assertEq(erc20Mintable.balanceOf(receiver), expectedAmount);
         assertEq(erc20Mintable.balanceOf(0x000000000000000000000000000000000000dEaD), amount - expectedAmount);
