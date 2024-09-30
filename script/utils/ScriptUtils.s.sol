@@ -211,38 +211,38 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         }
     }
 
-    function encodeAmountCap(address asset, uint16 amountNoDecimals) internal view returns (uint16) {
+    function encodeAmountCap(address asset, uint256 amountNoDecimals) internal view returns (uint256) {
         uint256 decimals = ERC20(asset).decimals();
-        uint16 result;
+        uint256 result;
 
-        if (amountNoDecimals == type(uint16).max) {
+        if (amountNoDecimals == type(uint256).max) {
             return 0;
         } else if (amountNoDecimals >= 100) {
             uint256 scale = Math.log10(amountNoDecimals);
-            result = uint16(((amountNoDecimals / 10 ** (scale - 2)) << 6) | (scale + decimals));
+            result = ((amountNoDecimals / 10 ** (scale - 2)) << 6) | (scale + decimals);
         } else {
-            result = uint16((100 * amountNoDecimals << 6) | decimals);
+            result = (100 * amountNoDecimals << 6) | decimals;
         }
 
-        require(
-            AmountCapLib.resolve(AmountCap.wrap(result)) == amountNoDecimals * 10 ** decimals,
-            "encodeAmountCap: incorrect encoding"
-        );
+        if (AmountCapLib.resolve(AmountCap.wrap(uint16(result))) != amountNoDecimals * 10 ** decimals) {
+            console.log("encodeAmountCap: %s", amountNoDecimals);
+            revert("encodeAmountCap: incorrect encoding");
+        }
 
         return result;
     }
 
-    function encodeAmountCaps(address[] storage assets, uint16[] storage amountsNoDecimals)
+    function encodeAmountCaps(address[] storage assets, uint256[] storage amountsNoDecimals)
         internal
         view
-        returns (uint16[] memory)
+        returns (uint256[] memory)
     {
         require(
             assets.length == amountsNoDecimals.length,
             "encodeAmountCaps: assets and amountsNoDecimals must have the same length"
         );
 
-        uint16[] memory result = new uint16[](assets.length);
+        uint256[] memory result = new uint256[](assets.length);
         for (uint256 i = 0; i < assets.length; ++i) {
             result[i] = encodeAmountCap(assets[i], amountsNoDecimals[i]);
         }
@@ -283,6 +283,8 @@ abstract contract BatchBuilder is ScriptUtils {
     }
 
     function executeBatch() internal broadcast {
+        if (items.length == 0) return;
+
         IEVC(coreAddresses.evc).batch(items);
         clearBatchItems();
     }
@@ -339,8 +341,8 @@ abstract contract BatchBuilder is ScriptUtils {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setConfigFlags, (newConfigFlags)));
     }
 
-    function setCaps(address vault, uint16 supplyCap, uint16 borrowCap) internal {
-        addBatchItem(vault, abi.encodeCall(IEVault(vault).setCaps, (supplyCap, borrowCap)));
+    function setCaps(address vault, uint256 supplyCap, uint256 borrowCap) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setCaps, (uint16(supplyCap), uint16(borrowCap))));
     }
 
     function setInterestFee(address vault, uint16 newInterestFee) internal {
