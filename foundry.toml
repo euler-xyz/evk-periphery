@@ -24,7 +24,8 @@ override_spacing = true
 wrap_comments = true
 ignore = [
     "script/production/mainnet/DeployCBBTC.s.sol",
-    "script/production/mainnet/DeployMegaCluster.s.sol"
+    "script/production/mainnet/megaCluster/BaseMegaCluster.s.sol",
+    "script/production/mainnet/megaCluster/DeployMegaCluster.s.sol"
 ]
 
 [profile.default.fuzz]

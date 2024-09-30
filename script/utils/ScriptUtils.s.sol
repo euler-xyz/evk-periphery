@@ -11,13 +11,23 @@ import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
+import {OracleLens} from "../../src/Lens/OracleLens.sol";
+import "../../src/Lens/LensTypes.sol";
 
 abstract contract ScriptExtended is Script {
     function getAddressFromJson(string memory json, string memory key) internal pure returns (address) {
-        try vm.parseJsonAddress(json, key) returns (address result) {
-            return result;
+        try vm.parseJson(json, key) returns (bytes memory data) {
+            return abi.decode(data, (address));
         } catch {
             revert(string(abi.encodePacked("getAddressFromJson: failed to parse JSON for key: ", key)));
+        }
+    }
+
+    function getAddressesFromJson(string memory json, string memory key) internal pure returns (address[] memory) {
+        try vm.parseJson(json, key) returns (bytes memory data) {
+            return abi.decode(data, (address[]));
+        } catch {
+            revert(string(abi.encodePacked("getAddressesFromJson: failed to parse JSON for key: ", key)));
         }
     }
 }
@@ -211,6 +221,80 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         }
     }
 
+    function getValidAdapter(address base, address quote, string memory provider)
+        internal
+        view
+        returns (address adapter)
+    {
+        address[] memory adapters = OracleLens(lensAddresses.oracleLens).getValidAdapters(base, quote);
+
+        uint256 counter;
+        for (uint256 i = 0; i < adapters.length; i++) {
+            string memory resolvedOracleName = resolveOracleName(
+                OracleLens(lensAddresses.oracleLens).getOracleInfo(adapters[i], new address[](0), new address[](0))
+            );
+
+            if (_strEq(provider, resolvedOracleName)) {
+                adapter = adapters[i];
+                counter++;
+            }
+        }
+
+        if (adapter == address(0) || _strEq(provider, "PythOracle") || _strEq(provider, "RedstoneClassicOracle")) {
+            return address(0);
+        }
+
+        if (adapter == address(0) || counter > 1) {
+            console.log("base: %s, quote: %s, provider: %s", base, quote, provider);
+
+            if (adapter == address(0)) revert("getValidAdapters: Adapter not found");
+            if (counter > 1) revert("getValidAdapters: Multiple adapters found");
+        }
+    }
+
+    function resolveOracleName(OracleDetailedInfo memory oracleInfo) internal pure returns (string memory) {
+        if (_strEq(oracleInfo.name, "ChainlinkOracle")) {
+            if (isRedstoneClassicOracle(abi.decode(oracleInfo.oracleInfo, (ChainlinkOracleInfo)))) {
+                return "RedstoneClassicOracle";
+            } else {
+                return "ChainlinkOracle";
+            }
+        } else if (_strEq(oracleInfo.name, "CrossAdapter")) {
+            CrossAdapterInfo memory crossOracleInfo = abi.decode(oracleInfo.oracleInfo, (CrossAdapterInfo));
+            string memory oracleBaseCrossName = crossOracleInfo.oracleBaseCrossInfo.name;
+            string memory oracleCrossQuoteName = crossOracleInfo.oracleCrossQuoteInfo.name;
+
+            if (
+                _strEq(oracleBaseCrossName, "ChainlinkOracle")
+                    && isRedstoneClassicOracle(
+                        abi.decode(crossOracleInfo.oracleBaseCrossInfo.oracleInfo, (ChainlinkOracleInfo))
+                    )
+            ) {
+                oracleBaseCrossName = "RedstoneClassicOracle";
+            }
+
+            if (
+                _strEq(oracleCrossQuoteName, "ChainlinkOracle")
+                    && isRedstoneClassicOracle(
+                        abi.decode(crossOracleInfo.oracleCrossQuoteInfo.oracleInfo, (ChainlinkOracleInfo))
+                    )
+            ) {
+                oracleCrossQuoteName = "RedstoneClassicOracle";
+            }
+
+            return string(abi.encodePacked("CrossAdapter=", oracleBaseCrossName, "+", oracleCrossQuoteName));
+        }
+
+        return oracleInfo.name;
+    }
+
+    function isRedstoneClassicOracle(ChainlinkOracleInfo memory chainlinkOracleInfo) internal pure returns (bool) {
+        if (_strEq(chainlinkOracleInfo.feedDescription, "Redstone Price Feed")) {
+            return true;
+        }
+        return false;
+    }
+
     function encodeAmountCap(address asset, uint256 amountNoDecimals) internal view returns (uint256) {
         uint256 decimals = ERC20(asset).decimals();
         uint256 result;
@@ -225,7 +309,11 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         }
 
         if (AmountCapLib.resolve(AmountCap.wrap(uint16(result))) != amountNoDecimals * 10 ** decimals) {
-            console.log("encodeAmountCap: %s", amountNoDecimals);
+            console.log(
+                "expected: %s; actual: %s",
+                amountNoDecimals * 10 ** decimals,
+                AmountCapLib.resolve(AmountCap.wrap(uint16(result)))
+            );
             revert("encodeAmountCap: incorrect encoding");
         }
 
@@ -248,9 +336,15 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         }
         return result;
     }
+
+    function _strEq(string memory a, string memory b) internal pure returns (bool) {
+        return keccak256(bytes(a)) == keccak256(bytes(b));
+    }
 }
 
 abstract contract BatchBuilder is ScriptUtils {
+    uint256 internal constant TRIGGER_EXECUTE_BATCH_AT_SIZE = 250;
+
     IEVC.BatchItem[] internal items;
 
     function addBatchItem(address targetContract, bytes memory data) internal {
@@ -272,6 +366,8 @@ abstract contract BatchBuilder is ScriptUtils {
                 data: data
             })
         );
+
+        if (items.length >= TRIGGER_EXECUTE_BATCH_AT_SIZE) executeBatch();
     }
 
     function clearBatchItems() internal {
