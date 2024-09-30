@@ -15,7 +15,7 @@ import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 /// callers. `transferFrom` is only supported for whitelisted `from` addresses. If the account balance is
 /// non-whitelisted, their tokens can only be withdrawn as per the lock schedule and the remainder of the amount is
 /// burned.
-contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
+abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     using EnumerableMap for EnumerableMap.UintToUintMap;
     using SafeERC20 for IERC20;
 
@@ -248,38 +248,10 @@ contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     }
 
     /// @notice Calculates the share of tokens that can be unlocked based on the lock timestamp
+    /// @dev This function should be overridden by the child contract to implement the specific unlock schedule
     /// @param lockTimestamp The timestamp when the tokens were locked
     /// @return The share of tokens that can be freely unlocked (in basis points)
-    function _calculateUnlockShare(uint256 lockTimestamp) internal view virtual returns (uint256) {
-        //      Share %
-        //        ^
-        //        |              share3 +----------+
-        //        |                     |
-        //        |                     |
-        //        |              share2 +
-        //        |                   _/|
-        //        |                 _/  |
-        //        |               _/    |
-        //        |             _/      |
-        //        |           _/        |
-        // share1 +----------+          |
-        //        |          |          |
-        //        |          |          |
-        //        +----------+----------+----------> Time (days)
-        //        0       period1    period2
-
-        if (lockTimestamp > block.timestamp) return 0;
-
-        unchecked {
-            // period1: 30 days; period2: 180 days
-            // share1: 20%; share2: 80%; share3: 100%
-            uint256 timeElapsed = block.timestamp - lockTimestamp;
-
-            if (timeElapsed <= 30 days) return 0.2e4;
-            else if (timeElapsed >= 180 days) return SCALE;
-            else return (timeElapsed - 30 days) * 0.6e4 / 150 days + 0.2e4;
-        }
-    }
+    function _calculateUnlockShare(uint256 lockTimestamp) internal view virtual returns (uint256);
 
     /// @notice Internal function to get the normalized timestamp
     /// @return The normalized timestamp (rounded down to the nearest day)
