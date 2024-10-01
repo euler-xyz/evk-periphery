@@ -25,8 +25,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     uint256 internal constant SCALE = 1e4;
 
     /// @notice Address that will receive the remainder of the tokens after the lock schedule is applied. If zero
-    /// address,
-    /// the remainder of the tokens will be sent to the owner.
+    /// address, the remainder of the tokens will be sent to the owner.
     address public remainderReceiver;
 
     /// @notice Mapping to store whitelist status of addresses
@@ -65,7 +64,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param _evc Address of the Ethereum Vault Connector
     /// @param _owner Address of the contract owner
     /// @param _remainderReceiver Address that will receive the remainder of the tokens after the lock schedule is
-    /// applied
+    /// applied. If zero address, the remainder of the tokens will be sent to the owner.
     /// @param _underlying Address of the underlying ERC20 token
     /// @param _name Name of the wrapper token
     /// @param _symbol Symbol of the wrapper token
@@ -82,7 +81,8 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     }
 
     /// @notice Sets a new remainder receiver address
-    /// @param _remainderReceiver The address of the new remainder receiver
+    /// @param _remainderReceiver The address of the new remainder receiver. If zero address, the remainder of the
+    /// tokens
     function setRemainderReceiver(address _remainderReceiver) public onlyOwner {
         if (remainderReceiver != _remainderReceiver) {
             remainderReceiver = _remainderReceiver;
