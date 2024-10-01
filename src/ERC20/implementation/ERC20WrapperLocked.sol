@@ -15,6 +15,8 @@ import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 /// callers. `transferFrom` is only supported for whitelisted `from` addresses. If the account balance is
 /// non-whitelisted, their tokens can only be withdrawn as per the lock schedule and the remainder of the amount is
 /// transferred to the receiver address configured.
+/// @dev The wrapped token is assumed to be well behaved, including not rebasing, not attempting to re-enter this
+/// wrapper contract, and not presenting any other weird behavior.
 abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     using EnumerableMap for EnumerableMap.UintToUintMap;
     using SafeERC20 for IERC20;
@@ -45,12 +47,12 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @notice Emitted when a new lock is created for an account
     /// @param account The address of the account for which the lock was created
     /// @param lockTimestamp The normalized timestamp of the created lock
-    event LockCreated(address indexed account, uint256 indexed lockTimestamp);
+    event LockCreated(address indexed account, uint256 lockTimestamp);
 
     /// @notice Emitted when a lock is removed for an account
     /// @param account The address of the account for which the lock was removed
     /// @param lockTimestamp The normalized timestamp of the removed lock
-    event LockRemoved(address indexed account, uint256 indexed lockTimestamp);
+    event LockRemoved(address indexed account, uint256 lockTimestamp);
 
     /// @notice Modifier to restrict function access to whitelisted addresses
     /// @param account The address to check for whitelist status
@@ -65,8 +67,8 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param _remainderReceiver Address that will receive the remainder of the tokens after the lock schedule is
     /// applied
     /// @param _underlying Address of the underlying ERC20 token
-    /// @param _name Name of the wrapped token
-    /// @param _symbol Symbol of the wrapped token
+    /// @param _name Name of the wrapper token
+    /// @param _symbol Symbol of the wrapper token
     constructor(
         address _evc,
         address _owner,
@@ -179,20 +181,45 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param lockTimestamp The normalized lock timestamp to withdraw tokens for
     /// @return bool indicating success of the withdrawal
     function withdrawToByLockTimestamp(address account, uint256 lockTimestamp) public virtual returns (bool) {
+        uint256[] memory lockTimestamps = new uint256[](1);
+        lockTimestamps[0] = lockTimestamp;
+        return withdrawToByLockTimestamps(account, lockTimestamps);
+    }
+
+    /// @notice Withdraws tokens to a specified account based on multiple normalized lock timestamps as per the lock
+    /// schedule.
+    /// The remainder of the tokens are transferred to the receiver address configured.
+    /// @param account The address to receive the withdrawn tokens
+    /// @param lockTimestamps An array of normalized lock timestamps to withdraw tokens for
+    /// @return bool indicating success of the withdrawal
+    function withdrawToByLockTimestamps(address account, uint256[] memory lockTimestamps)
+        public
+        virtual
+        returns (bool)
+    {
         IERC20 asset = underlying();
         address sender = _msgSender();
-        (uint256 accountAmount, uint256 remainderAmount) = getWithdrawAmountsByLockTimestamp(sender, lockTimestamp);
 
-        if (lockedAmounts[sender].remove(lockTimestamp)) {
-            emit LockRemoved(sender, lockTimestamp);
+        uint256 totalAccountAmount;
+        uint256 totalRemainderAmount;
+        for (uint256 i = 0; i < lockTimestamps.length; ++i) {
+            uint256 lockTimestamp = lockTimestamps[i];
+            (uint256 accountAmount, uint256 remainderAmount) = getWithdrawAmountsByLockTimestamp(sender, lockTimestamp);
+
+            if (lockedAmounts[sender].remove(lockTimestamp)) {
+                emit LockRemoved(sender, lockTimestamp);
+            }
+
+            totalAccountAmount += accountAmount;
+            totalRemainderAmount += remainderAmount;
         }
 
-        _burn(sender, accountAmount + remainderAmount);
-        asset.safeTransfer(account, accountAmount);
+        _burn(sender, totalAccountAmount + totalRemainderAmount);
+        asset.safeTransfer(account, totalAccountAmount);
 
-        if (remainderAmount != 0) {
+        if (totalRemainderAmount != 0) {
             address receiver = remainderReceiver;
-            asset.safeTransfer(receiver == address(0) ? owner() : receiver, remainderAmount);
+            asset.safeTransfer(receiver == address(0) ? owner() : receiver, totalRemainderAmount);
         }
 
         return true;

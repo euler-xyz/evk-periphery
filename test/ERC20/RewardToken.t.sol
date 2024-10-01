@@ -78,7 +78,7 @@ contract RewardTokenTest is Test {
 
         assertEq(rewardToken.getLockedAmountsLength(account), 0);
         if (amount != 0) {
-            vm.expectEmit(true, true, false, false, address(rewardToken));
+            vm.expectEmit(true, false, false, true, address(rewardToken));
             emit ERC20WrapperLocked.LockCreated(account, normalizedTimestamp);
         }
         rewardToken.setWhitelistStatus(account, false);
@@ -119,7 +119,7 @@ contract RewardTokenTest is Test {
             uint256 newNormalizedTimestamp = block.timestamp - (block.timestamp % 1 days);
 
             if (amount != 0 && (j == 0 || newNormalizedTimestamp != previousNormalizedTimestamp)) {
-                vm.expectEmit(true, true, false, false, address(rewardToken));
+                vm.expectEmit(true, false, false, true, address(rewardToken));
                 emit ERC20WrapperLocked.LockCreated(account, newNormalizedTimestamp);
             }
 
@@ -164,10 +164,10 @@ contract RewardTokenTest is Test {
         } else {
             assertEq(logs.length, lockTimestamps1.length + 1);
             for (uint256 j = 0; j < lockTimestamps1.length; j++) {
-                assertEq(logs[j].topics.length, 3);
+                assertEq(logs[j].topics.length, 2);
                 assertEq(logs[j].topics[0], keccak256("LockRemoved(address,uint256)"));
                 assertEq(logs[j].topics[1], bytes32(uint256(uint160(account))));
-                assertEq(logs[j].topics[2], bytes32(lockTimestamps1[j]));
+                assertEq(abi.decode(logs[j].data, (uint256)), lockTimestamps1[j]);
             }
         }
         assertEq(rewardToken.getLockedAmountsLength(account), 0);

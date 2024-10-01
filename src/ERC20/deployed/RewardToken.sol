@@ -9,16 +9,18 @@ import {ERC20WrapperLocked} from "../implementation/ERC20WrapperLocked.sol";
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A wrapper for locked ERC20 tokens that can be withdrawn as per the lock schedule.
-/// @dev This contract implements a specific unlock schedule for reward tokens. Tokens are gradually unlocked over a
-/// 180-day period, with 20% unlocked after 30 days and the remaining 80% linearly unlocked over the next 150 days.
+/// @dev This contract implements a specific unlock schedule for reward tokens. Tokens are unlocked over a 180-day
+/// period. 20% is unlocked immediately, then no additional tokens are unlocked for 30 days. After that, the unlock
+/// share increases linearly from 20% at day 30 to 80% at day 180 and the remaining 20% is unlocked immediately at day
+/// 180.
 contract RewardToken is ERC20WrapperLocked {
     /// @notice Constructor for RewardToken
     /// @param _evc Address of the Ethereum Vault Connector
     /// @param _owner Address of the contract owner
     /// @param _receiver Address of the receiver
     /// @param _underlying Address of the underlying ERC20 token
-    /// @param _name Name of the wrapped token
-    /// @param _symbol Symbol of the wrapped token
+    /// @param _name Name of the reward token
+    /// @param _symbol Symbol of the reward token
     constructor(
         address _evc,
         address _owner,
