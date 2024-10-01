@@ -34,30 +34,34 @@ contract RewardToken is ERC20WrapperLocked {
     function _calculateUnlockShare(uint256 lockTimestamp) internal view virtual override returns (uint256) {
         //      Share %
         //        ^
+        //        |                         share4 +----------+
+        //        |                                |
+        //        |                                |
         //        |              share3 +----------+
-        //        |                     |
-        //        |                     |
-        //        |              share2 +
-        //        |                   _/|
-        //        |                 _/  |
-        //        |               _/    |
-        //        |             _/      |
-        //        |           _/        |
-        // share1 +----------+          |
-        //        |          |          |
-        //        |          |          |
-        //        +----------+----------+----------> Time (days)
-        //        0       period1    period2
+        //        |                     |          |
+        //        |                     |          |
+        //        |              share2 +          |
+        //        |                   _/|          |
+        //        |                 _/  |          |
+        //        |               _/    |          |
+        //        |             _/      |          |
+        //        |           _/        |          |
+        // share1 +----------+          |          |
+        //        |          |          |          |
+        //        |          |          |          |
+        //        +----------+----------+----------+----------> Time (days)
+        //        0       period1    period2    period3
 
         if (lockTimestamp > block.timestamp) return 0;
 
         unchecked {
-            // period1: 30 days; period2: 180 days
-            // share1: 20%; share2: 80%; share3: 100%
+            // period1: 30 days; period2: 180 days; period3: 540 days
+            // share1: 20%; share2: 80%; share3: 90%; share4: 100%
             uint256 timeElapsed = block.timestamp - lockTimestamp;
 
             if (timeElapsed <= 30 days) return 0.2e4;
-            else if (timeElapsed >= 180 days) return SCALE;
+            else if (timeElapsed >= 180 days && timeElapsed <= 540 days) return 0.9e4;
+            else if (timeElapsed > 540 days) return SCALE;
             else return (timeElapsed - 30 days) * 0.6e4 / 150 days + 0.2e4;
         }
     }

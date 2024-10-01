@@ -173,7 +173,7 @@ contract RewardTokenTest is Test {
         );
         vm.assume(
             receiver != address(0) && receiver != caller && receiver != account && receiver != remainderReceiver
-                && receiver != address(evc)
+                && receiver != address(evc) && receiver != address(erc20Mintable)
         );
         vm.assume(amount > 0 && amount < type(uint256).max / 1e4);
 
@@ -253,7 +253,7 @@ contract RewardTokenTest is Test {
         );
         vm.assume(receiver != address(0) && receiver != account && receiver != remainderReceiver);
         vm.assume(amount < type(uint256).max / 1e4);
-        delta = bound(delta, 0, 200 days);
+        delta = bound(delta, 0, 550 days);
 
         vm.warp(timestamp);
         mint(owner, amount);
@@ -274,7 +274,9 @@ contract RewardTokenTest is Test {
         uint256 expectedAmount;
         if (delta <= 30 days) {
             expectedAmount = amount / 5;
-        } else if (delta >= 180 days) {
+        } else if (delta >= 180 days && delta <= 540 days) {
+            expectedAmount = 9 * amount / 10;
+        } else if (delta > 540 days) {
             expectedAmount = amount;
         } else {
             expectedAmount = ((delta - 30 days) * 0.6e4 / 150 days + 0.2e4) * amount / 1e4;
