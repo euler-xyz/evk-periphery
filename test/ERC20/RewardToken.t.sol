@@ -190,7 +190,7 @@ contract RewardTokenTest is Test {
             receiver != address(0) && receiver != caller && receiver != account && receiver != remainderReceiver
                 && receiver != address(evc)
         );
-        vm.assume(amount > 0 && amount < type(uint256).max / 1e4);
+        vm.assume(amount > 0 && amount < type(uint256).max / 1e18);
 
         mint(caller, amount);
 
@@ -267,7 +267,7 @@ contract RewardTokenTest is Test {
             account != address(0) && account != owner && account != address(rewardToken) && account != address(evc)
         );
         vm.assume(receiver != address(0) && receiver != account && receiver != remainderReceiver);
-        vm.assume(amount < type(uint256).max / 1e4);
+        vm.assume(amount < type(uint256).max / 1e18);
         delta = bound(delta, 0, 200 days);
 
         vm.warp(timestamp);
@@ -287,12 +287,12 @@ contract RewardTokenTest is Test {
         vm.startPrank(account);
         rewardToken.withdrawToByLockTimestamp(receiver, normalizedTimestamp);
         uint256 expectedAmount;
-        if (delta <= 30 days) {
+        if (delta <= 1 days) {
             expectedAmount = amount / 5;
         } else if (delta >= 180 days) {
             expectedAmount = amount;
         } else {
-            expectedAmount = ((delta - 30 days) * 0.6e4 / 150 days + 0.2e4) * amount / 1e4;
+            expectedAmount = ((delta - 1 days) * 0.8e18 / 179 days + 0.2e18) * amount / 1e18;
         }
         assertEq(erc20Mintable.balanceOf(receiver), expectedAmount);
         assertEq(erc20Mintable.balanceOf(remainderReceiver), amount - expectedAmount);
@@ -313,7 +313,7 @@ contract RewardTokenTest is Test {
             account != address(0) && account != owner && account != address(rewardToken) && account != address(evc)
         );
         vm.assume(receiver != address(0) && receiver != account && receiver != remainderReceiver && receiver != owner);
-        vm.assume(amount < type(uint256).max / 1e4);
+        vm.assume(amount < type(uint256).max / 1e18);
         delta = bound(delta, 0, 200 days);
 
         vm.warp(timestamp);
@@ -333,12 +333,12 @@ contract RewardTokenTest is Test {
         vm.startPrank(account);
         rewardToken.withdrawToByLockTimestamp(receiver, normalizedTimestamp);
         uint256 expectedAmount;
-        if (delta <= 30 days) {
+        if (delta <= 1 days) {
             expectedAmount = amount / 5;
         } else if (delta >= 180 days) {
             expectedAmount = amount;
         } else {
-            expectedAmount = ((delta - 30 days) * 0.6e4 / 150 days + 0.2e4) * amount / 1e4;
+            expectedAmount = ((delta - 1 days) * 0.8e18 / 179 days + 0.2e18) * amount / 1e18;
         }
         assertEq(erc20Mintable.balanceOf(receiver), expectedAmount);
         assertEq(erc20Mintable.balanceOf(owner), amount - expectedAmount);

@@ -21,8 +21,12 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     using EnumerableMap for EnumerableMap.UintToUintMap;
     using SafeERC20 for IERC20;
 
+    /// @notice The factor used to normalize lock timestamps to daily intervals
+    /// @dev This constant is used to round down timestamps to the nearest day when creating locks
+    uint256 internal constant LOCK_NORMALIZATION_FACTOR = 1 days;
+
     /// @notice Scaling factor for percentage calculations
-    uint256 internal constant SCALE = 1e4;
+    uint256 internal constant SCALE = 1e18;
 
     /// @notice Address that will receive the remainder of the tokens after the lock schedule is applied. If zero
     /// address, the remainder of the tokens will be sent to the owner.
@@ -310,7 +314,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @notice Internal function to get the normalized timestamp
     /// @return The normalized timestamp (rounded down to the nearest day)
     function _getNormalizedTimestamp() internal view virtual returns (uint256) {
-        return block.timestamp - (block.timestamp % 1 days);
+        return block.timestamp - (block.timestamp % LOCK_NORMALIZATION_FACTOR);
     }
 
     /// @notice Internal function to get the authenticated message sender

@@ -10,9 +10,8 @@ import {ERC20WrapperLocked} from "../implementation/ERC20WrapperLocked.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A wrapper for locked ERC20 tokens that can be withdrawn as per the lock schedule.
 /// @dev This contract implements a specific unlock schedule for reward tokens. Tokens are unlocked over a 180-day
-/// period. 20% is unlocked immediately, then no additional tokens are unlocked for 30 days. After that, the unlock
-/// share increases linearly from 20% at day 30 to 80% at day 180 and the remaining 20% is unlocked immediately at day
-/// 180.
+/// period. 20% is unlocked immediately, and the remaining 80% unlocks linearly over 6 months, reaching full unlock at
+/// maturity. The linear unlock starts LOCK_NORMALIZATION_FACTOR after the lock is created.
 contract RewardToken is ERC20WrapperLocked {
     /// @notice Constructor for RewardToken
     /// @param _evc Address of the Ethereum Vault Connector
@@ -34,33 +33,19 @@ contract RewardToken is ERC20WrapperLocked {
     /// @param lockTimestamp The timestamp when the tokens were locked
     /// @return The share of tokens that can be freely unlocked (in basis points)
     function _calculateUnlockShare(uint256 lockTimestamp) internal view virtual override returns (uint256) {
-        //      Share %
-        //        ^
-        //        |              share3 +----------+
-        //        |                     |
-        //        |                     |
-        //        |              share2 +
-        //        |                   _/|
-        //        |                 _/  |
-        //        |               _/    |
-        //        |             _/      |
-        //        |           _/        |
-        // share1 +----------+          |
-        //        |          |          |
-        //        |          |          |
-        //        +----------+----------+----------> Time (days)
-        //        0       period1    period2
-
         if (lockTimestamp > block.timestamp) return 0;
 
         unchecked {
-            // period1: 30 days; period2: 180 days
-            // share1: 20%; share2: 80%; share3: 100%
             uint256 timeElapsed = block.timestamp - lockTimestamp;
 
-            if (timeElapsed <= 30 days) return 0.2e4;
-            else if (timeElapsed >= 180 days) return SCALE;
-            else return (timeElapsed - 30 days) * 0.6e4 / 150 days + 0.2e4;
+            if (timeElapsed <= LOCK_NORMALIZATION_FACTOR) {
+                return 0.2e18;
+            } else if (timeElapsed >= 180 days) {
+                return SCALE;
+            } else {
+                return
+                    (timeElapsed - LOCK_NORMALIZATION_FACTOR) * 0.8e18 / (180 days - LOCK_NORMALIZATION_FACTOR) + 0.2e18;
+            }
         }
     }
 }
