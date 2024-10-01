@@ -10,6 +10,7 @@ import {ERC20WrapperLocked, EVCUtil, Ownable} from "../../src/ERC20/implementati
 
 contract RewardTokenTest is Test {
     address owner = makeAddr("owner");
+    address remainderReceiver = makeAddr("remainderReceiver");
     EthereumVaultConnector evc;
     ERC20Mintable erc20Mintable;
     RewardToken rewardToken;
@@ -17,7 +18,9 @@ contract RewardTokenTest is Test {
     function setUp() public {
         evc = new EthereumVaultConnector();
         erc20Mintable = new ERC20Mintable(owner, "ERC20Mintable", "ERC20Mintable", 18);
-        rewardToken = new RewardToken(address(evc), owner, address(erc20Mintable), "RewardToken", "RewardToken");
+        rewardToken = new RewardToken(
+            address(evc), owner, remainderReceiver, address(erc20Mintable), "RewardToken", "RewardToken"
+        );
     }
 
     function mint(address account, uint256 amount) internal {
@@ -28,8 +31,23 @@ contract RewardTokenTest is Test {
         erc20Mintable.approve(address(rewardToken), amount);
     }
 
+    function test_setRemainderReceiver(address nonOwner, address newRemainderReceiver) external {
+        vm.assume(nonOwner != owner && nonOwner != address(evc));
+        vm.assume(newRemainderReceiver != address(0));
+
+        vm.prank(nonOwner);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
+        rewardToken.setRemainderReceiver(newRemainderReceiver);
+
+        vm.startPrank(owner);
+        vm.expectEmit(true, false, false, false, address(rewardToken));
+        emit ERC20WrapperLocked.RemainderReceiverSet(newRemainderReceiver);
+        rewardToken.setRemainderReceiver(newRemainderReceiver);
+        assertEq(rewardToken.remainderReceiver(), newRemainderReceiver);
+    }
+
     function test_setWhitelistStatus(address nonOwner, address account, bool status) external {
-        vm.assume(nonOwner != owner && nonOwner != address(evc) && owner != address(evc));
+        vm.assume(nonOwner != owner && nonOwner != address(evc));
 
         vm.prank(nonOwner);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
@@ -168,7 +186,10 @@ contract RewardTokenTest is Test {
             caller != address(0) && account != address(0) && caller != account && caller != address(rewardToken)
                 && account != address(rewardToken) && caller != address(evc) && account != address(evc)
         );
-        vm.assume(receiver != address(0) && receiver != caller && receiver != account && receiver != address(evc));
+        vm.assume(
+            receiver != address(0) && receiver != caller && receiver != account && receiver != remainderReceiver
+                && receiver != address(evc)
+        );
         vm.assume(amount > 0 && amount < type(uint256).max / 1e4);
 
         mint(caller, amount);
@@ -224,7 +245,7 @@ contract RewardTokenTest is Test {
                 assertEq(rewardToken.getLockedAmountsLength(account), 1);
                 rewardToken.withdrawToByLockTimestamp(receiver, 0);
                 assertEq(erc20Mintable.balanceOf(receiver), amount / 5);
-                assertEq(erc20Mintable.balanceOf(0x000000000000000000000000000000000000dEaD), amount - amount / 5);
+                assertEq(erc20Mintable.balanceOf(remainderReceiver), amount - amount / 5);
                 assertEq(rewardToken.balanceOf(account), 0);
                 assertEq(rewardToken.getLockedAmountsLength(account), 0);
             }
@@ -245,7 +266,7 @@ contract RewardTokenTest is Test {
         vm.assume(
             account != address(0) && account != owner && account != address(rewardToken) && account != address(evc)
         );
-        vm.assume(receiver != address(0) && receiver != account);
+        vm.assume(receiver != address(0) && receiver != account && receiver != remainderReceiver);
         vm.assume(amount < type(uint256).max / 1e4);
         delta = bound(delta, 0, 200 days);
 
@@ -274,7 +295,53 @@ contract RewardTokenTest is Test {
             expectedAmount = ((delta - 30 days) * 0.6e4 / 150 days + 0.2e4) * amount / 1e4;
         }
         assertEq(erc20Mintable.balanceOf(receiver), expectedAmount);
-        assertEq(erc20Mintable.balanceOf(0x000000000000000000000000000000000000dEaD), amount - expectedAmount);
+        assertEq(erc20Mintable.balanceOf(remainderReceiver), amount - expectedAmount);
+        assertEq(rewardToken.balanceOf(account), 0);
+        assertEq(rewardToken.getLockedAmountsLength(account), 0);
+    }
+
+    function test_remainderReceiverIsZero(
+        address account,
+        address receiver,
+        uint256 amount,
+        uint32 timestamp,
+        uint256 delta
+    ) external {
+        rewardToken =
+            new RewardToken(address(evc), owner, address(0), address(erc20Mintable), "RewardToken", "RewardToken");
+        vm.assume(
+            account != address(0) && account != owner && account != address(rewardToken) && account != address(evc)
+        );
+        vm.assume(receiver != address(0) && receiver != account && receiver != remainderReceiver && receiver != owner);
+        vm.assume(amount < type(uint256).max / 1e4);
+        delta = bound(delta, 0, 200 days);
+
+        vm.warp(timestamp);
+        mint(owner, amount);
+
+        vm.startPrank(owner);
+        rewardToken.setWhitelistStatus(owner, true);
+        rewardToken.depositFor(account, amount);
+        vm.stopPrank();
+
+        uint256 normalizedTimestamp = block.timestamp - (block.timestamp % 1 days);
+        vm.warp(normalizedTimestamp + delta);
+        assertEq(rewardToken.getLockedAmountsLength(account), amount != 0 ? 1 : 0);
+        assertEq(rewardToken.getLockedAmountByLockTimestamp(account, normalizedTimestamp), amount);
+        assertEq(rewardToken.balanceOf(account), amount);
+
+        vm.startPrank(account);
+        rewardToken.withdrawToByLockTimestamp(receiver, normalizedTimestamp);
+        uint256 expectedAmount;
+        if (delta <= 30 days) {
+            expectedAmount = amount / 5;
+        } else if (delta >= 180 days) {
+            expectedAmount = amount;
+        } else {
+            expectedAmount = ((delta - 30 days) * 0.6e4 / 150 days + 0.2e4) * amount / 1e4;
+        }
+        assertEq(erc20Mintable.balanceOf(receiver), expectedAmount);
+        assertEq(erc20Mintable.balanceOf(owner), amount - expectedAmount);
         assertEq(rewardToken.balanceOf(account), 0);
         assertEq(rewardToken.getLockedAmountsLength(account), 0);
     }

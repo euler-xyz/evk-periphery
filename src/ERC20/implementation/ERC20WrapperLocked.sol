@@ -14,7 +14,7 @@ import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 /// @dev Regular wrapping (`depositFor`), unwrapping (`withdrawTo`), and `transfer` are only supported for whitelisted
 /// callers. `transferFrom` is only supported for whitelisted `from` addresses. If the account balance is
 /// non-whitelisted, their tokens can only be withdrawn as per the lock schedule and the remainder of the amount is
-/// burned.
+/// transferred to the receiver address configured.
 abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     using EnumerableMap for EnumerableMap.UintToUintMap;
     using SafeERC20 for IERC20;
@@ -22,14 +22,20 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @notice Scaling factor for percentage calculations
     uint256 internal constant SCALE = 1e4;
 
-    /// @notice Address used for burning tokens
-    address internal constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+    /// @notice Address that will receive the remainder of the tokens after the lock schedule is applied. If zero
+    /// address,
+    /// the remainder of the tokens will be sent to the owner.
+    address public remainderReceiver;
 
     /// @notice Mapping to store whitelist status of addresses
     mapping(address => bool) public isWhitelisted;
 
     /// @notice Mapping to store locked token amount for each address and normalized lock timestamp
     mapping(address => EnumerableMap.UintToUintMap) internal lockedAmounts;
+
+    /// @notice Emitted when the remainder receiver address is set or changed
+    /// @param remainderReceiver The address of the new remainder receiver
+    event RemainderReceiverSet(address indexed remainderReceiver);
 
     /// @notice Emitted when an account's whitelist status changes
     /// @param account The address of the account
@@ -56,15 +62,31 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @notice Constructor for ERC20WrapperLocked
     /// @param _evc Address of the Ethereum Vault Connector
     /// @param _owner Address of the contract owner
+    /// @param _remainderReceiver Address that will receive the remainder of the tokens after the lock schedule is
+    /// applied
     /// @param _underlying Address of the underlying ERC20 token
     /// @param _name Name of the wrapped token
     /// @param _symbol Symbol of the wrapped token
-    constructor(address _evc, address _owner, address _underlying, string memory _name, string memory _symbol)
-        EVCUtil(_evc)
-        Ownable(_owner)
-        ERC20Wrapper(IERC20(_underlying))
-        ERC20(_name, _symbol)
-    {}
+    constructor(
+        address _evc,
+        address _owner,
+        address _remainderReceiver,
+        address _underlying,
+        string memory _name,
+        string memory _symbol
+    ) EVCUtil(_evc) Ownable(_owner) ERC20Wrapper(IERC20(_underlying)) ERC20(_name, _symbol) {
+        remainderReceiver = _remainderReceiver;
+        emit RemainderReceiverSet(_remainderReceiver);
+    }
+
+    /// @notice Sets a new remainder receiver address
+    /// @param _remainderReceiver The address of the new remainder receiver
+    function setRemainderReceiver(address _remainderReceiver) public onlyOwner {
+        if (remainderReceiver != _remainderReceiver) {
+            remainderReceiver = _remainderReceiver;
+            emit RemainderReceiverSet(_remainderReceiver);
+        }
+    }
 
     /// @notice Sets the whitelist status for an account
     /// @dev If the account is being whitelisted, all the locked amounts are removed resulting in all the tokens being
@@ -152,22 +174,27 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     }
 
     /// @notice Withdraws tokens to a specified account based on a specific normalized lock timestamp as per the lock
-    /// schedule. The remainder of the tokens are burned
+    /// schedule. The remainder of the tokens are transferred to the receiver address configured.
     /// @param account The address to receive the withdrawn tokens
     /// @param lockTimestamp The normalized lock timestamp to withdraw tokens for
     /// @return bool indicating success of the withdrawal
     function withdrawToByLockTimestamp(address account, uint256 lockTimestamp) public virtual returns (bool) {
         IERC20 asset = underlying();
         address sender = _msgSender();
-        (uint256 receiverAmount, uint256 burnAmount) = getWithdrawAmountsByLockTimestamp(sender, lockTimestamp);
+        (uint256 accountAmount, uint256 remainderAmount) = getWithdrawAmountsByLockTimestamp(sender, lockTimestamp);
 
         if (lockedAmounts[sender].remove(lockTimestamp)) {
             emit LockRemoved(sender, lockTimestamp);
         }
 
-        _burn(sender, receiverAmount + burnAmount);
-        asset.safeTransfer(account, receiverAmount);
-        asset.safeTransfer(BURN_ADDRESS, burnAmount);
+        _burn(sender, accountAmount + remainderAmount);
+        asset.safeTransfer(account, accountAmount);
+
+        if (remainderAmount != 0) {
+            address receiver = remainderReceiver;
+            asset.safeTransfer(receiver == address(0) ? owner() : receiver, remainderAmount);
+        }
+
         return true;
     }
 
@@ -175,7 +202,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param account The address of the account to check
     /// @param lockTimestamp The normalized lock timestamp to check for withdraw amounts
     /// @return accountAmount The amount that can be unlocked and sent to the account
-    /// @return burnAmount The amount that will be burned
+    /// @return remainderAmount The amount that will be transferred to the configured receiver address
     function getWithdrawAmountsByLockTimestamp(address account, uint256 lockTimestamp)
         public
         view
@@ -185,8 +212,8 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
         (, uint256 amount) = lockedAmounts[account].tryGet(lockTimestamp);
         uint256 accountShare = _calculateUnlockShare(lockTimestamp);
         uint256 accountAmount = amount * accountShare / SCALE;
-        uint256 burnAmount = amount - accountAmount;
-        return (accountAmount, burnAmount);
+        uint256 remainderAmount = amount - accountAmount;
+        return (accountAmount, remainderAmount);
     }
 
     /// @notice Gets the number of locked amount entries for an account

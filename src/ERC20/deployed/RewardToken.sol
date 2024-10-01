@@ -15,12 +15,18 @@ contract RewardToken is ERC20WrapperLocked {
     /// @notice Constructor for RewardToken
     /// @param _evc Address of the Ethereum Vault Connector
     /// @param _owner Address of the contract owner
+    /// @param _receiver Address of the receiver
     /// @param _underlying Address of the underlying ERC20 token
     /// @param _name Name of the wrapped token
     /// @param _symbol Symbol of the wrapped token
-    constructor(address _evc, address _owner, address _underlying, string memory _name, string memory _symbol)
-        ERC20WrapperLocked(_evc, _owner, _underlying, _name, _symbol)
-    {}
+    constructor(
+        address _evc,
+        address _owner,
+        address _receiver,
+        address _underlying,
+        string memory _name,
+        string memory _symbol
+    ) ERC20WrapperLocked(_evc, _owner, _receiver, _underlying, _name, _symbol) {}
 
     /// @notice Calculates the share of tokens that can be unlocked based on the lock timestamp
     /// @param lockTimestamp The timestamp when the tokens were locked
