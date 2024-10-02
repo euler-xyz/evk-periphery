@@ -5,25 +5,32 @@ pragma solidity ^0.8.0;
 import {BaseMegaCluster} from "./BaseMegaCluster.s.sol";
 import {KinkIRM} from "../../../04_IRM.s.sol";
 import {EVaultDeployer, OracleRouterDeployer, EulerRouter} from "../../../07_EVault.s.sol";
+import {OracleLens} from "../../../../src/Lens/OracleLens.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
+import {StubOracle} from "./StubOracle.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
-
-contract StubPriceOracle {
-    string public name = "StubPriceOracle";
-
-    function getQuote(uint256, address, address) external pure returns (uint256) {
-        return 1;
-    }
-
-    function getQuotes(uint256, address, address) external pure returns (uint256, uint256) {
-        return (1, 1);
-    }
-}
+import "evk/EVault/shared/Constants.sol";
 
 contract MaintainMegaCluster is BaseMegaCluster {
+    struct OracleOverride {
+        address asset;
+        address quote;
+        address adapter;
+    }
+
+    OracleOverride[] internal oracleOverrides;
+
     function run() public {
         setUp();
+
+        // deploy the stub oracle (needed in case pull oracle is meant to be used for a collateral asset and its price
+        // is stale)
+        if (cluster.stubOracle == address(0)) {
+            startBroadcast();
+            cluster.stubOracle = address(new StubOracle());
+            stopBroadcast();
+        }
 
         // deploy the oracle router
         if (cluster.oracleRouter == address(0)) {
@@ -62,10 +69,6 @@ contract MaintainMegaCluster is BaseMegaCluster {
         }
 
         // configure the oracle router
-        startBroadcast();
-        address placeholderOracle = address(new StubPriceOracle());
-        stopBroadcast();
-
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             address vault = cluster.vaults[i];
 
@@ -78,11 +81,23 @@ contract MaintainMegaCluster is BaseMegaCluster {
             address asset = cluster.assets[i];
             address adapter = getValidAdapter(asset, USD, cluster.oracleProviders[asset]);
 
+            // fixme to be removed
             if (adapter == address(0)) {
-                adapter = placeholderOracle;
+                adapter = cluster.stubOracle;
             }
 
             if (EulerRouter(cluster.oracleRouter).getConfiguredOracle(asset, USD) != adapter) {
+                (bool success, bytes memory result) =
+                    adapter.staticcall(abi.encodeCall(EulerRouter.getQuote, (0, asset, USD)));
+
+                if (
+                    (!success || result.length < 32)
+                        && OracleLens(lensAddresses.oracleLens).isStalePullOracle(adapter, result)
+                ) {
+                    oracleOverrides.push(OracleOverride({asset: asset, quote: USD, adapter: adapter}));
+                    adapter = cluster.stubOracle;
+                }
+
                 govSetConfig(cluster.oracleRouter, asset, USD, adapter);
             }
         }
@@ -102,7 +117,7 @@ contract MaintainMegaCluster is BaseMegaCluster {
             if (IEVault(vault).liquidationCoolOffTime() != 1) {
                 setLiquidationCoolOffTime(vault, 1);
             }
-            
+
             (uint16 supplyCap, uint16 borrowCap) = IEVault(vault).caps();
             if (supplyCap != cluster.supplyCaps[i]) {
                 setCaps(vault, cluster.supplyCaps[i], borrowCap);
@@ -118,9 +133,15 @@ contract MaintainMegaCluster is BaseMegaCluster {
                 uint16 borrowLTV = liquidationLTV > 0.02e4 ? liquidationLTV - 0.02e4 : 0;
                 uint16 currentBorrowLTV = IEVault(vault).LTVBorrow(collateral);
                 uint16 currentLiquidationLTV = IEVault(vault).LTVLiquidation(collateral);
-    
+
                 if (currentBorrowLTV != borrowLTV || currentLiquidationLTV != liquidationLTV) {
-                    setLTV(vault, collateral, borrowLTV, liquidationLTV, liquidationLTV >= currentLiquidationLTV ? 0 : 1 days);
+                    setLTV(
+                        vault,
+                        collateral,
+                        borrowLTV,
+                        liquidationLTV,
+                        liquidationLTV >= currentLiquidationLTV ? 0 : 1 days
+                    );
                 }
             }
         }
@@ -130,7 +151,7 @@ contract MaintainMegaCluster is BaseMegaCluster {
 
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
             if (hookTarget != address(0) || hookedOps != 0) {
-                setHookConfig(vault, address(0), 0);
+                setHookConfig(vault, address(0), (OP_MAX_VALUE - 1));
             }
 
             if (IEVault(vault).governorAdmin() != VAULTS_GOVERNOR) {
@@ -138,6 +159,13 @@ contract MaintainMegaCluster is BaseMegaCluster {
             }
         }
 
+        // apply oracle overrides
+        for (uint256 i = 0; i < oracleOverrides.length; ++i) {
+            OracleOverride storage o = oracleOverrides[i];
+            govSetConfig(cluster.oracleRouter, o.asset, o.quote, o.adapter);
+        }
+
+        // execute the batch
         executeBatch();
 
         // sanity check the configuration
@@ -147,11 +175,9 @@ contract MaintainMegaCluster is BaseMegaCluster {
             PerspectiveVerifier.verifyPerspective(
                 peripheryAddresses.eulerUngoverned0xPerspective,
                 cluster.vaults[i],
-                PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | 
-                PerspectiveVerifier.E__GOVERNOR | 
-                PerspectiveVerifier.E__LTV_COLLATERAL_RECOGNITION |
-                PerspectiveVerifier.E__HOOKED_OPS |
-                PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER
+                PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR
+                    | PerspectiveVerifier.E__LTV_COLLATERAL_RECOGNITION | PerspectiveVerifier.E__HOOKED_OPS
+                    | PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER
             );
         }
 

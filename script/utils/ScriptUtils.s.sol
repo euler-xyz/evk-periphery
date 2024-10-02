@@ -165,7 +165,6 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
-    IEVC.BatchItem[] private items;
 
     constructor() {
         coreAddresses = deserializeCoreAddresses(getAddressesJson("CoreAddresses.json"));
@@ -240,7 +239,8 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
             }
         }
 
-        if (adapter == address(0) || _strEq(provider, "PythOracle") || _strEq(provider, "RedstoneClassicOracle")) {
+        // fixme to be removed
+        if (adapter == address(0)) {
             return address(0);
         }
 
@@ -344,7 +344,6 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
 
 abstract contract BatchBuilder is ScriptUtils {
     uint256 internal constant TRIGGER_EXECUTE_BATCH_AT_SIZE = 250;
-
     IEVC.BatchItem[] internal items;
 
     function addBatchItem(address targetContract, bytes memory data) internal {
