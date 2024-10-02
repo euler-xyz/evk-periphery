@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import {ERC20Wrapper} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Wrapper.sol";
 import {ERC20WrapperLocked} from "../implementation/ERC20WrapperLocked.sol";
 
 /// @title RewardToken
