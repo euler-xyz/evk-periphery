@@ -121,7 +121,7 @@ contract BaseMegaCluster is BatchBuilder {
         cluster.oracleProviders[PYUSD  ] = "ChainlinkOracle";
         cluster.oracleProviders[USDY   ] = "PythOracle";
         cluster.oracleProviders[wM     ] = "FixedRateOracle";
-        cluster.oracleProviders[mTBILL ] = "";
+        cluster.oracleProviders[mTBILL ] = "ChainlinkInfrequentOracle";
         cluster.oracleProviders[USDe   ] = "ChainlinkOracle";
         cluster.oracleProviders[wUSDM  ] = "ChainlinkOracle";
         cluster.oracleProviders[EURC   ] = "PythOracle";
@@ -138,8 +138,8 @@ contract BaseMegaCluster is BatchBuilder {
         cluster.oracleProviders[tBTC   ] = "ChainlinkOracle";
         cluster.oracleProviders[WBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
         cluster.oracleProviders[cbBTC  ] = "ChainlinkOracle";
-        cluster.oracleProviders[LBTC   ] = "";
-        cluster.oracleProviders[eBTC   ] = "";
+        cluster.oracleProviders[LBTC   ] = "CrossAdapter=RedstoneClassicOracle+ChainlinkOracle";
+        cluster.oracleProviders[eBTC   ] = "CrossAdapter=FixedRateOracle+ChainlinkOracle";
         cluster.oracleProviders[SOLVBTC] = "RedstoneClassicOracle";
 
         // define supply caps here
