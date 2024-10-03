@@ -17,9 +17,12 @@ contract Integrations is ScriptUtils {
         broadcast
         returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address permit2)
     {
+        string memory inputScriptFileName = "01_Integrations_input.json";
         string memory outputScriptFileName = "01_Integrations_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        permit2 = abi.decode(vm.parseJson(json, ".permit2"), (address));
 
-        (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2) = execute();
+        (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2) = execute(permit2);
 
         string memory object;
         object = vm.serializeAddress("integrations", "evc", evc);
@@ -30,17 +33,18 @@ contract Integrations is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy()
+    function deploy(address permit2)
         public
         broadcast
-        returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address permit2)
+        returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address)
     {
-        (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2) = execute();
+        (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2) = execute(permit2);
+        return (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2);
     }
 
-    function execute()
+    function execute(address permit2)
         public
-        returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address permit2)
+        returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address)
     {
         address deployer = getDeployer();
 
@@ -48,11 +52,13 @@ contract Integrations is ScriptUtils {
         protocolConfig = address(new ProtocolConfig(deployer, deployer));
         sequenceRegistry = address(new SequenceRegistry());
         balanceTracker = address(new TrackingRewardStreams(evc, 14 days));
-        permit2 = PERMIT2_ADDRESS;
 
         if (permit2.code.length == 0) {
             DeployPermit2 deployPermit2 = new DeployPermit2();
             deployPermit2.deployPermit2();
+            permit2 = PERMIT2_ADDRESS;
         }
+
+        return (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2);
     }
 }

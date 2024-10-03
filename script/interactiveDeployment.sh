@@ -104,6 +104,15 @@ while true; do
             baseName=01_Integrations
             scriptName=${baseName}.s.sol
             jsonName=$baseName
+
+            read -p "Enter the PERMIT2 contract address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+            permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
+
+            jq -n \
+                --arg permit2 "$permit2" \
+                '{
+                    permit2: $permit2
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         2)
             echo "Deploying periphery factories..."
