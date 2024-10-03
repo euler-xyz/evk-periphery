@@ -144,7 +144,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 feed: $feed,
                 maxStaleness: $maxStaleness
             }' --indent 4 > script/${jsonName}_input.json
-    elif [[ "$provider" == "ChainlinkInfrequent" ]]; then
+    elif [[ "$provider" == "Chainlink Infrequent" ]]; then
         scriptName=${baseName}.s.sol:ChainlinkInfrequentAdapter
         jsonName=03_ChainlinkInfrequentAdapter
 
