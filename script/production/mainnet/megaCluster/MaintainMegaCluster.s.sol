@@ -107,29 +107,56 @@ contract MaintainMegaCluster is BaseMegaCluster {
             address vault = cluster.vaults[i];
             address asset = IEVault(vault).asset();
 
-            if (IEVault(vault).feeReceiver() != cluster.feeReceiver) {
-                setFeeReceiver(vault, cluster.feeReceiver);
+            {
+                address feeReceiver = IEVault(vault).feeReceiver();
+                if (feeReceiver != cluster.feeReceiver) {
+                    setFeeReceiver(vault, cluster.feeReceiver);
+                } else if (cluster.feeReceiverOverride[asset] != address(0) && feeReceiver != cluster.feeReceiverOverride[asset]) {
+                    setFeeReceiver(vault, cluster.feeReceiverOverride[asset]);
+                }
             }
 
-            if (IEVault(vault).interestFee() != cluster.interestFee) {
-                setInterestFee(vault, cluster.interestFee);
+            {
+                uint16 interestFee = IEVault(vault).interestFee();
+                if (interestFee != cluster.interestFee) {
+                    setInterestFee(vault, cluster.interestFee);
+                } else if (cluster.interestFeeOverride[asset] != 0 && interestFee != cluster.interestFeeOverride[asset]) {
+                    setInterestFee(vault, cluster.interestFeeOverride[asset]);
+                }
             }
 
-            if (IEVault(vault).maxLiquidationDiscount() != cluster.maxLiquidationDiscount) {
-                setMaxLiquidationDiscount(vault, cluster.maxLiquidationDiscount);
+            {
+                uint16 maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
+                if (maxLiquidationDiscount != cluster.maxLiquidationDiscount) {
+                    setMaxLiquidationDiscount(vault, cluster.maxLiquidationDiscount);
+                } else if (cluster.maxLiquidationDiscountOverride[asset] != 0 && maxLiquidationDiscount != cluster.maxLiquidationDiscountOverride[asset]) {
+                    setMaxLiquidationDiscount(vault, cluster.maxLiquidationDiscountOverride[asset]);
+                }
             }
 
-            if (IEVault(vault).liquidationCoolOffTime() != cluster.liquidationCoolOffTime) {
-                setLiquidationCoolOffTime(vault, cluster.liquidationCoolOffTime);
+            {
+                uint16 liquidationCoolOffTime = IEVault(vault).liquidationCoolOffTime();
+                if (liquidationCoolOffTime != cluster.liquidationCoolOffTime) {
+                    setLiquidationCoolOffTime(vault, cluster.liquidationCoolOffTime);
+                } else if (cluster.liquidationCoolOffTimeOverride[asset] != 0 && liquidationCoolOffTime != cluster.liquidationCoolOffTimeOverride[asset]) {
+                    setLiquidationCoolOffTime(vault, cluster.liquidationCoolOffTimeOverride[asset]);
+                }
             }
 
-            if (IEVault(vault).configFlags() != cluster.configFlags) {
-                setConfigFlags(vault, cluster.configFlags);
+            {
+                uint32 configFlags = IEVault(vault).configFlags();
+                if (configFlags != cluster.configFlags) {
+                    setConfigFlags(vault, cluster.configFlags);
+                } else if (cluster.configFlagsOverride[asset] != 0 && configFlags != cluster.configFlagsOverride[asset]) {
+                    setConfigFlags(vault, cluster.configFlagsOverride[asset]);
+                }
             }
 
-            (uint16 supplyCap, uint16 borrowCap) = IEVault(vault).caps();
-            if (supplyCap != cluster.supplyCaps[asset] || borrowCap != cluster.borrowCaps[asset]) {
-                setCaps(vault, cluster.supplyCaps[asset], cluster.borrowCaps[asset]);
+            {
+                (uint16 supplyCap, uint16 borrowCap) = IEVault(vault).caps();
+                if (supplyCap != cluster.supplyCaps[asset] || borrowCap != cluster.borrowCaps[asset]) {
+                    setCaps(vault, cluster.supplyCaps[asset], cluster.borrowCaps[asset]);
+                }
             }
 
             if (IEVault(vault).interestRateModel() != cluster.irms[i]) {
@@ -157,10 +184,17 @@ contract MaintainMegaCluster is BaseMegaCluster {
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             address vault = cluster.vaults[i];
+            address asset = IEVault(vault).asset();
 
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
             if (hookTarget != cluster.hookTarget || hookedOps != cluster.hookedOps) {
                 setHookConfig(vault, cluster.hookTarget, cluster.hookedOps);
+            } else if ((cluster.hookTargetOverride[asset] != address(0) && hookTarget != cluster.hookTargetOverride[asset]) || (cluster.hookedOpsOverride[asset] != 0 && hookedOps != cluster.hookedOpsOverride[asset])) {
+                setHookConfig(
+                    vault, 
+                    cluster.hookTargetOverride[asset] != address(0) && hookTarget != cluster.hookTargetOverride[asset] ? cluster.hookTargetOverride[asset] : hookTarget,
+                    cluster.hookedOpsOverride[asset] != 0 && hookedOps != cluster.hookedOpsOverride[asset] ? cluster.hookedOpsOverride[asset] : hookedOps
+                );
             }
 
             if (IEVault(vault).governorAdmin() != cluster.vaultsGovernor) {

@@ -66,6 +66,13 @@ contract BaseMegaCluster is BatchBuilder {
         mapping(address asset => string provider) oracleProviders;
         mapping(address asset => uint256 supplyCapNoDecimals) supplyCaps;
         mapping(address asset => uint256 borrowCapNoDecimals) borrowCaps;
+        mapping(address asset => address feeReceiverOverride) feeReceiverOverride;
+        mapping(address asset => uint16 interestFeeOverride) interestFeeOverride;
+        mapping(address asset => uint16 maxLiquidationDiscountOverride) maxLiquidationDiscountOverride;
+        mapping(address asset => uint16 liquidationCoolOffTimeOverride) liquidationCoolOffTimeOverride;
+        mapping(address asset => address hookTargetOverride) hookTargetOverride;
+        mapping(address asset => uint32 hookedOpsOverride) hookedOpsOverride;
+        mapping(address asset => uint32 configFlagsOverride) configFlagsOverride;
         mapping(address asset => uint256[4] kinkIRMParams) kinkIRMParams;
         mapping(uint256 baseRate => mapping(uint256 slope1 => mapping(uint256 slope2 => mapping(uint256 kink => address irm)))) kinkIRMMap;
         address[] irms;
@@ -83,21 +90,21 @@ contract BaseMegaCluster is BatchBuilder {
         cluster.oracleRouterGovernor = getDeployer();
         cluster.vaultsGovernor = getDeployer();
 
-        // define fee receiver here and interest fee here. if needed to be defined per asset, it can be converted to a mapping
+        // define fee receiver here and interest fee here. if needed to be defined per asset, populate the feeReceiverOverride and interestFeeOverride mappings
         cluster.feeReceiver = address(0);
         cluster.interestFee = 0.1e4;
 
-        // define max liquidation discount here. if needed to be defined per asset, it can be converted to a mapping
+        // define max liquidation discount here. if needed to be defined per asset, populate the maxLiquidationDiscountOverride mapping
         cluster.maxLiquidationDiscount = 0.15e4;
 
-        // define liquidation cool off time here. if needed to be defined per asset, it can be converted to a mapping
+        // define liquidation cool off time here. if needed to be defined per asset, populate the liquidationCoolOffTimeOverride mapping
         cluster.liquidationCoolOffTime = 1;
 
-        // define hook target and hooked ops here. if needed to be defined per asset, it can be converted to a mapping
+        // define hook target and hooked ops here. if needed to be defined per asset, populate the hookTargetOverride and hookedOpsOverride mappings
         cluster.hookTarget = address(0);
         cluster.hookedOps = OP_MAX_VALUE - 1;
 
-        // define config flags here. if needed to be defined per asset, it can be converted to a mapping
+        // define config flags here. if needed to be defined per asset, populate the configFlagsOverride mapping
         cluster.configFlags = 0;
 
         // define oracle providers here. 
