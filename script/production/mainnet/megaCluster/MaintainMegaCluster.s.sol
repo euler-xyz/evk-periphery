@@ -10,7 +10,6 @@ import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 import {StubOracle} from "./StubOracle.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
-import "evk/EVault/shared/Constants.sol";
 
 contract MaintainMegaCluster is BaseMegaCluster {
     struct OracleOverride {
@@ -68,6 +67,7 @@ contract MaintainMegaCluster is BaseMegaCluster {
         }
 
         // configure the oracle router
+        // first, set resolved vaults for all vaults
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             address vault = cluster.vaults[i];
 
@@ -76,6 +76,7 @@ contract MaintainMegaCluster is BaseMegaCluster {
             }
         }
 
+        // then, set the oracle adapters for all assets
         for (uint256 i = 0; i < cluster.assets.length; ++i) {
             address asset = cluster.assets[i];
             address adapter = getValidAdapter(asset, USD, cluster.oracleProviders[asset]);
@@ -104,18 +105,31 @@ contract MaintainMegaCluster is BaseMegaCluster {
         // configure the vaults
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             address vault = cluster.vaults[i];
+            address asset = IEVault(vault).asset();
 
-            if (IEVault(vault).maxLiquidationDiscount() != 0.15e4) {
-                setMaxLiquidationDiscount(vault, 0.15e4);
+            if (IEVault(vault).feeReceiver() != cluster.feeReceiver) {
+                setFeeReceiver(vault, cluster.feeReceiver);
             }
 
-            if (IEVault(vault).liquidationCoolOffTime() != 1) {
-                setLiquidationCoolOffTime(vault, 1);
+            if (IEVault(vault).interestFee() != cluster.interestFee) {
+                setInterestFee(vault, cluster.interestFee);
+            }
+
+            if (IEVault(vault).maxLiquidationDiscount() != cluster.maxLiquidationDiscount) {
+                setMaxLiquidationDiscount(vault, cluster.maxLiquidationDiscount);
+            }
+
+            if (IEVault(vault).liquidationCoolOffTime() != cluster.liquidationCoolOffTime) {
+                setLiquidationCoolOffTime(vault, cluster.liquidationCoolOffTime);
+            }
+
+            if (IEVault(vault).configFlags() != cluster.configFlags) {
+                setConfigFlags(vault, cluster.configFlags);
             }
 
             (uint16 supplyCap, uint16 borrowCap) = IEVault(vault).caps();
-            if (supplyCap != cluster.supplyCaps[i]) {
-                setCaps(vault, cluster.supplyCaps[i], borrowCap);
+            if (supplyCap != cluster.supplyCaps[asset] || borrowCap != cluster.borrowCaps[asset]) {
+                setCaps(vault, cluster.supplyCaps[asset], cluster.borrowCaps[asset]);
             }
 
             if (IEVault(vault).interestRateModel() != cluster.irms[i]) {
@@ -145,12 +159,12 @@ contract MaintainMegaCluster is BaseMegaCluster {
             address vault = cluster.vaults[i];
 
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
-            if (hookTarget != address(0) || hookedOps != (OP_MAX_VALUE - 1)) {
-                setHookConfig(vault, address(0), (OP_MAX_VALUE - 1));
+            if (hookTarget != cluster.hookTarget || hookedOps != cluster.hookedOps) {
+                setHookConfig(vault, cluster.hookTarget, cluster.hookedOps);
             }
 
-            if (IEVault(vault).governorAdmin() != VAULTS_GOVERNOR) {
-                setGovernorAdmin(vault, VAULTS_GOVERNOR);
+            if (IEVault(vault).governorAdmin() != cluster.vaultsGovernor) {
+                setGovernorAdmin(vault, cluster.vaultsGovernor);
             }
         }
 
@@ -160,12 +174,12 @@ contract MaintainMegaCluster is BaseMegaCluster {
             govSetConfig(cluster.oracleRouter, o.asset, o.quote, o.adapter);
         }
 
-        if (EulerRouter(cluster.oracleRouter).governor() != ORACLE_ROUTER_GOVERNOR) {
-            transferGovernance(cluster.oracleRouter, ORACLE_ROUTER_GOVERNOR);
+        if (EulerRouter(cluster.oracleRouter).governor() != cluster.oracleRouterGovernor) {
+            transferGovernance(cluster.oracleRouter, cluster.oracleRouterGovernor);
         }
 
         executeBatch();
-        /*
+
         // sanity check the configuration
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(cluster.vaults[i]);
@@ -178,7 +192,7 @@ contract MaintainMegaCluster is BaseMegaCluster {
                     | PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER
             );
         }
-        */
-        vm.writeJson(dumpClusterAddresses(cluster), getInputConfigFilePath("ClusterAddresses.json"));
+
+        dumpCluster();
     }
 }

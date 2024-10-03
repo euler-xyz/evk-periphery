@@ -5,12 +5,11 @@ pragma solidity ^0.8.0;
 import {BatchBuilder} from "../../../utils/ScriptUtils.s.sol";
 import {IRMLens} from "../../../../src/Lens/IRMLens.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
+import "evk/EVault/shared/Constants.sol";
 import "../../../../src/Lens/LensTypes.sol";
 
 contract BaseMegaCluster is BatchBuilder {
-    address internal immutable ORACLE_ROUTER_GOVERNOR = getDeployer();
-    address internal immutable VAULTS_GOVERNOR = getDeployer();
-
+    // do not change below addresses
     address internal constant USD     = address(840);
     address internal constant WETH    = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address internal constant wstETH  = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
@@ -52,25 +51,139 @@ contract BaseMegaCluster is BatchBuilder {
     struct Cluster {
         address stubOracle;
         address oracleRouter;
+        address oracleRouterGovernor;
+        address vaultsGovernor;
         address[] assets;
         address[] vaults;
-        address[] irms;
-        uint256[] supplyCaps;
         uint16[][] ltvs;
+        address feeReceiver;
+        uint16 interestFee;
+        uint16 maxLiquidationDiscount;
+        uint16 liquidationCoolOffTime;
+        address hookTarget;
+        uint32 hookedOps;
+        uint32 configFlags;
         mapping(address asset => string provider) oracleProviders;
+        mapping(address asset => uint256 supplyCapNoDecimals) supplyCaps;
+        mapping(address asset => uint256 borrowCapNoDecimals) borrowCaps;
         mapping(address asset => uint256[4] kinkIRMParams) kinkIRMParams;
         mapping(uint256 baseRate => mapping(uint256 slope1 => mapping(uint256 slope2 => mapping(uint256 kink => address irm)))) kinkIRMMap;
+        address[] irms;
     }
 
     Cluster internal cluster;
 
     function setUp() internal {
-        cluster.assets     = [WETH,    wstETH,  cbETH,  WEETH, ezETH, RETH,   METH,   RSETH, sfrxETH, ETHx,  rswETH, USDC,        USDT,          PYUSD,      USDY,      wM,        mTBILL,  USDe,       wUSDM,     EURC,      sUSDe,     USDS,       sUSDS,     stUSD,   stEUR,   FDUSD,       USD0,       GHO,       crvUSD,    FRAX,      tBTC, WBTC,  cbBTC, LBTC, eBTC, SOLVBTC];
-        cluster.supplyCaps = [378_000, 160_000, 8_740, 36_000, 9_270, 17_300, 18_500, 9_450, 3_890,   3_740, 3_880,  500_000_000, 1_000_000_000, 25_000_000, 9_520_000, 1_000_000, 250_000, 50_000_000, 2_500_000, 2_200_000, 2_270_000, 20_000_000, 1_000_000, 250_000, 211_000, 100_000_000, 25_000_000, 2_500_000, 2_500_000, 2_500_000, 158,  1_570, 157,   157,  157,  789];
-        cluster.supplyCaps = encodeAmountCaps(cluster.assets, cluster.supplyCaps);
+        // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
+        // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
+        // note however, that mappings may need reworking as they always use asset address as key.
+        cluster.assets = [WETH, wstETH, cbETH, WEETH, ezETH, RETH, METH, RSETH, sfrxETH, ETHx, rswETH, USDC, USDT, PYUSD, USDY, wM, mTBILL, USDe, wUSDM, EURC, sUSDe, USDS, sUSDS, stUSD, stEUR, FDUSD, USD0, GHO, crvUSD, FRAX, tBTC, WBTC, cbBTC, LBTC, eBTC, SOLVBTC];
 
+        // define the governors here
+        cluster.oracleRouterGovernor = getDeployer();
+        cluster.vaultsGovernor = getDeployer();
+
+        // define fee receiver here and interest fee here. if needed to be defined per asset, it can be converted to a mapping
+        cluster.feeReceiver = address(0);
+        cluster.interestFee = 0.1e4;
+
+        // define max liquidation discount here. if needed to be defined per asset, it can be converted to a mapping
+        cluster.maxLiquidationDiscount = 0.15e4;
+
+        // define liquidation cool off time here. if needed to be defined per asset, it can be converted to a mapping
+        cluster.liquidationCoolOffTime = 1;
+
+        // define hook target and hooked ops here. if needed to be defined per asset, it can be converted to a mapping
+        cluster.hookTarget = address(0);
+        cluster.hookedOps = OP_MAX_VALUE - 1;
+
+        // define config flags here. if needed to be defined per asset, it can be converted to a mapping
+        cluster.configFlags = 0;
+
+        // define oracle providers here. 
+        // adapter names can be found in the relevant adapter contract (as returned by the `name` function).
+        // for cross adapters, use the following format: "CrossAdapter=<adapterName1>+<adapterName2>".
+        // although Redstone Classic oracles reuse the ChainlinkOracle contract and return "ChainlinkOracle" name, 
+        // they should be referred to as "RedstoneClassicOracle"
+        cluster.oracleProviders[WETH   ] = "ChainlinkOracle";
+        cluster.oracleProviders[wstETH ] = "CrossAdapter=LidoFundamentalOracle+ChainlinkOracle";
+        cluster.oracleProviders[cbETH  ] = "CrossAdapter=FixedRateOracle+ChainlinkOracle";
+        cluster.oracleProviders[WEETH  ] = "CrossAdapter=FixedRateOracle+ChainlinkOracle";
+        cluster.oracleProviders[ezETH  ] = "CrossAdapter=FixedRateOracle+ChainlinkOracle";
+        cluster.oracleProviders[RETH   ] = "CrossAdapter=FixedRateOracle+ChainlinkOracle";
+        cluster.oracleProviders[METH   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
+        cluster.oracleProviders[RSETH  ] = "CrossAdapter=FixedRateOracle+ChainlinkOracle";
+        cluster.oracleProviders[sfrxETH] = "CrossAdapter=FixedRateOracle+ChainlinkOracle";
+        cluster.oracleProviders[ETHx   ] = "CrossAdapter=FixedRateOracle+ChainlinkOracle";
+        cluster.oracleProviders[rswETH ] = "CrossAdapter=FixedRateOracle+ChainlinkOracle";
+        cluster.oracleProviders[USDC   ] = "ChainlinkOracle";
+        cluster.oracleProviders[USDT   ] = "ChainlinkOracle";
+        cluster.oracleProviders[PYUSD  ] = "ChainlinkOracle";
+        cluster.oracleProviders[USDY   ] = "PythOracle";
+        cluster.oracleProviders[wM     ] = "FixedRateOracle";
+        cluster.oracleProviders[mTBILL ] = "";
+        cluster.oracleProviders[USDe   ] = "ChainlinkOracle";
+        cluster.oracleProviders[wUSDM  ] = "ChainlinkOracle";
+        cluster.oracleProviders[EURC   ] = "PythOracle";
+        cluster.oracleProviders[sUSDe  ] = "ChainlinkOracle";
+        cluster.oracleProviders[USDS   ] = "ChronicleOracle";
+        cluster.oracleProviders[sUSDS  ] = "ChronicleOracle";
+        cluster.oracleProviders[stUSD  ] = "ChainlinkOracle";
+        cluster.oracleProviders[stEUR  ] = "ChainlinkOracle";
+        cluster.oracleProviders[FDUSD  ] = "PythOracle";
+        cluster.oracleProviders[USD0   ] = "ChainlinkOracle";
+        cluster.oracleProviders[GHO    ] = "ChainlinkOracle";
+        cluster.oracleProviders[crvUSD ] = "ChainlinkOracle";
+        cluster.oracleProviders[FRAX   ] = "ChainlinkOracle";
+        cluster.oracleProviders[tBTC   ] = "ChainlinkOracle";
+        cluster.oracleProviders[WBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
+        cluster.oracleProviders[cbBTC  ] = "ChainlinkOracle";
+        cluster.oracleProviders[LBTC   ] = "";
+        cluster.oracleProviders[eBTC   ] = "";
+        cluster.oracleProviders[SOLVBTC] = "RedstoneClassicOracle";
+
+        // define supply caps here
+        cluster.supplyCaps[WETH   ] = 378_000;
+        cluster.supplyCaps[wstETH ] = 160_000;
+        cluster.supplyCaps[cbETH  ] = 8_740;
+        cluster.supplyCaps[WEETH  ] = 36_000;
+        cluster.supplyCaps[ezETH  ] = 9_270;
+        cluster.supplyCaps[RETH   ] = 17_300;
+        cluster.supplyCaps[METH   ] = 18_500;
+        cluster.supplyCaps[RSETH  ] = 9_450;
+        cluster.supplyCaps[sfrxETH] = 3_890;
+        cluster.supplyCaps[ETHx   ] = 3_740;
+        cluster.supplyCaps[rswETH ] = 3_880;
+        cluster.supplyCaps[USDC   ] = 500_000_000;
+        cluster.supplyCaps[USDT   ] = 1_000_000_000;
+        cluster.supplyCaps[PYUSD  ] = 25_000_000;
+        cluster.supplyCaps[USDY   ] = 9_520_000;
+        cluster.supplyCaps[wM     ] = 1_000_000;
+        cluster.supplyCaps[mTBILL ] = 250_000;
+        cluster.supplyCaps[USDe   ] = 50_000_000;
+        cluster.supplyCaps[wUSDM  ] = 2_500_000;
+        cluster.supplyCaps[EURC   ] = 2_200_000;
+        cluster.supplyCaps[sUSDe  ] = 2_270_000;
+        cluster.supplyCaps[USDS   ] = 20_000_000;
+        cluster.supplyCaps[sUSDS  ] = 1_000_000;
+        cluster.supplyCaps[stUSD  ] = 250_000;
+        cluster.supplyCaps[stEUR  ] = 211_000;
+        cluster.supplyCaps[FDUSD  ] = 100_000_000;
+        cluster.supplyCaps[USD0   ] = 25_000_000;
+        cluster.supplyCaps[GHO    ] = 2_500_000;
+        cluster.supplyCaps[crvUSD ] = 2_500_000;
+        cluster.supplyCaps[FRAX   ] = 2_500_000;
+        cluster.supplyCaps[tBTC   ] = 158;
+        cluster.supplyCaps[WBTC   ] = 1_570;
+        cluster.supplyCaps[cbBTC  ] = 157;
+        cluster.supplyCaps[LBTC   ] = 157;
+        cluster.supplyCaps[eBTC   ] = 157;
+        cluster.supplyCaps[SOLVBTC] = 789;
+
+        // define borrow caps here if needed
+
+        // define IRM classes here and assign them to the assets
         {
-            // fixme define IRM classes
             // Base=0% APY  Kink(90%)=2.7% APY  Max=82.7%  APY
             uint256[4] memory irmWETH      = [uint256(0), uint256(218407859),  uint256(42500370385), uint256(3865470566)];
 
@@ -129,45 +242,8 @@ contract BaseMegaCluster is BatchBuilder {
             cluster.kinkIRMParams[eBTC   ] = irmBTC;
             cluster.kinkIRMParams[SOLVBTC] = irmBTC;
         }
-
-        // fixme define oracle providers
-        cluster.oracleProviders[WETH   ] = "ChainlinkOracle";
-        cluster.oracleProviders[wstETH ] = "CrossAdapter=LidoFundamentalOracle+ChainlinkOracle";
-        cluster.oracleProviders[cbETH  ] = "CrossAdapter=";
-        cluster.oracleProviders[WEETH  ] = "CrossAdapter=";
-        cluster.oracleProviders[ezETH  ] = "CrossAdapter=";
-        cluster.oracleProviders[RETH   ] = "CrossAdapter=";
-        cluster.oracleProviders[METH   ] = "CrossAdapter=";
-        cluster.oracleProviders[RSETH  ] = "CrossAdapter=";
-        cluster.oracleProviders[sfrxETH] = "CrossAdapter=";
-        cluster.oracleProviders[ETHx   ] = "CrossAdapter=";
-        cluster.oracleProviders[rswETH ] = "CrossAdapter=";
-        cluster.oracleProviders[USDC   ] = "ChainlinkOracle";
-        cluster.oracleProviders[USDT   ] = "ChainlinkOracle";
-        cluster.oracleProviders[PYUSD  ] = "ChainlinkOracle";
-        cluster.oracleProviders[USDY   ] = "PythOracle";
-        cluster.oracleProviders[wM     ] = "FixedRateOracle";
-        cluster.oracleProviders[mTBILL ] = "ChainlinkOracle";
-        cluster.oracleProviders[USDe   ] = "ChainlinkOracle";
-        cluster.oracleProviders[wUSDM  ] = "ChainlinkOracle";
-        cluster.oracleProviders[EURC   ] = "PythOracle";
-        cluster.oracleProviders[sUSDe  ] = "ChainlinkOracle";
-        cluster.oracleProviders[USDS   ] = "ChronicleOracle";
-        cluster.oracleProviders[sUSDS  ] = "ChronicleOracle";
-        cluster.oracleProviders[stUSD  ] = "ChainlinkOracle";
-        cluster.oracleProviders[stEUR  ] = "ChainlinkOracle";
-        cluster.oracleProviders[FDUSD  ] = "PythOracle";
-        cluster.oracleProviders[USD0   ] = "ChainlinkOracle";
-        cluster.oracleProviders[GHO    ] = "ChainlinkOracle";
-        cluster.oracleProviders[crvUSD ] = "ChainlinkOracle";
-        cluster.oracleProviders[FRAX   ] = "ChainlinkOracle";
-        cluster.oracleProviders[tBTC   ] = "ChainlinkOracle";
-        cluster.oracleProviders[WBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
-        cluster.oracleProviders[cbBTC  ] = "ChainlinkOracle";
-        cluster.oracleProviders[LBTC   ] = "CrossAdapter=";
-        cluster.oracleProviders[eBTC   ] = "";
-        cluster.oracleProviders[SOLVBTC] = "RedstoneClassicOracle";
     
+        // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [ 
         //             WETH    wstETH  cbETH   WEETH   ezETH   RETH    METH    RSETH   sfrxETH ETHx    rswETH  USDC    USDT    PYUSD   USDY    wM      mTBILL  USDe    wUSDM   EURC    sUSDe   USDS    sUSDS   stUSD   stEUR   FDUSD   USD0    GHO     crvUSD  FRAX    tBTC    WBTC    cbBTC   LBTC    eBTC    SOLVBTC
         /* WETH    */ [0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4],
@@ -208,43 +284,52 @@ contract BaseMegaCluster is BatchBuilder {
         /* SOLVBTC */ [0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.00e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4]
         ];
 
-        string memory path = string.concat(vm.projectRoot(), "/script/production/mainnet/megaCluster/ClusterAddresses.json");
-        if (vm.exists(path)) loadClusterAddresses(vm.readFile(path), cluster);
+        initializeCluster();
     }
 
-    function dumpClusterAddresses(Cluster storage c) internal returns (string memory result) {
-        result = vm.serializeAddress("cluster", "stubOracle", c.stubOracle);
-        result = vm.serializeAddress("cluster", "oracleRouter", c.oracleRouter);
-        result = vm.serializeAddress("cluster", "vaults", c.vaults);
-        result = vm.serializeAddress("cluster", "irms", c.irms);
+    function dumpCluster() internal {
+        string memory result = "";
+        result = vm.serializeAddress("cluster", "stubOracle", cluster.stubOracle);
+        result = vm.serializeAddress("cluster", "oracleRouter", cluster.oracleRouter);
+        result = vm.serializeAddress("cluster", "vaults", cluster.vaults);
+        result = vm.serializeAddress("cluster", "irms", cluster.irms);
+        vm.writeJson(result, getInputConfigFilePath("ClusterAddresses.json"));
     }
 
-    function loadClusterAddresses(string memory json, Cluster storage c) internal {
-        c.stubOracle = getAddressFromJson(json, ".stubOracle");
-        c.oracleRouter = getAddressFromJson(json, ".oracleRouter");
-        c.vaults = getAddressesFromJson(json, ".vaults");
-        c.irms = getAddressesFromJson(json, ".irms");
+    function loadCluster(string memory json) internal {
+        cluster.stubOracle = getAddressFromJson(json, ".stubOracle");
+        cluster.oracleRouter = getAddressFromJson(json, ".oracleRouter");
+        cluster.vaults = getAddressesFromJson(json, ".vaults");
+        cluster.irms = getAddressesFromJson(json, ".irms");
 
-        for (uint256 i = 0; i < c.irms.length; ++i) {
-            InterestRateModelDetailedInfo memory irmInfo = IRMLens(lensAddresses.irmLens).getInterestRateModelInfo(c.irms[i]);
+        for (uint256 i = 0; i < cluster.irms.length; ++i) {
+            InterestRateModelDetailedInfo memory irmInfo = IRMLens(lensAddresses.irmLens).getInterestRateModelInfo(cluster.irms[i]);
 
             if (irmInfo.interestRateModelType == InterestRateModelType.KINK) {
                 KinkIRMInfo memory kinkIRMInfo = abi.decode(irmInfo.interestRateModelParams, (KinkIRMInfo));
-                c.kinkIRMMap[kinkIRMInfo.baseRate][kinkIRMInfo.slope1][kinkIRMInfo.slope2][kinkIRMInfo.kink] = c.irms[i];
+                cluster.kinkIRMMap[kinkIRMInfo.baseRate][kinkIRMInfo.slope1][kinkIRMInfo.slope2][kinkIRMInfo.kink] = cluster.irms[i];
             }
         }
 
-        checkDataSanity(c);
+        checkDataSanity();
     }
 
-    function checkDataSanity(Cluster storage c) internal view {
-        require(c.stubOracle != address(0), "stubOracle is not set");
-        require(c.oracleRouter != address(0), "OracleRouter is not set");
-        require(c.vaults.length == c.assets.length, "Vaults and assets length mismatch");
-        require(c.irms.length == c.assets.length, "IRMs and assets length mismatch");
+    function initializeCluster() private {
+        encodeAmountCaps(cluster.assets, cluster.supplyCaps);
+        encodeAmountCaps(cluster.assets, cluster.borrowCaps);
 
-        for (uint256 i = 0; i < c.vaults.length; ++i) {
-            require(c.assets[i] == IEVault(c.vaults[i]).asset(), "Asset is not equal to vault asset");
+        string memory path = string.concat(vm.projectRoot(), "/script/production/mainnet/megaCluster/ClusterAddresses.json");
+        if (vm.exists(path)) loadCluster(vm.readFile(path));
+    }
+
+    function checkDataSanity() private view {
+        require(cluster.stubOracle != address(0), "stubOracle is not set");
+        require(cluster.oracleRouter != address(0), "OracleRouter is not set");
+        require(cluster.vaults.length == cluster.assets.length, "Vaults and assets length mismatch");
+        require(cluster.irms.length == cluster.assets.length, "IRMs and assets length mismatch");
+
+        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            require(cluster.assets[i] == IEVault(cluster.vaults[i]).asset(), "Asset is not equal to vault asset");
         }
     }
 }

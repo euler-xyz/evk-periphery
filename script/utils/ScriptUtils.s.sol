@@ -320,7 +320,7 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         uint256 decimals = ERC20(asset).decimals();
         uint256 result;
 
-        if (amountNoDecimals == type(uint256).max) {
+        if (amountNoDecimals == 0) {
             return 0;
         } else if (amountNoDecimals >= 100) {
             uint256 scale = Math.log10(amountNoDecimals);
@@ -341,21 +341,13 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         return result;
     }
 
-    function encodeAmountCaps(address[] storage assets, uint256[] storage amountsNoDecimals)
+    function encodeAmountCaps(address[] storage assets, mapping(address => uint256 amountsNoDecimals) storage caps)
         internal
-        view
-        returns (uint256[] memory)
     {
-        require(
-            assets.length == amountsNoDecimals.length,
-            "encodeAmountCaps: assets and amountsNoDecimals must have the same length"
-        );
-
-        uint256[] memory result = new uint256[](assets.length);
         for (uint256 i = 0; i < assets.length; ++i) {
-            result[i] = encodeAmountCap(assets[i], amountsNoDecimals[i]);
+            address asset = assets[i];
+            caps[asset] = encodeAmountCap(asset, caps[asset]);
         }
-        return result;
     }
 }
 
