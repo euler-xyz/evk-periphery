@@ -191,63 +191,72 @@ contract BaseMegaCluster is BatchBuilder {
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0% APY  Kink(90%)=2.7% APY  Max=82.7%  APY
-            uint256[4] memory irmWETH      = [uint256(0), uint256(218407859),  uint256(42500370385), uint256(3865470566)];
+            // Base=0% APY  Kink(82%)=2.79% APY  Max=122.55% APY
+            uint256[4] memory irmETH       = [uint256(0), uint256(247597527),  uint256(31662899097), uint256(3521873182)];
 
-            // Base=0% APY  Kink(45%)=4.75% APY  Max=84.75% APY
-            uint256[4] memory irmWstETH    = [uint256(0), uint256(760869530),  uint256(7611888145),  uint256(1932735283)];
+            // Base=0% APY  Kink(82%)=2.79% APY  Max=122.55% APY
+            uint256[4] memory irmBTC       = [uint256(0), uint256(247597527),  uint256(31662899097), uint256(3521873182)];
 
-            // Base=0% APY  Kink(45%)=7% APY  Max=307% APY
-            uint256[4] memory irmOtherETH  = [uint256(0), uint256(1109317568), uint256(17921888499), uint256(1932735283)];
+            // Base=0% APY  Kink(88%)=5.13% APY  Max=101.38% APY
+            uint256[4] memory irmRWA_T1    = [uint256(0), uint256(419441267),  uint256(39964512631), uint256(3779571220)];
 
-            // Base=0% APY  Kink(92%)=5.5% APY  Max=62.5% APY
-            uint256[4] memory irmUSD       = [uint256(0), uint256(429380030),  uint256(39838751680), uint256(3951369912)];
+            // Base=0% APY  Kink(40%)=4.60% APY  Max=145.96% APY
+            uint256[4] memory irmETH_LST   = [uint256(0), uint256(829546015),  uint256(10514117840), uint256(1717986918)];
 
-            // Base=0% APY  Kink(80%)=9% APY  Max=84% APY
-            uint256[4] memory irmUSDe      = [uint256(0), uint256(794785584),  uint256(19315443049), uint256(3435973836)];
+            // Base=0% APY  Kink(25%)=4.60% APY  Max=848.77% APY
+            uint256[4] memory irmETH_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
 
-            // Base=0% APY  Kink(80%)=5.5% APY  Max=85.5% APY
-            uint256[4] memory irmOtherUSD  = [uint256(0), uint256(493787035),  uint256(20818956206), uint256(3435973836)];
+            // Base=0% APY  Kink(25%)=4.60% APY  Max=848.77% APY
+            uint256[4] memory irmBTC_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
 
-            // Base=0% APY  Kink(45%)=4% APY  Max=304% APY
-            uint256[4] memory irmBTC       = [uint256(0), uint256(643054912),  uint256(18204129717), uint256(1932735283)];
-            
-            cluster.kinkIRMParams[WETH   ] = irmWETH;
-            cluster.kinkIRMParams[wstETH ] = irmWstETH;
-            cluster.kinkIRMParams[cbETH  ] = irmOtherETH;
-            cluster.kinkIRMParams[WEETH  ] = irmOtherETH;
-            cluster.kinkIRMParams[ezETH  ] = irmOtherETH;
-            cluster.kinkIRMParams[RETH   ] = irmOtherETH;
-            cluster.kinkIRMParams[METH   ] = irmOtherETH;
-            cluster.kinkIRMParams[RSETH  ] = irmOtherETH;
-            cluster.kinkIRMParams[sfrxETH] = irmOtherETH;
-            cluster.kinkIRMParams[ETHx   ] = irmOtherETH;
-            cluster.kinkIRMParams[rswETH ] = irmOtherETH;
-            cluster.kinkIRMParams[USDC   ] = irmUSD;
-            cluster.kinkIRMParams[USDT   ] = irmUSD;
-            cluster.kinkIRMParams[PYUSD  ] = irmOtherUSD;
-            cluster.kinkIRMParams[USDY   ] = irmOtherUSD;
-            cluster.kinkIRMParams[wM     ] = irmOtherUSD;
-            cluster.kinkIRMParams[mTBILL ] = irmOtherUSD;
-            cluster.kinkIRMParams[USDe   ] = irmUSDe;
-            cluster.kinkIRMParams[wUSDM  ] = irmOtherUSD;
-            cluster.kinkIRMParams[EURC   ] = irmOtherUSD;
-            cluster.kinkIRMParams[sUSDe  ] = irmOtherUSD;
-            cluster.kinkIRMParams[USDS   ] = irmOtherUSD;
-            cluster.kinkIRMParams[sUSDS  ] = irmUSD;
-            cluster.kinkIRMParams[stUSD  ] = irmOtherUSD;
-            cluster.kinkIRMParams[stEUR  ] = irmOtherUSD;
-            cluster.kinkIRMParams[FDUSD  ] = irmOtherUSD;
-            cluster.kinkIRMParams[USD0   ] = irmOtherUSD;
-            cluster.kinkIRMParams[GHO    ] = irmOtherUSD;
-            cluster.kinkIRMParams[crvUSD ] = irmOtherUSD;
-            cluster.kinkIRMParams[FRAX   ] = irmUSD;
+            // Base=0% APY  Kink(82%)=6.72% APY  Max=122.55% APY
+            uint256[4] memory irmRWA_T2    = [uint256(0), uint256(585195609),  uint256(30124952282), uint256(3521873182)];
+
+            // Base=0% APY  Kink(78%)=8.87% APY  Max=145.96% APY
+            uint256[4] memory irmRWA_T3    = [uint256(0), uint256(803876450),  uint256(27333024886), uint256(3350074490)];
+
+            // Base=0% APY  Kink(40%)=2.79% APY  Max=145.96% APY
+            uint256[4] memory irmRWA_YLD_T1= [uint256(0), uint256(507574932),  uint256(10728765229), uint256(1717986918)];
+
+            // Base=0% APY  Kink(25%)=4.08% APY  Max=145.96% APY
+            uint256[4] memory irmRWA_YLD_T2= [uint256(0), uint256(1180191988), uint256(8460321485),  uint256(1073741824)];
+
+            cluster.kinkIRMParams[WETH   ] = irmETH;
+            cluster.kinkIRMParams[wstETH ] = irmETH_LST;
+            cluster.kinkIRMParams[cbETH  ] = irmETH_LST;
+            cluster.kinkIRMParams[WEETH  ] = irmETH_LRT;
+            cluster.kinkIRMParams[ezETH  ] = irmETH_LRT;
+            cluster.kinkIRMParams[RETH   ] = irmETH_LST;
+            cluster.kinkIRMParams[METH   ] = irmETH_LST;
+            cluster.kinkIRMParams[RSETH  ] = irmETH_LRT;
+            cluster.kinkIRMParams[sfrxETH] = irmETH_LST;
+            cluster.kinkIRMParams[ETHx   ] = irmETH_LST;
+            cluster.kinkIRMParams[rswETH ] = irmETH_LRT;
+            cluster.kinkIRMParams[USDC   ] = irmRWA_T1;
+            cluster.kinkIRMParams[USDT   ] = irmRWA_T1;
+            cluster.kinkIRMParams[PYUSD  ] = irmRWA_T2;
+            cluster.kinkIRMParams[USDY   ] = irmRWA_YLD_T1;
+            cluster.kinkIRMParams[wM     ] = irmRWA_T2;
+            cluster.kinkIRMParams[mTBILL ] = irmRWA_YLD_T1;
+            cluster.kinkIRMParams[USDe   ] = irmRWA_T2;
+            cluster.kinkIRMParams[wUSDM  ] = irmRWA_T2;
+            cluster.kinkIRMParams[EURC   ] = irmRWA_T2;
+            cluster.kinkIRMParams[sUSDe  ] = irmRWA_YLD_T1;
+            cluster.kinkIRMParams[USDS   ] = irmRWA_T2;
+            cluster.kinkIRMParams[sUSDS  ] = irmRWA_YLD_T1;
+            cluster.kinkIRMParams[stUSD  ] = irmRWA_YLD_T2;
+            cluster.kinkIRMParams[stEUR  ] = irmRWA_YLD_T2;
+            cluster.kinkIRMParams[FDUSD  ] = irmRWA_T2;
+            cluster.kinkIRMParams[USD0   ] = irmRWA_T2;
+            cluster.kinkIRMParams[GHO    ] = irmRWA_T3;
+            cluster.kinkIRMParams[crvUSD ] = irmRWA_T3;
+            cluster.kinkIRMParams[FRAX   ] = irmRWA_T3;
             cluster.kinkIRMParams[tBTC   ] = irmBTC;
             cluster.kinkIRMParams[WBTC   ] = irmBTC;
             cluster.kinkIRMParams[cbBTC  ] = irmBTC;
-            cluster.kinkIRMParams[LBTC   ] = irmBTC;
-            cluster.kinkIRMParams[eBTC   ] = irmBTC;
-            cluster.kinkIRMParams[SOLVBTC] = irmBTC;
+            cluster.kinkIRMParams[LBTC   ] = irmBTC_LRT;
+            cluster.kinkIRMParams[eBTC   ] = irmBTC_LRT;
+            cluster.kinkIRMParams[SOLVBTC] = irmBTC_LRT;
         }
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
