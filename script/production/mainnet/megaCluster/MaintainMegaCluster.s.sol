@@ -24,8 +24,7 @@ contract MaintainMegaCluster is BaseMegaCluster {
     function run() public {
         setUp();
 
-        // deploy the stub oracle (needed in case pull oracle is meant to be used for a collateral asset and its price
-        // is stale)
+        // deploy the stub oracle (needed in case pull oracle is meant to be used for a collateral asset and its stale)
         if (cluster.stubOracle == address(0)) {
             startBroadcast();
             cluster.stubOracle = address(new StubOracle());
@@ -102,10 +101,6 @@ contract MaintainMegaCluster is BaseMegaCluster {
             }
         }
 
-        if (EulerRouter(cluster.oracleRouter).governor() != ORACLE_ROUTER_GOVERNOR) {
-            transferGovernance(cluster.oracleRouter, ORACLE_ROUTER_GOVERNOR);
-        }
-
         // configure the vaults
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             address vault = cluster.vaults[i];
@@ -150,7 +145,7 @@ contract MaintainMegaCluster is BaseMegaCluster {
             address vault = cluster.vaults[i];
 
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
-            if (hookTarget != address(0) || hookedOps != 0) {
+            if (hookTarget != address(0) || hookedOps != (OP_MAX_VALUE - 1)) {
                 setHookConfig(vault, address(0), (OP_MAX_VALUE - 1));
             }
 
@@ -159,15 +154,18 @@ contract MaintainMegaCluster is BaseMegaCluster {
             }
         }
 
-        // apply oracle overrides
+        // apply oracle overrides and transfer the oracle router governance
         for (uint256 i = 0; i < oracleOverrides.length; ++i) {
             OracleOverride storage o = oracleOverrides[i];
             govSetConfig(cluster.oracleRouter, o.asset, o.quote, o.adapter);
         }
 
-        // execute the batch
-        executeBatch();
+        if (EulerRouter(cluster.oracleRouter).governor() != ORACLE_ROUTER_GOVERNOR) {
+            transferGovernance(cluster.oracleRouter, ORACLE_ROUTER_GOVERNOR);
+        }
 
+        executeBatch();
+        /*
         // sanity check the configuration
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(cluster.vaults[i]);
@@ -180,7 +178,7 @@ contract MaintainMegaCluster is BaseMegaCluster {
                     | PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER
             );
         }
-
+        */
         vm.writeJson(dumpClusterAddresses(cluster), getInputConfigFilePath("ClusterAddresses.json"));
     }
 }

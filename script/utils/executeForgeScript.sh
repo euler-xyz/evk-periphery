@@ -16,7 +16,12 @@ if [[ "$@" == *"--dry-run"* ]]; then
     broadcast=""
 fi
 
-if ! forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $broadcast --legacy --slow --with-gas-price $gasPrice; then
+if [[ "$@" == *"--batch-via-safe"* ]]; then
+    batch_via_safe="--batch-via-safe"
+    ffi="--ffi"
+fi
+
+if ! env broadcast=$broadcast batch_via_safe=$batch_via_safe forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow --with-gas-price $gasPrice; then
     exit 1
 fi
 

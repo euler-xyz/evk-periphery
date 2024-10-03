@@ -15,21 +15,32 @@ verify_contracts=${verify_contracts:-n}
 
 if [[ $verify_contracts == "y" ]]; then
     verify_contracts="--verify"
+else
+    verify_contracts=""
 fi
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-if ! script/utils/checkEnvironment.sh $verify_contracts; then
-    echo "Environment check failed. Exiting."
-    exit 1
+read -p "If the solidity script builds batches, shall them be sent via Gnosis Safe Multisig? (default: n): " batch_via_safe
+batch_via_safe=${batch_via_safe:-n}
+
+if [[ $batch_via_safe == "y" ]]; then
+    batch_via_safe="--batch-via-safe"
+else
+    batch_via_safe=""
 fi
 
 if [[ "$@" == *"--dry-run"* ]]; then
     dry_run="--dry-run"
 fi
 
-if script/utils/executeForgeScript.sh "$scriptPath" $verify_contracts $dry_run; then
+if ! script/utils/checkEnvironment.sh $verify_contracts $batch_via_safe; then
+    echo "Environment check failed. Exiting."
+    exit 1
+fi
+
+if script/utils/executeForgeScript.sh "$scriptPath" $verify_contracts $batch_via_safe $dry_run; then
     if [[ $dry_run == "" ]]; then
         deployment_dir="script/deployments/$deployment_name"
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
@@ -39,6 +50,10 @@ if script/utils/executeForgeScript.sh "$scriptPath" $verify_contracts $dry_run; 
 
         for json_file in script/*.json; do
             mv "$json_file" "$deployment_dir/output/$(basename "$json_file")"
+        done
+    else
+        for json_file in script/*.json; do
+            rm "$json_file"
         done
     fi
 fi

@@ -244,12 +244,7 @@ contract BaseMegaCluster is BatchBuilder {
         require(c.irms.length == c.assets.length, "IRMs and assets length mismatch");
 
         for (uint256 i = 0; i < c.vaults.length; ++i) {
-            address asset = c.assets[i];
-
-            require(
-                asset != IEVault(c.vaults[i]).asset(),
-                string(abi.encodePacked("Asset ", asset, " is not equal to vault asset ", c.vaults[i]))
-            );
+            require(c.assets[i] == IEVault(c.vaults[i]).asset(), "Asset is not equal to vault asset");
         }
     }
 }
