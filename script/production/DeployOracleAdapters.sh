@@ -144,6 +144,28 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 feed: $feed,
                 maxStaleness: $maxStaleness
             }' --indent 4 > script/${jsonName}_input.json
+    elif [[ "$provider" == "Chainlink Infrequent" ]]; then
+        scriptName=${baseName}.s.sol:ChainlinkInfrequentAdapter
+        jsonName=03_ChainlinkInfrequentAdapter
+
+        base="${columns[8]}"
+        quote="${columns[9]}"
+
+        jq -n \
+            --argjson addToAdapterRegistry false \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
+            --arg base "${columns[8]}" \
+            --arg quote "${columns[9]}" \
+            --arg feed "${columns[10]}" \
+            --argjson maxStaleness "${columns[11]}" \
+            '{
+                addToAdapterRegistry: $addToAdapterRegistry,
+                adapterRegistry: $adapterRegistry,
+                base: $base,
+                quote: $quote,
+                feed: $feed,
+                maxStaleness: $maxStaleness
+            }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider" == "Chronicle" ]]; then
         scriptName=${baseName}.s.sol:ChronicleAdapter
         jsonName=03_ChronicleAdapter

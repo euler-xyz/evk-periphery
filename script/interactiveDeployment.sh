@@ -134,7 +134,8 @@ while true; do
             echo "8. Fixed Rate"
             echo "9. Rate Provider"
             echo "10. Pendle"
-            read -p "Enter your choice (0-10): " adapter_choice
+            echo "11. Chainlink Infrequent"
+            read -p "Enter your choice (0-11): " adapter_choice
 
             baseName=03_OracleAdapters
 
@@ -428,6 +429,33 @@ while true; do
                             base: $base,
                             quote: $quote,
                             twapWindow: $twapWindow
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                11)
+                    echo "Deploying Chainlink Infrequent Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:ChainlinkInfrequentAdapter
+                    jsonName=03_ChainlinkInfrequentAdapter
+
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter feed address: " feed
+                    read -p "Enter max staleness (in seconds): " max_staleness
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --arg feed "$feed" \
+                        --argjson maxStaleness "$max_staleness" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            base: $base,
+                            quote: $quote,
+                            feed: $feed,
+                            maxStaleness: $maxStaleness
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
