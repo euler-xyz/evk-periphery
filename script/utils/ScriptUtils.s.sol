@@ -236,6 +236,8 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
             return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
         } else if (block.chainid == 42161) {
             return 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+        } else if (block.chainid == 80084) {
+            return 0xE28AfD8c634946833e89ee3F122C06d7C537E8A8;
         } else {
             revert("getWETHAddress: Unsupported chain");
         }
