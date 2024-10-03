@@ -61,7 +61,7 @@ contract ChainlinkAdapter is ScriptUtils {
     }
 }
 
-contract ChainlinkAdapter is ScriptUtils {
+contract ChainlinkInfrequentAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_ChainlinkInfrequentAdapter_input.json";
         string memory outputScriptFileName = "03_ChainlinkInfrequentAdapter_output.json";
