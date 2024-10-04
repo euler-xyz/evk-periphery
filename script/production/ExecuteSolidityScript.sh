@@ -22,13 +22,8 @@ fi
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-read -p "If the solidity script builds batches, shall them be sent via Gnosis Safe Multisig? (default: n): " batch_via_safe
-batch_via_safe=${batch_via_safe:-n}
-
-if [[ $batch_via_safe == "y" ]]; then
+if [[ "$@" == *"--batch-via-safe"* ]]; then
     batch_via_safe="--batch-via-safe"
-else
-    batch_via_safe=""
 fi
 
 if [[ "$@" == *"--dry-run"* ]]; then

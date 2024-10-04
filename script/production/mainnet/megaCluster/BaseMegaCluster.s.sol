@@ -8,7 +8,7 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 import "../../../../src/Lens/LensTypes.sol";
 
-contract BaseMegaCluster is BatchBuilder {
+contract BaseMEGACluster is BatchBuilder {
     // do not change below addresses
     address internal constant USD     = address(840);
     address internal constant WETH    = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;

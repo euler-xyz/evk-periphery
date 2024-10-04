@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {BaseMegaCluster} from "./BaseMegaCluster.s.sol";
+import {BaseMEGACluster} from "./BaseMEGACluster.s.sol";
 import {KinkIRM} from "../../../04_IRM.s.sol";
 import {EVaultDeployer, OracleRouterDeployer, EulerRouter} from "../../../07_EVault.s.sol";
 import {OracleLens} from "../../../../src/Lens/OracleLens.sol";
@@ -11,7 +11,7 @@ import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 import {StubOracle} from "./StubOracle.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 
-contract MaintainMegaCluster is BaseMegaCluster {
+contract MaintainMEGACluster is BaseMEGACluster {
     struct OracleOverride {
         address asset;
         address quote;
