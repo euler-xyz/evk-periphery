@@ -747,21 +747,15 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            read -p "Enter the OneInch Aggregator address: " oneinch_aggregator
             read -p "Enter the Uniswap Router V2 address: " uniswap_router_v2
             read -p "Enter the Uniswap Router V3 address: " uniswap_router_v3
-            read -p "Enter the Uniswap Router 02 address: " uniswap_router_02
 
             jq -n \
-                --arg oneInchAggregator "$oneinch_aggregator" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
-                --arg uniswapRouter02 "$uniswap_router_02" \
                 '{
-                    oneInchAggregator: $oneInchAggregator,
                     uniswapRouterV2: $uniswapRouterV2,
-                    uniswapRouterV3: $uniswapRouterV3,
-                    uniswapRouter02: $uniswapRouter02
+                    uniswapRouterV3: $uniswapRouterV3
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         11)

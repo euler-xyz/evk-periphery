@@ -19,10 +19,8 @@ import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 contract DeployCoreAndPeriphery is ScriptUtils {
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
-    address internal constant ONE_INCH_AGGREGATOR_V6 = 0x111111125421cA6dc452d289314280a0f8842A65;
     address internal constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address internal constant UNISWAP_ROUTER_V3 = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-    address internal constant UNISWAP_ROUTER_02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 
     uint256 internal constant FEE_FLOW_INIT_PRICE = 1e6;
     address internal constant FEE_FLOW_PAYMENT_TOKEN = WETH; // TODO
@@ -87,7 +85,7 @@ contract DeployCoreAndPeriphery is ScriptUtils {
         {
             Swap deployer = new Swap();
             (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) =
-                deployer.deploy(ONE_INCH_AGGREGATOR_V6, UNISWAP_ROUTER_V2, UNISWAP_ROUTER_V3, UNISWAP_ROUTER_02);
+                deployer.deploy(UNISWAP_ROUTER_V2, UNISWAP_ROUTER_V3);
         }
         // deploy fee flow
         {
