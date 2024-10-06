@@ -35,10 +35,8 @@ contract SanityCheckInitialDeployment is ScriptUtils {
     address internal constant USDCUSD = 0x6213f24332D35519039f2afa7e3BffE105a37d3F;
     address internal constant USDTUSD = 0x587CABe0521f5065b561A6e68c25f338eD037FF9;
 
-    address internal constant ONE_INCH_ROUTER_V6 = 0x111111125421cA6dc452d289314280a0f8842A65;
     address internal constant UNI_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address internal constant UNI_ROUTER_V3 = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-    address internal constant UNI_ROUTER_02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 
     address internal constant EULER_DEPLOYER = 0xEe009FAF00CF54C1B4387829aF7A8Dc5f0c8C8C5;
     address internal constant DAO_MULTISIG = 0xcAD001c30E96765aC90307669d578219D4fb1DCe;
@@ -251,12 +249,10 @@ contract SanityCheckInitialDeployment is ScriptUtils {
         assert(recognized.length == 3);
 
         // swapper
-        // - immutables: oneInchAggregator, uniswapRouterV2, uniswapRouterV3, uniswapRouter02
+        // - immutables: uniswapRouterV2, uniswapRouterV3
 
-        assert(Swapper(peripheryAddresses.swapper).oneInchAggregator() == ONE_INCH_ROUTER_V6);
         assert(Swapper(peripheryAddresses.swapper).uniswapRouterV2() == UNI_ROUTER_V2);
         assert(Swapper(peripheryAddresses.swapper).uniswapRouterV3() == UNI_ROUTER_V3);
-        assert(Swapper(peripheryAddresses.swapper).uniswapRouter02() == UNI_ROUTER_02);
     }
 
     function verifyVaults(CoreAddresses memory coreAddresses, PeripheryAddresses memory peripheryAddresses)

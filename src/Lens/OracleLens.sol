@@ -82,6 +82,16 @@ contract OracleLens is Utils {
                     maxStaleness: IOracle(oracleAddress).maxStaleness()
                 })
             );
+        } else if (_strEq(name, "ChainlinkInfrequentOracle")) {
+            oracleInfo = abi.encode(
+                ChainlinkInfrequentOracleInfo({
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    feed: IOracle(oracleAddress).feed(),
+                    feedDescription: IOracle(IOracle(oracleAddress).feed()).description(),
+                    maxStaleness: IOracle(oracleAddress).maxStaleness()
+                })
+            );
         } else if (_strEq(name, "ChronicleOracle")) {
             oracleInfo = abi.encode(
                 ChronicleOracleInfo({

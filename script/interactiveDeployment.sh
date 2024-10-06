@@ -134,7 +134,8 @@ while true; do
             echo "8. Fixed Rate"
             echo "9. Rate Provider"
             echo "10. Pendle"
-            read -p "Enter your choice (0-10): " adapter_choice
+            echo "11. Chainlink Infrequent"
+            read -p "Enter your choice (0-11): " adapter_choice
 
             baseName=03_OracleAdapters
 
@@ -430,6 +431,33 @@ while true; do
                             twapWindow: $twapWindow
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
+                11)
+                    echo "Deploying Chainlink Infrequent Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:ChainlinkInfrequentAdapter
+                    jsonName=03_ChainlinkInfrequentAdapter
+
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter feed address: " feed
+                    read -p "Enter max staleness (in seconds): " max_staleness
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --arg feed "$feed" \
+                        --argjson maxStaleness "$max_staleness" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            base: $base,
+                            quote: $quote,
+                            feed: $feed,
+                            maxStaleness: $maxStaleness
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
                 *)
                     echo "Invalid adapter choice. Exiting."
                     exit 1
@@ -719,21 +747,15 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            read -p "Enter the OneInch Aggregator address: " oneinch_aggregator
             read -p "Enter the Uniswap Router V2 address: " uniswap_router_v2
             read -p "Enter the Uniswap Router V3 address: " uniswap_router_v3
-            read -p "Enter the Uniswap Router 02 address: " uniswap_router_02
 
             jq -n \
-                --arg oneInchAggregator "$oneinch_aggregator" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
-                --arg uniswapRouter02 "$uniswap_router_02" \
                 '{
-                    oneInchAggregator: $oneInchAggregator,
                     uniswapRouterV2: $uniswapRouterV2,
-                    uniswapRouterV3: $uniswapRouterV3,
-                    uniswapRouter02: $uniswapRouter02
+                    uniswapRouterV3: $uniswapRouterV3
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         11)
