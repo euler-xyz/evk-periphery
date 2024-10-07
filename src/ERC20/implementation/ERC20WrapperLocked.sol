@@ -57,6 +57,9 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param lockTimestamp The normalized timestamp of the removed lock
     event LockRemoved(address indexed account, uint256 lockTimestamp);
 
+    /// @notice Thrown when the remainder loss is not allowed but the calculated remainder amount is non-zero
+    error RemainderLossNotAllowed();
+
     /// @notice Modifier to restrict function access to whitelisted addresses
     /// @param account The address to check for whitelist status
     modifier onlyWhitelisted(address account) {
@@ -187,11 +190,18 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// schedule. The remainder of the tokens are transferred to the receiver address configured.
     /// @param account The address to receive the withdrawn tokens
     /// @param lockTimestamp The normalized lock timestamp to withdraw tokens for
+    /// @param allowRemainderLoss If true, is it allowed for the remainder of the tokens to be transferred to the
+    /// receiver address configured as per the lock schedule. If false and the calculated remainder amount is non-zero,
+    /// the withdrawal will revert.
     /// @return bool indicating success of the withdrawal
-    function withdrawToByLockTimestamp(address account, uint256 lockTimestamp) public virtual returns (bool) {
+    function withdrawToByLockTimestamp(address account, uint256 lockTimestamp, bool allowRemainderLoss)
+        public
+        virtual
+        returns (bool)
+    {
         uint256[] memory lockTimestamps = new uint256[](1);
         lockTimestamps[0] = lockTimestamp;
-        return withdrawToByLockTimestamps(account, lockTimestamps);
+        return withdrawToByLockTimestamps(account, lockTimestamps, allowRemainderLoss);
     }
 
     /// @notice Withdraws tokens to a specified account based on multiple normalized lock timestamps as per the lock
@@ -199,8 +209,11 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// The remainder of the tokens are transferred to the receiver address configured.
     /// @param account The address to receive the withdrawn tokens
     /// @param lockTimestamps An array of normalized lock timestamps to withdraw tokens for
+    /// @param allowRemainderLoss If true, is it allowed for the remainder of the tokens to be transferred to the
+    /// receiver address configured as per the lock schedule. If false and the calculated remainder amount is non-zero,
+    /// the withdrawal will revert.
     /// @return bool indicating success of the withdrawal
-    function withdrawToByLockTimestamps(address account, uint256[] memory lockTimestamps)
+    function withdrawToByLockTimestamps(address account, uint256[] memory lockTimestamps, bool allowRemainderLoss)
         public
         virtual
         returns (bool)
@@ -226,6 +239,8 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
         asset.safeTransfer(account, totalAccountAmount);
 
         if (totalRemainderAmount != 0) {
+            if (!allowRemainderLoss) revert RemainderLossNotAllowed();
+
             address receiver = remainderReceiver;
             asset.safeTransfer(receiver == address(0) ? owner() : receiver, totalRemainderAmount);
         }
