@@ -87,7 +87,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @notice Sets a new remainder receiver address
     /// @param _remainderReceiver The address of the new remainder receiver. If zero address, the remainder of the
     /// tokens
-    function setRemainderReceiver(address _remainderReceiver) public onlyOwner {
+    function setRemainderReceiver(address _remainderReceiver) public onlyEVCAccountOwner onlyOwner {
         if (remainderReceiver != _remainderReceiver) {
             remainderReceiver = _remainderReceiver;
             emit RemainderReceiverSet(_remainderReceiver);
