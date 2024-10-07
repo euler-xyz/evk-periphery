@@ -8,7 +8,7 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 import "../../../../src/Lens/LensTypes.sol";
 
-contract BaseMEGACluster is BatchBuilder {
+contract ClusterBase is BatchBuilder {
     // do not change below addresses
     address internal constant USD     = address(840);
     address internal constant WETH    = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -335,7 +335,7 @@ contract BaseMEGACluster is BatchBuilder {
         encodeAmountCaps(cluster.assets, cluster.supplyCaps);
         encodeAmountCaps(cluster.assets, cluster.borrowCaps);
 
-        string memory path = string.concat(vm.projectRoot(), "/script/production/mainnet/megaCluster/ClusterAddresses.json");
+        string memory path = string.concat(vm.projectRoot(), "/script/production/mainnet/MEGACluster/ClusterAddresses.json");
         if (vm.exists(path)) loadCluster(vm.readFile(path));
     }
 
@@ -347,7 +347,7 @@ contract BaseMEGACluster is BatchBuilder {
         require(cluster.assets.length == cluster.ltvs.length, "Assets and LTVs length mismatch");
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            require(cluster.assets[i] == IEVault(cluster.vaults[i]).asset(), "Asset is not equal to vault asset");
+            require(cluster.vaults[i] == address(0) || cluster.assets[i] == IEVault(cluster.vaults[i]).asset(), "Vault asset mismatch");
         }
     }
 }

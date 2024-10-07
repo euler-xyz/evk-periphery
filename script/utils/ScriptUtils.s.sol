@@ -498,3 +498,15 @@ contract ERC20Mintable is Ownable, ERC20 {
         _mint(account, amount);
     }
 }
+
+contract StubOracle {
+    string public name = "StubOracle";
+
+    function getQuote(uint256, address, address) external pure returns (uint256) {
+        return 0;
+    }
+
+    function getQuotes(uint256, address, address) external pure returns (uint256, uint256) {
+        return (0, 0);
+    }
+}

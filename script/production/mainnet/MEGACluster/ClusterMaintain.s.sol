@@ -2,16 +2,16 @@
 
 pragma solidity ^0.8.0;
 
-import {BaseMEGACluster} from "./BaseMEGACluster.s.sol";
+import {ClusterBase} from "./ClusterBase.s.sol";
 import {KinkIRM} from "../../../04_IRM.s.sol";
 import {EVaultDeployer, OracleRouterDeployer, EulerRouter} from "../../../07_EVault.s.sol";
 import {OracleLens} from "../../../../src/Lens/OracleLens.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
-import {StubOracle} from "./StubOracle.sol";
+import {StubOracle} from "../../../utils/ScriptUtils.s.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 
-contract MaintainMEGACluster is BaseMEGACluster {
+contract ClusterMaintain is ClusterBase {
     struct OracleOverride {
         address asset;
         address quote;
@@ -37,12 +37,24 @@ contract MaintainMEGACluster is BaseMEGACluster {
         }
 
         // deploy the vaults
-        if (cluster.vaults.length == 0) {
+        {
             EVaultDeployer deployer = new EVaultDeployer();
             for (uint256 i = 0; i < cluster.assets.length; ++i) {
-                cluster.vaults.push(
-                    deployer.deploy(coreAddresses.eVaultFactory, true, cluster.assets[i], cluster.oracleRouter, USD)
-                );
+                if (cluster.vaults.length == 0 || cluster.vaults[i] == address(0)) {
+                    address vault = deployer.deploy(
+                        coreAddresses.eVaultFactory,
+                        true,
+                        cluster.assets[i],
+                        cluster.oracleRouter,
+                        USD
+                    );
+
+                    if (cluster.assets.length == cluster.vaults.length) {
+                        cluster.vaults[i] = vault;
+                    } else {
+                        cluster.vaults.push(vault);
+                    }
+                }
             }
         }
 
@@ -167,16 +179,15 @@ contract MaintainMEGACluster is BaseMEGACluster {
                 address collateral = cluster.vaults[j];
                 uint16 liquidationLTV = cluster.ltvs[j][i];
                 uint16 borrowLTV = liquidationLTV > 0.02e4 ? liquidationLTV - 0.02e4 : 0;
-                uint16 currentBorrowLTV = IEVault(vault).LTVBorrow(collateral);
-                uint16 currentLiquidationLTV = IEVault(vault).LTVLiquidation(collateral);
+                (uint16 currentBorrowLTV, uint16 targetLiquidationLTV,,,) = IEVault(vault).LTVFull(collateral);
 
-                if (currentBorrowLTV != borrowLTV || currentLiquidationLTV != liquidationLTV) {
+                if (currentBorrowLTV != borrowLTV || targetLiquidationLTV != liquidationLTV) {
                     setLTV(
                         vault,
                         collateral,
                         borrowLTV,
                         liquidationLTV,
-                        liquidationLTV >= currentLiquidationLTV ? 0 : 1 days
+                        liquidationLTV >= targetLiquidationLTV ? 0 : 1 days
                     );
                 }
             }
@@ -192,8 +203,12 @@ contract MaintainMEGACluster is BaseMEGACluster {
             } else if ((cluster.hookTargetOverride[asset] != address(0) && hookTarget != cluster.hookTargetOverride[asset]) || (cluster.hookedOpsOverride[asset] != 0 && hookedOps != cluster.hookedOpsOverride[asset])) {
                 setHookConfig(
                     vault, 
-                    cluster.hookTargetOverride[asset] != address(0) && hookTarget != cluster.hookTargetOverride[asset] ? cluster.hookTargetOverride[asset] : hookTarget,
-                    cluster.hookedOpsOverride[asset] != 0 && hookedOps != cluster.hookedOpsOverride[asset] ? cluster.hookedOpsOverride[asset] : hookedOps
+                    cluster.hookTargetOverride[asset] != address(0) && hookTarget != cluster.hookTargetOverride[asset] 
+                        ? cluster.hookTargetOverride[asset] 
+                        : hookTarget,
+                    cluster.hookedOpsOverride[asset] != 0 && hookedOps != cluster.hookedOpsOverride[asset] 
+                        ? cluster.hookedOpsOverride[asset] 
+                        : hookedOps
                 );
             }
 
