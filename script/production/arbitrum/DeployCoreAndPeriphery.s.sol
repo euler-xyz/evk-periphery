@@ -17,6 +17,7 @@ import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
 contract DeployCoreAndPeriphery is ScriptUtils {
+    address internal constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
     address internal constant ONE_INCH_AGGREGATOR_V6 = 0x111111125421cA6dc452d289314280a0f8842A65;
@@ -48,7 +49,7 @@ contract DeployCoreAndPeriphery is ScriptUtils {
                 coreAddresses.sequenceRegistry,
                 coreAddresses.balanceTracker,
                 coreAddresses.permit2
-            ) = deployer.deploy();
+            ) = deployer.deploy(PERMIT2_ADDRESS);
         }
         // deploy periphery factories
         {
