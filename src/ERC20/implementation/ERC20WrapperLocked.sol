@@ -96,7 +96,11 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
 
     /// @notice Sets the whitelist status for an account
     /// @dev If the account is being whitelisted, all the locked amounts are removed resulting in all the tokens being
-    /// unlocked. If the account being removed from the whitelist, the current account balance is locked.
+    /// unlocked. If the account being removed from the whitelist, the current account balance is locked. The side
+    /// effect of this behavior is that the owner can modify the lock schedule for users, i.e. by adding and then
+    /// removing an account from the whitelist, the owner can reset the unlock schedule for that account. It must be
+    /// noted though that the ability to modify whitelist status and its effects on locks is a core feature of this
+    /// contract.
     /// @param account The address to set the whitelist status for
     /// @param status The whitelist status to set
     function setWhitelistStatus(address account, bool status) public onlyEVCAccountOwner onlyOwner {
