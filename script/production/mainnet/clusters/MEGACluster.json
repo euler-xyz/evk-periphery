@@ -1,0 +1,7 @@
+{
+  "auxiliaryVaults": [TODO put the Prime vaults in here],
+  "irms": [],
+  "oracleRouters": [],
+  "stubOracle": "0x0000000000000000000000000000000000000000",
+  "vaults": []
+}

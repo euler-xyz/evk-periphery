@@ -7,9 +7,7 @@ import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 
 contract Cluster is MaintainCluster {
-    address internal constant DAO_MULTISIG = 0xcAD001c30E96765aC90307669d578219D4fb1DCe;
-
-    function initializeCluster() internal override {
+    function configureCluster() internal override {
         // define the path to the cluster addresses file here
         cluster.clusterAddressesPath = "/script/production/mainnet/clusters/PrimeCluster.json";
 
@@ -19,8 +17,11 @@ contract Cluster is MaintainCluster {
         cluster.assets = [WETH, wstETH, cbETH, WEETH,  USDC, USDT, USDS, tBTC, WBTC, cbBTC];
 
         // define the governors here
-        cluster.oracleRouterGovernor = DAO_MULTISIG;
-        cluster.vaultsGovernor = DAO_MULTISIG;
+        cluster.oracleRoutersGovernor = EULER_DAO_MULTISIG;
+        cluster.vaultsGovernor = EULER_DAO_MULTISIG;
+
+        // define unit of account here
+        cluster.unitOfAccount = USD;
 
         // define fee receiver here and interest fee here. if needed to be defined per asset, populate the feeReceiverOverride and interestFeeOverride mappings
         cluster.feeReceiver = address(0);
@@ -126,16 +127,39 @@ contract Cluster is MaintainCluster {
         /* 8  WBTC    */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.81e4, 0.81e4, 0.81e4, 0.90e4, 0.00e4, 0.90e4],
         /* 9  cbBTC   */ [0.69e4, 0.69e4, 0.69e4, 0.69e4, 0.78e4, 0.78e4, 0.78e4, 0.88e4, 0.88e4, 0.00e4]
         ];
+
+        // define auxiliary ltvs here. columns are liability vaults, rows are collateral vaults. 
+        // double check the order of collaterals against the order of auxiliaryVaults in the addresses file
+        cluster.auxiliaryLTVs = [
+            //                       0       1       2       3       4       5       6       7       8       9   
+            //                       WETH    wstETH  cbETH   WEETH   USDC    USDT    USDS    tBTC    WBTC    cbBTC
+            /* 0  Escrow WETH    */ [0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.89e4, 0.89e4, 0.89e4, 0.83e4, 0.83e4, 0.83e4],
+            /* 1  Escrow wstETH  */ [0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.86e4, 0.86e4, 0.86e4, 0.79e4, 0.79e4, 0.79e4],
+            /* 2  Escrow cbETH   */ [0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.83e4, 0.83e4, 0.83e4, 0.75e4, 0.75e4, 0.75e4],
+            /* 3  Escrow WEETH   */ [0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.83e4, 0.83e4, 0.83e4, 0.75e4, 0.75e4, 0.75e4],
+            /* 4  Escrow USDC    */ [0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.00e4, 0.95e4, 0.95e4, 0.89e4, 0.89e4, 0.89e4],
+            /* 5  Escrow USDT    */ [0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.95e4, 0.00e4, 0.95e4, 0.89e4, 0.89e4, 0.89e4],
+            /* 6  Escrow USDS    */ [0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.92e4, 0.00e4, 0.83e4, 0.83e4, 0.83e4],
+            /* 7  Escrow tBTC    */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.90e4, 0.90e4],
+            /* 8  Escrow WBTC    */ [0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.00e4, 0.92e4],
+            /* 9  Escrow cbBTC   */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.90e4, 0.90e4, 0.00e4]
+        ];
     }
 
     function verifyCluster() internal override {
+        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            perspectiveVerify(peripheryAddresses.governedPerspective, cluster.vaults[i]);
+        }
+        executeBatchPrank(EULER_DEPLOYER, true);
+
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(cluster.vaults[i]);
 
             PerspectiveVerifier.verifyPerspective(
                 peripheryAddresses.eulerUngovernedNzxPerspective,
                 cluster.vaults[i],
-                PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR | PerspectiveVerifier.E__LTV_COLLATERAL_RECOGNITION
+                PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR,
+                PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING
             );
         }
     }

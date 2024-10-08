@@ -2,13 +2,15 @@
 
 pragma solidity ^0.8.0;
 
+import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
+import {IEVault} from "evk/EVault/IEVault.sol";
 import {MaintainCluster} from "../MaintainCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 import "evk/EVault/shared/Constants.sol";
 
 contract Cluster is MaintainCluster {
-    function initializeCluster() internal override {
+    function configureCluster() internal override {
         // define the path to the cluster addresses file here
         cluster.clusterAddressesPath = "/script/production/mainnet/clusters/MEGACluster.json";
 
@@ -18,8 +20,11 @@ contract Cluster is MaintainCluster {
         cluster.assets = [WETH, wstETH, cbETH, WEETH, ezETH, RETH, METH, RSETH, sfrxETH, ETHx, rswETH, USDC, USDT, PYUSD, USDY, wM, mTBILL, USDe, wUSDM, EURC, sUSDe, USDS, sUSDS, stUSD, stEUR, FDUSD, USD0, GHO, crvUSD, FRAX, tBTC, WBTC, cbBTC, LBTC, eBTC, SOLVBTC];
 
         // define the governors here
-        cluster.oracleRouterGovernor = getDeployer();
+        cluster.oracleRoutersGovernor = getDeployer();
         cluster.vaultsGovernor = getDeployer();
+
+        // define unit of account here
+        cluster.unitOfAccount = USD;
 
         // define fee receiver here and interest fee here. if needed to be defined per asset, populate the feeReceiverOverride and interestFeeOverride mappings
         cluster.feeReceiver = address(0);
@@ -231,16 +236,39 @@ contract Cluster is MaintainCluster {
         /* 34 eBTC    */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.00e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4],
         /* 35 SOLVBTC */ [0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.00e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4]
         ];
+
+        // define auxiliary ltvs here. columns are liability vaults, rows are collateral vaults. 
+        // double check the order of collaterals against the order of auxiliaryVaults in the addresses file
+        cluster.auxiliaryLTVs = [
+            //                      0       1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22      23      24      25      26      27      28      29      30      31      32      33      34      35
+            //                      WETH    wstETH  cbETH   WEETH   ezETH   RETH    METH    RSETH   sfrxETH ETHx    rswETH  USDC    USDT    PYUSD   USDY    wM      mTBILL  USDe    wUSDM   EURC    sUSDe   USDS    sUSDS   stUSD   stEUR   FDUSD   USD0    GHO     crvUSD  FRAX    tBTC    WBTC    cbBTC   LBTC    eBTC    SOLVBTC
+            /* 0  Prime WETH    */ [0]
+            /* 1  Prime wstETH  */ 
+            /* 2  Prime cbETH   */ 
+            /* 3  Prime WEETH   */ 
+            /* 4  Prime USDC    */ 
+            /* 5  Prime USDT    */ 
+            /* 6  Prime USDS    */ 
+            /* 7  Prime tBTC    */ 
+            /* 8  Prime WBTC    */ 
+            /* 9  Prime cbBTC   */ 
+        ];
     }
 
     function verifyCluster() internal override {
+        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            perspectiveVerify(peripheryAddresses.governedPerspective, cluster.vaults[i]);
+        }
+        executeBatchPrank(EULER_DEPLOYER, true);
+
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(cluster.vaults[i]);
 
             PerspectiveVerifier.verifyPerspective(
                 peripheryAddresses.eulerUngovernedNzxPerspective,
                 cluster.vaults[i],
-                PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR | PerspectiveVerifier.E__LTV_COLLATERAL_RECOGNITION
+                PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR,
+                PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING
             );
         }
     }

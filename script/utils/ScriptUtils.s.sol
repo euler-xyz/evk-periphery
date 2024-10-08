@@ -362,7 +362,7 @@ abstract contract BatchBuilder is ScriptUtils {
     function addBatchItem(address targetContract, address onBehalfOfAccount, uint256 value, bytes memory data)
         internal
     {
-        console.log("Adding batch item:");
+        console.log("Adding batch item");
         console.log("Target: %s", targetContract);
         console.log("OnBehalfOfAccount: %s", onBehalfOfAccount);
         console.log("Value: %s", value);
@@ -393,6 +393,21 @@ abstract contract BatchBuilder is ScriptUtils {
         }
     }
 
+    function executeBatchPrank(address caller, bool clear) internal {
+        if (items.length == 0) return;
+
+        console.log("Pranking the batch execution as %s on the EVC (%s)\n", caller, coreAddresses.evc);
+
+        for (uint256 i = 0; i < items.length; ++i) {
+            items[i].onBehalfOfAccount = caller;
+        }
+
+        vm.prank(caller);
+        IEVC(coreAddresses.evc).batch{value: getBatchValue()}(items);
+
+        if (clear) clearBatchItems();
+    }
+
     function executeBatch() internal {
         if (isBatchViaSafe()) executeBatchViaSafe();
         else executeBatchDirectly();
@@ -401,7 +416,7 @@ abstract contract BatchBuilder is ScriptUtils {
     function executeBatchDirectly() internal broadcast {
         if (items.length == 0) return;
 
-        console.log("Executing the batch directly on the EVC\n");
+        console.log("Executing the batch directly on the EVC (%s)\n", coreAddresses.evc);
         IEVC(coreAddresses.evc).batch{value: getBatchValue()}(items);
         clearBatchItems();
     }
@@ -409,12 +424,13 @@ abstract contract BatchBuilder is ScriptUtils {
     function executeBatchViaSafe() internal {
         if (items.length == 0) return;
 
+        address safe = getSafe();
         SafeTransaction transaction =
-            new SafeTransaction(getDeployerPK(), getSafe(), coreAddresses.evc, getBatchValue(), getBatchCalldata());
+            new SafeTransaction(getDeployerPK(), safe, coreAddresses.evc, getBatchValue(), getBatchCalldata());
 
         transaction.simulate();
 
-        console.log("Executing the batch via the Safe\n");
+        console.log("Executing the batch via the Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
 
         if (isBroadcast()) {
             transaction.execute();
