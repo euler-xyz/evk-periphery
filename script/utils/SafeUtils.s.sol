@@ -94,20 +94,21 @@ contract SafeTransaction is SafeUtil {
     Transaction internal transaction;
 
     function create(address safe, address target, uint256 value, bytes memory data) public {
-        _initialize(safe, target, value, data);
+        _initialize(getSafePKOptional(), safe, target, value, data);
         _simulate();
         if (isBroadcast()) _create();
     }
 
     function createManually(address safe, address target, uint256 value, bytes memory data) public {
-        _initialize(safe, target, value, data);
+        _initialize(getSafePKOptional(), safe, target, value, data);
+        transaction.sender = address(0);
         transaction.signature = "";
 
         console.log("Sign the following hash:");
         console.logBytes32(transaction.hash);
 
         console.log("");
-        console.log("and send the following POST request adding the signature to the payload:");
+        console.log("and send the following POST request adding the sender address and the signature to the payload:");
         console.log(
             string.concat(
                 "curl -X POST ",
@@ -122,9 +123,7 @@ contract SafeTransaction is SafeUtil {
         );
     }
 
-    function _initialize(address safe, address target, uint256 value, bytes memory data) private {
-        uint256 privateKey = getSafePK();
-
+    function _initialize(uint256 privateKey, address safe, address target, uint256 value, bytes memory data) private {
         transaction.safe = safe;
         transaction.sender = vm.addr(privateKey);
         transaction.to = target;
@@ -230,19 +229,22 @@ contract SafeDelegation is SafeUtil {
     Delegate internal data;
 
     function create(address safe, address delegate, string memory label) public {
-        _initialize(safe, delegate, label);
+        _initialize(getSafePK(), safe, delegate, label);
         _create();
     }
 
     function createManually(address safe, address delegate, string memory label) public {
-        _initialize(safe, delegate, label);
+        _initialize(getSafePKOptional(), safe, delegate, label);
+        data.delegator = address(0);
         data.signature = "";
 
         console.log("Sign the following hash:");
         console.logBytes32(data.hash);
 
         console.log("");
-        console.log("and send the following POST request adding the signature to the payload:");
+        console.log(
+            "and send the following POST request adding the delegator address and the signature to the payload:"
+        );
         console.log(
             string.concat(
                 "curl -X POST ", getDelegatesAPIBaseURL(), getHeadersString(), "-d '", _getCreatePayload(), "'"
@@ -251,19 +253,22 @@ contract SafeDelegation is SafeUtil {
     }
 
     function remove(address safe, address delegate) public {
-        _initialize(safe, delegate, "");
+        _initialize(getSafePK(), safe, delegate, "");
         _remove();
     }
 
     function removeManually(address safe, address delegate) public {
-        _initialize(safe, delegate, "");
+        _initialize(getSafePKOptional(), safe, delegate, "");
+        data.delegator = address(0);
         data.signature = "";
 
         console.log("Sign the following hash:");
         console.logBytes32(data.hash);
 
         console.log("");
-        console.log("and send the following DELETE request adding the signature to the payload:");
+        console.log(
+            "and send the following DELETE request adding the delegator address and the signature to the payload:"
+        );
         console.log(
             string.concat(
                 "curl -X DELETE ",
@@ -278,9 +283,7 @@ contract SafeDelegation is SafeUtil {
         );
     }
 
-    function _initialize(address safe, address delegate, string memory label) private {
-        uint256 privateKey = getSafePK();
-
+    function _initialize(uint256 privateKey, address safe, address delegate, string memory label) private {
         data.safe = safe;
         data.delegator = vm.addr(privateKey);
         data.delegate = delegate;

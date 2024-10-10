@@ -13,6 +13,10 @@ abstract contract ScriptExtended is Script {
         return vm.envUint("SAFE_KEY");
     }
 
+    function getSafePKOptional() internal view returns (uint256) {
+        return vm.envOr("SAFE_KEY", uint256(0));
+    }
+
     function getDeployer() internal view returns (address) {
         address deployer = vm.addr(vm.envOr("DEPLOYER_KEY", uint256(1)));
         return deployer == vm.addr(1) ? address(this) : deployer;
