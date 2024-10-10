@@ -328,6 +328,7 @@ abstract contract BatchBuilder is ScriptUtils {
     uint256 internal constant TRIGGER_EXECUTE_BATCH_AT_SIZE = 250;
     IEVC.BatchItem[] internal batchItems;
     IEVC.BatchItem[] internal criticalItems;
+    uint256 internal batchCounter;
 
     function addBatchItem(address targetContract, bytes memory data) internal {
         address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
@@ -449,6 +450,8 @@ abstract contract BatchBuilder is ScriptUtils {
         if (batchItems.length == 0) return;
 
         console.log("Executing the batch directly on the EVC (%s)\n", coreAddresses.evc);
+        dumpBatch();
+
         IEVC(coreAddresses.evc).batch{value: getBatchValue()}(batchItems);
         clearBatchItems();
     }
@@ -458,11 +461,24 @@ abstract contract BatchBuilder is ScriptUtils {
 
         address safe = getSafe();
         console.log("Executing the batch via the Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
+        dumpBatch();
 
         SafeTransaction transaction = new SafeTransaction();
         transaction.create(safe, coreAddresses.evc, getBatchValue(), getBatchCalldata());
 
         clearBatchItems();
+    }
+
+    function dumpBatch() internal {
+        string memory path = string.concat(vm.projectRoot(), "/script/Batches.json");
+        string memory json = vm.exists(path) ? vm.readFile(path) : "{}";
+        string memory key = vm.toString(batchCounter++);
+
+        json = vm.serializeAddress(key, "to", coreAddresses.evc);
+        json = vm.serializeUint(key, "value", getBatchValue());
+        json = vm.serializeBytes(key, "data", getBatchCalldata());
+
+        vm.writeJson(vm.serializeString("", key, json), path);
     }
 
     function perspectiveVerify(address perspective, address vault) internal {
