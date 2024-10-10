@@ -56,8 +56,12 @@ if script/utils/executeForgeScript.sh "$scriptPath" $verify_contracts $batch_via
         for json_file in script/*.json; do
             jsonFileName=$(basename "$json_file")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/dry_run/$jsonFileName")
-            
+
             mv "$json_file" "$deployment_dir/dry_run/${jsonFileName%.json}_$counter.json"
         done
     fi
+else
+    for json_file in script/*.json; do
+        rm "$json_file"
+    done
 fi

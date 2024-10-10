@@ -372,8 +372,6 @@ abstract contract ManageCluster is Addresses, BatchBuilder {
             uint16 borrowLTV = liquidationLTV > 0.02e4 ? liquidationLTV - 0.02e4 : 0;
             (uint16 currentBorrowLTV, uint16 targetLiquidationLTV,,,) = IEVault(vault).LTVFull(collateral);
 
-            // disregard the current liquidation LTV if currently ramping down, only compare target LTVs to figure out
-            // if setting the LTV is required.
             // configure the oracle router for the collateral before setting the LTV. recognize potentially pending
             // transactions by looking up pendingResolvedVaults and pendingConfiguredAdapters mappings
 
@@ -395,11 +393,20 @@ abstract contract ManageCluster is Addresses, BatchBuilder {
                 pendingResolvedVaults[oracleRouter][collateralAsset][base] = true;
             }
 
-            // configure the oracle for the collateral vault asset or the asset of the collateral vault asset and set
-            // the LTV.
-            // in case the stub oracle has to be used, append the following batch critical section:
-            // configure the stub oracle, set LTV, configure the desired oracle
+            // configure the oracle for the collateral vault asset or the asset of the collateral vault asset
+            if (
+                !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount]
+                    && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
+            ) {
+                govSetConfig(oracleRouter, base, unitOfAccount, adapter);
+                pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] = true;
+            }
+
+            // disregard the current liquidation LTV if currently ramping down, only compare target LTVs to figure out
+            // if setting the LTV is required
             if (currentBorrowLTV != borrowLTV || targetLiquidationLTV != liquidationLTV) {
+                // in case the stub oracle has to be used, append the following batch critical section:
+                // configure the stub oracle, set LTV, configure the desired oracle
                 if (useStub) {
                     govSetConfig_critical(oracleRouter, base, unitOfAccount, cluster.stubOracle);
 
@@ -423,12 +430,6 @@ abstract contract ManageCluster is Addresses, BatchBuilder {
                         liquidationLTV >= targetLiquidationLTV ? 0 : cluster.rampDuration
                     );
                 }
-            } else if (
-                !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount]
-                    && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
-            ) {
-                govSetConfig(oracleRouter, base, unitOfAccount, adapter);
-                pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] = true;
             }
         }
     }

@@ -14,7 +14,7 @@ contract Cluster is ManageCluster {
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [WETH, wstETH, cbETH, WEETH, USDC, USDT, USDS, sUSDS, tBTC, WBTC, cbBTC, LBTC];
+        cluster.assets = [WETH, wstETH, cbETH, WEETH, USDC, USDT, USDS, sUSDS, wM, tBTC, WBTC, cbBTC, LBTC];
 
         // define the governors here
         cluster.oracleRoutersGovernor = EULER_DAO_MULTISIG;
@@ -56,6 +56,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[USDT   ] = "ChainlinkOracle";
         cluster.oracleProviders[USDS   ] = "ChronicleOracle";
         cluster.oracleProviders[sUSDS  ] = "ExternalVault|ChronicleOracle";
+        cluster.oracleProviders[wM     ] = "FixedRateOracle";
         cluster.oracleProviders[tBTC   ] = "ChainlinkOracle";
         cluster.oracleProviders[WBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
         cluster.oracleProviders[cbBTC  ] = "CrossAdapter=ChronicleOracle+ChainlinkOracle";
@@ -70,6 +71,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDT   ] = 1_000_000_000;
         cluster.supplyCaps[USDS   ] = 50_000_000;
         cluster.supplyCaps[sUSDS  ] = 45_000_000;
+        cluster.supplyCaps[wM     ] = 2_500_000;
         cluster.supplyCaps[tBTC   ] = 157;
         cluster.supplyCaps[WBTC   ] = 1_570;
         cluster.supplyCaps[cbBTC  ] = 157;
@@ -84,6 +86,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDT   ] = 880_000_000;
         cluster.borrowCaps[USDS   ] = 41_000_000;
         cluster.borrowCaps[sUSDS  ] = 18_000_000;
+        cluster.borrowCaps[wM     ] = 2_050_000;
         cluster.borrowCaps[tBTC   ] = 129;
         cluster.borrowCaps[WBTC   ] = 1_290;
         cluster.borrowCaps[cbBTC  ] = 129;
@@ -123,6 +126,7 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[USDT   ] = irmRWA_1;
             cluster.kinkIRMParams[USDS   ] = irmRWA_2;
             cluster.kinkIRMParams[sUSDS  ] = irmRWA_YLD_1;
+            cluster.kinkIRMParams[wM     ] = irmRWA_2;
             cluster.kinkIRMParams[tBTC   ] = irmBTC;
             cluster.kinkIRMParams[WBTC   ] = irmBTC;
             cluster.kinkIRMParams[cbBTC  ] = irmBTC;
@@ -134,39 +138,41 @@ contract Cluster is ManageCluster {
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0       1       2       3       4       5       6       7       8       9       10      11      
-        //                WETH    wstETH  cbETH   WEETH   USDC    USDT    USDS    sUSDS   tBTC    WBTC    cbBTC   LBTC
-        /* 0  WETH    */ [0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4],
-        /* 1  wstETH  */ [0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.86e4, 0.86e4, 0.86e4, 0.86e4, 0.79e4, 0.79e4, 0.79e4, 0.79e4],
-        /* 2  cbETH   */ [0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
-        /* 3  WEETH   */ [0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
-        /* 4  USDC    */ [0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4],
-        /* 5  USDT    */ [0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4],
-        /* 6  USDS    */ [0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4],
-        /* 7  sUSDS   */ [0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4],
-        /* 8  tBTC    */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4],
-        /* 9  WBTC    */ [0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.00e4, 0.92e4, 0.92e4],
-        /* 10 cbBTC   */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4],
-        /* 11 LBTC    */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4]
+        //                0       1       2       3       4       5       6       7       8       9       10      11      12
+        //                WETH    wstETH  cbETH   WEETH   USDC    USDT    USDS    sUSDS   wM      tBTC    WBTC    cbBTC   LBTC
+        /* 0  WETH    */ [0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4],
+        /* 1  wstETH  */ [0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.86e4, 0.86e4, 0.86e4, 0.86e4, 0.86e4, 0.79e4, 0.79e4, 0.79e4, 0.79e4],
+        /* 2  cbETH   */ [0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
+        /* 3  WEETH   */ [0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
+        /* 4  USDC    */ [0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4],
+        /* 5  USDT    */ [0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4],
+        /* 6  USDS    */ [0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.92e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4],
+        /* 7  sUSDS   */ [0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4],
+        /* 8  wM      */ [0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
+        /* 9  tBTC    */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4],
+        /* 10 WBTC    */ [0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.00e4, 0.92e4, 0.92e4],
+        /* 11 cbBTC   */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4],
+        /* 12 LBTC    */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4]
         ];
 
         // define auxiliary ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of auxiliaryVaults in the addresses file
         cluster.auxiliaryLTVs = [
-            //                       0       1       2       3       4       5       6       7       8       9       10      11      
-            //                       WETH    wstETH  cbETH   WEETH   USDC    USDT    USDS    sUSDS   tBTC    WBTC    cbBTC   LBTC
-            /* 0  Escrow WETH    */ [0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.91e4, 0.91e4, 0.91e4, 0.91e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4],
-            /* 1  Escrow wstETH  */ [0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4],
-            /* 2  Escrow cbETH   */ [0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4],
-            /* 3  Escrow WEETH   */ [0.94e4, 0.94e4, 0.94e4, 0.00e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4],
-            /* 4  Escrow USDC    */ [0.91e4, 0.91e4, 0.91e4, 0.91e4, 0.00e4, 0.97e4, 0.97e4, 0.97e4, 0.91e4, 0.91e4, 0.91e4, 0.91e4],
-            /* 5  Escrow USDT    */ [0.91e4, 0.91e4, 0.91e4, 0.91e4, 0.97e4, 0.00e4, 0.97e4, 0.97e4, 0.91e4, 0.91e4, 0.91e4, 0.91e4],
-            /* 6  Escrow USDS    */ [0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4],
-            /* 7  Escrow sUSDS   */ [0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.94e4, 0.94e4, 0.94e4, 0.00e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4],
-            /* 8  Escrow tBTC    */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.00e4, 0.92e4, 0.92e4, 0.92e4],
-            /* 9  Escrow WBTC    */ [0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.94e4, 0.00e4, 0.94e4, 0.94e4],
-            /* 10 Escrow cbBTC   */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4],
-            /* 11 Escrow LBTC    */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4]
+            //                       0       1       2       3       4       5       6       7       8       9       10      11      12
+            //                       WETH    wstETH  cbETH   WEETH   USDC    USDT    USDS    sUSDS   wM      tBTC    WBTC    cbBTC   LBTC
+            /* 0  Escrow WETH    */ [0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.91e4, 0.91e4, 0.91e4, 0.91e4, 0.91e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4],
+            /* 1  Escrow wstETH  */ [0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4],
+            /* 2  Escrow cbETH   */ [0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4],
+            /* 3  Escrow WEETH   */ [0.94e4, 0.94e4, 0.94e4, 0.00e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4],
+            /* 4  Escrow USDC    */ [0.91e4, 0.91e4, 0.91e4, 0.91e4, 0.00e4, 0.97e4, 0.97e4, 0.97e4, 0.97e4, 0.91e4, 0.91e4, 0.91e4, 0.91e4],
+            /* 5  Escrow USDT    */ [0.91e4, 0.91e4, 0.91e4, 0.91e4, 0.97e4, 0.00e4, 0.97e4, 0.97e4, 0.97e4, 0.91e4, 0.91e4, 0.91e4, 0.91e4],
+            /* 6  Escrow USDS    */ [0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.94e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4],
+            /* 7  Escrow sUSDS   */ [0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.94e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4],
+            /* 8  Escrow wM      */ [0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4],
+            /* 9  Escrow tBTC    */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.00e4, 0.92e4, 0.92e4, 0.92e4],
+            /* 10 Escrow WBTC    */ [0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.94e4, 0.00e4, 0.94e4, 0.94e4],
+            /* 11 Escrow cbBTC   */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4],
+            /* 12 Escrow LBTC    */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4]
         ];
     }
 
