@@ -123,7 +123,7 @@ contract SafeTransaction is SafeUtil {
     }
 
     function _initialize(address safe, address target, uint256 value, bytes memory data) private {
-        uint256 privateKey = getDeployerPK();
+        uint256 privateKey = getSafePK();
 
         transaction.safe = safe;
         transaction.sender = vm.addr(privateKey);
@@ -279,7 +279,7 @@ contract SafeDelegation is SafeUtil {
     }
 
     function _initialize(address safe, address delegate, string memory label) private {
-        uint256 privateKey = getDeployerPK();
+        uint256 privateKey = getSafePK();
 
         data.safe = safe;
         data.delegator = vm.addr(privateKey);
