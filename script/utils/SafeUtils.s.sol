@@ -55,6 +55,15 @@ abstract contract SafeUtil is ScriptExtended {
         headers[1] = "Content-Type: application/json";
         return headers;
     }
+
+    function getHeadersString() internal pure returns (string memory) {
+        string[] memory headers = getHeaders();
+        string memory headersString = "";
+        for (uint256 i = 0; i < headers.length; i++) {
+            headersString = string.concat(headersString, "-H \"", headers[i], "\" ");
+        }
+        return headersString;
+    }
 }
 
 contract SafeTransaction is SafeUtil {
@@ -90,6 +99,29 @@ contract SafeTransaction is SafeUtil {
         if (isBroadcast()) _create();
     }
 
+    function createManually(address safe, address target, uint256 value, bytes memory data) public {
+        _initialize(safe, target, value, data);
+        transaction.signature = "";
+
+        console.log("Sign the following hash:");
+        console.logBytes32(transaction.hash);
+
+        console.log("");
+        console.log("and send the following POST request adding the signature to the payload:");
+        console.log(
+            string.concat(
+                "curl -X POST ",
+                getTransactionsAPIBaseURL(),
+                vm.toString(transaction.safe),
+                "/multisig-transactions/ ",
+                getHeadersString(),
+                "-d '",
+                _getPayload(),
+                "'"
+            )
+        );
+    }
+
     function _initialize(address safe, address target, uint256 value, bytes memory data) private {
         uint256 privateKey = getDeployerPK();
 
@@ -118,7 +150,8 @@ contract SafeTransaction is SafeUtil {
     }
 
     function _create() private {
-        string memory endpoint = string.concat(getTransactionsAPIBaseURL(), vm.toString(transaction.safe), "/multisig-transactions/");
+        string memory endpoint =
+            string.concat(getTransactionsAPIBaseURL(), vm.toString(transaction.safe), "/multisig-transactions/");
         (uint256 status, bytes memory response) = endpoint.post(getHeaders(), _getPayload());
 
         if (status == 201) {
@@ -201,9 +234,48 @@ contract SafeDelegation is SafeUtil {
         _create();
     }
 
+    function createManually(address safe, address delegate, string memory label) public {
+        _initialize(safe, delegate, label);
+        data.signature = "";
+
+        console.log("Sign the following hash:");
+        console.logBytes32(data.hash);
+
+        console.log("");
+        console.log("and send the following POST request adding the signature to the payload:");
+        console.log(
+            string.concat(
+                "curl -X POST ", getDelegatesAPIBaseURL(), getHeadersString(), "-d '", _getCreatePayload(), "'"
+            )
+        );
+    }
+
     function remove(address safe, address delegate) public {
         _initialize(safe, delegate, "");
         _remove();
+    }
+
+    function removeManually(address safe, address delegate) public {
+        _initialize(safe, delegate, "");
+        data.signature = "";
+
+        console.log("Sign the following hash:");
+        console.logBytes32(data.hash);
+
+        console.log("");
+        console.log("and send the following DELETE request adding the signature to the payload:");
+        console.log(
+            string.concat(
+                "curl -X DELETE ",
+                getDelegatesAPIBaseURL(),
+                vm.toString(data.delegate),
+                "/ ",
+                getHeadersString(),
+                "-d '",
+                _getRemovePayload(),
+                "'"
+            )
+        );
     }
 
     function _initialize(address safe, address delegate, string memory label) private {
