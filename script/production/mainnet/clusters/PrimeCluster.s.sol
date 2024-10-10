@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import {MaintainCluster} from "../MaintainCluster.s.sol";
+import {ManageCluster} from "../ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 
-contract Cluster is MaintainCluster {
+contract Cluster is ManageCluster {
     function configureCluster() internal override {
         // define the path to the cluster addresses file here
         cluster.clusterAddressesPath = "/script/production/mainnet/clusters/PrimeCluster.json";
@@ -14,7 +14,7 @@ contract Cluster is MaintainCluster {
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [WETH, wstETH, cbETH, WEETH,  USDC, USDT, USDS, tBTC, WBTC, cbBTC];
+        cluster.assets = [WETH, wstETH, cbETH, WEETH, USDC, USDT, USDS, sUSDS, tBTC, WBTC, cbBTC, LBTC];
 
         // define the governors here
         cluster.oracleRoutersGovernor = EULER_DAO_MULTISIG;
@@ -43,8 +43,11 @@ contract Cluster is MaintainCluster {
         // define oracle providers here. 
         // adapter names can be found in the relevant adapter contract (as returned by the `name` function).
         // for cross adapters, use the following format: "CrossAdapter=<adapterName1>+<adapterName2>".
-        // although Redstone Classic oracles reuse the ChainlinkOracle contract and return "ChainlinkOracle" name, 
-        // they should be referred to as "RedstoneClassicOracle"
+        // although Redstone Classic oracles reuse the ChainlinkOracle contract and returns "ChainlinkOracle" name, 
+        // they should be referred to as "RedstoneClassicOracle".
+        // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per 
+        // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
+        // the asset (vault) in the oracle router.
         cluster.oracleProviders[WETH   ] = "ChainlinkOracle";
         cluster.oracleProviders[wstETH ] = "CrossAdapter=LidoFundamentalOracle+ChainlinkOracle";
         cluster.oracleProviders[cbETH  ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
@@ -52,97 +55,118 @@ contract Cluster is MaintainCluster {
         cluster.oracleProviders[USDC   ] = "ChainlinkOracle";
         cluster.oracleProviders[USDT   ] = "ChainlinkOracle";
         cluster.oracleProviders[USDS   ] = "ChronicleOracle";
+        cluster.oracleProviders[sUSDS  ] = "ExternalVault|ChronicleOracle";
         cluster.oracleProviders[tBTC   ] = "ChainlinkOracle";
         cluster.oracleProviders[WBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
-        cluster.oracleProviders[cbBTC  ] = "ChainlinkOracle";
+        cluster.oracleProviders[cbBTC  ] = "CrossAdapter=ChronicleOracle+ChainlinkOracle";
+        cluster.oracleProviders[LBTC   ] = "CrossAdapter=RedstoneClassicOracle+ChainlinkOracle";
 
-        // define supply caps here
+        // define supply caps here. 0 means no cap defined hence max amount
         cluster.supplyCaps[WETH   ] = 378_000;
         cluster.supplyCaps[wstETH ] = 160_000;
         cluster.supplyCaps[cbETH  ] = 8_740;
         cluster.supplyCaps[WEETH  ] = 36_000;
-        cluster.supplyCaps[USDC   ] = 500_000_000;
+        cluster.supplyCaps[USDC   ] = 1_000_000_000;
         cluster.supplyCaps[USDT   ] = 1_000_000_000;
-        cluster.supplyCaps[USDS   ] = 20_000_000;
+        cluster.supplyCaps[USDS   ] = 50_000_000;
+        cluster.supplyCaps[sUSDS  ] = 45_000_000;
         cluster.supplyCaps[tBTC   ] = 157;
         cluster.supplyCaps[WBTC   ] = 1_570;
         cluster.supplyCaps[cbBTC  ] = 157;
+        cluster.supplyCaps[LBTC   ] = 157;
 
-        // define borrow caps here
+        // define borrow caps here. 0 means no cap defined hence max amount
         cluster.borrowCaps[WETH   ] = 310_000;
         cluster.borrowCaps[wstETH ] = 64_000;
         cluster.borrowCaps[cbETH  ] = 3_490;
         cluster.borrowCaps[WEETH  ] = 9_010;
-        cluster.borrowCaps[USDC   ] = 440_000_000;
+        cluster.borrowCaps[USDC   ] = 880_000_000;
         cluster.borrowCaps[USDT   ] = 880_000_000;
-        cluster.borrowCaps[USDS   ] = 16_400_000;
+        cluster.borrowCaps[USDS   ] = 41_000_000;
+        cluster.borrowCaps[sUSDS  ] = 18_000_000;
         cluster.borrowCaps[tBTC   ] = 129;
         cluster.borrowCaps[WBTC   ] = 1_290;
         cluster.borrowCaps[cbBTC  ] = 129;
+        cluster.borrowCaps[LBTC   ] = 39;
 
         // define IRM classes here and assign them to the assets
         {
             // Base=0% APY  Kink(82%)=2.79% APY  Max=122.55% APY
             uint256[4] memory irmETH       = [uint256(0), uint256(247597527),  uint256(31662899097), uint256(3521873182)];
 
-            // Base=0% APY  Kink(82%)=2.79% APY  Max=122.55% APY
+            // Base=0% APY,  Kink(82%)=2.79% APY  Max=122.55% APY
             uint256[4] memory irmBTC       = [uint256(0), uint256(247597527),  uint256(31662899097), uint256(3521873182)];
 
-            // Base=0% APY  Kink(88%)=5.13% APY  Max=101.38% APY
-            uint256[4] memory irmRWA_T1    = [uint256(0), uint256(419441267),  uint256(39964512631), uint256(3779571220)];
+            // Base=0% APY,  Kink(88%)=5.13% APY  Max=101.38% APY
+            uint256[4] memory irmRWA_1     = [uint256(0), uint256(419441267),  uint256(39964512631), uint256(3779571220)];
 
-            // Base=0% APY  Kink(40%)=4.60% APY  Max=145.96% APY
+            // Base=0% APY,  Kink(40%)=4.60% APY  Max=145.96% APY
             uint256[4] memory irmETH_LST   = [uint256(0), uint256(829546015),  uint256(10514117840), uint256(1717986918)];
 
-            // Base=0% APY  Kink(25%)=4.60% APY  Max=848.77% APY
+            // Base=0% APY,  Kink(25%)=4.60% APY  Max=848.77% APY
             uint256[4] memory irmETH_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
 
-            // Base=0% APY  Kink(82%)=6.72% APY  Max=122.55% APY
-            uint256[4] memory irmRWA_T2    = [uint256(0), uint256(585195609),  uint256(30124952282), uint256(3521873182)];
+            // Base=0% APY,  Kink(25%)=4.60% APY  Max=848.77% APY
+            uint256[4] memory irmBTC_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
+
+            // Base=0% APY,  Kink(82%)=6.72% APY  Max=122.55% APY
+            uint256[4] memory irmRWA_2     = [uint256(0), uint256(585195609),  uint256(30124952282), uint256(3521873182)];
+
+            // Base=0% APY,  Kink(40%)=2.79% APY  Max=145.96% APY
+            uint256[4] memory irmRWA_YLD_1 = [uint256(0), uint256(507574932),  uint256(10728765229), uint256(1717986918)];
 
             cluster.kinkIRMParams[WETH   ] = irmETH;
             cluster.kinkIRMParams[wstETH ] = irmETH_LST;
             cluster.kinkIRMParams[cbETH  ] = irmETH_LST;
             cluster.kinkIRMParams[WEETH  ] = irmETH_LRT;
-            cluster.kinkIRMParams[USDC   ] = irmRWA_T1;
-            cluster.kinkIRMParams[USDT   ] = irmRWA_T1;
-            cluster.kinkIRMParams[USDS   ] = irmRWA_T2;
+            cluster.kinkIRMParams[USDC   ] = irmRWA_1;
+            cluster.kinkIRMParams[USDT   ] = irmRWA_1;
+            cluster.kinkIRMParams[USDS   ] = irmRWA_2;
+            cluster.kinkIRMParams[sUSDS  ] = irmRWA_YLD_1;
             cluster.kinkIRMParams[tBTC   ] = irmBTC;
             cluster.kinkIRMParams[WBTC   ] = irmBTC;
             cluster.kinkIRMParams[cbBTC  ] = irmBTC;
+            cluster.kinkIRMParams[LBTC   ] = irmBTC_LRT;
         }
+
+        // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
+        cluster.rampDuration = 1 days;
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0       1       2       3       4       5       6       7       8       9   
-        //                WETH    wstETH  cbETH   WEETH   USDC    USDT    USDS    tBTC    WBTC    cbBTC
-        /* 0  WETH    */ [0.00e4, 0.91e4, 0.91e4, 0.91e4, 0.87e4, 0.87e4, 0.87e4, 0.81e4, 0.81e4, 0.81e4],
-        /* 1  wstETH  */ [0.91e4, 0.00e4, 0.91e4, 0.91e4, 0.84e4, 0.84e4, 0.84e4, 0.77e4, 0.77e4, 0.77e4],
-        /* 2  cbETH   */ [0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.81e4, 0.81e4, 0.81e4, 0.73e4, 0.73e4, 0.73e4],
-        /* 3  WEETH   */ [0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.81e4, 0.81e4, 0.81e4, 0.73e4, 0.73e4, 0.73e4],
-        /* 4  USDC    */ [0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.00e4, 0.93e4, 0.93e4, 0.87e4, 0.87e4, 0.87e4],
-        /* 5  USDT    */ [0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.93e4, 0.00e4, 0.93e4, 0.87e4, 0.87e4, 0.87e4],
-        /* 6  USDS    */ [0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.90e4, 0.90e4, 0.00e4, 0.81e4, 0.81e4, 0.81e4],
-        /* 7  tBTC    */ [0.69e4, 0.69e4, 0.69e4, 0.69e4, 0.78e4, 0.78e4, 0.78e4, 0.00e4, 0.88e4, 0.88e4],
-        /* 8  WBTC    */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.81e4, 0.81e4, 0.81e4, 0.90e4, 0.00e4, 0.90e4],
-        /* 9  cbBTC   */ [0.69e4, 0.69e4, 0.69e4, 0.69e4, 0.78e4, 0.78e4, 0.78e4, 0.88e4, 0.88e4, 0.00e4]
+        //                0       1       2       3       4       5       6       7       8       9       10      11      
+        //                WETH    wstETH  cbETH   WEETH   USDC    USDT    USDS    sUSDS   tBTC    WBTC    cbBTC   LBTC
+        /* 0  WETH    */ [0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4],
+        /* 1  wstETH  */ [0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.86e4, 0.86e4, 0.86e4, 0.86e4, 0.79e4, 0.79e4, 0.79e4, 0.79e4],
+        /* 2  cbETH   */ [0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
+        /* 3  WEETH   */ [0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
+        /* 4  USDC    */ [0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4],
+        /* 5  USDT    */ [0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.89e4, 0.89e4, 0.89e4, 0.89e4],
+        /* 6  USDS    */ [0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4],
+        /* 7  sUSDS   */ [0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4],
+        /* 8  tBTC    */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4],
+        /* 9  WBTC    */ [0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.00e4, 0.92e4, 0.92e4],
+        /* 10 cbBTC   */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4],
+        /* 11 LBTC    */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4]
         ];
 
         // define auxiliary ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of auxiliaryVaults in the addresses file
         cluster.auxiliaryLTVs = [
-            //                       0       1       2       3       4       5       6       7       8       9   
-            //                       WETH    wstETH  cbETH   WEETH   USDC    USDT    USDS    tBTC    WBTC    cbBTC
-            /* 0  Escrow WETH    */ [0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.89e4, 0.89e4, 0.89e4, 0.83e4, 0.83e4, 0.83e4],
-            /* 1  Escrow wstETH  */ [0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.86e4, 0.86e4, 0.86e4, 0.79e4, 0.79e4, 0.79e4],
-            /* 2  Escrow cbETH   */ [0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.83e4, 0.83e4, 0.83e4, 0.75e4, 0.75e4, 0.75e4],
-            /* 3  Escrow WEETH   */ [0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.83e4, 0.83e4, 0.83e4, 0.75e4, 0.75e4, 0.75e4],
-            /* 4  Escrow USDC    */ [0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.00e4, 0.95e4, 0.95e4, 0.89e4, 0.89e4, 0.89e4],
-            /* 5  Escrow USDT    */ [0.89e4, 0.89e4, 0.89e4, 0.89e4, 0.95e4, 0.00e4, 0.95e4, 0.89e4, 0.89e4, 0.89e4],
-            /* 6  Escrow USDS    */ [0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.92e4, 0.00e4, 0.83e4, 0.83e4, 0.83e4],
-            /* 7  Escrow tBTC    */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.90e4, 0.90e4],
-            /* 8  Escrow WBTC    */ [0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.00e4, 0.92e4],
-            /* 9  Escrow cbBTC   */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.90e4, 0.90e4, 0.00e4]
+            //                       0       1       2       3       4       5       6       7       8       9       10      11      
+            //                       WETH    wstETH  cbETH   WEETH   USDC    USDT    USDS    sUSDS   tBTC    WBTC    cbBTC   LBTC
+            /* 0  Escrow WETH    */ [0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.91e4, 0.91e4, 0.91e4, 0.91e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4],
+            /* 1  Escrow wstETH  */ [0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4],
+            /* 2  Escrow cbETH   */ [0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4],
+            /* 3  Escrow WEETH   */ [0.94e4, 0.94e4, 0.94e4, 0.00e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4],
+            /* 4  Escrow USDC    */ [0.91e4, 0.91e4, 0.91e4, 0.91e4, 0.00e4, 0.97e4, 0.97e4, 0.97e4, 0.91e4, 0.91e4, 0.91e4, 0.91e4],
+            /* 5  Escrow USDT    */ [0.91e4, 0.91e4, 0.91e4, 0.91e4, 0.97e4, 0.00e4, 0.97e4, 0.97e4, 0.91e4, 0.91e4, 0.91e4, 0.91e4],
+            /* 6  Escrow USDS    */ [0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4],
+            /* 7  Escrow sUSDS   */ [0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.94e4, 0.94e4, 0.94e4, 0.00e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4],
+            /* 8  Escrow tBTC    */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.00e4, 0.92e4, 0.92e4, 0.92e4],
+            /* 9  Escrow WBTC    */ [0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.94e4, 0.00e4, 0.94e4, 0.94e4],
+            /* 10 Escrow cbBTC   */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4],
+            /* 11 Escrow LBTC    */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4]
         ];
     }
 
@@ -150,7 +174,7 @@ contract Cluster is MaintainCluster {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             perspectiveVerify(peripheryAddresses.governedPerspective, cluster.vaults[i]);
         }
-        executeBatchPrank(EULER_DEPLOYER, true);
+        executeBatchPrank(EULER_DEPLOYER);
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(cluster.vaults[i]);

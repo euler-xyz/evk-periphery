@@ -36,19 +36,28 @@ if ! script/utils/checkEnvironment.sh $verify_contracts $batch_via_safe; then
 fi
 
 if script/utils/executeForgeScript.sh "$scriptPath" $verify_contracts $batch_via_safe $dry_run; then
+    deployment_dir="script/deployments/$deployment_name"
+    
     if [[ $dry_run == "" ]]; then
-        deployment_dir="script/deployments/$deployment_name"
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 
         mkdir -p "$deployment_dir/broadcast" "$deployment_dir/output"
         cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${scriptName}.json"
 
         for json_file in script/*.json; do
-            mv "$json_file" "$deployment_dir/output/$(basename "$json_file")"
+            jsonFileName=$(basename "$json_file")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
         done
     else
+        mkdir -p "$deployment_dir/dry_run"
+
         for json_file in script/*.json; do
-            rm "$json_file"
+            jsonFileName=$(basename "$json_file")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/dry_run/$jsonFileName")
+            
+            mv "$json_file" "$deployment_dir/dry_run/${jsonFileName%.json}_$counter.json"
         done
     fi
 fi

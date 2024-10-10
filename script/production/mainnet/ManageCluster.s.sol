@@ -54,14 +54,7 @@ abstract contract Addresses {
     address internal constant SOLVBTC = 0x7A56E1C57C7475CCf742a1832B028F0456652F97;
 }
 
-abstract contract MaintainCluster is BatchBuilder, Addresses {
-    struct OracleOverride {
-        address router;
-        address adapter;
-        address base;
-        address quote;
-    }
-
+abstract contract ManageCluster is Addresses, BatchBuilder {
     struct Cluster {
         string clusterAddressesPath;
         address oracleRoutersGovernor;
@@ -69,6 +62,7 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
         address[] assets;
         address[] vaults;
         address[] oracleRouters;
+        uint32 rampDuration;
         uint16[][] ltvs;
         address[] auxiliaryVaults;
         uint16[][] auxiliaryLTVs;
@@ -80,6 +74,7 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
         address hookTarget;
         uint32 hookedOps;
         uint32 configFlags;
+        bool forceZeroGovernors;
         mapping(address asset => string provider) oracleProviders;
         mapping(address asset => uint256 supplyCapNoDecimals) supplyCaps;
         mapping(address asset => uint256 borrowCapNoDecimals) borrowCaps;
@@ -97,14 +92,17 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
         ) kinkIRMMap;
         address[] irms;
         address stubOracle;
-        OracleOverride[] stubOracleOverrides;
     }
 
     Cluster internal cluster;
-    mapping(address router => mapping(address vault => bool resolved)) internal resolvedVaults;
-    mapping(address router => mapping(address base => mapping(address quote => bool set))) internal configuredAdapters;
+    mapping(address router => mapping(address vault => mapping(address asset => bool resolved))) internal
+        pendingResolvedVaults;
+    mapping(address router => mapping(address base => mapping(address quote => bool set))) internal
+        pendingConfiguredAdapters;
 
     modifier initialize() {
+        vm.pauseGasMetering();
+
         configureCluster();
         encodeAmountCaps(cluster.assets, cluster.supplyCaps);
         encodeAmountCaps(cluster.assets, cluster.borrowCaps);
@@ -118,27 +116,29 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
     }
 
     function run() public initialize {
-        // deploy the stub oracle (needed in case pull oracle is meant to be used for a collateral asset and its stale)
+        // deploy the stub oracle (needed in case pull oracle is meant to be used as it might be stale)
         if (cluster.stubOracle == address(0)) {
             startBroadcast();
             cluster.stubOracle = address(new StubOracle());
             stopBroadcast();
         }
 
-        // deploy the oracle routers
+        // deploy the oracle router
         {
             OracleRouterDeployer deployer = new OracleRouterDeployer();
             address oracleRouter;
             for (uint256 i = 0; i < cluster.assets.length; ++i) {
-                if (cluster.oracleRouters[i] == address(0)) {
+                // deploy only one router if needed and reuse it for other to be deployed vaults
+                if (cluster.vaults[i] == address(0) && cluster.oracleRouters[i] == address(0)) {
                     if (oracleRouter == address(0)) {
                         oracleRouter = deployer.deploy(peripheryAddresses.oracleRouterFactory);
 
+                        // if the rest of the configuration will be carried out through safe,
+                        // immediately transfer the governance over this router from the deployer to the safe
                         if (isBatchViaSafe()) {
                             addBatchItem(
                                 oracleRouter,
                                 getDeployer(),
-                                0,
                                 abi.encodeCall(EulerRouter(oracleRouter).transferGovernance, (getSafe()))
                             );
                         }
@@ -153,6 +153,7 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
         {
             EVaultDeployer deployer = new EVaultDeployer();
             for (uint256 i = 0; i < cluster.assets.length; ++i) {
+                // only deploy undefined yet vaults
                 if (cluster.vaults[i] == address(0)) {
                     cluster.vaults[i] = deployer.deploy(
                         coreAddresses.eVaultFactory,
@@ -162,11 +163,12 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
                         cluster.unitOfAccount
                     );
 
+                    // if the rest of the configuration will be carried out through safe,
+                    // immediately transfer the governance over this vault from the deployer to the safe
                     if (isBatchViaSafe()) {
                         addBatchItem(
                             cluster.vaults[i],
                             getDeployer(),
-                            0,
                             abi.encodeCall(IEVault(cluster.vaults[i]).setGovernorAdmin, (getSafe()))
                         );
                     }
@@ -174,6 +176,7 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
             }
         }
 
+        // execute the EVC batch as the deployer to transfer the governance
         executeBatchDirectly();
 
         // deploy the IRMs
@@ -183,6 +186,7 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
                 uint256[4] storage p = cluster.kinkIRMParams[cluster.assets[i]];
                 address irm = cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]];
 
+                // only deploy those IRMs that haven't been deployed or cached yet
                 if (irm == address(0) && (p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0)) {
                     irm = deployer.deploy(peripheryAddresses.kinkIRMFactory, p[0], p[1], p[2], uint32(p[3]));
                     cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]] = irm;
@@ -197,27 +201,37 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
             address vault = cluster.vaults[i];
             address asset = IEVault(vault).asset();
 
+            // configure the oracle router for the vault asset by checking if current configuration differs from
+            // desired.
+            // recognize potentially pending transactions by looking up pendingResolvedVaults and
+            // pendingConfiguredAdapters mappings
             {
                 address oracleRouter = cluster.oracleRouters[i];
                 address unitOfAccount = IEVault(vault).unitOfAccount();
-                (address adapter, bool useStub) = getAdapterToSet(asset, unitOfAccount, cluster.oracleProviders[asset]);
+                (address base, address adapter,) =
+                    computeRouterConfiguration(asset, unitOfAccount, cluster.oracleProviders[asset]);
 
+                // in case the vault asset is a valid external vault, resolve it in the router
                 if (
-                    !configuredAdapters[oracleRouter][asset][unitOfAccount]
-                        && EulerRouter(oracleRouter).getConfiguredOracle(asset, unitOfAccount) != adapter
+                    asset != base && !pendingResolvedVaults[oracleRouter][asset][base]
+                        && EulerRouter(oracleRouter).resolvedVaults(asset) != base
                 ) {
-                    if (useStub) {
-                        cluster.stubOracleOverrides.push(
-                            OracleOverride({router: oracleRouter, adapter: adapter, base: asset, quote: unitOfAccount})
-                        );
-                        adapter = cluster.stubOracle;
-                    }
+                    govSetResolvedVault(oracleRouter, asset, true);
+                    pendingResolvedVaults[oracleRouter][asset][base] = true;
+                }
 
-                    govSetConfig(oracleRouter, asset, unitOfAccount, adapter);
-                    configuredAdapters[oracleRouter][asset][unitOfAccount] = true;
+                // configure the oracle for the vault asset or the asset of the vault asset
+                if (
+                    !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount]
+                        && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
+                ) {
+                    govSetConfig(oracleRouter, base, unitOfAccount, adapter);
+                    pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] = true;
                 }
             }
 
+            // configure the vault by checking if current configuration differs from desired.
+            // recognize potential overrides applicable per asset
             {
                 address feeReceiver = IEVault(vault).feeReceiver();
                 if (feeReceiver != cluster.feeReceiver) {
@@ -287,11 +301,6 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
 
             setLTVs(vault, cluster.vaults, getLTVs(cluster.ltvs, i));
             setLTVs(vault, cluster.auxiliaryVaults, getLTVs(cluster.auxiliaryLTVs, i));
-        }
-
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            address vault = cluster.vaults[i];
-            address asset = IEVault(vault).asset();
 
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
             if (hookTarget != cluster.hookTarget || hookedOps != cluster.hookedOps) {
@@ -316,12 +325,7 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
             }
         }
 
-        // apply oracle overrides and transfer the oracle router governance
-        for (uint256 i = 0; i < cluster.stubOracleOverrides.length; ++i) {
-            OracleOverride storage o = cluster.stubOracleOverrides[i];
-            govSetConfig(o.router, o.base, o.quote, o.adapter);
-        }
-
+        // transfer the oracle router governance
         for (uint256 i = 0; i < cluster.oracleRouters.length; ++i) {
             address oracleRouter = cluster.oracleRouters[i];
             if (EulerRouter(oracleRouter).governor() != cluster.oracleRoutersGovernor) {
@@ -335,82 +339,101 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
     function configureCluster() internal virtual;
     function verifyCluster() internal virtual;
 
-    function getAdapterToSet(address base, address quote, string memory provider)
+    function computeRouterConfiguration(address base, address quote, string memory provider)
         private
         view
-        returns (address adapter, bool useStub)
+        returns (address, address, bool)
     {
-        adapter = getValidAdapter(base, quote, provider);
+        address adapter = getValidAdapter(base, quote, provider);
+        bool useStub = false;
 
-        (bool success, bytes memory result) = adapter.staticcall(abi.encodeCall(EulerRouter.getQuote, (0, base, quote)));
-
-        useStub =
-            (!success || result.length < 32) && OracleLens(lensAddresses.oracleLens).isStalePullOracle(adapter, result);
-
-        if (useStub) return (adapter, useStub);
-
-        (success, result) = adapter.staticcall(abi.encodeCall(EulerRouter(adapter).name, ()));
-
-        if (success && result.length >= 32) {
-            string memory name = abi.decode(result, (string));
-            if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle")) {
-                useStub = true;
-            }
+        if (_strEq("ExternalVault|", _substring(provider, 0, bytes("ExternalVault|").length))) {
+            base = IEVault(base).asset();
         }
 
-        return (adapter, useStub);
+        string memory name = EulerRouter(adapter).name();
+        if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle")) {
+            useStub = true;
+        }
+
+        return (base, adapter, useStub);
     }
 
+    // sets LTVs for all passed collaterals of the vault
     function setLTVs(address vault, address[] memory collaterals, uint16[] memory ltvs) private {
         for (uint256 i = 0; i < collaterals.length; ++i) {
             address collateral = collaterals[i];
             address collateralAsset = IEVault(collateral).asset();
+            address oracleRouter = IEVault(vault).oracle();
+            address unitOfAccount = IEVault(vault).unitOfAccount();
+            (address base, address adapter, bool useStub) =
+                computeRouterConfiguration(collateralAsset, unitOfAccount, cluster.oracleProviders[collateralAsset]);
             uint16 liquidationLTV = ltvs[i];
             uint16 borrowLTV = liquidationLTV > 0.02e4 ? liquidationLTV - 0.02e4 : 0;
             (uint16 currentBorrowLTV, uint16 targetLiquidationLTV,,,) = IEVault(vault).LTVFull(collateral);
 
+            // disregard the current liquidation LTV if currently ramping down, only compare target LTVs to figure out
+            // if setting the LTV is required.
+            // configure the oracle router for the collateral before setting the LTV. recognize potentially pending
+            // transactions by looking up pendingResolvedVaults and pendingConfiguredAdapters mappings
+
+            // resolve the collateral vault in the router to be able to convert shares to assets
+            if (
+                !pendingResolvedVaults[oracleRouter][collateral][collateralAsset]
+                    && EulerRouter(oracleRouter).resolvedVaults(collateral) != collateralAsset
+            ) {
+                govSetResolvedVault(oracleRouter, collateral, true);
+                pendingResolvedVaults[oracleRouter][collateral][collateralAsset] = true;
+            }
+
+            // in case the collateral vault asset is a valid external vault, resolve it in the router
+            if (
+                collateralAsset != base && !pendingResolvedVaults[oracleRouter][collateralAsset][base]
+                    && EulerRouter(oracleRouter).resolvedVaults(collateralAsset) != base
+            ) {
+                govSetResolvedVault(oracleRouter, collateralAsset, true);
+                pendingResolvedVaults[oracleRouter][collateralAsset][base] = true;
+            }
+
+            // configure the oracle for the collateral vault asset or the asset of the collateral vault asset and set
+            // the LTV.
+            // in case the stub oracle has to be used, append the following batch critical section:
+            // configure the stub oracle, set LTV, configure the desired oracle
             if (currentBorrowLTV != borrowLTV || targetLiquidationLTV != liquidationLTV) {
-                address oracleRouter = IEVault(vault).oracle();
-                address unitOfAccount = IEVault(vault).unitOfAccount();
-                (address adapter, bool useStub) =
-                    getAdapterToSet(collateralAsset, unitOfAccount, cluster.oracleProviders[collateralAsset]);
+                if (useStub) {
+                    govSetConfig_critical(oracleRouter, base, unitOfAccount, cluster.stubOracle);
 
-                // configure the oracle router before setting the LTVs
-                if (
-                    !resolvedVaults[oracleRouter][collateral]
-                        && EulerRouter(oracleRouter).resolvedVaults(collateral) == address(0)
-                ) {
-                    govSetResolvedVault(oracleRouter, collateral, true);
-                    resolvedVaults[oracleRouter][collateral] = true;
+                    setLTV_critical(
+                        vault,
+                        collateral,
+                        borrowLTV,
+                        liquidationLTV,
+                        liquidationLTV >= targetLiquidationLTV ? 0 : cluster.rampDuration
+                    );
+
+                    govSetConfig_critical(oracleRouter, base, unitOfAccount, adapter);
+
+                    appendCriticalSectionToBatch();
+                } else {
+                    setLTV(
+                        vault,
+                        collateral,
+                        borrowLTV,
+                        liquidationLTV,
+                        liquidationLTV >= targetLiquidationLTV ? 0 : cluster.rampDuration
+                    );
                 }
-
-                if (
-                    !configuredAdapters[oracleRouter][collateralAsset][unitOfAccount]
-                        && EulerRouter(oracleRouter).getConfiguredOracle(collateralAsset, unitOfAccount) != adapter
-                ) {
-                    if (useStub) {
-                        cluster.stubOracleOverrides.push(
-                            OracleOverride({
-                                router: oracleRouter,
-                                adapter: adapter,
-                                base: collateralAsset,
-                                quote: unitOfAccount
-                            })
-                        );
-                        adapter = cluster.stubOracle;
-                    }
-
-                    govSetConfig(oracleRouter, collateralAsset, unitOfAccount, adapter);
-                    configuredAdapters[oracleRouter][collateralAsset][unitOfAccount] = true;
-                }
-
-                setLTV(
-                    vault, collateral, borrowLTV, liquidationLTV, liquidationLTV >= targetLiquidationLTV ? 0 : 1 days
-                );
+            } else if (
+                !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount]
+                    && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
+            ) {
+                govSetConfig(oracleRouter, base, unitOfAccount, adapter);
+                pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] = true;
             }
         }
     }
 
+    // extracts LTVs column for a given vault from the LTVs matrix
     function getLTVs(uint16[][] memory ltvs, uint256 vaultIndex) private pure returns (uint16[] memory) {
         require(ltvs.length == 0 || ltvs[0].length > vaultIndex, "Invalid vault index");
 
@@ -422,8 +445,6 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
     }
 
     function dumpCluster() private {
-        if (!isBroadcast()) return;
-
         string memory result = "";
         result = vm.serializeAddress("cluster", "oracleRouters", cluster.oracleRouters);
         result = vm.serializeAddress("cluster", "vaults", cluster.vaults);
@@ -431,7 +452,11 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
         result = vm.serializeAddress("cluster", "auxiliaryVaults", cluster.auxiliaryVaults);
         result = vm.serializeAddress("cluster", "stubOracle", cluster.stubOracle);
 
-        if (!_strEq(cluster.clusterAddressesPath, "")) vm.writeJson(result, cluster.clusterAddressesPath);
+        vm.writeJson(result, string.concat(vm.projectRoot(), "/script/Cluster.json"));
+
+        if (isBroadcast()) {
+            if (!_strEq(cluster.clusterAddressesPath, "")) vm.writeJson(result, cluster.clusterAddressesPath);
+        }
     }
 
     function loadCluster() private {
@@ -511,5 +536,14 @@ abstract contract MaintainCluster is BatchBuilder, Addresses {
                 cluster.auxiliaryLTVs[i].length == cluster.assets.length, "Auxiliary LTVs and assets length mismatch"
             );
         }
+
+        require(bytes(cluster.clusterAddressesPath).length != 0, "Invalid cluster addresses path");
+        require(
+            cluster.forceZeroGovernors
+                || (cluster.oracleRoutersGovernor != address(0) && cluster.vaultsGovernor != address(0)),
+            "Invalid governors"
+        );
+        require(cluster.unitOfAccount != address(0), "Invalid unit of account");
+        require(cluster.maxLiquidationDiscount != 0, "Invalid max liquidation discount");
     }
 }

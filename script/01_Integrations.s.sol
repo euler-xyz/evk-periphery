@@ -54,7 +54,7 @@ contract Integrations is ScriptUtils {
         balanceTracker = address(new TrackingRewardStreams(evc, 14 days));
 
         if (permit2.code.length == 0) {
-            if (_strEq(vm.envString("DEPLOYMENT_RPC_URL"), "http://127.0.0.1:8545")) {
+            if (isLocalForkDeployment()) {
                 DeployPermit2 deployPermit2 = new DeployPermit2();
                 deployPermit2.deployPermit2();
                 permit2 = PERMIT2_ADDRESS;

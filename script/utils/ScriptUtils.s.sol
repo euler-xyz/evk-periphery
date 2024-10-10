@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import "forge-std/Script.sol";
+import {console} from "forge-std/console.sol";
+import {ScriptExtended} from "./ScriptExtended.s.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
@@ -10,32 +11,11 @@ import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
-import {SafeTransaction} from "./SafeUtil.s.sol";
+import {SafeTransaction} from "./SafeUtils.s.sol";
+import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
 import "../../src/Lens/LensTypes.sol";
-
-abstract contract ScriptExtended is Script {
-    function getAddressFromJson(string memory json, string memory key) internal pure returns (address) {
-        try vm.parseJson(json, key) returns (bytes memory data) {
-            return abi.decode(data, (address));
-        } catch {
-            revert(string(abi.encodePacked("getAddressFromJson: failed to parse JSON for key: ", key)));
-        }
-    }
-
-    function getAddressesFromJson(string memory json, string memory key) internal pure returns (address[] memory) {
-        try vm.parseJson(json, key) returns (bytes memory data) {
-            return abi.decode(data, (address[]));
-        } catch {
-            revert(string(abi.encodePacked("getAddressesFromJson: failed to parse JSON for key: ", key)));
-        }
-    }
-
-    function _strEq(string memory a, string memory b) internal pure returns (bool) {
-        return keccak256(bytes(a)) == keccak256(bytes(b));
-    }
-}
 
 abstract contract CoreAddressesLib is ScriptExtended {
     struct CoreAddresses {
@@ -191,27 +171,6 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         vm.stopBroadcast();
     }
 
-    function getDeployerPK() internal view returns (uint256) {
-        return vm.envUint("DEPLOYER_KEY");
-    }
-
-    function getDeployer() internal view returns (address) {
-        address deployer = vm.addr(vm.envOr("DEPLOYER_KEY", uint256(1)));
-        return deployer == vm.addr(1) ? address(this) : deployer;
-    }
-
-    function getSafe() internal view returns (address) {
-        return vm.envAddress("SAFE_ADDRESS");
-    }
-
-    function isBroadcast() internal view returns (bool) {
-        return _strEq(vm.envOr("broadcast", string("")), "--broadcast");
-    }
-
-    function isBatchViaSafe() internal view returns (bool) {
-        return _strEq(vm.envOr("batch_via_safe", string("")), "--batch-via-safe");
-    }
-
     function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {
         string memory root = vm.projectRoot();
         return string.concat(root, "/script/", jsonFile);
@@ -246,6 +205,10 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         view
         returns (address adapter)
     {
+        bool isExternalVault = isValidExternalVault(base);
+
+        if (isExternalVault) base = IEVault(base).asset();
+
         address[] memory adapters = OracleLens(lensAddresses.oracleLens).getValidAdapters(base, quote);
 
         uint256 counter;
@@ -254,7 +217,7 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
                 OracleLens(lensAddresses.oracleLens).getOracleInfo(adapters[i], new address[](0), new address[](0))
             );
 
-            if (_strEq(provider, resolvedOracleName)) {
+            if (_strEq(provider, string.concat(isExternalVault ? "ExternalVault|" : "", resolvedOracleName))) {
                 adapter = adapters[i];
                 ++counter;
             }
@@ -266,6 +229,18 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
             if (adapter == address(0)) revert("getValidAdapters: Adapter not found");
             if (counter > 1) revert("getValidAdapters: Multiple adapters found");
         }
+    }
+
+    function isValidExternalVault(address vault) internal view returns (bool) {
+        (bool success, bytes memory result) = vault.staticcall(abi.encodeCall(IEVault(vault).asset, ()));
+
+        if (!success || result.length < 32) return false;
+
+        address asset = abi.decode(result, (address));
+        address[] memory validVaults =
+            SnapshotRegistry(peripheryAddresses.externalVaultRegistry).getValidAddresses(vault, asset, block.timestamp);
+
+        return validVaults.length == 1 && validVaults[0] == vault;
     }
 
     function resolveOracleName(OracleDetailedInfo memory oracleInfo) internal pure returns (string memory) {
@@ -298,7 +273,7 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
                 oracleCrossQuoteName = "RedstoneClassicOracle";
             }
 
-            return string(abi.encodePacked("CrossAdapter=", oracleBaseCrossName, "+", oracleCrossQuoteName));
+            return string.concat("CrossAdapter=", oracleBaseCrossName, "+", oracleCrossQuoteName);
         }
 
         return oracleInfo.name;
@@ -312,17 +287,15 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     function encodeAmountCap(address asset, uint256 amountNoDecimals) internal view returns (uint256) {
-        uint256 decimals = ERC20(asset).decimals();
-        uint256 result;
+        if (amountNoDecimals == 0) return 0;
 
-        if (amountNoDecimals == 0) {
-            return 0;
-        } else if (amountNoDecimals >= 100) {
-            uint256 scale = Math.log10(amountNoDecimals);
-            result = ((amountNoDecimals / 10 ** (scale - 2)) << 6) | (scale + decimals);
-        } else {
-            result = (100 * amountNoDecimals << 6) | decimals;
-        }
+        uint256 decimals = ERC20(asset).decimals();
+        uint256 scale = Math.log10(amountNoDecimals);
+        uint256 result = (
+            amountNoDecimals >= 100
+                ? (amountNoDecimals / 10 ** (scale - 2)) << 6
+                : (amountNoDecimals * 10 ** scale) << 6
+        ) | (scale + decimals);
 
         if (AmountCapLib.resolve(AmountCap.wrap(uint16(result))) != amountNoDecimals * 10 ** decimals) {
             console.log(
@@ -347,8 +320,14 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
 }
 
 abstract contract BatchBuilder is ScriptUtils {
+    enum BatchItemType {
+        REGULAR,
+        CRITICAL
+    }
+
     uint256 internal constant TRIGGER_EXECUTE_BATCH_AT_SIZE = 250;
-    IEVC.BatchItem[] internal items;
+    IEVC.BatchItem[] internal batchItems;
+    IEVC.BatchItem[] internal criticalItems;
 
     function addBatchItem(address targetContract, bytes memory data) internal {
         address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
@@ -362,10 +341,45 @@ abstract contract BatchBuilder is ScriptUtils {
     function addBatchItem(address targetContract, address onBehalfOfAccount, uint256 value, bytes memory data)
         internal
     {
-        console.log("Adding batch item");
+        addItem(BatchItemType.REGULAR, targetContract, onBehalfOfAccount, value, data);
+    }
+
+    function addCriticalItem(address targetContract, bytes memory data) internal {
+        address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
+        addCriticalItem(targetContract, onBehalfOfAccount, data);
+    }
+
+    function addCriticalItem(address targetContract, address onBehalfOfAccount, bytes memory data) internal {
+        addCriticalItem(targetContract, onBehalfOfAccount, 0, data);
+    }
+
+    function addCriticalItem(address targetContract, address onBehalfOfAccount, uint256 value, bytes memory data)
+        internal
+    {
+        addItem(BatchItemType.CRITICAL, targetContract, onBehalfOfAccount, value, data);
+    }
+
+    function addItem(
+        BatchItemType itemType,
+        address targetContract,
+        address onBehalfOfAccount,
+        uint256 value,
+        bytes memory data
+    ) internal {
+        IEVC.BatchItem[] storage items;
+        if (itemType == BatchItemType.REGULAR) {
+            items = batchItems;
+            console.log("Adding batch item");
+        } else {
+            items = criticalItems;
+            console.log("Adding critical item");
+        }
+
         console.log("Target: %s", targetContract);
         console.log("OnBehalfOfAccount: %s", onBehalfOfAccount);
         console.log("Value: %s", value);
+        console.log("Data:");
+        console.logBytes(data);
 
         items.push(
             IEVC.BatchItem({
@@ -376,36 +390,54 @@ abstract contract BatchBuilder is ScriptUtils {
             })
         );
 
-        if (items.length >= TRIGGER_EXECUTE_BATCH_AT_SIZE) executeBatch();
+        if (batchItems.length >= TRIGGER_EXECUTE_BATCH_AT_SIZE) executeBatch();
+    }
+
+    function appendCriticalSectionToBatch() internal {
+        if (criticalItems.length == 0) return;
+
+        if (batchItems.length + criticalItems.length >= TRIGGER_EXECUTE_BATCH_AT_SIZE) executeBatch();
+
+        console.log("Appending critical section consisting of %s item(s) to batch items\n", criticalItems.length);
+
+        for (uint256 i = 0; i < criticalItems.length; ++i) {
+            batchItems.push(criticalItems[i]);
+        }
+
+        clearCriticalItems();
     }
 
     function clearBatchItems() internal {
-        delete items;
+        delete batchItems;
+    }
+
+    function clearCriticalItems() internal {
+        delete criticalItems;
     }
 
     function getBatchCalldata() internal view returns (bytes memory) {
-        return abi.encodeCall(IEVC.batch, (items));
+        return abi.encodeCall(IEVC.batch, (batchItems));
     }
 
     function getBatchValue() internal view returns (uint256 value) {
-        for (uint256 i = 0; i < items.length; ++i) {
-            value += items[i].value;
+        for (uint256 i = 0; i < batchItems.length; ++i) {
+            value += batchItems[i].value;
         }
     }
 
-    function executeBatchPrank(address caller, bool clear) internal {
-        if (items.length == 0) return;
+    function executeBatchPrank(address caller) internal {
+        if (batchItems.length == 0) return;
 
         console.log("Pranking the batch execution as %s on the EVC (%s)\n", caller, coreAddresses.evc);
 
-        for (uint256 i = 0; i < items.length; ++i) {
-            items[i].onBehalfOfAccount = caller;
+        for (uint256 i = 0; i < batchItems.length; ++i) {
+            batchItems[i].onBehalfOfAccount = caller;
         }
 
         vm.prank(caller);
-        IEVC(coreAddresses.evc).batch{value: getBatchValue()}(items);
+        IEVC(coreAddresses.evc).batch{value: getBatchValue()}(batchItems);
 
-        if (clear) clearBatchItems();
+        clearBatchItems();
     }
 
     function executeBatch() internal {
@@ -414,59 +446,65 @@ abstract contract BatchBuilder is ScriptUtils {
     }
 
     function executeBatchDirectly() internal broadcast {
-        if (items.length == 0) return;
+        if (batchItems.length == 0) return;
 
         console.log("Executing the batch directly on the EVC (%s)\n", coreAddresses.evc);
-        IEVC(coreAddresses.evc).batch{value: getBatchValue()}(items);
+        IEVC(coreAddresses.evc).batch{value: getBatchValue()}(batchItems);
         clearBatchItems();
     }
 
     function executeBatchViaSafe() internal {
-        if (items.length == 0) return;
+        if (batchItems.length == 0) return;
 
         address safe = getSafe();
-        SafeTransaction transaction =
-            new SafeTransaction(getDeployerPK(), safe, coreAddresses.evc, getBatchValue(), getBatchCalldata());
-
-        transaction.simulate();
-
         console.log("Executing the batch via the Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
 
-        if (isBroadcast()) {
-            transaction.execute();
-        }
+        SafeTransaction transaction = new SafeTransaction();
+        transaction.create(safe, coreAddresses.evc, getBatchValue(), getBatchCalldata());
 
         clearBatchItems();
     }
 
     function perspectiveVerify(address perspective, address vault) internal {
         addBatchItem(perspective, abi.encodeCall(BasePerspective.perspectiveVerify, (vault, true)));
-        console.log("Data decoded: perspectiveVerify(%s, %s)\n", vault, true);
+        console.log("Data decoded:");
+        console.log("perspectiveVerify(%s, %s)\n", vault, true);
     }
 
     function transferGovernance(address oracleRouter, address newGovernor) internal {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter(oracleRouter).transferGovernance, (newGovernor)));
-        console.log("Data decoded: transferGovernance(%s)\n", newGovernor);
+        console.log("Data decoded:");
+        console.log("transferGovernance(%s)\n", newGovernor);
     }
 
     function govSetConfig(address oracleRouter, address base, address quote, address oracle) internal {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetConfig, (base, quote, oracle)));
-        console.log("Data decoded: govSetConfig(%s, %s, %s)\n", base, quote, oracle);
+        console.log("Data decoded:");
+        console.log("govSetConfig(%s, %s, %s)\n", base, quote, oracle);
+    }
+
+    function govSetConfig_critical(address oracleRouter, address base, address quote, address oracle) internal {
+        addCriticalItem(oracleRouter, abi.encodeCall(EulerRouter.govSetConfig, (base, quote, oracle)));
+        console.log("Data decoded:");
+        console.log("govSetConfig(%s, %s, %s)\n", base, quote, oracle);
     }
 
     function govSetResolvedVault(address oracleRouter, address vault, bool set) internal {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetResolvedVault, (vault, set)));
-        console.log("Data decoded: govSetResolvedVault(%s, %s)\n", vault, set);
+        console.log("Data decoded:");
+        console.log("govSetResolvedVault(%s, %s)\n", vault, set);
     }
 
     function setGovernorAdmin(address vault, address newGovernorAdmin) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setGovernorAdmin, (newGovernorAdmin)));
-        console.log("Data decoded: setGovernorAdmin(%s)\n", newGovernorAdmin);
+        console.log("Data decoded:");
+        console.log("setGovernorAdmin(%s)\n", newGovernorAdmin);
     }
 
     function setFeeReceiver(address vault, address newFeeReceiver) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setFeeReceiver, (newFeeReceiver)));
-        console.log("Data decoded: setFeeReceiver(%s)\n", newFeeReceiver);
+        console.log("Data decoded:");
+        console.log("setFeeReceiver(%s)\n", newFeeReceiver);
     }
 
     function setLTV(address vault, address collateral, uint16 borrowLTV, uint16 liquidationLTV, uint32 rampDuration)
@@ -475,43 +513,66 @@ abstract contract BatchBuilder is ScriptUtils {
         addBatchItem(
             vault, abi.encodeCall(IEVault(vault).setLTV, (collateral, borrowLTV, liquidationLTV, rampDuration))
         );
-        console.log("Data decoded: setLTV(%s, %s,", collateral, borrowLTV);
+        console.log("Data decoded:");
+        console.log("setLTV(%s, %s,", collateral, borrowLTV);
+        console.log("%s, %s)\n", liquidationLTV, rampDuration);
+    }
+
+    function setLTV_critical(
+        address vault,
+        address collateral,
+        uint16 borrowLTV,
+        uint16 liquidationLTV,
+        uint32 rampDuration
+    ) internal {
+        addCriticalItem(
+            vault, abi.encodeCall(IEVault(vault).setLTV, (collateral, borrowLTV, liquidationLTV, rampDuration))
+        );
+        console.log("Data decoded:");
+        console.log("setLTV(%s, %s,", collateral, borrowLTV);
         console.log("%s, %s)\n", liquidationLTV, rampDuration);
     }
 
     function setMaxLiquidationDiscount(address vault, uint16 newDiscount) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setMaxLiquidationDiscount, (newDiscount)));
-        console.log("Data decoded: setMaxLiquidationDiscount(%s)\n", newDiscount);
+        console.log("Data decoded:");
+        console.log("setMaxLiquidationDiscount(%s)\n", newDiscount);
     }
 
     function setLiquidationCoolOffTime(address vault, uint16 newCoolOffTime) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setLiquidationCoolOffTime, (newCoolOffTime)));
-        console.log("Data decoded: setLiquidationCoolOffTime(%s)\n", newCoolOffTime);
+        console.log("Data decoded:");
+        console.log("setLiquidationCoolOffTime(%s)\n", newCoolOffTime);
     }
 
     function setInterestRateModel(address vault, address newModel) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestRateModel, (newModel)));
-        console.log("Data decoded: setInterestRateModel(%s)\n", newModel);
+        console.log("Data decoded:");
+        console.log("setInterestRateModel(%s)\n", newModel);
     }
 
     function setHookConfig(address vault, address newHookTarget, uint32 newHookedOps) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setHookConfig, (newHookTarget, newHookedOps)));
-        console.log("Data decoded: setHookConfig(%s, %s)\n", newHookTarget, newHookedOps);
+        console.log("Data decoded:");
+        console.log("setHookConfig(%s, %s)\n", newHookTarget, newHookedOps);
     }
 
     function setConfigFlags(address vault, uint32 newConfigFlags) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setConfigFlags, (newConfigFlags)));
-        console.log("Data decoded: setConfigFlags(%s)\n", newConfigFlags);
+        console.log("Data decoded:");
+        console.log("setConfigFlags(%s)\n", newConfigFlags);
     }
 
     function setCaps(address vault, uint256 supplyCap, uint256 borrowCap) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setCaps, (uint16(supplyCap), uint16(borrowCap))));
-        console.log("Data decoded: setCaps(%s, %s)\n", supplyCap, borrowCap);
+        console.log("Data decoded:");
+        console.log("setCaps(%s, %s)\n", supplyCap, borrowCap);
     }
 
     function setInterestFee(address vault, uint16 newInterestFee) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestFee, (newInterestFee)));
-        console.log("Data decoded: setInterestFee(%s)\n", newInterestFee);
+        console.log("Data decoded:");
+        console.log("setInterestFee(%s)\n", newInterestFee);
     }
 }
 

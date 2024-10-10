@@ -4,12 +4,12 @@ pragma solidity ^0.8.0;
 
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
-import {MaintainCluster} from "../MaintainCluster.s.sol";
+import {ManageCluster} from "../ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 import "evk/EVault/shared/Constants.sol";
 
-contract Cluster is MaintainCluster {
+contract Cluster is ManageCluster {
     function configureCluster() internal override {
         // define the path to the cluster addresses file here
         cluster.clusterAddressesPath = "/script/production/mainnet/clusters/MEGACluster.json";
@@ -46,8 +46,11 @@ contract Cluster is MaintainCluster {
         // define oracle providers here. 
         // adapter names can be found in the relevant adapter contract (as returned by the `name` function).
         // for cross adapters, use the following format: "CrossAdapter=<adapterName1>+<adapterName2>".
-        // although Redstone Classic oracles reuse the ChainlinkOracle contract and return "ChainlinkOracle" name, 
-        // they should be referred to as "RedstoneClassicOracle"
+        // although Redstone Classic oracles reuse the ChainlinkOracle contract and returns "ChainlinkOracle" name, 
+        // they should be referred to as "RedstoneClassicOracle".
+        // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per 
+        // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
+        // the asset (vault) in the oracle router.
         cluster.oracleProviders[WETH   ] = "ChainlinkOracle";
         cluster.oracleProviders[wstETH ] = "CrossAdapter=LidoFundamentalOracle+ChainlinkOracle";
         cluster.oracleProviders[cbETH  ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
@@ -70,7 +73,7 @@ contract Cluster is MaintainCluster {
         cluster.oracleProviders[EURC   ] = "PythOracle";
         cluster.oracleProviders[sUSDe  ] = "ChainlinkOracle";
         cluster.oracleProviders[USDS   ] = "ChronicleOracle";
-        cluster.oracleProviders[sUSDS  ] = "ChronicleOracle";
+        cluster.oracleProviders[sUSDS  ] = "ExternalVault|ChronicleOracle";
         cluster.oracleProviders[stUSD  ] = "ChainlinkOracle";
         cluster.oracleProviders[stEUR  ] = "ChainlinkOracle";
         cluster.oracleProviders[FDUSD  ] = "PythOracle";
@@ -85,7 +88,7 @@ contract Cluster is MaintainCluster {
         cluster.oracleProviders[eBTC   ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
         cluster.oracleProviders[SOLVBTC] = "RedstoneClassicOracle";
 
-        // define supply caps here
+        // define supply caps here. 0 means no cap defined hence max amount
         cluster.supplyCaps[WETH   ] = 378_000;
         cluster.supplyCaps[wstETH ] = 160_000;
         cluster.supplyCaps[cbETH  ] = 8_740;
@@ -123,7 +126,7 @@ contract Cluster is MaintainCluster {
         cluster.supplyCaps[eBTC   ] = 157;
         cluster.supplyCaps[SOLVBTC] = 789;
 
-        // define borrow caps here if needed
+        // define borrow caps here if needed. 0 means no cap defined hence max amount
 
         // define IRM classes here and assign them to the assets
         {
@@ -194,6 +197,9 @@ contract Cluster is MaintainCluster {
             cluster.kinkIRMParams[eBTC   ] = irmBTC_LRT;
             cluster.kinkIRMParams[SOLVBTC] = irmBTC_LRT;
         }
+
+        // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
+        cluster.rampDuration = 1 days;
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
@@ -259,7 +265,7 @@ contract Cluster is MaintainCluster {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             perspectiveVerify(peripheryAddresses.governedPerspective, cluster.vaults[i]);
         }
-        executeBatchPrank(EULER_DEPLOYER, true);
+        executeBatchPrank(EULER_DEPLOYER);
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(cluster.vaults[i]);
