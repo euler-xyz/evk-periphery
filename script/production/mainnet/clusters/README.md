@@ -27,8 +27,11 @@ Use the following command:
 Replace `<ClusterSpecificScript>` with the cluster specific file name, i.e. `PrimeCluster.s.sol`.
 
 Options:
+
 `--dry-run`: Simulates the deployment without actually executing transactions.
+
 `--batch-via-safe`: Creates the configuration batch transactions in the Safe UI. Contracts deployment and auxiliary transactions are still being performed by the deployer account (the account associated with the `DEPLOYER_KEY`) and only the configuration transactions are created in the Safe UI. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file. The address associated with the `SAFE_KEY` must either be a signer or a delegate of the safe in order to be able to create the transactions in the Safe UI.
+
 `--verify`: Verifies the deployed contracts (if any) in the blockchain explorer.
 
 ## Important Notes
