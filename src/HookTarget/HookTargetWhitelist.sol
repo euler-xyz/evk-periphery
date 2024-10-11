@@ -6,7 +6,7 @@ import {BaseHookTarget} from "./BaseHookTarget.sol";
 import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
 
 contract HookTargetWhitelist is BaseHookTarget, AccessControlEnumerable {
-    bytes32 public constant WILD_CARD_SELECTOR = bytes4(0);
+    bytes32 public constant WILD_CARD_SELECTOR = bytes4(0xffffffff);
 
     error HookTargetWhitelist__NotAllowed();
 
