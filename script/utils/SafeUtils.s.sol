@@ -11,6 +11,8 @@ import {console} from "forge-std/console.sol";
 abstract contract SafeUtil is ScriptExtended {
     using Surl for *;
 
+    int256 internal currentNonce = getSafeCurrentNonce();
+
     function isSafeOwnerOrDelegate(address safe, address account) internal returns (bool) {
         address[] memory safes = getSafes(account);
         for (uint256 i = 0; i < safes.length; ++i) {
@@ -26,6 +28,8 @@ abstract contract SafeUtil is ScriptExtended {
     }
 
     function getNonce(address safe) internal returns (uint256) {
+        if (currentNonce >= 0) return uint256(++currentNonce);
+
         string memory endpoint =
             string.concat(getTransactionsAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?limit=1");
         (uint256 status, bytes memory response) = endpoint.get();

@@ -26,6 +26,10 @@ abstract contract ScriptExtended is Script {
         return vm.envAddress("SAFE_ADDRESS");
     }
 
+    function getSafeCurrentNonce() internal view returns (int256) {
+        return vm.envOr("SAFE_NONCE", int256(-1));
+    }
+
     function isLocalForkDeployment() internal view returns (bool) {
         return _strEq(vm.envString("DEPLOYMENT_RPC_URL"), "http://127.0.0.1:8545");
     }
