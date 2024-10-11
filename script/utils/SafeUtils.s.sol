@@ -11,6 +11,20 @@ import {console} from "forge-std/console.sol";
 abstract contract SafeUtil is ScriptExtended {
     using Surl for *;
 
+    function isSafeOwnerOrDelegate(address safe, address account) internal returns (bool) {
+        address[] memory safes = getSafes(account);
+        for (uint256 i = 0; i < safes.length; ++i) {
+            if (safes[i] == safe) return true;
+        }
+
+        address[] memory delegates = getDelegates(safe);
+        for (uint256 i = 0; i < delegates.length; ++i) {
+            if (delegates[i] == account) return true;
+        }
+
+        return false;
+    }
+
     function getNonce(address safe) internal returns (uint256) {
         string memory endpoint =
             string.concat(getTransactionsAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?limit=1");
@@ -25,8 +39,43 @@ abstract contract SafeUtil is ScriptExtended {
         }
     }
 
+    function getSafes(address owner) internal returns (address[] memory) {
+        string memory endpoint = string.concat(getOwnersAPIBaseURL(), vm.toString(owner), "/safes/");
+        (uint256 status, bytes memory response) = endpoint.get();
+
+        if (status == 200) {
+            return abi.decode(vm.parseJson(string(response), ".safes"), (address[]));
+        } else {
+            revert("getSafes: Failed to get safes");
+        }
+    }
+
+    function getDelegates(address safe) internal returns (address[] memory) {
+        string memory endpoint = string.concat(getDelegatesAPIBaseURL(), "?safe=", vm.toString(safe));
+        (uint256 status, bytes memory response) = endpoint.get();
+
+        if (status == 200) {
+            uint256 count = abi.decode(vm.parseJson(string(response), ".count"), (uint256));
+            address[] memory delegates = new address[](count);
+
+            for (uint256 i = 0; i < count; ++i) {
+                delegates[i] = abi.decode(
+                    vm.parseJson(string(response), string.concat(".results[", vm.toString(i), "].delegate")), (address)
+                );
+            }
+
+            return delegates;
+        } else {
+            revert("getDelegates: Failed to get delegates");
+        }
+    }
+
     function getTransactionsAPIBaseURL() internal view returns (string memory) {
         return string.concat(getSafeBaseURL(), "api/v1/safes/");
+    }
+
+    function getOwnersAPIBaseURL() internal view returns (string memory) {
+        return string.concat(getSafeBaseURL(), "api/v1/owners/");
     }
 
     function getDelegatesAPIBaseURL() internal view returns (string memory) {
@@ -58,7 +107,7 @@ abstract contract SafeUtil is ScriptExtended {
 
     function getHeadersString() internal pure returns (string memory) {
         string[] memory headers = getHeaders();
-        string memory headersString = "";
+        string memory headersString = " ";
         for (uint256 i = 0; i < headers.length; i++) {
             headersString = string.concat(headersString, "-H \"", headers[i], "\" ");
         }
@@ -94,13 +143,15 @@ contract SafeTransaction is SafeUtil {
     Transaction internal transaction;
 
     function create(address safe, address target, uint256 value, bytes memory data) public {
-        _initialize(getSafePKOptional(), safe, target, value, data);
+        _initialize(getSafePK(), safe, target, value, data);
         _simulate();
         if (isBroadcast()) _create();
     }
 
     function createManually(address safe, address target, uint256 value, bytes memory data) public {
         _initialize(getSafePKOptional(), safe, target, value, data);
+        _simulate();
+
         transaction.sender = address(0);
         transaction.signature = "";
 
@@ -143,6 +194,13 @@ contract SafeTransaction is SafeUtil {
     }
 
     function _simulate() private {
+        if (!isSafeOwnerOrDelegate(transaction.safe, transaction.sender)) {
+            console.log(
+                "Sender (%s) not authorized to execute a transaction on Safe (%s)", transaction.sender, transaction.safe
+            );
+            revert("Not authorized");
+        }
+
         vm.prank(transaction.safe);
         (bool success, bytes memory result) = transaction.to.call{value: transaction.value}(transaction.data);
         require(success, string(result));
