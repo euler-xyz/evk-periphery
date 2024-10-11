@@ -51,7 +51,7 @@ contract SBuidlLiquidator is CustomLiquidatorBase {
             targetContract: address(liabilityVault),
             onBehalfOfAccount: address(_msgSender()),
             value: 0,
-            data: abi.encodeWithSelector(IBorrowing.pullDebt.selector, address(this), debtAmount)
+            data: abi.encodeWithSelector(IBorrowing.pullDebt.selector, debtAmount, address(this))
         });
 
         evc.batch(batchItems);
