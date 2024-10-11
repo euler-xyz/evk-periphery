@@ -7,6 +7,7 @@ import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/
 
 contract HookTargetWhitelist is BaseHookTarget, AccessControlEnumerable {
     bytes32 public constant WILD_CARD_SELECTOR = bytes4(0);
+
     error HookTargetWhitelist__NotAllowed();
 
     constructor(address admin) {
@@ -28,15 +29,26 @@ contract HookTargetWhitelist is BaseHookTarget, AccessControlEnumerable {
         _revokeRole(selector, account);
     }
 
+    /// @notice Allows an address to call any selector.
+    /// @param account The address to allow.
+    function allowForAll(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(WILD_CARD_SELECTOR, account);
+    }
+
+    /// @notice Disallows an address from calling any selector.
+    /// @param account The address to disallow.
+    function disallowForAll(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _revokeRole(WILD_CARD_SELECTOR, account);
+    }
+
     /// @notice Fallback function to revert if the address is not allowed to call the selector.
     fallback() external {
         address msgSender = getAddressFromMsgData();
 
         // Don't revert if whitelisted for wildcard or specific selector
-        if(hasRole(WILD_CARD_SELECTOR, msgSender) || hasRole(msg.sig, msgSender)) return;
+        if (hasRole(WILD_CARD_SELECTOR, msgSender) || hasRole(msg.sig, msgSender)) return;
 
         // Otherwise, revert
         revert HookTargetWhitelist__NotAllowed();
     }
-
 }
