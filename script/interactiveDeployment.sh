@@ -55,7 +55,7 @@ fi
 while true; do
     echo ""
     echo "Select an option to deploy:"
-    echo "0. ERC20 mock token"
+    echo "0. ERC20 tokens"
     echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
     echo "2. Periphery factories and registries"
     echo "3. Oracle adapter"
@@ -73,30 +73,73 @@ while true; do
 
     case $choice in
         0)
-            echo "Deploying ERC20 mock token..."
+            echo "Deploying ERC20 token..."
+            echo "Select the type of ERC20 token to deploy:"
+            echo "0. Mock ERC20"
+            echo "1. Reward token"
+            read -p "Enter your choice (0-1): " token_choice
 
-            baseName=00_MockERC20
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
+            baseName=00_ERC20
 
-            read -p "Enter token name (default: MockERC20): " token_name
-            token_name=${token_name:-MockERC20}
+            case $token_choice in
+                0)
+                    echo "Deploying Mock ERC20..."
 
-            read -p "Enter token symbol (default: MOCK): " token_symbol
-            token_symbol=${token_symbol:-MOCK}
+                    scriptName=${baseName}.s.sol:MockERC20Deployer
+                    jsonName=00_MockERC20
 
-            read -p "Enter token decimals (default: 18): " token_decimals
-            token_decimals=${token_decimals:-18}
+                    read -p "Enter token name (default: MockERC20): " token_name
+                    token_name=${token_name:-MockERC20}
 
-            jq -n \
-                --arg name "$token_name" \
-                --arg symbol "$token_symbol" \
-                --argjson decimals "$token_decimals" \
-                '{
-                    name: $name,
-                    symbol: $symbol,
-                    decimals: $decimals
-                }' --indent 4 > script/${jsonName}_input.json
+                    read -p "Enter token symbol (default: MOCK): " token_symbol
+                    token_symbol=${token_symbol:-MOCK}
+
+                    read -p "Enter token decimals (default: 18): " token_decimals
+                    token_decimals=${token_decimals:-18}
+
+                    jq -n \
+                        --arg name "$token_name" \
+                        --arg symbol "$token_symbol" \
+                        --argjson decimals "$token_decimals" \
+                        '{
+                            name: $name,
+                            symbol: $symbol,
+                            decimals: $decimals
+                        }' --indent 4 > script/${jsonName}_input.json
+                1)
+                    echo "Deploying Reward token..."
+
+                    scriptName=${baseName}.s.sol:RewardTokenDeployer
+                    jsonName=00_RewardToken
+
+                    read -p "Enter EVC address: " evc
+                    read -p "Enter owner address: " owner
+                    read -p "Enter receiver address: " receiver
+                    read -p "Enter underlying token address: " underlying
+                    read -p "Enter token name: " token_name
+                    read -p "Enter token symbol: " token_symbol
+                    
+                    jq -n \
+                        --arg evc "$evc" \
+                        --arg owner "$owner" \
+                        --arg receiver "$receiver" \
+                        --arg underlying "$underlying" \
+                        --arg name "$token_name" \
+                        --arg symbol "$token_symbol" \
+                        '{
+                            evc: $evc,
+                            owner: $owner,
+                            receiver: $receiver,
+                            underlying: $underlying,
+                            name: $name,
+                            symbol: $symbol
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid token choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         1)
             echo "Deploying intergrations..."
