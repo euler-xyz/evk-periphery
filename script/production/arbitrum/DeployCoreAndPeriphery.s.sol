@@ -12,16 +12,15 @@ import {Perspectives} from "../../09_Perspectives.s.sol";
 import {Swap} from "../../10_Swap.s.sol";
 import {FeeFlow} from "../../11_FeeFlow.s.sol";
 import {FactoryGovernorDeployer} from "../../12_FactoryGovernor.s.sol";
+import {TermsOfUseSignerDeployer} from "../../13_TermsOfUseSigner.s.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
 contract DeployCoreAndPeriphery is ScriptUtils {
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
-    address internal constant ONE_INCH_AGGREGATOR_V6 = 0x111111125421cA6dc452d289314280a0f8842A65;
     address internal constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address internal constant UNISWAP_ROUTER_V3 = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-    address internal constant UNISWAP_ROUTER_02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 
     uint256 internal constant FEE_FLOW_INIT_PRICE = 1e6;
     address internal constant FEE_FLOW_PAYMENT_TOKEN = WETH; // TODO
@@ -86,7 +85,7 @@ contract DeployCoreAndPeriphery is ScriptUtils {
         {
             Swap deployer = new Swap();
             (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) =
-                deployer.deploy(ONE_INCH_AGGREGATOR_V6, UNISWAP_ROUTER_V2, UNISWAP_ROUTER_V3, UNISWAP_ROUTER_02);
+                deployer.deploy(UNISWAP_ROUTER_V2, UNISWAP_ROUTER_V3);
         }
         // deploy fee flow
         {
@@ -125,16 +124,23 @@ contract DeployCoreAndPeriphery is ScriptUtils {
             peripheryAddresses.eulerUngoverned0xPerspective = perspectives[3];
             peripheryAddresses.eulerUngovernedNzxPerspective = perspectives[4];
         }
+        // deploy terms of use signer
+        {
+            TermsOfUseSignerDeployer deployer = new TermsOfUseSignerDeployer();
+            peripheryAddresses.termsOfUseSigner = deployer.deploy(coreAddresses.evc);
+        }
         // deploy lenses
         {
             Lenses deployer = new Lenses();
-            (
-                lensAddresses.accountLens,
-                lensAddresses.oracleLens,
-                lensAddresses.irmLens,
-                lensAddresses.vaultLens,
-                lensAddresses.utilsLens
-            ) = deployer.deploy(peripheryAddresses.oracleAdapterRegistry, peripheryAddresses.kinkIRMFactory);
+            address[] memory lenses =
+                deployer.deploy(peripheryAddresses.oracleAdapterRegistry, peripheryAddresses.kinkIRMFactory);
+
+            lensAddresses.accountLens = lenses[0];
+            lensAddresses.oracleLens = lenses[1];
+            lensAddresses.irmLens = lenses[2];
+            lensAddresses.utilsLens = lenses[3];
+            lensAddresses.vaultLens = lenses[4];
+            lensAddresses.eulerEarnVaultLens = lenses[5];
         }
 
         // save results

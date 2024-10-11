@@ -8,47 +8,44 @@ import {OracleLens} from "../src/Lens/OracleLens.sol";
 import {IRMLens} from "../src/Lens/IRMLens.sol";
 import {VaultLens} from "../src/Lens/VaultLens.sol";
 import {UtilsLens} from "../src/Lens/UtilsLens.sol";
+import {EulerEarnVaultLens} from "../src/Lens/EulerEarnVaultLens.sol";
 
 contract Lenses is ScriptUtils {
-    function run()
-        public
-        broadcast
-        returns (address accountLens, address oracleLens, address irmLens, address vaultLens, address utilsLens)
-    {
+    function run() public broadcast returns (address[] memory lenses) {
         string memory inputScriptFileName = "08_Lenses_input.json";
         string memory outputScriptFileName = "08_Lenses_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
         address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
 
-        (accountLens, oracleLens, irmLens, vaultLens, utilsLens) = execute(oracleAdapterRegistry, kinkIRMFactory);
+        lenses = execute(oracleAdapterRegistry, kinkIRMFactory);
 
         string memory object;
-        object = vm.serializeAddress("lenses", "accountLens", accountLens);
-        object = vm.serializeAddress("lenses", "oracleLens", oracleLens);
-        object = vm.serializeAddress("lenses", "irmLens", irmLens);
-        object = vm.serializeAddress("lenses", "vaultLens", vaultLens);
-        object = vm.serializeAddress("lenses", "utilsLens", utilsLens);
+        object = vm.serializeAddress("lenses", "accountLens", lenses[0]);
+        object = vm.serializeAddress("lenses", "oracleLens", lenses[1]);
+        object = vm.serializeAddress("lenses", "irmLens", lenses[2]);
+        object = vm.serializeAddress("lenses", "utilsLens", lenses[3]);
+        object = vm.serializeAddress("lenses", "vaultLens", lenses[4]);
+        object = vm.serializeAddress("lenses", "eulerEarnVaultLens", lenses[5]);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
     function deploy(address oracleAdapterRegistry, address kinkIRMFactory)
         public
         broadcast
-        returns (address accountLens, address oracleLens, address irmLens, address vaultLens, address utilsLens)
+        returns (address[] memory lenses)
     {
-        (accountLens, oracleLens, irmLens, vaultLens, utilsLens) = execute(oracleAdapterRegistry, kinkIRMFactory);
+        lenses = execute(oracleAdapterRegistry, kinkIRMFactory);
     }
 
-    function execute(address oracleAdapterRegistry, address kinkIRMFactory)
-        public
-        returns (address accountLens, address oracleLens, address irmLens, address vaultLens, address utilsLens)
-    {
-        accountLens = address(new AccountLens());
-        oracleLens = address(new OracleLens(oracleAdapterRegistry));
-        irmLens = address(new IRMLens(kinkIRMFactory));
-        vaultLens = address(new VaultLens(address(oracleLens), address(irmLens)));
-        utilsLens = address(new UtilsLens());
+    function execute(address oracleAdapterRegistry, address kinkIRMFactory) public returns (address[] memory lenses) {
+        lenses = new address[](6);
+        lenses[0] = address(new AccountLens());
+        lenses[1] = address(new OracleLens(oracleAdapterRegistry));
+        lenses[2] = address(new IRMLens(kinkIRMFactory));
+        lenses[3] = address(new UtilsLens(address(lenses[1])));
+        lenses[4] = address(new VaultLens(address(lenses[1]), address(lenses[3]), address(lenses[2])));
+        lenses[5] = address(new EulerEarnVaultLens(address(lenses[1]), address(lenses[3])));
     }
 }
 
@@ -124,40 +121,72 @@ contract LensVaultDeployer is ScriptUtils {
         string memory outputScriptFileName = "08_LensVault_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address oracleLens = abi.decode(vm.parseJson(json, ".oracleLens"), (address));
+        address utilsLens = abi.decode(vm.parseJson(json, ".utilsLens"), (address));
         address irmLens = abi.decode(vm.parseJson(json, ".irmLens"), (address));
 
-        vaultLens = execute(oracleLens, irmLens);
+        vaultLens = execute(oracleLens, utilsLens, irmLens);
 
         string memory object;
         object = vm.serializeAddress("lens", "vaultLens", vaultLens);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address oracleLens, address irmLens) public broadcast returns (address vaultLens) {
-        vaultLens = execute(oracleLens, irmLens);
+    function deploy(address oracleLens, address utilsLens, address irmLens)
+        public
+        broadcast
+        returns (address vaultLens)
+    {
+        vaultLens = execute(oracleLens, utilsLens, irmLens);
     }
 
-    function execute(address oracleLens, address irmLens) public returns (address vaultLens) {
-        vaultLens = address(new VaultLens(oracleLens, irmLens));
+    function execute(address oracleLens, address utilsLens, address irmLens) public returns (address vaultLens) {
+        vaultLens = address(new VaultLens(oracleLens, utilsLens, irmLens));
     }
 }
 
 contract LensUtilsDeployer is ScriptUtils {
     function run() public broadcast returns (address utilsLens) {
+        string memory inputScriptFileName = "08_LensUtils_input.json";
         string memory outputScriptFileName = "08_LensUtils_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address oracleLens = abi.decode(vm.parseJson(json, ".oracleLens"), (address));
 
-        utilsLens = execute();
+        utilsLens = execute(oracleLens);
 
         string memory object;
         object = vm.serializeAddress("lens", "utilsLens", utilsLens);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy() public broadcast returns (address utilsLens) {
-        utilsLens = execute();
+    function deploy(address oracleLens) public broadcast returns (address utilsLens) {
+        utilsLens = execute(oracleLens);
     }
 
-    function execute() public returns (address utilsLens) {
-        utilsLens = address(new UtilsLens());
+    function execute(address oracleLens) public returns (address utilsLens) {
+        utilsLens = address(new UtilsLens(oracleLens));
+    }
+}
+
+contract LensEulerEarnVaultDeployer is ScriptUtils {
+    function run() public broadcast returns (address eulerEarnVaultLens) {
+        string memory inputScriptFileName = "08_LensEulerEarnVault_input.json";
+        string memory outputScriptFileName = "08_LensEulerEarnVault_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address oracleLens = abi.decode(vm.parseJson(json, ".oracleLens"), (address));
+        address utilsLens = abi.decode(vm.parseJson(json, ".utilsLens"), (address));
+
+        eulerEarnVaultLens = execute(oracleLens, utilsLens);
+
+        string memory object;
+        object = vm.serializeAddress("lens", "eulerEarnVaultLens", eulerEarnVaultLens);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address oracleLens, address utilsLens) public broadcast returns (address eulerEarnVaultLens) {
+        eulerEarnVaultLens = execute(oracleLens, utilsLens);
+    }
+
+    function execute(address oracleLens, address utilsLens) public returns (address eulerEarnVaultLens) {
+        eulerEarnVaultLens = address(new EulerEarnVaultLens(oracleLens, utilsLens));
     }
 }

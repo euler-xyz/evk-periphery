@@ -74,6 +74,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address escrowedCollateralPerspective;
         address eulerUngoverned0xPerspective;
         address eulerUngovernedNzxPerspective;
+        address termsOfUseSigner;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -96,6 +97,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress(
             "peripheryAddresses", "eulerUngovernedNzxPerspective", Addresses.eulerUngovernedNzxPerspective
         );
+        result = vm.serializeAddress("peripheryAddresses", "termsOfUseSigner", Addresses.termsOfUseSigner);
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -112,7 +114,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             governedPerspective: getAddressFromJson(json, ".governedPerspective"),
             escrowedCollateralPerspective: getAddressFromJson(json, ".escrowedCollateralPerspective"),
             eulerUngoverned0xPerspective: getAddressFromJson(json, ".eulerUngoverned0xPerspective"),
-            eulerUngovernedNzxPerspective: getAddressFromJson(json, ".eulerUngovernedNzxPerspective")
+            eulerUngovernedNzxPerspective: getAddressFromJson(json, ".eulerUngovernedNzxPerspective"),
+            termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner")
         });
     }
 }
@@ -122,16 +125,18 @@ abstract contract LensAddressesLib is ScriptExtended {
         address accountLens;
         address oracleLens;
         address irmLens;
-        address vaultLens;
         address utilsLens;
+        address vaultLens;
+        address eulerEarnVaultLens;
     }
 
     function serializeLensAddresses(LensAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("lensAddresses", "accountLens", Addresses.accountLens);
         result = vm.serializeAddress("lensAddresses", "oracleLens", Addresses.oracleLens);
         result = vm.serializeAddress("lensAddresses", "irmLens", Addresses.irmLens);
-        result = vm.serializeAddress("lensAddresses", "vaultLens", Addresses.vaultLens);
         result = vm.serializeAddress("lensAddresses", "utilsLens", Addresses.utilsLens);
+        result = vm.serializeAddress("lensAddresses", "vaultLens", Addresses.vaultLens);
+        result = vm.serializeAddress("lensAddresses", "eulerEarnVaultLens", Addresses.eulerEarnVaultLens);
     }
 
     function deserializeLensAddresses(string memory json) internal pure returns (LensAddresses memory) {
@@ -139,8 +144,9 @@ abstract contract LensAddressesLib is ScriptExtended {
             accountLens: getAddressFromJson(json, ".accountLens"),
             oracleLens: getAddressFromJson(json, ".oracleLens"),
             irmLens: getAddressFromJson(json, ".irmLens"),
+            utilsLens: getAddressFromJson(json, ".utilsLens"),
             vaultLens: getAddressFromJson(json, ".vaultLens"),
-            utilsLens: getAddressFromJson(json, ".utilsLens")
+            eulerEarnVaultLens: getAddressFromJson(json, ".eulerEarnVaultLens")
         });
     }
 }
@@ -209,7 +215,9 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         uint256 decimals = ERC20(asset).decimals();
         uint16 result;
 
-        if (amountNoDecimals >= 100) {
+        if (amountNoDecimals == type(uint16).max) {
+            return 0;
+        } else if (amountNoDecimals >= 100) {
             uint256 scale = Math.log10(amountNoDecimals);
             result = uint16(((amountNoDecimals / 10 ** (scale - 2)) << 6) | (scale + decimals));
         } else {
