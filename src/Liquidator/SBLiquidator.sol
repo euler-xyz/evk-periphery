@@ -5,12 +5,13 @@ pragma solidity >=0.8.0;
 import {CustomLiquidatorBase} from "./CustomLiquidatorBase.sol";
 import {IERC20} from "openzeppelin-contracts/interfaces/IERC20.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
-import {IBorrowing} from "evk/EVault/IEVault.sol";
+import {IBorrowing, IERC4626} from "evk/EVault/IEVault.sol";
 import {IEVC} from "evc/interfaces/IEthereumVaultConnector.sol";
 
 interface ISBToken is IERC20 {
     function liquidationToken() external view returns (address);
     function liquidate(uint256 shares) external;
+    function addLiquidator(address _account) external;
 }
 
 contract SBuidlLiquidator is CustomLiquidatorBase {
@@ -33,17 +34,7 @@ contract SBuidlLiquidator is CustomLiquidatorBase {
         // Pass though liquidation
         liabilityVault.liquidate(violator, collateral, repayAssets, minYieldBalance);
 
-        // Redeem the entire collateral balance in this account
-        uint256 collateralBalance = collateralVault.balanceOf(address(this));
-        collateralVault.redeem(collateralBalance, address(this), address(this));
-
-        uint256 sbTokenBalance = sbToken.balanceOf(address(this));
-        sbToken.liquidate(sbTokenBalance);
-
-        IERC20 sbLiquidationToken = IERC20(sbToken.liquidationToken());
-        sbLiquidationToken.transfer(receiver, sbLiquidationToken.balanceOf(address(this)));
-
-        IEVC.BatchItem[] memory batchItems = new IEVC.BatchItem[](1);
+        IEVC.BatchItem[] memory batchItems = new IEVC.BatchItem[](2);
 
         uint256 debtAmount = liabilityVault.debtOf(address(this));
 
@@ -54,6 +45,22 @@ contract SBuidlLiquidator is CustomLiquidatorBase {
             data: abi.encodeWithSelector(IBorrowing.pullDebt.selector, debtAmount, address(this))
         });
 
+        // Redeem the entire collateral balance in this account
+        uint256 collateralBalance = collateralVault.balanceOf(address(this));
+
+        batchItems[1] = IEVC.BatchItem({
+            targetContract: address(collateralVault),
+            onBehalfOfAccount: address(address(this)),
+            value: 0,
+            data: abi.encodeWithSelector(IERC4626.redeem.selector, collateralBalance, address(this), address(this))
+        });
+
         evc.batch(batchItems);
+
+        uint256 sbTokenBalance = sbToken.balanceOf(address(this));
+        sbToken.liquidate(sbTokenBalance);
+
+        IERC20 sbLiquidationToken = IERC20(sbToken.liquidationToken());
+        sbLiquidationToken.transfer(receiver, sbLiquidationToken.balanceOf(address(this)));
     }
 }
