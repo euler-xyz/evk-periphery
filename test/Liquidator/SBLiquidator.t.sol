@@ -46,7 +46,7 @@ contract SBLiquidatorTests is EVaultTestBase {
         address[] memory customLiquidationVaults = new address[](1);
         customLiquidationVaults[0] = address(esBToken);
 
-        sbLiquidator = new SBuidlLiquidator(address(evc), customLiquidationVaults);
+        sbLiquidator = new SBuidlLiquidator(address(evc), address(this), customLiquidationVaults);
 
         // Set LTV for esBToken as collateral
         eTST.setLTV(address(esBToken), 0.97e4, 0.97e4, 0);

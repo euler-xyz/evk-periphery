@@ -24,7 +24,7 @@ contract CustomLiquidatorBaseTests is EVaultTestBase {
         address[] memory customLiquidationVaults = new address[](1);
         customLiquidationVaults[0] = address(eTST);
         vm.startPrank(admin);
-        customLiquidator = new CustomLiquidatorBaseTestable(address(evc), customLiquidationVaults);
+        customLiquidator = new CustomLiquidatorBaseTestable(address(evc), admin, customLiquidationVaults);
         vm.stopPrank();
 
         // Setup
@@ -135,12 +135,5 @@ contract CustomLiquidatorBaseTests is EVaultTestBase {
         assertEq(liquidationParams.receiver, receiver, "Receiver is not the expected address");
         assertEq(liquidationParams.liability, address(eTST), "Liability is not the expected address");
         assertEq(liquidationParams.collateral, address(eTST2), "Collateral is not the expected address");
-    }
-
-    function test_revertDeferredLiquidationNotEVC() public {
-        vm.startPrank(liquidator);
-        vm.expectRevert(abi.encodeWithSelector(CustomLiquidatorBase.NOT_EVC.selector));
-        customLiquidator.deferredLiquidate(receiver, address(eTST), borrower, address(eTST2), type(uint256).max, 0);
-        vm.stopPrank();
     }
 }

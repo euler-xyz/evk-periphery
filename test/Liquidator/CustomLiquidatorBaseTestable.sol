@@ -18,8 +18,8 @@ contract CustomLiquidatorBaseTestable is CustomLiquidatorBase {
 
     LiquidationParams public liquidationParams;
 
-    constructor(address _evc, address[] memory _customLiquidationVaults)
-        CustomLiquidatorBase(_evc, _customLiquidationVaults)
+    constructor(address _evc, address owner, address[] memory _customLiquidationVaults)
+        CustomLiquidatorBase(_evc, owner, _customLiquidationVaults)
     {}
 
     function _customLiquidation(
@@ -37,21 +37,10 @@ contract CustomLiquidatorBaseTestable is CustomLiquidatorBase {
         liabilityVault.liquidate(violator, collateral, repayAssets, minYieldBalance);
 
         // Send colleral shares to receiver
-        uint256 collateralBalance = collateralVault.balanceOf(address(this));
-        collateralVault.transfer(receiver, collateralBalance);
+        collateralVault.transferFromMax(address(this), receiver);
 
         // Pull debt into liquidator
-        IEVC.BatchItem[] memory batchItems = new IEVC.BatchItem[](1);
-
-        uint256 debtAmount = liabilityVault.debtOf(address(this));
-        batchItems[0] = IEVC.BatchItem({
-            targetContract: address(liabilityVault),
-            onBehalfOfAccount: address(_msgSender()),
-            value: 0,
-            data: abi.encodeWithSelector(IBorrowing.pullDebt.selector, debtAmount, address(this))
-        });
-
-        evc.batch(batchItems);
+        evc.call(liability, _msgSender(), 0, abi.encodeCall(liabilityVault.pullDebt, (type(uint256).max, address(this))));
 
         liquidationParams = LiquidationParams({
             receiver: receiver,
