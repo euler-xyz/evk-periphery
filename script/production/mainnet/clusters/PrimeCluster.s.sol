@@ -56,7 +56,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[USDT   ] = "ChainlinkOracle";
         cluster.oracleProviders[USDS   ] = "ChronicleOracle";
         cluster.oracleProviders[sUSDS  ] = "ExternalVault|ChronicleOracle";
-        cluster.oracleProviders[mTBILL ] = "FixedRateOracle";
+        cluster.oracleProviders[mTBILL ] = "0x256f8fA018e8e6F5B54b1fF708efd5ec73E20AC6";
         cluster.oracleProviders[wM     ] = "FixedRateOracle";
         cluster.oracleProviders[tBTC   ] = "ChainlinkOracle";
         cluster.oracleProviders[WBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
@@ -195,7 +195,7 @@ contract Cluster is ManageCluster {
                 peripheryAddresses.eulerUngovernedNzxPerspective,
                 cluster.vaults[i],
                 PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR,
-                PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING
+                PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING | PerspectiveVerifier.ERROR__ORACLE_INVALID_ADAPTER
             );
         }
     }
