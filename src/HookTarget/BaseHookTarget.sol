@@ -10,6 +10,8 @@ contract BaseHookTarget is IHookTarget {
         return this.isHookTarget.selector;
     }
 
+    /// @notice Fetches the sender address from the last 20 bytes of the calldata.
+    /// @return msgSender The sender address.
     function getAddressFromMsgData() public pure returns (address msgSender) {
         // Ensure that tx.data has at least 20 bytes
         require(msg.data.length >= 20, "tx.data too short");

@@ -8,6 +8,9 @@ import {EVCUtil} from "evc/utils/EVCUtil.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 
 /// @dev Liquidator should enable this contract as an operator
+/// @title CustomLiquidatorBase
+/// @author Euler Labs (https://www.eulerlabs.com/)
+/// @notice This contract is used to implement custom liquidation logic for specific collateral vaults.
 abstract contract CustomLiquidatorBase is EVCUtil, Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -22,14 +25,22 @@ abstract contract CustomLiquidatorBase is EVCUtil, Ownable {
         }
     }
 
+    /// @notice Checks if a given vault is set to use custom liquidation logic.
+    /// @param vault The address of the vault to check.
+    /// @return bool True if the vault is set to use custom liquidation logic, false otherwise.
     function isCustomLiquidationVault(address vault) public view returns (bool) {
         return customLiquidationVaults.contains(vault);
     }
 
+    /// @notice Returns all vaults that use custom liquidation logic.
+    /// @return address[] memory An array of addresses of the vaults that use custom liquidation logic.
     function getCustomLiquidationVaults() public view returns (address[] memory) {
         return customLiquidationVaults.values();
     }
 
+    /// @notice Sets a vault to use custom liquidation logic.
+    /// @param vault The address of the vault to set.
+    /// @param enabled True if the vault should use custom liquidation logic, false otherwise.
     function setCustomLiquidationVault(address vault, bool enabled) public onlyEVCAccountOwner onlyOwner {
         if (enabled) {
             customLiquidationVaults.add(vault);
@@ -39,6 +50,13 @@ abstract contract CustomLiquidatorBase is EVCUtil, Ownable {
         emit CustomLiquidationVaultSet(vault, enabled);
     }
 
+    /// @notice Liquidates the debt and executes the custom liquidation logic if the vault is set to use it.
+    /// @param receiver The address to receive the collateral.
+    /// @param liability The address of the liability vault.
+    /// @param violator The address of the violator.
+    /// @param collateral The address of the collateral vault.
+    /// @param repayAssets The amount of assets to repay.
+    /// @param minYieldBalance The minimum yield balance to receive.
     function liquidate(
         address receiver,
         address liability,
@@ -69,10 +87,19 @@ abstract contract CustomLiquidatorBase is EVCUtil, Ownable {
         evc.disableController(liability);
     }
 
+    /// @notice Overrides the default msgSender to use the EVCUtil msgSender.
+    /// @return address The EVC authenticated sender.
     function _msgSender() internal view override (Context, EVCUtil) returns (address) {
         return EVCUtil._msgSender();
     }
 
+    /// @notice Custom liquidation logic.
+    /// @param receiver The address to receive the collateral.
+    /// @param liability The address of the liability vault.
+    /// @param violator The address of the violator.
+    /// @param collateral The address of the collateral vault.
+    /// @param repayAssets The amount of assets to repay.
+    /// @param minYieldBalance The minimum yield balance to receive.
     function _customLiquidation(
         address receiver,
         address liability,
