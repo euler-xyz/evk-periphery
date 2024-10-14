@@ -5,22 +5,24 @@ pragma solidity ^0.8.0;
 import {IRewardStreams} from "reward-streams/interfaces/IRewardStreams.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IIRM, IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
-import {IPriceOracle} from "evk/interfaces/IPriceOracle.sol";
 import {OracleLens} from "./OracleLens.sol";
+import {UtilsLens} from "./UtilsLens.sol";
 import {IRMLens} from "./IRMLens.sol";
 import {Utils} from "./Utils.sol";
 import "evk/EVault/shared/types/AmountCap.sol";
 import "./LensTypes.sol";
 
 contract VaultLens is Utils {
-    address internal constant USD = address(840);
-
     OracleLens public immutable oracleLens;
+    UtilsLens public immutable utilsLens;
     IRMLens public immutable irmLens;
+    address[] internal backupUnitOfAccounts;
 
-    constructor(address _oracleLens, address _irmLens) {
+    constructor(address _oracleLens, address _utilsLens, address _irmLens) {
         oracleLens = OracleLens(_oracleLens);
+        utilsLens = UtilsLens(_utilsLens);
         irmLens = IRMLens(_irmLens);
+        backupUnitOfAccounts = [address(840), _getWETHAddress(), 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB];
     }
 
     function getVaultInfoFull(address vault) public view returns (VaultInfoFull memory) {
@@ -86,7 +88,7 @@ contract VaultLens is Utils {
 
         result.collateralLTVInfo = getRecognizedCollateralsLTVInfo(vault);
 
-        result.liabilityPriceInfo = getControllerAssetPriceInfo(vault, result.asset);
+        result.liabilityPriceInfo = utilsLens.getControllerAssetPriceInfo(vault, result.asset);
 
         result.collateralPriceInfo = new AssetPriceInfo[](result.collateralLTVInfo.length);
 
@@ -97,20 +99,40 @@ contract VaultLens is Utils {
         for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
             bases[i + 1] = result.collateralLTVInfo[i].collateral;
             quotes[i + 1] = result.unitOfAccount;
-            result.collateralPriceInfo[i] = getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
+            result.collateralPriceInfo[i] =
+                utilsLens.getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
         }
 
         result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, quotes);
 
+        bases = new address[](1);
+        quotes = new address[](1);
         if (result.oracle == address(0)) {
-            address unitOfAccount = result.unitOfAccount == address(0) ? USD : result.unitOfAccount;
-            result.backupAssetPriceInfo = getAssetPriceInfo(result.asset, unitOfAccount);
+            for (uint256 i = 0; i < backupUnitOfAccounts.length + 1; ++i) {
+                bases[0] = result.asset;
 
-            bases = new address[](1);
-            quotes = new address[](1);
-            bases[0] = result.asset;
-            quotes[0] = unitOfAccount;
-            result.backupAssetOracleInfo = oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, quotes);
+                if (i == 0) {
+                    if (result.unitOfAccount == address(0)) continue;
+
+                    quotes[0] = result.unitOfAccount;
+                } else {
+                    quotes[0] = backupUnitOfAccounts[i - 1];
+                }
+
+                result.backupAssetPriceInfo = utilsLens.getAssetPriceInfo(bases[0], quotes[0]);
+
+                if (
+                    !result.backupAssetPriceInfo.queryFailure
+                        || oracleLens.isStalePullOracle(
+                            result.backupAssetPriceInfo.oracle, result.backupAssetPriceInfo.queryFailureReason
+                        )
+                ) {
+                    result.backupAssetOracleInfo =
+                        oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, quotes);
+
+                    break;
+                }
+            }
         }
 
         return result;
@@ -278,85 +300,5 @@ contract VaultLens is Utils {
         borrows[2] = type(uint32).max;
 
         return getVaultInterestRateModelInfo(vault, cash, borrows);
-    }
-
-    function getControllerAssetPriceInfo(address controller, address asset)
-        public
-        view
-        returns (AssetPriceInfo memory)
-    {
-        AssetPriceInfo memory result;
-
-        result.timestamp = block.timestamp;
-
-        result.oracle = IEVault(controller).oracle();
-        result.asset = asset;
-        result.unitOfAccount = IEVault(controller).unitOfAccount();
-
-        result.amountIn = 10 ** _getDecimals(asset);
-
-        if (result.oracle == address(0)) {
-            result.queryFailure = true;
-            return result;
-        }
-
-        (bool success, bytes memory data) = result.oracle.staticcall(
-            abi.encodeCall(IPriceOracle.getQuote, (result.amountIn, asset, result.unitOfAccount))
-        );
-
-        if (success && data.length >= 32) {
-            result.amountOutMid = abi.decode(data, (uint256));
-        } else {
-            result.queryFailure = true;
-            result.queryFailureReason = data;
-        }
-
-        (success, data) = result.oracle.staticcall(
-            abi.encodeCall(IPriceOracle.getQuotes, (result.amountIn, asset, result.unitOfAccount))
-        );
-
-        if (success && data.length >= 64) {
-            (result.amountOutBid, result.amountOutAsk) = abi.decode(data, (uint256, uint256));
-        } else {
-            result.queryFailure = true;
-        }
-
-        return result;
-    }
-
-    function getAssetPriceInfo(address asset, address unitOfAccount) public view returns (AssetPriceInfo memory) {
-        AssetPriceInfo memory result;
-
-        result.timestamp = block.timestamp;
-
-        result.asset = asset;
-        result.unitOfAccount = unitOfAccount;
-
-        result.amountIn = 10 ** _getDecimals(asset);
-
-        address[] memory adapters = oracleLens.getValidAdapters(asset, unitOfAccount);
-
-        if (adapters.length == 0) {
-            result.queryFailure = true;
-            return result;
-        }
-
-        for (uint256 i = 0; i < adapters.length; ++i) {
-            result.oracle = adapters[i];
-
-            (bool success, bytes memory data) =
-                result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (result.amountIn, asset, unitOfAccount)));
-
-            if (success && data.length >= 32) {
-                result.amountOutMid = result.amountOutBid = result.amountOutAsk = abi.decode(data, (uint256));
-            } else {
-                result.queryFailure = true;
-                result.queryFailureReason = data;
-            }
-
-            if (!result.queryFailure) break;
-        }
-
-        return result;
     }
 }

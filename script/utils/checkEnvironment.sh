@@ -2,8 +2,6 @@
 
 source .env
 
-shouldVerify=$1
-
 if ! command -v jq &> /dev/null; then
     echo "jq could not be found. Please install jq first."
     echo "You can install jq by running: sudo apt-get install jq"
@@ -15,7 +13,7 @@ if [ -z "$DEPLOYMENT_RPC_URL" ]; then
     exit 1
 fi
 
-if [[ $shouldVerify == "y" ]]; then
+if [[ "$@" == *"--verify"* ]]; then
     if [ -z "$VERIFIER_URL" ]; then
         echo "Error: VERIFIER_URL environment variable is not set. Please set it and try again."
         exit 1

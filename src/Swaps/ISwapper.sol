@@ -37,7 +37,8 @@ interface ISwapper {
         // In swap and repay mode (2) - amount of debt the account should have after swap and repay.
         //    To repay all debt without leaving any dust, set this to zero.
         uint256 amountOut;
-        // Auxiliary payload for swap providers
+        // Auxiliary payload for swap providers. For GenericHandler it's an abi encoded tuple: target contract address
+        // and call data
         bytes data;
     }
 

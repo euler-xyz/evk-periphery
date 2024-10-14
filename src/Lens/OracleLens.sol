@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {Utils} from "./Utils.sol";
 import {SnapshotRegistry} from "../SnapshotRegistry/SnapshotRegistry.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
+import {Errors} from "euler-price-oracle/lib/Errors.sol";
 import "./LensTypes.sol";
 
 interface IOracle is IPriceOracle {
@@ -48,7 +49,7 @@ contract OracleLens is Utils {
         adapterRegistry = SnapshotRegistry(_adapterRegistry);
     }
 
-    function getOracleInfo(address oracleAddress, address[] calldata bases, address[] calldata quotes)
+    function getOracleInfo(address oracleAddress, address[] memory bases, address[] memory quotes)
         public
         view
         returns (OracleDetailedInfo memory)
@@ -74,6 +75,16 @@ contract OracleLens is Utils {
         if (_strEq(name, "ChainlinkOracle")) {
             oracleInfo = abi.encode(
                 ChainlinkOracleInfo({
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    feed: IOracle(oracleAddress).feed(),
+                    feedDescription: IOracle(IOracle(oracleAddress).feed()).description(),
+                    maxStaleness: IOracle(oracleAddress).maxStaleness()
+                })
+            );
+        } else if (_strEq(name, "ChainlinkInfrequentOracle")) {
+            oracleInfo = abi.encode(
+                ChainlinkInfrequentOracleInfo({
                     base: IOracle(oracleAddress).base(),
                     quote: IOracle(oracleAddress).quote(),
                     feed: IOracle(oracleAddress).feed(),
@@ -167,18 +178,13 @@ contract OracleLens is Utils {
         } else if (_strEq(name, "EulerRouter")) {
             require(bases.length == quotes.length, "OracleLens: invalid input");
 
+            address[][] memory resolvedAssets = new address[][](bases.length);
             address[] memory resolvedOracles = new address[](bases.length);
             OracleDetailedInfo[] memory resolvedOraclesInfo = new OracleDetailedInfo[](bases.length);
+
             for (uint256 i = 0; i < bases.length; ++i) {
-                try IOracle(oracleAddress).resolveOracle(0, bases[i], quotes[i]) returns (
-                    uint256, address, address, address resolvedOracle
-                ) {
-                    resolvedOracles[i] = resolvedOracle;
-                    resolvedOraclesInfo[i] = getOracleInfo(resolvedOracle, bases, quotes);
-                } catch {
-                    resolvedOracles[i] = address(0);
-                    resolvedOraclesInfo[i] = OracleDetailedInfo({oracle: address(0), name: "", oracleInfo: ""});
-                }
+                (resolvedAssets[i], resolvedOracles[i], resolvedOraclesInfo[i]) =
+                    _routerResolve(oracleAddress, resolvedAssets[i], bases[i], quotes[i]);
             }
 
             address fallbackOracle = IOracle(oracleAddress).fallbackOracle();
@@ -186,10 +192,11 @@ contract OracleLens is Utils {
             oracleInfo = abi.encode(
                 EulerRouterInfo({
                     governor: IOracle(oracleAddress).governor(),
-                    fallbackOracle: IOracle(oracleAddress).fallbackOracle(),
+                    fallbackOracle: fallbackOracle,
                     fallbackOracleInfo: getOracleInfo(fallbackOracle, bases, quotes),
                     bases: bases,
                     quotes: quotes,
+                    resolvedAssets: resolvedAssets,
                     resolvedOracles: resolvedOracles,
                     resolvedOraclesInfo: resolvedOraclesInfo
                 })
@@ -199,7 +206,87 @@ contract OracleLens is Utils {
         return OracleDetailedInfo({oracle: oracleAddress, name: name, oracleInfo: oracleInfo});
     }
 
+    function isStalePullOracle(address oracleAddress, bytes calldata failureReason) public view returns (bool) {
+        bool success;
+        bytes memory result;
+
+        if (oracleAddress != address(0)) {
+            (success, result) = oracleAddress.staticcall(abi.encodeCall(IPriceOracle.name, ()));
+        }
+
+        if (success && result.length >= 32) {
+            string memory name = abi.decode(result, (string));
+            bytes4 failureReasonSelector = bytes4(failureReason);
+
+            return (_strEq(name, "PythOracle") && failureReasonSelector == Errors.PriceOracle_InvalidAnswer.selector)
+                || (_strEq(name, "RedstoneCoreOracle") && failureReasonSelector == Errors.PriceOracle_TooStale.selector);
+        } else {
+            return false;
+        }
+    }
+
     function getValidAdapters(address base, address quote) public view returns (address[] memory) {
         return adapterRegistry.getValidAddresses(base, quote, block.timestamp);
+    }
+
+    function _routerResolve(
+        address oracleAddress,
+        address[] memory currentlyResolvedAssets,
+        address base,
+        address quote
+    )
+        internal
+        view
+        returns (address[] memory resolvedAssets, address resolvedOracle, OracleDetailedInfo memory resolvedOracleInfo)
+    {
+        if (base == quote) return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
+
+        (bool success, bytes memory result) =
+            oracleAddress.staticcall(abi.encodeCall(IOracle.getConfiguredOracle, (base, quote)));
+
+        if (!success || result.length < 32) return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
+
+        resolvedOracle = abi.decode(result, (address));
+
+        if (resolvedOracle != address(0)) {
+            address[] memory bases = new address[](1);
+            address[] memory quotes = new address[](1);
+            bases[0] = base;
+            quotes[0] = quote;
+            resolvedOracleInfo = getOracleInfo(resolvedOracle, bases, quotes);
+            return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
+        }
+
+        (success, result) = oracleAddress.staticcall(abi.encodeCall(IOracle.resolvedVaults, (base)));
+
+        if (!success || result.length < 32) return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
+
+        address baseAsset = abi.decode(result, (address));
+
+        if (baseAsset != address(0)) {
+            resolvedAssets = new address[](currentlyResolvedAssets.length + 1);
+            for (uint256 i = 0; i < currentlyResolvedAssets.length; ++i) {
+                resolvedAssets[i] = currentlyResolvedAssets[i];
+            }
+            resolvedAssets[resolvedAssets.length - 1] = baseAsset;
+            return _routerResolve(oracleAddress, resolvedAssets, baseAsset, quote);
+        }
+
+        (success, result) = oracleAddress.staticcall(abi.encodeCall(IOracle.fallbackOracle, ()));
+
+        if (!success || result.length < 32) return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
+
+        resolvedOracle = abi.decode(result, (address));
+
+        if (resolvedOracle != address(0)) {
+            address[] memory bases = new address[](1);
+            address[] memory quotes = new address[](1);
+            bases[0] = base;
+            quotes[0] = quote;
+            resolvedOracleInfo = getOracleInfo(resolvedOracle, bases, quotes);
+            return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
+        }
+
+        return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
     }
 }

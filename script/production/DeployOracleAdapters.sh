@@ -40,6 +40,10 @@ csv_oracle_adapters_addresses_path="$2"
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}
 
+if [[ $verify_contracts == "y" ]]; then
+    verify_contracts="--verify"
+fi
+
 if ! script/utils/checkEnvironment.sh $verify_contracts; then
     echo "Environment check failed. Exiting."
     exit 1
@@ -100,6 +104,15 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         adapterName="${provider// /}_${baseSymbol}/${quoteSymbol}"
     fi
 
+    for i in "${!columns[@]}"; do
+        stripped=$(echo "${columns[$i]}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+        if [[ "$stripped" != "${columns[$i]}" ]]; then
+            echo "Skipping deployment of $adapterName. Whitespace detected in column $i"
+            continue
+        fi
+    done
+
     if [[ "$avoid_duplicates" == "y" ]]; then
         adapterAddress=$(find_adapter_address "$adapterName" "$csv_oracle_adapters_addresses_path")
 
@@ -112,6 +125,28 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     if [[ "$provider" == "Chainlink" ]]; then
         scriptName=${baseName}.s.sol:ChainlinkAdapter
         jsonName=03_ChainlinkAdapter
+
+        base="${columns[8]}"
+        quote="${columns[9]}"
+
+        jq -n \
+            --argjson addToAdapterRegistry false \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
+            --arg base "${columns[8]}" \
+            --arg quote "${columns[9]}" \
+            --arg feed "${columns[10]}" \
+            --argjson maxStaleness "${columns[11]}" \
+            '{
+                addToAdapterRegistry: $addToAdapterRegistry,
+                adapterRegistry: $adapterRegistry,
+                base: $base,
+                quote: $quote,
+                feed: $feed,
+                maxStaleness: $maxStaleness
+            }' --indent 4 > script/${jsonName}_input.json
+    elif [[ "$provider" == "Chainlink Infrequent" ]]; then
+        scriptName=${baseName}.s.sol:ChainlinkInfrequentAdapter
+        jsonName=03_ChainlinkInfrequentAdapter
 
         base="${columns[8]}"
         quote="${columns[9]}"
@@ -326,6 +361,30 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 quote: $quote,
                 oracleBaseCross: $oracleBaseCross,
                 oracleCrossQuote: $oracleCrossQuote
+            }' --indent 4 > script/${jsonName}_input.json
+    elif [[ "$provider" == "Pendle" ]]; then
+        scriptName=${baseName}.s.sol:PendleAdapter
+        jsonName=03_PendleAdapter
+
+        base="${columns[8]}"
+        quote="${columns[9]}"
+
+        jq -n \
+            --argjson addToAdapterRegistry false \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
+            --arg pendleOracle "${columns[6]}" \
+            --arg pendleMarket "${columns[7]}" \
+            --arg base "${columns[8]}" \
+            --arg quote "${columns[9]}" \
+            --argjson twapWindow "${columns[10]}" \
+            '{
+                addToAdapterRegistry: $addToAdapterRegistry,
+                adapterRegistry: $adapterRegistry,
+                pendleOracle: $pendleOracle,
+                pendleMarket: $pendleMarket,
+                base: $base,
+                quote: $quote,
+                twapWindow: $twapWindow
             }' --indent 4 > script/${jsonName}_input.json
     else
         echo "Error!"
