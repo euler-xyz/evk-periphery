@@ -106,6 +106,7 @@ while true; do
                             symbol: $symbol,
                             decimals: $decimals
                         }' --indent 4 > script/${jsonName}_input.json
+                    ;;
                 1)
                     echo "Deploying Reward token..."
 
