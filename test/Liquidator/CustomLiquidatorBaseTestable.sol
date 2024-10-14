@@ -40,7 +40,9 @@ contract CustomLiquidatorBaseTestable is CustomLiquidatorBase {
         collateralVault.transferFromMax(address(this), receiver);
 
         // Pull debt into liquidator
-        evc.call(liability, _msgSender(), 0, abi.encodeCall(liabilityVault.pullDebt, (type(uint256).max, address(this))));
+        evc.call(
+            liability, _msgSender(), 0, abi.encodeCall(liabilityVault.pullDebt, (type(uint256).max, address(this)))
+        );
 
         liquidationParams = LiquidationParams({
             receiver: receiver,

@@ -76,9 +76,11 @@ abstract contract CustomLiquidatorBase is EVCUtil, Ownable {
         } else {
             // Pass through liquidation
             liabilityVault.liquidate(violator, collateral, repayAssets, minYieldBalance);
-            
+
             // Pull the debt from this contract into the liquidator
-            evc.call(liability, _msgSender(), 0, abi.encodeCall(liabilityVault.pullDebt, (type(uint256).max, address(this))));
+            evc.call(
+                liability, _msgSender(), 0, abi.encodeCall(liabilityVault.pullDebt, (type(uint256).max, address(this)))
+            );
 
             // Send the collateral to the receiver
             collateralVault.transferFromMax(address(this), receiver);

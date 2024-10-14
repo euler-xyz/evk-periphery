@@ -42,7 +42,9 @@ contract SBuidlLiquidator is CustomLiquidatorBase {
         // Pass though liquidation
         liabilityVault.liquidate(violator, collateral, repayAssets, minYieldBalance);
 
-        evc.call(liability, _msgSender(), 0, abi.encodeCall(liabilityVault.pullDebt, (type(uint256).max, address(this))));
+        evc.call(
+            liability, _msgSender(), 0, abi.encodeCall(liabilityVault.pullDebt, (type(uint256).max, address(this)))
+        );
 
         // Redeem the entire collateral balance in this account
         collateralVault.redeem(type(uint256).max, address(this), address(this));
