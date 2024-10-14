@@ -12,3 +12,4 @@ reward-streams/=lib/reward-streams/src/
 @openzeppelin/contracts/utils/structs/=lib/openzeppelin-contracts/contracts/utils/structs/
 @openzeppelin/contracts/utils/introspection/=lib/openzeppelin-contracts/contracts/utils/introspection/
 @openzeppelin/contracts/access/=lib/openzeppelin-contracts/contracts/access/
+@openzeppelin/contracts/token/=lib/openzeppelin-contracts/contracts/token/
