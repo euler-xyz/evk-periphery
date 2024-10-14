@@ -1,6 +1,6 @@
 # Custom Liquidators
 
-By using the `HookTargetWhitelist` liquidation can be shielded to make it only callable by specific addresses.
+By using the `HookTargetAccessControl` liquidation can be shielded to make it only callable by specific addresses.
 Using a custom liquidator different liquidation logic can be implemented.
 
 ## CustomLiquidatorBase
