@@ -77,4 +77,22 @@ abstract contract ScriptExtended is Script {
         }
         return string(result);
     }
+
+    function stringToAddress(string memory _address) internal pure returns (address) {
+        bytes memory tmp = bytes(_address);
+        uint160 result = 0;
+        uint160 b1;
+
+        for (uint256 i = 2; i < tmp.length; ++i) {
+            result *= 16;
+            b1 = uint160(uint8(tmp[i]));
+
+            if (b1 >= 48 && b1 <= 57) result += (b1 - 48);
+            else if (b1 >= 65 && b1 <= 70) result += (b1 - 55);
+            else if (b1 >= 97 && b1 <= 102) result += (b1 - 87);
+            else revert("Invalid character in address string");
+        }
+
+        return address(result);
+    }
 }

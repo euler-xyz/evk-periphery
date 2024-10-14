@@ -224,6 +224,8 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         }
 
         if (adapter == address(0) || counter > 1) {
+            if (bytes(provider).length == 42) return stringToAddress(provider);
+
             console.log("base: %s, quote: %s, provider: %s", base, quote, provider);
 
             if (adapter == address(0)) revert("getValidAdapters: Adapter not found");
