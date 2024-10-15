@@ -40,6 +40,7 @@ interface IOracle is IPriceOracle {
         returns (uint256, address, address, address);
     function getConfiguredOracle(address base, address quote) external view returns (address);
     function description() external view returns (string memory);
+    function pendleMarket() external view returns (address);
 }
 
 contract OracleLens is Utils {
@@ -157,6 +158,15 @@ contract OracleLens is Utils {
                     base: IOracle(oracleAddress).base(),
                     quote: IOracle(oracleAddress).quote(),
                     rateProvider: IOracle(oracleAddress).rateProvider()
+                })
+            );
+        } else if (_strEq(name, "PendleOracle")) {
+            oracleInfo = abi.encode(
+                PendleProviderOracleInfo({
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    pendleMarket: IOracle(oracleAddress).pendleMarket(),
+                    twapWindow: IOracle(oracleAddress).twapWindow()
                 })
             );
         } else if (_strEq(name, "CrossAdapter")) {
