@@ -8,7 +8,7 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {Errors} from "euler-price-oracle/lib/Errors.sol";
-import {OracleLens} from "../../../src/Lens/OracleLens.sol";
+import {OracleLens} from "../../src/Lens/OracleLens.sol";
 
 contract SanityCheckOracle is Script {
     function run() public view {
