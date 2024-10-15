@@ -40,6 +40,7 @@ interface IOracle is IPriceOracle {
         returns (uint256, address, address, address);
     function getConfiguredOracle(address base, address quote) external view returns (address);
     function description() external view returns (string memory);
+    function pendleMarket() external view returns (address);
 }
 
 contract OracleLens is Utils {
@@ -159,6 +160,15 @@ contract OracleLens is Utils {
                     rateProvider: IOracle(oracleAddress).rateProvider()
                 })
             );
+        } else if (_strEq(name, "PendleOracle")) {
+            oracleInfo = abi.encode(
+                PendleProviderOracleInfo({
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    pendleMarket: IOracle(oracleAddress).pendleMarket(),
+                    twapWindow: IOracle(oracleAddress).twapWindow()
+                })
+            );
         } else if (_strEq(name, "CrossAdapter")) {
             address oracleBaseCross = IOracle(oracleAddress).oracleBaseCross();
             address oracleCrossQuote = IOracle(oracleAddress).oracleCrossQuote();
@@ -207,22 +217,10 @@ contract OracleLens is Utils {
     }
 
     function isStalePullOracle(address oracleAddress, bytes calldata failureReason) public view returns (bool) {
-        bool success;
-        bytes memory result;
-
-        if (oracleAddress != address(0)) {
-            (success, result) = oracleAddress.staticcall(abi.encodeCall(IPriceOracle.name, ()));
-        }
-
-        if (success && result.length >= 32) {
-            string memory name = abi.decode(result, (string));
-            bytes4 failureReasonSelector = bytes4(failureReason);
-
-            return (_strEq(name, "PythOracle") && failureReasonSelector == Errors.PriceOracle_InvalidAnswer.selector)
-                || (_strEq(name, "RedstoneCoreOracle") && failureReasonSelector == Errors.PriceOracle_TooStale.selector);
-        } else {
-            return false;
-        }
+        bytes4 failureReasonSelector = bytes4(failureReason);
+        return _isStalePythOracle(oracleAddress, failureReasonSelector)
+            || _isStaleRedstoneOracle(oracleAddress, failureReasonSelector)
+            || _isStaleCrossAdapter(oracleAddress, failureReasonSelector);
     }
 
     function getValidAdapters(address base, address quote) public view returns (address[] memory) {
@@ -288,5 +286,54 @@ contract OracleLens is Utils {
         }
 
         return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
+    }
+
+    function _isStalePythOracle(address oracle, bytes4 failureSelector) internal view returns (bool) {
+        if (oracle == address(0)) return false;
+
+        (bool success, bytes memory result) = oracle.staticcall(abi.encodeCall(IPriceOracle.name, ()));
+
+        if (success && result.length >= 32) {
+            string memory name = abi.decode(result, (string));
+            return _strEq(name, "PythOracle") && failureSelector == Errors.PriceOracle_InvalidAnswer.selector;
+        }
+
+        return false;
+    }
+
+    function _isStaleRedstoneOracle(address oracle, bytes4 failureSelector) internal view returns (bool) {
+        if (oracle == address(0)) return false;
+
+        (bool success, bytes memory result) = oracle.staticcall(abi.encodeCall(IPriceOracle.name, ()));
+
+        if (success && result.length >= 32) {
+            string memory name = abi.decode(result, (string));
+            return _strEq(name, "RedstoneCoreOracle") && failureSelector == Errors.PriceOracle_TooStale.selector;
+        }
+
+        return false;
+    }
+
+    function _isStaleCrossAdapter(address oracle, bytes4 failureSelector) internal view returns (bool) {
+        if (oracle == address(0)) return false;
+
+        (bool success, bytes memory result) = oracle.staticcall(abi.encodeCall(IPriceOracle.name, ()));
+
+        if (success && result.length >= 32) {
+            string memory name = abi.decode(result, (string));
+            if (!_strEq(name, "CrossAdapter")) return false;
+        } else {
+            return false;
+        }
+
+        address oracleBaseCross = IOracle(oracle).oracleBaseCross();
+        address oracleCrossQuote = IOracle(oracle).oracleCrossQuote();
+
+        return _isStalePythOracle(oracleBaseCross, failureSelector)
+            || _isStaleRedstoneOracle(oracleBaseCross, failureSelector)
+            || _isStalePythOracle(oracleCrossQuote, failureSelector)
+            || _isStaleRedstoneOracle(oracleCrossQuote, failureSelector)
+            || _isStaleCrossAdapter(oracleBaseCross, failureSelector)
+            || _isStaleCrossAdapter(oracleCrossQuote, failureSelector);
     }
 }

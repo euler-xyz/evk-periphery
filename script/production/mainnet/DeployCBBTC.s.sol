@@ -123,7 +123,7 @@ contract DeployCBBTC is BatchBuilder {
         executeBatch();
 
         // sanity check the oracle config and perspectives
-        OracleVerifier.verifyOracleConfig(borrowableVaults[cbBTC]);
+        OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, borrowableVaults[cbBTC]);
         PerspectiveVerifier.verifyPerspective(
             peripheryAddresses.eulerUngovernedNzxPerspective,
             borrowableVaults[cbBTC],

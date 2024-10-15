@@ -300,6 +300,13 @@ struct RateProviderOracleInfo {
     address rateProvider;
 }
 
+struct PendleProviderOracleInfo {
+    address base;
+    address quote;
+    address pendleMarket;
+    uint32 twapWindow;
+}
+
 struct CrossAdapterInfo {
     address base;
     address cross;
