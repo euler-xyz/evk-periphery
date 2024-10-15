@@ -32,9 +32,9 @@ contract GovernorAccessControl is SelectorAccessControl {
     /// @param admin The address to be granted the DEFAULT_ADMIN_ROLE.
     constructor(address evc, address admin) SelectorAccessControl(evc, admin) {}
 
-    /// @dev Emergency process allows authorized users to lower borrow LTV without changing liquidation LTV. The
-    /// emergency process uses current ramp duration if active, or applies changes immediately if no ramp is ongoing,
-    /// effectively overriding passed rampDuration parameter if necessary.
+    /// @dev Emergency process allows authorized users to lower borrow LTV without changing liquidation LTV. As with all
+    /// changes to borrow LTV, this takes effect immediately. The current ramp state for liquidation LTV (if any) is
+    /// preserved, overriding passed rampDuration parameter if necessary.
     function setLTV(address collateral, uint16 borrowLTV, uint16 liquidationLTV, uint32 rampDuration)
         external
         virtual
