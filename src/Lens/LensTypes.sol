@@ -236,6 +236,14 @@ struct ChainlinkOracleInfo {
     uint256 maxStaleness;
 }
 
+struct ChainlinkInfrequentOracleInfo {
+    address base;
+    address quote;
+    address feed;
+    string feedDescription;
+    uint256 maxStaleness;
+}
+
 struct ChronicleOracleInfo {
     address base;
     address quote;
