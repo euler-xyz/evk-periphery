@@ -51,6 +51,7 @@ contract Cluster is ManageCluster {
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per 
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
+        // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[WETH   ] = "ChainlinkOracle";
         cluster.oracleProviders[wstETH ] = "CrossAdapter=LidoFundamentalOracle+ChainlinkOracle";
         cluster.oracleProviders[cbETH  ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
@@ -126,7 +127,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[eBTC   ] = 157;
         cluster.supplyCaps[SOLVBTC] = 789;
 
-        // define borrow caps here if needed. 0 means no cap defined hence max amount
+        // define borrow caps here if needed. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
 
         // define IRM classes here and assign them to the assets
         {

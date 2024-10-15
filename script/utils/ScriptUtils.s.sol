@@ -289,10 +289,10 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     function encodeAmountCap(address asset, uint256 amountNoDecimals) internal view returns (uint256) {
-        if (amountNoDecimals == 0) return 0;
+        if (amountNoDecimals == type(uint256).max) return 0;
 
         uint256 decimals = ERC20(asset).decimals();
-        uint256 scale = Math.log10(amountNoDecimals);
+        uint256 scale = amountNoDecimals == 0 ? 0 : Math.log10(amountNoDecimals);
         uint256 result = (
             amountNoDecimals >= 100
                 ? (amountNoDecimals / 10 ** (scale - 2)) << 6

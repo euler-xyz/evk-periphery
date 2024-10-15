@@ -108,6 +108,7 @@ abstract contract ManageCluster is Addresses, BatchBuilder {
         encodeAmountCaps(cluster.assets, cluster.borrowCaps);
 
         loadCluster();
+        checkClusterDataSanity();
 
         _;
 
@@ -496,11 +497,9 @@ abstract contract ManageCluster is Addresses, BatchBuilder {
         if (cluster.irms.length == 0) {
             cluster.irms = new address[](cluster.assets.length);
         }
-
-        checkDataSanity();
     }
 
-    function checkDataSanity() private view {
+    function checkClusterDataSanity() private view {
         require(cluster.vaults.length == cluster.assets.length, "Vaults and assets length mismatch");
         require(cluster.oracleRouters.length == cluster.assets.length, "OracleRouters and assets length mismatch");
         require(cluster.irms.length == cluster.assets.length, "IRMs and assets length mismatch");

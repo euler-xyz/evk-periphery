@@ -48,10 +48,11 @@ contract Cluster is ManageCluster {
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per 
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
+        // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[WETH   ] = "ChainlinkOracle";
-        cluster.oracleProviders[wstETH ] = "CrossAdapter=LidoFundamentalOracle+ChainlinkOracle";
-        cluster.oracleProviders[cbETH  ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
-        cluster.oracleProviders[WEETH  ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
+        cluster.oracleProviders[wstETH ] = "CrossAdapter=LidoOracle+ChainlinkOracle";
+        cluster.oracleProviders[cbETH  ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
+        cluster.oracleProviders[WEETH  ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
         cluster.oracleProviders[USDC   ] = "ChainlinkOracle";
         cluster.oracleProviders[USDT   ] = "ChainlinkOracle";
         cluster.oracleProviders[USDS   ] = "ChronicleOracle";
@@ -63,7 +64,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[cbBTC  ] = "CrossAdapter=ChronicleOracle+ChainlinkOracle";
         cluster.oracleProviders[LBTC   ] = "CrossAdapter=RedstoneClassicOracle+ChainlinkOracle";
 
-        // define supply caps here. 0 means no cap defined hence max amount
+        // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH   ] = 378_000;
         cluster.supplyCaps[wstETH ] = 160_000;
         cluster.supplyCaps[cbETH  ] = 8_740;
@@ -72,15 +73,15 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDT   ] = 1_000_000_000;
         cluster.supplyCaps[USDS   ] = 50_000_000;
         cluster.supplyCaps[sUSDS  ] = 45_000_000;
-        cluster.supplyCaps[mTBILL ] = 250_000;
+        cluster.supplyCaps[mTBILL ] = 2_500_000;
         cluster.supplyCaps[wM     ] = 2_500_000;
         cluster.supplyCaps[tBTC   ] = 157;
         cluster.supplyCaps[WBTC   ] = 1_570;
         cluster.supplyCaps[cbBTC  ] = 157;
         cluster.supplyCaps[LBTC   ] = 157;
 
-        // define borrow caps here. 0 means no cap defined hence max amount
-        cluster.borrowCaps[WETH   ] = 310_000;
+        // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
+        cluster.borrowCaps[WETH   ] = 321_000;
         cluster.borrowCaps[wstETH ] = 64_000;
         cluster.borrowCaps[cbETH  ] = 3_490;
         cluster.borrowCaps[WEETH  ] = 9_010;
@@ -88,20 +89,20 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDT   ] = 880_000_000;
         cluster.borrowCaps[USDS   ] = 41_000_000;
         cluster.borrowCaps[sUSDS  ] = 18_000_000;
-        cluster.borrowCaps[mTBILL ] = 100_000;
+        cluster.borrowCaps[mTBILL ] = 1_000_000;
         cluster.borrowCaps[wM     ] = 2_050_000;
-        cluster.borrowCaps[tBTC   ] = 129;
-        cluster.borrowCaps[WBTC   ] = 1_290;
-        cluster.borrowCaps[cbBTC  ] = 129;
+        cluster.borrowCaps[tBTC   ] = 133;
+        cluster.borrowCaps[WBTC   ] = 1_330;
+        cluster.borrowCaps[cbBTC  ] = 133;
         cluster.borrowCaps[LBTC   ] = 39;
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0% APY  Kink(82%)=2.79% APY  Max=122.55% APY
-            uint256[4] memory irmETH       = [uint256(0), uint256(247597527),  uint256(31662899097), uint256(3521873182)];
+            // Base=0% APY  Kink(85%)=2.79% APY  Max=122.55% APY
+            uint256[4] memory irmETH       = [uint256(0), uint256(238858791),  uint256(37995478916), uint256(3650722201)];
 
-            // Base=0% APY,  Kink(82%)=2.79% APY  Max=122.55% APY
-            uint256[4] memory irmBTC       = [uint256(0), uint256(247597527),  uint256(31662899097), uint256(3521873182)];
+            // Base=0% APY,  Kink(85%)=2.79% APY  Max=122.55% APY
+            uint256[4] memory irmBTC       = [uint256(0), uint256(238858791),  uint256(37995478916), uint256(3650722201)];
 
             // Base=0% APY,  Kink(88%)=5.13% APY  Max=101.38% APY
             uint256[4] memory irmRWA_1     = [uint256(0), uint256(419441267),  uint256(39964512631), uint256(3779571220)];
