@@ -24,3 +24,15 @@ if [[ "$@" == *"--verify"* ]]; then
         exit 1
     fi
 fi
+
+if [[ "$@" == *"--batch-via-safe"* ]]; then
+    if [ -z "$SAFE_KEY" ]; then
+        echo "Error: SAFE_KEY environment variable is not set. Please set it and try again."
+        exit 1
+    fi
+
+    if [ -z "$SAFE_ADDRESS" ]; then
+        echo "Error: SAFE_ADDRESS environment variable is not set. Please set it and try again."
+        exit 1
+    fi
+fi

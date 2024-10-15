@@ -71,8 +71,6 @@ No warranties are provided and no liability will be accepted for any loss incurr
 
 Always include thorough tests when using EVK Periphery to ensure it interacts correctly with your code.
 
-EVK Periphery is currently unaudited and should not be used in production.
-
 ## License
 
 (c) 2024 Euler Labs Ltd.
