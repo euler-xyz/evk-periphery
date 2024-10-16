@@ -127,7 +127,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     );
 
     /// @notice Error thrown when the caller is not authorized to perform an operation.
-    error HTA_Unauthorized();
+    error HTF_Unauthorized();
 
     /// @notice Constructor to initialize the contract with the EVC and validator addresses.
     /// @param _evc The address of the EVC contract.
@@ -148,7 +148,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @notice Modifier to restrict access to only the governor of the specified vault.
     /// @param vault The address of the vault.
     modifier onlyGovernor(address vault) {
-        if (_msgSender() != IEVault(vault).governorAdmin()) revert HTA_Unauthorized();
+        if (_msgSender() != IEVault(vault).governorAdmin()) revert HTF_Unauthorized();
         _;
     }
 
@@ -406,7 +406,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
                 // be
                 // already defined by the validator contract
                 if (!isAttestationInProgress()) {
-                    revert HTA_Unauthorized();
+                    revert HTF_Unauthorized();
                 }
             }
         } else {
@@ -421,7 +421,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
             policies[vault].isAuthenticated = true;
             emit AuthenticateVault(msg.sender);
         } else {
-            revert HTA_Unauthorized();
+            revert HTF_Unauthorized();
         }
     }
 
