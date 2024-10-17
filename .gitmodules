@@ -19,6 +19,3 @@
 [submodule "lib/euler-vault-kit"]
 	path = lib/euler-vault-kit
 	url = https://github.com/euler-xyz/euler-vault-kit
-[submodule "lib/surl"]
-	path = lib/surl
-	url = https://github.com/memester-xyz/surl

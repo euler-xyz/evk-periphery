@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {ScriptExtended} from "./ScriptExtended.s.sol";
-import {Surl} from "surl/Surl.sol";
+import {Surl} from "./Surl.sol";
 import {console} from "forge-std/console.sol";
 
 // inspired by https://github.com/ind-igo/forge-safe
