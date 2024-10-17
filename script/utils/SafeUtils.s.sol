@@ -155,12 +155,17 @@ contract SafeTransaction is SafeUtil {
         transaction.sender = address(0);
         transaction.signature = "";
 
+        string memory payloadFileName = string.concat(
+            "SafeTransaction_", vm.toString(transaction.nonce), "_", vm.toString(transaction.safe), ".json"
+        );
+        _dumpSafeTransaction(payloadFileName);
+
         console.log("Sign the following hash:");
         console.logBytes32(transaction.hash);
 
         console.log("");
         console.log("and send the following POST request adding the sender address and the signature to the payload:");
-        console.log(_getCreateCurlCommand(_dumpSafeTransaction()));
+        console.log(_getCreateCurlCommand());
     }
 
     function _initialize(
@@ -203,10 +208,14 @@ contract SafeTransaction is SafeUtil {
     }
 
     function _create() private {
-        string memory payloadFileName = _dumpSafeTransaction();
+        string memory payloadFileName = string.concat(
+            "SafeTransaction_", vm.toString(transaction.nonce), "_", vm.toString(transaction.safe), ".json"
+        );
+        _dumpSafeTransaction(payloadFileName);
 
         if (!isUseSafeApi()) {
-            console.log(_getCreateCurlCommand(payloadFileName));
+            console.log("Send the following POST request:");
+            console.log(_getCreateCurlCommand());
             return;
         } else if (!isBroadcast()) {
             return;
@@ -275,29 +284,19 @@ contract SafeTransaction is SafeUtil {
         );
     }
 
-    function _dumpSafeTransaction() private returns (string memory) {
-        string memory fileName = string.concat(
-            vm.projectRoot(),
-            "/script/SafeTransaction_",
-            vm.toString(transaction.nonce),
-            "_",
-            vm.toString(transaction.safe),
-            ".json"
-        );
-
-        vm.writeJson(_getPayload(), fileName);
-        return fileName;
+    function _dumpSafeTransaction(string memory fileName) private {
+        console.log("Safe transaction payload saved to %s\n", fileName);
+        vm.writeJson(_getPayload(), string.concat(vm.projectRoot(), "/script/", fileName));
     }
 
-    function _getCreateCurlCommand(string memory payloadFileName) internal view returns (string memory) {
+    function _getCreateCurlCommand() internal view returns (string memory) {
         return string.concat(
             "curl -X POST ",
             getTransactionsAPIBaseURL(),
             vm.toString(transaction.safe),
             "/multisig-transactions/ ",
             getHeadersString(),
-            "--data-binary @",
-            payloadFileName
+            "--data-binary @<payload file>\n"
         );
     }
 }

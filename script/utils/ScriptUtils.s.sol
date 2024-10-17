@@ -373,17 +373,9 @@ abstract contract BatchBuilder is ScriptUtils {
         IEVC.BatchItem[] storage items;
         if (itemType == BatchItemType.REGULAR) {
             items = batchItems;
-            console.log("Adding batch item");
         } else {
             items = criticalItems;
-            console.log("Adding critical item");
         }
-
-        console.log("Target: %s", targetContract);
-        console.log("OnBehalfOfAccount: %s", onBehalfOfAccount);
-        console.log("Value: %s", value);
-        console.log("Data:");
-        console.logBytes(data);
 
         items.push(
             IEVC.BatchItem({
@@ -401,8 +393,6 @@ abstract contract BatchBuilder is ScriptUtils {
         if (criticalItems.length == 0) return;
 
         if (batchItems.length + criticalItems.length >= TRIGGER_EXECUTE_BATCH_AT_SIZE) executeBatch();
-
-        console.log("Appending critical section consisting of %s item(s) to batch items\n", criticalItems.length);
 
         for (uint256 i = 0; i < criticalItems.length; ++i) {
             batchItems.push(criticalItems[i]);
@@ -490,44 +480,30 @@ abstract contract BatchBuilder is ScriptUtils {
 
     function perspectiveVerify(address perspective, address vault) internal {
         addBatchItem(perspective, abi.encodeCall(BasePerspective.perspectiveVerify, (vault, true)));
-        console.log("Data decoded:");
-        console.log("perspectiveVerify(%s, %s)\n", vault, true);
     }
 
     function transferGovernance(address oracleRouter, address newGovernor) internal {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter(oracleRouter).transferGovernance, (newGovernor)));
-        console.log("Data decoded:");
-        console.log("transferGovernance(%s)\n", newGovernor);
     }
 
     function govSetConfig(address oracleRouter, address base, address quote, address oracle) internal {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetConfig, (base, quote, oracle)));
-        console.log("Data decoded:");
-        console.log("govSetConfig(%s, %s, %s)\n", base, quote, oracle);
     }
 
     function govSetConfig_critical(address oracleRouter, address base, address quote, address oracle) internal {
         addCriticalItem(oracleRouter, abi.encodeCall(EulerRouter.govSetConfig, (base, quote, oracle)));
-        console.log("Data decoded:");
-        console.log("govSetConfig(%s, %s, %s)\n", base, quote, oracle);
     }
 
     function govSetResolvedVault(address oracleRouter, address vault, bool set) internal {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetResolvedVault, (vault, set)));
-        console.log("Data decoded:");
-        console.log("govSetResolvedVault(%s, %s)\n", vault, set);
     }
 
     function setGovernorAdmin(address vault, address newGovernorAdmin) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setGovernorAdmin, (newGovernorAdmin)));
-        console.log("Data decoded:");
-        console.log("setGovernorAdmin(%s)\n", newGovernorAdmin);
     }
 
     function setFeeReceiver(address vault, address newFeeReceiver) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setFeeReceiver, (newFeeReceiver)));
-        console.log("Data decoded:");
-        console.log("setFeeReceiver(%s)\n", newFeeReceiver);
     }
 
     function setLTV(address vault, address collateral, uint16 borrowLTV, uint16 liquidationLTV, uint32 rampDuration)
@@ -536,9 +512,6 @@ abstract contract BatchBuilder is ScriptUtils {
         addBatchItem(
             vault, abi.encodeCall(IEVault(vault).setLTV, (collateral, borrowLTV, liquidationLTV, rampDuration))
         );
-        console.log("Data decoded:");
-        console.log("setLTV(%s, %s,", collateral, borrowLTV);
-        console.log("%s, %s)\n", liquidationLTV, rampDuration);
     }
 
     function setLTV_critical(
@@ -551,51 +524,34 @@ abstract contract BatchBuilder is ScriptUtils {
         addCriticalItem(
             vault, abi.encodeCall(IEVault(vault).setLTV, (collateral, borrowLTV, liquidationLTV, rampDuration))
         );
-        console.log("Data decoded:");
-        console.log("setLTV(%s, %s,", collateral, borrowLTV);
-        console.log("%s, %s)\n", liquidationLTV, rampDuration);
     }
 
     function setMaxLiquidationDiscount(address vault, uint16 newDiscount) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setMaxLiquidationDiscount, (newDiscount)));
-        console.log("Data decoded:");
-        console.log("setMaxLiquidationDiscount(%s)\n", newDiscount);
     }
 
     function setLiquidationCoolOffTime(address vault, uint16 newCoolOffTime) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setLiquidationCoolOffTime, (newCoolOffTime)));
-        console.log("Data decoded:");
-        console.log("setLiquidationCoolOffTime(%s)\n", newCoolOffTime);
     }
 
     function setInterestRateModel(address vault, address newModel) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestRateModel, (newModel)));
-        console.log("Data decoded:");
-        console.log("setInterestRateModel(%s)\n", newModel);
     }
 
     function setHookConfig(address vault, address newHookTarget, uint32 newHookedOps) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setHookConfig, (newHookTarget, newHookedOps)));
-        console.log("Data decoded:");
-        console.log("setHookConfig(%s, %s)\n", newHookTarget, newHookedOps);
     }
 
     function setConfigFlags(address vault, uint32 newConfigFlags) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setConfigFlags, (newConfigFlags)));
-        console.log("Data decoded:");
-        console.log("setConfigFlags(%s)\n", newConfigFlags);
     }
 
     function setCaps(address vault, uint256 supplyCap, uint256 borrowCap) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setCaps, (uint16(supplyCap), uint16(borrowCap))));
-        console.log("Data decoded:");
-        console.log("setCaps(%s, %s)\n", supplyCap, borrowCap);
     }
 
     function setInterestFee(address vault, uint16 newInterestFee) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestFee, (newInterestFee)));
-        console.log("Data decoded:");
-        console.log("setInterestFee(%s)\n", newInterestFee);
     }
 }
 
