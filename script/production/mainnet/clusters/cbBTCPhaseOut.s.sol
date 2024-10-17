@@ -95,10 +95,6 @@ contract Cluster is ManageCluster {
         ];
     }
 
-    function additionalOperations() internal override broadcast {
-        GovernedPerspective(peripheryAddresses.governedPerspective).perspectiveUnverify(cluster.vaults[0]);
-    }
-
     function verifyCluster() internal override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i]);
