@@ -24,7 +24,8 @@ override_spacing = true
 wrap_comments = true
 ignore = [
     "script/production/mainnet/clusters/MEGACluster.s.sol",
-    "script/production/mainnet/clusters/PrimeCluster.s.sol"
+    "script/production/mainnet/clusters/PrimeCluster.s.sol",
+    "script/production/mainnet/clusters/cbBTC.s.sol"
 ]
 
 [profile.default.fuzz]
