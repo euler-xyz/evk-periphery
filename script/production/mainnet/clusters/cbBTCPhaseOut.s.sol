@@ -10,7 +10,7 @@ import {GovernedPerspective} from "../../../../src/Perspectives/deployed/Governe
 contract Cluster is ManageCluster {
     function configureCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/mainnet/clusters/cbBTC.json";
+        cluster.clusterAddressesPath = "/script/production/mainnet/clusters/cbBTCPhaseOut.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
