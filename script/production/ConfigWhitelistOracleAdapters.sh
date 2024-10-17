@@ -19,6 +19,10 @@ if ! script/utils/checkEnvironment.sh; then
     exit 1
 fi
 
+if [[ "$@" == *"--verbose"* ]]; then
+    verbose="--verbose"
+fi
+
 echo "The EVC address is: $evc"
 echo "The Adapter Registry address is: $adapter_registry"
 echo "The External Vault Registry address is: $external_vault_registry"
@@ -56,14 +60,14 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         if [[ $addedAt == "0" && $revokedAt == "0" ]]; then
             echo "Adding 'add' batch item for adapter $adapterName ($adapter)."
             items+="($registry,$onBehalfOf,0,$(cast calldata "add(address,address,address)" $adapter $base $quote)),"
-        else
+        elif [[ "$verbose" == "--verbose" ]]; then
             echo "Adapter $adapterName ($adapter) is already added to the registry or has been revoked. Skipping..."
         fi
     elif [[ "$whitelist" == "No" ]]; then
         if [[ $addedAt != "0" && $revokedAt == "0" ]]; then
             echo "Adding 'revoke' batch item for adapter $adapterName ($adapter)."
             items+="($registry,$onBehalfOf,0,$(cast calldata "revoke(address)" $adapter)),"
-        else
+        elif [[ "$verbose" == "--verbose" ]]; then
             echo "Adapter $adapterName ($adapter) is not added yet to the registry or has been revoked. Skipping..."
         fi
     else
