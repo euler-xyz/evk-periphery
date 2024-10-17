@@ -18,6 +18,10 @@ if ! script/utils/checkEnvironment.sh; then
     exit 1
 fi
 
+if [[ "$@" == *"--verbose"* ]]; then
+    verbose="--verbose"
+fi
+
 echo "The EVC address is: $evc"
 echo "The Governed Perspective address is: $governed_perspective"
 
@@ -38,14 +42,14 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         if [[ $isVerified == *false* ]]; then
             echo "Adding 'perspectiveVerify' batch item for vault $vault."
             items+="($governed_perspective,$onBehalfOf,0,$(cast calldata "perspectiveVerify(address,bool)" $vault true)),"
-        else
+        elif [[ "$verbose" == "--verbose" ]]; then
             echo "Vault $vault is already verified. Skipping..."
         fi
     elif [[ "$whitelist" == "No" ]]; then
         if [[ $isVerified == *true* ]]; then
             echo "Adding 'perspectiveUnverify' batch item for vault $vault."
             items+="($governed_perspective,$onBehalfOf,0,$(cast calldata "perspectiveUnverify(address)" $vault)),"
-        else
+        elif [[ "$verbose" == "--verbose" ]]; then
             echo "Vault $vault is not verified. Skipping..."
         fi
     else

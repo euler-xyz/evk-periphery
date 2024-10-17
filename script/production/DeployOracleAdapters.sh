@@ -44,6 +44,10 @@ if [[ $verify_contracts == "y" ]]; then
     verify_contracts="--verify"
 fi
 
+if [[ "$@" == *"--verbose"* ]]; then
+    verbose="--verbose"
+fi
+
 if ! script/utils/checkEnvironment.sh $verify_contracts; then
     echo "Environment check failed. Exiting."
     exit 1
@@ -116,7 +120,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     if [[ "$avoid_duplicates" == "y" ]]; then
         adapterAddress=$(find_adapter_address "$adapterName" "$csv_oracle_adapters_addresses_path")
 
-        if [[ "$adapterAddress" =~ ^0x ]]; then
+        if [[ "$adapterAddress" =~ ^0x && "$verbose" == "--verbose" ]]; then
             echo "Skipping deployment of $adapterName. Adapter already deployed: $adapterAddress"
             continue
         fi

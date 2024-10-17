@@ -41,9 +41,7 @@ library OracleVerifier {
 
         console.log("Checking oracle config for %s (%s)", IEVault(vault).symbol(), vault);
         if (collaterals.length == 0) {
-            require(unitOfAccount == address(0), "unitOfAccount is not zero");
-            require(oracle == address(0), "oracle is not zero");
-            console.log("No oracle & unitOfAccount configured");
+            console.log("No collaterals configured. Oracle config irrelevant");
         } else {
             address unwrappedAsset = EulerRouter(oracle).resolvedVaults(asset);
             if (unwrappedAsset != address(0)) {
