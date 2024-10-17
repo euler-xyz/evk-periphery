@@ -55,7 +55,7 @@ fi
 while true; do
     echo ""
     echo "Select an option to deploy:"
-    echo "0. ERC20 mock token"
+    echo "0. ERC20 tokens"
     echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
     echo "2. Periphery factories and registries"
     echo "3. Oracle adapter"
@@ -73,30 +73,74 @@ while true; do
 
     case $choice in
         0)
-            echo "Deploying ERC20 mock token..."
+            echo "Deploying ERC20 token..."
+            echo "Select the type of ERC20 token to deploy:"
+            echo "0. Mock ERC20"
+            echo "1. Reward token"
+            read -p "Enter your choice (0-1): " token_choice
 
-            baseName=00_MockERC20
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
+            baseName=00_ERC20
 
-            read -p "Enter token name (default: MockERC20): " token_name
-            token_name=${token_name:-MockERC20}
+            case $token_choice in
+                0)
+                    echo "Deploying Mock ERC20..."
 
-            read -p "Enter token symbol (default: MOCK): " token_symbol
-            token_symbol=${token_symbol:-MOCK}
+                    scriptName=${baseName}.s.sol:MockERC20Deployer
+                    jsonName=00_MockERC20
 
-            read -p "Enter token decimals (default: 18): " token_decimals
-            token_decimals=${token_decimals:-18}
+                    read -p "Enter token name (default: MockERC20): " token_name
+                    token_name=${token_name:-MockERC20}
 
-            jq -n \
-                --arg name "$token_name" \
-                --arg symbol "$token_symbol" \
-                --argjson decimals "$token_decimals" \
-                '{
-                    name: $name,
-                    symbol: $symbol,
-                    decimals: $decimals
-                }' --indent 4 > script/${jsonName}_input.json
+                    read -p "Enter token symbol (default: MOCK): " token_symbol
+                    token_symbol=${token_symbol:-MOCK}
+
+                    read -p "Enter token decimals (default: 18): " token_decimals
+                    token_decimals=${token_decimals:-18}
+
+                    jq -n \
+                        --arg name "$token_name" \
+                        --arg symbol "$token_symbol" \
+                        --argjson decimals "$token_decimals" \
+                        '{
+                            name: $name,
+                            symbol: $symbol,
+                            decimals: $decimals
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Reward token..."
+
+                    scriptName=${baseName}.s.sol:RewardTokenDeployer
+                    jsonName=00_RewardToken
+
+                    read -p "Enter EVC address: " evc
+                    read -p "Enter owner address: " owner
+                    read -p "Enter receiver address: " receiver
+                    read -p "Enter underlying token address: " underlying
+                    read -p "Enter token name: " token_name
+                    read -p "Enter token symbol: " token_symbol
+                    
+                    jq -n \
+                        --arg evc "$evc" \
+                        --arg owner "$owner" \
+                        --arg receiver "$receiver" \
+                        --arg underlying "$underlying" \
+                        --arg name "$token_name" \
+                        --arg symbol "$token_symbol" \
+                        '{
+                            evc: $evc,
+                            owner: $owner,
+                            receiver: $receiver,
+                            underlying: $underlying,
+                            name: $name,
+                            symbol: $symbol
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid token choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         1)
             echo "Deploying intergrations..."
@@ -143,7 +187,8 @@ while true; do
             echo "8. Fixed Rate"
             echo "9. Rate Provider"
             echo "10. Pendle"
-            read -p "Enter your choice (0-10): " adapter_choice
+            echo "11. Chainlink Infrequent"
+            read -p "Enter your choice (0-11): " adapter_choice
 
             baseName=03_OracleAdapters
 
@@ -437,6 +482,33 @@ while true; do
                             base: $base,
                             quote: $quote,
                             twapWindow: $twapWindow
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                11)
+                    echo "Deploying Chainlink Infrequent Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:ChainlinkInfrequentAdapter
+                    jsonName=03_ChainlinkInfrequentAdapter
+
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter feed address: " feed
+                    read -p "Enter max staleness (in seconds): " max_staleness
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --arg feed "$feed" \
+                        --argjson maxStaleness "$max_staleness" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            base: $base,
+                            quote: $quote,
+                            feed: $feed,
+                            maxStaleness: $maxStaleness
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
@@ -766,21 +838,15 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            read -p "Enter the OneInch Aggregator address: " oneinch_aggregator
             read -p "Enter the Uniswap Router V2 address: " uniswap_router_v2
             read -p "Enter the Uniswap Router V3 address: " uniswap_router_v3
-            read -p "Enter the Uniswap Router 02 address: " uniswap_router_02
 
             jq -n \
-                --arg oneInchAggregator "$oneinch_aggregator" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
-                --arg uniswapRouter02 "$uniswap_router_02" \
                 '{
-                    oneInchAggregator: $oneInchAggregator,
                     uniswapRouterV2: $uniswapRouterV2,
-                    uniswapRouterV3: $uniswapRouterV3,
-                    uniswapRouter02: $uniswapRouter02
+                    uniswapRouterV3: $uniswapRouterV3
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         11)

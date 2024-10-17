@@ -269,7 +269,7 @@ contract Cluster is ManageCluster {
         executeBatchPrank(EULER_DEPLOYER);
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(cluster.vaults[i]);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i]);
 
             PerspectiveVerifier.verifyPerspective(
                 peripheryAddresses.eulerUngovernedNzxPerspective,
