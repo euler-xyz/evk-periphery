@@ -112,6 +112,8 @@ abstract contract ManageCluster is Addresses, BatchBuilder {
 
         _;
 
+        additionalOperations();
+
         dumpCluster();
         verifyCluster();
     }
@@ -338,7 +340,8 @@ abstract contract ManageCluster is Addresses, BatchBuilder {
     }
 
     function configureCluster() internal virtual;
-    function verifyCluster() internal virtual;
+    function additionalOperations() internal virtual {}
+    function verifyCluster() internal virtual {}
 
     function computeRouterConfiguration(address base, address quote, string memory provider)
         private
