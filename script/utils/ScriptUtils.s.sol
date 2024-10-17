@@ -331,6 +331,7 @@ abstract contract BatchBuilder is ScriptUtils {
     IEVC.BatchItem[] internal batchItems;
     IEVC.BatchItem[] internal criticalItems;
     uint256 internal batchCounter;
+    uint256 internal currentSafeNonce = getSafeCurrentNonce();
 
     function addBatchItem(address targetContract, bytes memory data) internal {
         address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
@@ -466,7 +467,10 @@ abstract contract BatchBuilder is ScriptUtils {
         dumpBatch(safe);
 
         SafeTransaction transaction = new SafeTransaction();
-        transaction.create(safe, coreAddresses.evc, getBatchValue(), getBatchCalldata());
+
+        if (currentSafeNonce == 0) currentSafeNonce = transaction.getNonce(safe);
+
+        transaction.create(safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), ++currentSafeNonce);
 
         clearBatchItems();
     }

@@ -32,6 +32,8 @@ Options:
 
 `--batch-via-safe`: Creates the configuration batch transactions in the Safe UI. Contracts deployment and auxiliary transactions are still being performed by the deployer account (the account associated with the `DEPLOYER_KEY`) and only the configuration transactions are created in the Safe UI. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file. The address associated with the `SAFE_KEY` must either be a signer or a delegate of the safe in order to be able to create the transactions in the Safe UI.
 
+`--use-safe-api`: Uses the Safe API to create the transactions in the Safe UI. This option is only valid if the `--batch-via-safe` option is also used. If `--batch-via-safe` is used, but `--use-safe-api` is not used, the script will only create payload dump files that can be used to create the transactions in the Safe UI.
+
 `--verify`: Verifies the deployed contracts (if any) in the blockchain explorer.
 
 ## Important Notes
@@ -49,10 +51,10 @@ source .env && forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "c
 Or sign and send the request manually:
 
 ```bash
-source .env && forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "createManually(address,address,string)" $SAFE_ADDRESS <delegate> <label> --rpc-url $DEPLOYMENT_RPC_URL
+source .env && forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "createManually(address,address,string,int256)" $SAFE_ADDRESS <delegate> <label> <nonce> --rpc-url $DEPLOYMENT_RPC_URL
 ```
 
-Replace `<delegate>` with the desired delegate address and `<label>` with the label of the delegate. Label must be enclosed in quotes.
+Replace `<delegate>` with the desired delegate address and `<label>` with the label of the delegate. Label must be enclosed in quotes. Replace `<nonce>` with the nonce intended to be used for the transaction. Use -1 to automatically fetch the nonce from the Safe API.
 
 To remove a Safe delegate, run:
 

@@ -11,9 +11,7 @@ import {console} from "forge-std/console.sol";
 abstract contract SafeUtil is ScriptExtended {
     using Surl for *;
 
-    int256 internal currentNonce = getSafeCurrentNonce();
-
-    function isSafeOwnerOrDelegate(address safe, address account) internal returns (bool) {
+    function isSafeOwnerOrDelegate(address safe, address account) public returns (bool) {
         address[] memory safes = getSafes(account);
         for (uint256 i = 0; i < safes.length; ++i) {
             if (safes[i] == safe) return true;
@@ -27,9 +25,7 @@ abstract contract SafeUtil is ScriptExtended {
         return false;
     }
 
-    function getNonce(address safe) internal returns (uint256) {
-        if (currentNonce >= 0) return uint256(++currentNonce);
-
+    function getNonce(address safe) public returns (uint256) {
         string memory endpoint =
             string.concat(getTransactionsAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?limit=1");
         (uint256 status, bytes memory response) = endpoint.get();
@@ -37,13 +33,13 @@ abstract contract SafeUtil is ScriptExtended {
         if (status == 200) {
             return abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0
                 ? 0
-                : abi.decode(vm.parseJson(string(response), ".results[0].nonce"), (uint256)) + 1;
+                : abi.decode(vm.parseJson(string(response), ".results[0].nonce"), (uint256));
         } else {
             revert("getNonce: Failed to get nonce");
         }
     }
 
-    function getSafes(address owner) internal returns (address[] memory) {
+    function getSafes(address owner) public returns (address[] memory) {
         string memory endpoint = string.concat(getOwnersAPIBaseURL(), vm.toString(owner), "/safes/");
         (uint256 status, bytes memory response) = endpoint.get();
 
@@ -54,7 +50,7 @@ abstract contract SafeUtil is ScriptExtended {
         }
     }
 
-    function getDelegates(address safe) internal returns (address[] memory) {
+    function getDelegates(address safe) public returns (address[] memory) {
         string memory endpoint = string.concat(getDelegatesAPIBaseURL(), "?safe=", vm.toString(safe));
         (uint256 status, bytes memory response) = endpoint.get();
 
@@ -74,19 +70,19 @@ abstract contract SafeUtil is ScriptExtended {
         }
     }
 
-    function getTransactionsAPIBaseURL() internal view returns (string memory) {
+    function getTransactionsAPIBaseURL() public view returns (string memory) {
         return string.concat(getSafeBaseURL(), "api/v1/safes/");
     }
 
-    function getOwnersAPIBaseURL() internal view returns (string memory) {
+    function getOwnersAPIBaseURL() public view returns (string memory) {
         return string.concat(getSafeBaseURL(), "api/v1/owners/");
     }
 
-    function getDelegatesAPIBaseURL() internal view returns (string memory) {
+    function getDelegatesAPIBaseURL() public view returns (string memory) {
         return string.concat(getSafeBaseURL(), "api/v2/delegates/");
     }
 
-    function getSafeBaseURL() internal view returns (string memory) {
+    function getSafeBaseURL() public view returns (string memory) {
         if (block.chainid == 1) {
             return "https://safe-transaction-mainnet.safe.global/";
         } else if (block.chainid == 5) {
@@ -146,14 +142,14 @@ contract SafeTransaction is SafeUtil {
 
     Transaction internal transaction;
 
-    function create(address safe, address target, uint256 value, bytes memory data) public {
-        _initialize(getSafePK(), safe, target, value, data);
+    function create(address safe, address target, uint256 value, bytes memory data, uint256 nonce) public {
+        _initialize(getSafePK(), safe, target, value, data, nonce);
         _simulate();
-        if (isBroadcast()) _create();
+        _create();
     }
 
-    function createManually(address safe, address target, uint256 value, bytes memory data) public {
-        _initialize(getSafePKOptional(), safe, target, value, data);
+    function createManually(address safe, address target, uint256 value, bytes memory data, uint256 nonce) public {
+        _initialize(getSafePKOptional(), safe, target, value, data, nonce);
         _simulate();
 
         transaction.sender = address(0);
@@ -164,21 +160,17 @@ contract SafeTransaction is SafeUtil {
 
         console.log("");
         console.log("and send the following POST request adding the sender address and the signature to the payload:");
-        console.log(
-            string.concat(
-                "curl -X POST ",
-                getTransactionsAPIBaseURL(),
-                vm.toString(transaction.safe),
-                "/multisig-transactions/ ",
-                getHeadersString(),
-                "-d '",
-                _getPayload(),
-                "'"
-            )
-        );
+        console.log(_getCreateCurlCommand(_dumpSafeTransaction()));
     }
 
-    function _initialize(uint256 privateKey, address safe, address target, uint256 value, bytes memory data) private {
+    function _initialize(
+        uint256 privateKey,
+        address safe,
+        address target,
+        uint256 value,
+        bytes memory data,
+        uint256 nonce
+    ) private {
         transaction.safe = safe;
         transaction.sender = vm.addr(privateKey);
         transaction.to = target;
@@ -190,7 +182,7 @@ contract SafeTransaction is SafeUtil {
         transaction.gasPrice = 0;
         transaction.gasToken = address(0);
         transaction.refundReceiver = address(0);
-        transaction.nonce = getNonce(safe);
+        transaction.nonce = nonce;
         transaction.hash = _getHash();
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, transaction.hash);
@@ -211,6 +203,15 @@ contract SafeTransaction is SafeUtil {
     }
 
     function _create() private {
+        string memory payloadFileName = _dumpSafeTransaction();
+
+        if (!isUseSafeApi()) {
+            console.log(_getCreateCurlCommand(payloadFileName));
+            return;
+        } else if (!isBroadcast()) {
+            return;
+        }
+
         string memory endpoint =
             string.concat(getTransactionsAPIBaseURL(), vm.toString(transaction.safe), "/multisig-transactions/");
         (uint256 status, bytes memory response) = endpoint.post(getHeaders(), _getPayload());
@@ -271,6 +272,32 @@ contract SafeTransaction is SafeUtil {
                     )
                 )
             )
+        );
+    }
+
+    function _dumpSafeTransaction() private returns (string memory) {
+        string memory fileName = string.concat(
+            vm.projectRoot(),
+            "/script/SafeTransaction_",
+            vm.toString(transaction.nonce),
+            "_",
+            vm.toString(transaction.safe),
+            ".json"
+        );
+
+        vm.writeJson(_getPayload(), fileName);
+        return fileName;
+    }
+
+    function _getCreateCurlCommand(string memory payloadFileName) internal view returns (string memory) {
+        return string.concat(
+            "curl -X POST ",
+            getTransactionsAPIBaseURL(),
+            vm.toString(transaction.safe),
+            "/multisig-transactions/ ",
+            getHeadersString(),
+            "--data-binary @",
+            payloadFileName
         );
     }
 }

@@ -9,7 +9,6 @@ import {Vm} from "forge-std/Vm.sol";
 
 library Surl {
     Vm constant vm = Vm(address(bytes20(uint160(uint256(keccak256("hevm cheat code"))))));
-    uint256 constant MAX_BODY_SIZE = 10000;
     string constant bodyFileName = "body.json";
 
     function get(string memory self) internal returns (uint256 status, bytes memory data) {
@@ -111,9 +110,7 @@ library Surl {
 
         uint256 bodyLength = bytes(body).length;
         if (bodyLength > 0) {
-            curlParams = bodyLength > MAX_BODY_SIZE
-                ? string.concat(curlParams, " --data-binary @", getBodyFileName(), " ")
-                : string.concat(curlParams, " -d \'", body, "\' ");
+            curlParams = string.concat(curlParams, " --data-binary @", getBodyFileName(), " ");
         }
 
         string memory quotedURL = string.concat('"', self, '"');
@@ -124,7 +121,7 @@ library Surl {
         inputs[2] = string.concat(scriptStart, curlParams, quotedURL, scriptEnd, "");
 
         bytes memory res;
-        if (bodyLength > MAX_BODY_SIZE) {
+        if (bodyLength > 0) {
             string memory fileName = getBodyFileName();
             vm.writeJson(body, fileName);
             res = vm.ffi(inputs);

@@ -26,8 +26,8 @@ abstract contract ScriptExtended is Script {
         return vm.envAddress("SAFE_ADDRESS");
     }
 
-    function getSafeCurrentNonce() internal view returns (int256) {
-        return vm.envOr("SAFE_NONCE", int256(-1));
+    function getSafeCurrentNonce() internal view returns (uint256) {
+        return vm.envOr("SAFE_NONCE", uint256(0));
     }
 
     function isLocalForkDeployment() internal view returns (bool) {
@@ -40,6 +40,10 @@ abstract contract ScriptExtended is Script {
 
     function isBatchViaSafe() internal view returns (bool) {
         return _strEq(vm.envOr("batch_via_safe", string("")), "--batch-via-safe");
+    }
+
+    function isUseSafeApi() internal view returns (bool) {
+        return _strEq(vm.envOr("use_safe_api", string("")), "--use-safe-api");
     }
 
     function getAddressFromJson(string memory json, string memory key) internal pure returns (address) {

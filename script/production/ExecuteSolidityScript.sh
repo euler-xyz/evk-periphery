@@ -24,6 +24,10 @@ deployment_name=${deployment_name:-default}
 
 if [[ "$@" == *"--batch-via-safe"* ]]; then
     batch_via_safe="--batch-via-safe"
+
+    if [[ "$@" == *"--use-safe-api"* ]]; then
+        use_safe_api="--use-safe-api"
+    fi
 fi
 
 if [[ "$@" == *"--dry-run"* ]]; then
@@ -35,7 +39,7 @@ if ! script/utils/checkEnvironment.sh $verify_contracts $batch_via_safe; then
     exit 1
 fi
 
-if script/utils/executeForgeScript.sh "$scriptPath" $verify_contracts $batch_via_safe $dry_run; then
+if script/utils/executeForgeScript.sh "$scriptPath" $verify_contracts $batch_via_safe $use_safe_api $dry_run; then
     chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
     deployment_dir="script/deployments/$deployment_name"
     
