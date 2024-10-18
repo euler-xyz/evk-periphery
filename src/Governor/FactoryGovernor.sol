@@ -31,7 +31,7 @@ contract FactoryGovernor is AccessControlEnumerable {
     /// @param roProxy The address of the read-only proxy which was installed.
     event Paused(address indexed guardian, address indexed factory, address indexed roProxy);
 
-    /// @notice Event emitted when a factory is paused.
+    /// @notice Event emitted when a factory is unpaused.
     /// @param admin The address of the unpause admin who unpaused the factory.
     /// @param factory The address of the factory that was unpaused.
     /// @param implementation The address of the implementation which was restored.
