@@ -33,6 +33,9 @@ contract OwnershipTransferCore is ScriptUtils {
         FactoryGovernor(coreAddresses.eVaultFactoryGovernor).grantRole(
             FactoryGovernor(coreAddresses.eVaultFactoryGovernor).PAUSE_GUARDIAN_ROLE(), EVAULT_FACTORY_GOVERNOR_ADMIN
         );
+        FactoryGovernor(coreAddresses.eVaultFactoryGovernor).grantRole(
+            FactoryGovernor(coreAddresses.eVaultFactoryGovernor).UNPAUSE_ADMIN_ROLE(), EVAULT_FACTORY_GOVERNOR_ADMIN
+        );
         FactoryGovernor(coreAddresses.eVaultFactoryGovernor).renounceRole(
             FactoryGovernor(coreAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE(), getDeployer()
         );
