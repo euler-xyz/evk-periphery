@@ -45,6 +45,7 @@ if [[ $verify_contracts == "y" ]]; then
 fi
 
 if [[ "$@" == *"--verbose"* ]]; then
+    set -- "${@/--verbose/}"
     verbose="--verbose"
 fi
 
@@ -400,7 +401,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         continue
     fi
 
-    script/utils/executeForgeScript.sh $scriptName $verify_contracts
+    script/utils/executeForgeScript.sh $scriptName $verify_contracts "$@"
 
     if [[ -f "script/${jsonName}_output.json" ]]; then
         counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")

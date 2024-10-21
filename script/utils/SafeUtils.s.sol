@@ -143,13 +143,13 @@ contract SafeTransaction is SafeUtil {
     Transaction internal transaction;
 
     function create(address safe, address target, uint256 value, bytes memory data, uint256 nonce) public {
-        _initialize(getSafePK(), safe, target, value, data, nonce);
+        _initialize(safe, target, value, data, nonce);
         _simulate();
         _create();
     }
 
     function createManually(address safe, address target, uint256 value, bytes memory data, uint256 nonce) public {
-        _initialize(getSafePKOptional(), safe, target, value, data, nonce);
+        _initialize(safe, target, value, data, nonce);
         _simulate();
 
         transaction.sender = address(0);
@@ -168,16 +168,9 @@ contract SafeTransaction is SafeUtil {
         console.log(_getCreateCurlCommand());
     }
 
-    function _initialize(
-        uint256 privateKey,
-        address safe,
-        address target,
-        uint256 value,
-        bytes memory data,
-        uint256 nonce
-    ) private {
+    function _initialize(address safe, address target, uint256 value, bytes memory data, uint256 nonce) private {
         transaction.safe = safe;
-        transaction.sender = vm.addr(privateKey);
+        transaction.sender = getSafeSigner();
         transaction.to = target;
         transaction.value = value;
         transaction.data = data;
@@ -190,8 +183,12 @@ contract SafeTransaction is SafeUtil {
         transaction.nonce = nonce;
         transaction.hash = _getHash();
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, transaction.hash);
-        transaction.signature = abi.encodePacked(r, s, v);
+        if (transaction.sender == address(0)) {
+            transaction.signature = "";
+        } else {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(transaction.sender, transaction.hash);
+            transaction.signature = abi.encodePacked(r, s, v);
+        }
     }
 
     function _simulate() private {
@@ -317,12 +314,12 @@ contract SafeDelegation is SafeUtil {
     Delegate internal data;
 
     function create(address safe, address delegate, string memory label) public {
-        _initialize(getSafePK(), safe, delegate, label);
+        _initialize(safe, delegate, label);
         _create();
     }
 
     function createManually(address safe, address delegate, string memory label) public {
-        _initialize(getSafePKOptional(), safe, delegate, label);
+        _initialize(safe, delegate, label);
         data.delegator = address(0);
         data.signature = "";
 
@@ -341,12 +338,13 @@ contract SafeDelegation is SafeUtil {
     }
 
     function remove(address safe, address delegate) public {
-        _initialize(getSafePK(), safe, delegate, "");
+        _initialize(safe, delegate, "");
         _remove();
     }
 
     function removeManually(address safe, address delegate) public {
-        _initialize(getSafePKOptional(), safe, delegate, "");
+        _initialize(safe, delegate, "");
+
         data.delegator = address(0);
         data.signature = "";
 
@@ -371,16 +369,20 @@ contract SafeDelegation is SafeUtil {
         );
     }
 
-    function _initialize(uint256 privateKey, address safe, address delegate, string memory label) private {
+    function _initialize(address safe, address delegate, string memory label) private {
         data.safe = safe;
-        data.delegator = vm.addr(privateKey);
+        data.delegator = getSafeSigner();
         data.delegate = delegate;
         data.label = label;
         data.totp = block.timestamp / 1 hours;
         data.hash = _getHash();
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, data.hash);
-        data.signature = abi.encodePacked(r, s, v);
+        if (data.delegator == address(0)) {
+            data.signature = "";
+        } else {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(data.delegator, data.hash);
+            data.signature = abi.encodePacked(r, s, v);
+        }
     }
 
     function _create() private {

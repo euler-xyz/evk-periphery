@@ -30,7 +30,7 @@ Options:
 
 `--dry-run`: Simulates the deployment without actually executing transactions.
 
-`--batch-via-safe`: Creates the configuration batch transactions in the Safe UI. Contracts deployment and auxiliary transactions are still being performed by the deployer account (the account associated with the `DEPLOYER_KEY`) and only the configuration transactions are created in the Safe UI. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file. The address associated with the `SAFE_KEY` must either be a signer or a delegate of the safe in order to be able to create the transactions in the Safe UI.
+`--batch-via-safe`: Creates the configuration batch transactions in the Safe UI. Contracts deployment and auxiliary transactions are still being performed by the deployer account (the account associated with the `DEPLOYER_KEY`) and only the configuration transactions are created in the Safe UI. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file. The address associated with the `SAFE_KEY` must either be a signer or a delegate of the safe in order to be able to create the transactions in the Safe UI. Alternatively, instead of defining the `DEPLOYER_KEY` and `SAFE_KEY` in the `.env` file, keystores can be used to sign the transactions.
 
 `--use-safe-api`: Uses the Safe API to create the transactions in the Safe UI. This option is only valid if the `--batch-via-safe` option is also used. If `--batch-via-safe` is used, but `--use-safe-api` is not used, the script will only create payload dump files that can be used to create the transactions in the Safe UI.
 

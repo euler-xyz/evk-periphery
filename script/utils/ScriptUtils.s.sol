@@ -158,13 +158,13 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     modifier broadcast() {
-        vm.startBroadcast(getDeployerPK());
+        startBroadcast();
         _;
-        vm.stopBroadcast();
+        stopBroadcast();
     }
 
     function startBroadcast() internal {
-        vm.startBroadcast(getDeployerPK());
+        vm.startBroadcast(getDeployer());
     }
 
     function stopBroadcast() internal {
@@ -224,7 +224,7 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         }
 
         if (adapter == address(0) || counter > 1) {
-            if (bytes(provider).length == 42) return stringToAddress(provider);
+            if (bytes(provider).length == 42) return _stringToAddress(provider);
 
             console.log("base: %s, quote: %s, provider: %s", base, quote, provider);
 

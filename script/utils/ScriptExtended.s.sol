@@ -5,21 +5,39 @@ pragma solidity ^0.8.0;
 import {Script} from "forge-std/Script.sol";
 
 abstract contract ScriptExtended is Script {
-    function getDeployerPK() internal view returns (uint256) {
-        return vm.envUint("DEPLOYER_KEY");
+    address private deployerAddress;
+    address private safeSignerAddress;
+
+    constructor() {
+        uint256 deployerPK = vm.envOr("DEPLOYER_KEY", uint256(0));
+        uint256 safeSignerPK = vm.envOr("SAFE_KEY", uint256(0));
+
+        if (deployerPK != 0) {
+            vm.rememberKey(deployerPK);
+            deployerAddress = vm.addr(deployerPK);
+        }
+
+        if (safeSignerPK != 0) {
+            vm.rememberKey(safeSignerPK);
+            safeSignerAddress = vm.addr(safeSignerPK);
+        }
+
+        address[] memory wallets = vm.getWallets();
+        if (deployerAddress == address(0) && wallets.length > 0) {
+            deployerAddress = wallets[0];
+        }
+
+        if (safeSignerAddress == address(0) && wallets.length > 0) {
+            safeSignerAddress = wallets.length > 1 ? wallets[1] : wallets[0];
+        }
     }
 
-    function getSafePK() internal view returns (uint256) {
-        return vm.envUint("SAFE_KEY");
+    function getDeployer() internal returns (address) {
+        return deployerAddress;
     }
 
-    function getSafePKOptional() internal view returns (uint256) {
-        return vm.envOr("SAFE_KEY", uint256(0));
-    }
-
-    function getDeployer() internal view returns (address) {
-        address deployer = vm.addr(vm.envOr("DEPLOYER_KEY", uint256(1)));
-        return deployer == vm.addr(1) ? address(this) : deployer;
+    function getSafeSigner() internal returns (address) {
+        return safeSignerAddress;
     }
 
     function getSafe() internal view returns (address) {
@@ -82,7 +100,7 @@ abstract contract ScriptExtended is Script {
         return string(result);
     }
 
-    function stringToAddress(string memory _address) internal pure returns (address) {
+    function _stringToAddress(string memory _address) internal pure returns (address) {
         bytes memory tmp = bytes(_address);
         uint160 result = 0;
         uint160 b1;

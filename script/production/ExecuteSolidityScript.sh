@@ -10,40 +10,19 @@ scriptPath="${1#./}"
 scriptPath="${scriptPath#script/}"
 scriptName=$(basename "$1")
 
-read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
-verify_contracts=${verify_contracts:-n}
-
-if [[ $verify_contracts == "y" ]]; then
-    verify_contracts="--verify"
-else
-    verify_contracts=""
-fi
-
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-if [[ "$@" == *"--batch-via-safe"* ]]; then
-    batch_via_safe="--batch-via-safe"
-
-    if [[ "$@" == *"--use-safe-api"* ]]; then
-        use_safe_api="--use-safe-api"
-    fi
-fi
-
-if [[ "$@" == *"--dry-run"* ]]; then
-    dry_run="--dry-run"
-fi
-
-if ! script/utils/checkEnvironment.sh $verify_contracts $batch_via_safe; then
+if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
 fi
 
-if script/utils/executeForgeScript.sh "$scriptPath" $verify_contracts $batch_via_safe $use_safe_api $dry_run; then
+if script/utils/executeForgeScript.sh "$scriptPath" "$@"; then
     chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
     deployment_dir="script/deployments/$deployment_name"
     
-    if [[ $dry_run == "" ]]; then
+    if [[ "$@" == *"--dry-run"* ]]; then
         mkdir -p "$deployment_dir/broadcast" "$deployment_dir/output"
         cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${scriptName}.json"
 
