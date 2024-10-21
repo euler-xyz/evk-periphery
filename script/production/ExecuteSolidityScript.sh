@@ -9,6 +9,7 @@ source .env
 scriptPath="${1#./}"
 scriptPath="${scriptPath#script/}"
 scriptName=$(basename "$1")
+shift
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}

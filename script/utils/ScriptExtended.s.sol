@@ -32,11 +32,11 @@ abstract contract ScriptExtended is Script {
         }
     }
 
-    function getDeployer() internal returns (address) {
+    function getDeployer() internal view returns (address) {
         return deployerAddress;
     }
 
-    function getSafeSigner() internal returns (address) {
+    function getSafeSigner() internal view returns (address) {
         return safeSignerAddress;
     }
 

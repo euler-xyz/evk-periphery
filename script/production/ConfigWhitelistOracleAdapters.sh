@@ -9,6 +9,8 @@ fi
 source .env
 
 csv_file="$1"
+shift
+
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
 adapter_registry=$(jq -r '.oracleAdapterRegistry' "$addresses_dir_path/PeripheryAddresses.json")
@@ -19,15 +21,46 @@ if ! script/utils/checkEnvironment.sh; then
     exit 1
 fi
 
-if [[ "$@" == *"--verbose"* ]]; then
-    verbose="--verbose"
-fi
-
 echo "The EVC address is: $evc"
 echo "The Adapter Registry address is: $adapter_registry"
 echo "The External Vault Registry address is: $external_vault_registry"
 
-onBehalfOf=$(cast wallet address --private-key $DEPLOYER_KEY)
+if [[ "$@" == *"--verbose"* ]]; then
+    set -- "${@/--verbose/}"
+    verbose="--verbose"
+fi
+
+broadcast="--broadcast"
+if [[ "$@" == *"--dry-run"* ]]; then
+    set -- "${@/--dry-run/}"
+    broadcast=""
+fi
+
+pk_arg="--private-key $DEPLOYER_KEY"
+if [[ "$@" == *"--batch-via-safe"* ]]; then
+    pk_arg="--private-key $SAFE_KEY"
+
+    set -- "${@/--batch-via-safe/}"
+    batch_via_safe="--batch-via-safe"
+    ffi="--ffi"
+
+    if [[ "$@" == *"--use-safe-api"* ]]; then
+        set -- "${@/--use-safe-api/}"
+        use_safe_api="--use-safe-api"
+    fi
+fi
+
+if [[ "$pk_arg" != *"0x"* ]]; then
+    pk_arg="$@"
+fi
+
+onBehalfOf=$(cast wallet address $pk_arg)
+
+if [ -z "$onBehalfOf" ]; then
+    echo "Cannot retrieve the onBehalfOf address. Exiting..."
+    exit 1
+fi
+
 items="["
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
@@ -77,21 +110,46 @@ done < <(tr -d '\r' < "$csv_file")
 
 items="${items%,}]"
 
-if [[ "$@" == *"--dry-run"* ]]; then
+if [[ "$broadcast" == "" ]]; then
     echo "Dry run. Exiting..."
     exit 0
 fi
 
-echo "Executing batch transaction..."
-chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-gasPrice=$(echo "($(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL") * 1.25)/1" | bc)
+if [[ "$batch_via_safe" == "--batch-via-safe" ]]; then
+    echo "Executing the batch via Safe..."
+    calldata=$(cast calldata "batch((address,address,uint256,bytes)[])" $items)
+    
+    if [ -z "$SAFE_NONCE" ]; then
+        nonce=$(forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "getNonce(address)" $SAFE_ADDRESS --rpc-url "$DEPLOYMENT_RPC_URL" $ffi | grep -oE '[0-9]+$')
+    else
+        nonce=$SAFE_NONCE
+    fi
 
-if [[ $chainId == "1" ]]; then
-    gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
-fi
+    nonce=$((nonce + 1))
 
-if cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY --legacy --gas-price $gasPrice; then
-    echo "Batch transaction successful."
+    if env broadcast=$broadcast batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
+        forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "create(address,address,uint256,bytes memory,uint256)" $SAFE_ADDRESS $evc 0 $calldata $nonce --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow "$@"; then
+        
+        read -p "Provide the directory name to store the Safe Transaction data (default: default): " deployment_name        
+        deployment_name=${deployment_name:-default}
+        deployment_dir="script/deployments/$deployment_name"
+        mkdir -p "$deployment_dir/output"
+
+        for json_file in script/*.json; do
+            jsonFileName=$(basename "$json_file")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
+        done
+    fi
 else
-    echo "Batch transaction failed."
+    echo "Executing batch transaction..."
+    chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+    gasPrice=$(echo "($(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL") * 1.25)/1" | bc)
+
+    if [[ $chainId == "1" ]]; then
+        gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
+    fi
+
+    cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --legacy --gas-price $gasPrice $pk_arg
 fi

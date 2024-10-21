@@ -898,6 +898,6 @@ while true; do
             ;;
     esac
 
-    script/utils/executeForgeScript.sh $scriptName $verify_contracts "$@"
+    script/utils/executeForgeScript.sh $scriptName $verify_contracts $@
     save_results $jsonName "$deployment_name"
 done

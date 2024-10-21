@@ -36,6 +36,8 @@ fi
 
 csv_file="$1"
 csv_oracle_adapters_addresses_path="$2"
+shift
+shift
 
 read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
 verify_contracts=${verify_contracts:-n}

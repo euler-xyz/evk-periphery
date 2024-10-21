@@ -150,10 +150,11 @@ contract SafeTransaction is SafeUtil {
 
     function createManually(address safe, address target, uint256 value, bytes memory data, uint256 nonce) public {
         _initialize(safe, target, value, data, nonce);
-        _simulate();
 
         transaction.sender = address(0);
         transaction.signature = "";
+
+        _simulate();
 
         string memory payloadFileName = string.concat(
             "SafeTransaction_", vm.toString(transaction.nonce), "_", vm.toString(transaction.safe), ".json"
@@ -192,7 +193,7 @@ contract SafeTransaction is SafeUtil {
     }
 
     function _simulate() private {
-        if (!isSafeOwnerOrDelegate(transaction.safe, transaction.sender)) {
+        if (transaction.sender != address(0) && !isSafeOwnerOrDelegate(transaction.safe, transaction.sender)) {
             console.log(
                 "Sender (%s) not authorized to execute a transaction on Safe (%s)", transaction.sender, transaction.safe
             );
