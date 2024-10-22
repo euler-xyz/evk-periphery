@@ -9,6 +9,8 @@ fi
 source .env
 
 csv_file="$1"
+shift
+
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
 governed_perspective=$(jq -r '.governedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
@@ -21,7 +23,45 @@ fi
 echo "The EVC address is: $evc"
 echo "The Governed Perspective address is: $governed_perspective"
 
-onBehalfOf=$(cast wallet address --private-key $DEPLOYER_KEY)
+if [[ "$@" == *"--verbose"* ]]; then
+    set -- "${@/--verbose/}"
+    verbose="--verbose"
+fi
+
+broadcast="--broadcast"
+if [[ "$@" == *"--dry-run"* ]]; then
+    set -- "${@/--dry-run/}"
+    broadcast=""
+fi
+
+pkArg="--private-key $DEPLOYER_KEY"
+if [[ "$@" == *"--batch-via-safe"* ]]; then
+    pkArg="--private-key $SAFE_KEY"
+
+    set -- "${@/--batch-via-safe/}"
+    batch_via_safe="--batch-via-safe"
+    ffi="--ffi"
+
+    if [[ "$@" == *"--use-safe-api"* ]]; then
+        set -- "${@/--use-safe-api/}"
+        use_safe_api="--use-safe-api"
+    fi
+
+    read -p "Provide the directory name to store the Safe Transaction data (default: default): " deployment_name        
+    deployment_name=${deployment_name:-default}
+fi
+
+if [[ "$pkArg" != *"0x"* ]]; then
+    pkArg="$@"
+fi
+
+onBehalfOf=$(cast wallet address $pkArg)
+
+if [ -z "$onBehalfOf" ]; then
+    echo "Cannot retrieve the onBehalfOf address. Exiting..."
+    exit 1
+fi
+
 items="["
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
@@ -38,14 +78,14 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         if [[ $isVerified == *false* ]]; then
             echo "Adding 'perspectiveVerify' batch item for vault $vault."
             items+="($governed_perspective,$onBehalfOf,0,$(cast calldata "perspectiveVerify(address,bool)" $vault true)),"
-        else
+        elif [[ "$verbose" == "--verbose" ]]; then
             echo "Vault $vault is already verified. Skipping..."
         fi
     elif [[ "$whitelist" == "No" ]]; then
         if [[ $isVerified == *true* ]]; then
             echo "Adding 'perspectiveUnverify' batch item for vault $vault."
             items+="($governed_perspective,$onBehalfOf,0,$(cast calldata "perspectiveUnverify(address)" $vault)),"
-        else
+        elif [[ "$verbose" == "--verbose" ]]; then
             echo "Vault $vault is not verified. Skipping..."
         fi
     else
@@ -55,21 +95,44 @@ done < <(tr -d '\r' < "$csv_file")
 
 items="${items%,}]"
 
-if [[ "$@" == *"--dry-run"* ]]; then
+if [[ "$broadcast" == "" ]]; then
     echo "Dry run. Exiting..."
     exit 0
 fi
 
-echo "Executing batch transaction..."
-chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-gasPrice=$(echo "($(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL") * 1.25)/1" | bc)
+if [[ "$batch_via_safe" == "--batch-via-safe" ]]; then
+    echo "Executing the batch via Safe..."
+    calldata=$(cast calldata "batch((address,address,uint256,bytes)[])" $items)
+    
+    if [ -z "$SAFE_NONCE" ]; then
+        nonce=$(forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "getNonce(address)" $SAFE_ADDRESS --rpc-url "$DEPLOYMENT_RPC_URL" $ffi | grep -oE '[0-9]+$')
+    else
+        nonce=$SAFE_NONCE
+    fi
 
-if [[ $chainId == "1" ]]; then
-    gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
-fi
+    nonce=$((nonce + 1))
 
-if cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY --legacy --gas-price $gasPrice; then
-    echo "Batch transaction successful."
+    if env broadcast=$broadcast batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
+        forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "create(address,address,uint256,bytes memory,uint256)" $SAFE_ADDRESS $evc 0 $calldata $nonce --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow "$@"; then
+
+        deployment_dir="script/deployments/$deployment_name"
+        mkdir -p "$deployment_dir/output"
+
+        for json_file in script/*.json; do
+            jsonFileName=$(basename "$json_file")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
+        done
+    fi
 else
-    echo "Batch transaction failed."
+    echo "Executing the batch directly on the EVC..."
+    chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+    gasPrice=$(echo "($(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL") * 1.25)/1" | bc)
+
+    if [[ $chainId == "1" ]]; then
+        gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
+    fi
+
+    cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --legacy --gas-price $gasPrice $pkArg
 fi

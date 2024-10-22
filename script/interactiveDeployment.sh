@@ -21,33 +21,13 @@ function save_results {
 
 source .env
 
-echo ""
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
-
-read -p "Do you want to deploy on a local fork? (y/n) (default: y): " local_fork
-local_fork=${local_fork:-y}
-
-if [[ $local_fork == "y" ]]; then
-    if ! pgrep -x "anvil" > /dev/null; then
-        echo "Anvil is not running. Please start Anvil and try again."
-        echo "You can spin up a local fork with the following command:"
-        echo "anvil --fork-url ${FORK_RPC_URL}"
-        exit 1
-    fi  
-fi
-
-read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
-verify_contracts=${verify_contracts:-n}
-
-if [[ $verify_contracts == "y" ]]; then
-    verify_contracts="--verify"
-fi
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-if ! script/utils/checkEnvironment.sh $verify_contracts; then
+if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
 fi
@@ -148,6 +128,15 @@ while true; do
             baseName=01_Integrations
             scriptName=${baseName}.s.sol
             jsonName=$baseName
+
+            read -p "Enter the PERMIT2 contract address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+            permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
+
+            jq -n \
+                --arg permit2 "$permit2" \
+                '{
+                    permit2: $permit2
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         2)
             echo "Deploying periphery factories..."
@@ -593,43 +582,81 @@ while true; do
             ;;
         7)
             echo "Deploying EVault..."
+            echo "Select the type of EVault to deploy:"
+            echo "0. Vanilla EVault"
+            echo "1. Singleton Escrow EVault"
+            read -p "Enter your choice (0-1): " vault_choice
 
             baseName=07_EVault
-            scriptName=${baseName}.s.sol:EVaultDeployer
-            jsonName=$baseName
 
-            read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle
-            deploy_router_for_oracle=${deploy_router_for_oracle:-y}
+            case $vault_choice in
+                0)
+                    echo "Deploying vanilla EVault..."
+                    
+                    scriptName=${baseName}.s.sol:EVaultDeployer
+                    jsonName=07_EVault
 
-            oracle_router_factory=0x0000000000000000000000000000000000000000
-            if [[ $deploy_router_for_oracle != "n" ]]; then
-                read -p "Enter the Oracle Router Factory address: " oracle_router_factory
-            fi
-            
-            read -p "Enter the EVault Factory address: " evault_factory
-            read -p "Should the vault be upgradable? (y/n) (default: n): " upgradable
-            upgradable=${upgradable:-n}
-            read -p "Enter the Asset address: " asset
-            read -p "Enter the Oracle address: " oracle
-            read -p "Enter the Unit of Account address: " unit_of_account
+                    read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle
+                    deploy_router_for_oracle=${deploy_router_for_oracle:-y}
 
-            jq -n \
-                --argjson deployRouterForOracle "$(jq -n --argjson val \"$deploy_router_for_oracle\" 'if $val != "n" then true else false end')" \
-                --arg oracleRouterFactory "$oracle_router_factory" \
-                --arg eVaultFactory "$evault_factory" \
-                --argjson upgradable "$(jq -n --argjson val \"$upgradable\" 'if $val == "y" then true else false end')" \
-                --arg asset "$asset" \
-                --arg oracle "$oracle" \
-                --arg unitOfAccount "$unit_of_account" \
-                '{
-                    deployRouterForOracle: $deployRouterForOracle,
-                    oracleRouterFactory: $oracleRouterFactory,
-                    eVaultFactory: $eVaultFactory,
-                    upgradable: $upgradable,
-                    asset: $asset,
-                    oracle: $oracle,
-                    unitOfAccount: $unitOfAccount
-                }' --indent 4 > script/${jsonName}_input.json
+                    oracle_router_factory=0x0000000000000000000000000000000000000000
+                    if [[ $deploy_router_for_oracle != "n" ]]; then
+                        read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+                    fi
+                    
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Should the vault be upgradable? (y/n) (default: n): " upgradable
+                    upgradable=${upgradable:-n}
+                    read -p "Enter the Asset address: " asset
+                    read -p "Enter the Oracle address: " oracle
+                    read -p "Enter the Unit of Account address: " unit_of_account
+
+                    jq -n \
+                        --argjson deployRouterForOracle "$(jq -n --argjson val \"$deploy_router_for_oracle\" 'if $val != "n" then true else false end')" \
+                        --arg oracleRouterFactory "$oracle_router_factory" \
+                        --arg eVaultFactory "$evault_factory" \
+                        --argjson upgradable "$(jq -n --argjson val \"$upgradable\" 'if $val == "y" then true else false end')" \
+                        --arg asset "$asset" \
+                        --arg oracle "$oracle" \
+                        --arg unitOfAccount "$unit_of_account" \
+                        '{
+                            deployRouterForOracle: $deployRouterForOracle,
+                            oracleRouterFactory: $oracleRouterFactory,
+                            eVaultFactory: $eVaultFactory,
+                            upgradable: $upgradable,
+                            asset: $asset,
+                            oracle: $oracle,
+                            unitOfAccount: $unitOfAccount
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying singleton escrow EVault..."
+                    
+                    scriptName=${baseName}.s.sol:EVaultSingletonEscrowDeployer
+                    jsonName=07_EVaultSingletonEscrow
+
+                    read -p "Enter the EVC address: " evc
+                    read -p "Enter the Escrowed Collateral Perspective address: " escrowed_collateral_perspective
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Enter the Asset address: " asset
+
+                    jq -n \
+                        --arg evc "$evc" \
+                        --arg escrowedCollateralPerspective "$escrowed_collateral_perspective" \
+                        --arg eVaultFactory "$evault_factory" \
+                        --arg asset "$asset" \
+                        '{
+                            evc: $evc,
+                            escrowedCollateralPerspective: $escrowedCollateralPerspective,
+                            eVaultFactory: $eVaultFactory,
+                            asset: $asset
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid EVault choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         8)
             echo "Deploying lenses..."
@@ -863,6 +890,6 @@ while true; do
             ;;
     esac
 
-    script/utils/executeForgeScript.sh $scriptName $verify_contracts
+    script/utils/executeForgeScript.sh $scriptName "$@"
     save_results $jsonName "$deployment_name"
 done

@@ -36,15 +36,15 @@ fi
 
 csv_file="$1"
 csv_oracle_adapters_addresses_path="$2"
+shift
+shift
 
-read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
-verify_contracts=${verify_contracts:-n}
-
-if [[ $verify_contracts == "y" ]]; then
-    verify_contracts="--verify"
+if [[ "$@" == *"--verbose"* ]]; then
+    set -- "${@/--verbose/}"
+    verbose="--verbose"
 fi
 
-if ! script/utils/checkEnvironment.sh $verify_contracts; then
+if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
 fi
@@ -116,7 +116,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     if [[ "$avoid_duplicates" == "y" ]]; then
         adapterAddress=$(find_adapter_address "$adapterName" "$csv_oracle_adapters_addresses_path")
 
-        if [[ "$adapterAddress" =~ ^0x ]]; then
+        if [[ "$adapterAddress" =~ ^0x && "$verbose" == "--verbose" ]]; then
             echo "Skipping deployment of $adapterName. Adapter already deployed: $adapterAddress"
             continue
         fi
@@ -396,7 +396,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         continue
     fi
 
-    script/utils/executeForgeScript.sh $scriptName $verify_contracts
+    script/utils/executeForgeScript.sh $scriptName "$@"
 
     if [[ -f "script/${jsonName}_output.json" ]]; then
         counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
