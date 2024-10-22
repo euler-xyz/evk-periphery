@@ -31,11 +31,13 @@ abstract contract ScriptExtended is Script {
             safeSignerAddress = wallets.length > 1 ? wallets[1] : wallets[0];
         }
 
-        require(deployerAddress != address(0), "Cannot retrieve the deployer address from the private key config");
-        require(
-            !isBatchViaSafe() || safeSignerAddress != address(0),
-            "Cannot retrieve the safe signer address from the private key config"
-        );
+        if (!vm.envOr("FORCE_NO_KEY", false)) {
+            require(deployerAddress != address(0), "Cannot retrieve the deployer address from the private key config");
+            require(
+                !isBatchViaSafe() || safeSignerAddress != address(0),
+                "Cannot retrieve the safe signer address from the private key config"
+            );
+        }
     }
 
     function getDeployer() internal view returns (address) {
