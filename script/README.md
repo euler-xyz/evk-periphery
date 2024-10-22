@@ -56,7 +56,12 @@ i.e.
 ./script/production/DeployOracleAdapters.sh "script/production/mainnet/oracleAdapters/test/Euler V2 Oracles - Chainlink.csv"
 ```
 
+To avoid deploying duplicate adapters, one can pass the `OracleAdaptersAddresses.csv` from the previous deployment as an argument (optional). The script will read the deployed adapters from the CSV and will not deploy the duplicate ones.
+
 The above command must be run for each oracle provider/oracle type.
+
+**Important**
+Note that the Cross adapter deployment relies on the previous adapters deployment hence the Cross CSV must either contain appropriate adapters addresses when the script is run or appropriate `OracleAdaptersAddresses.csv` from the previous deployment must be passed as an argument.
 
 ## Interactive Deployment
 
