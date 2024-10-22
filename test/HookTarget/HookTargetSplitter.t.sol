@@ -73,29 +73,38 @@ contract HookTargetSplitterTest is EVaultTestBase {
         address[] memory hookTargets = new address[](2);
         hookTargets[0] = address(hookTargetMock1);
         hookTargets[1] = address(hookTargetMock2);
-        hookTargetSplitter = new HookTargetSplitter(hookTargets);
-        hookTargetSplitter.delegatecallHookTarget(
+        hookTargetSplitter = new HookTargetSplitter(address(factory), address(eTST), hookTargets);
+        hookTargetSplitter.forwardCall(
             address(hookTargetMock1), abi.encodeCall(HookTargetMock.setExpectedVault, address(eTST))
         );
-        hookTargetSplitter.delegatecallHookTarget(
+        hookTargetSplitter.forwardCall(
             address(hookTargetMock2), abi.encodeCall(HookTargetMock.setExpectedVault, address(eTST))
         );
 
         hookTargets = new address[](1);
         hookTargets[0] = address(hookTargetMockFaulty);
-        hookTargetSplitterFaulty = new HookTargetSplitter(hookTargets);
+        hookTargetSplitterFaulty = new HookTargetSplitter(address(factory), address(eTST), hookTargets);
     }
 
     function test_constructor() public {
-        address[] memory hookTargets = new address[](11);
+        address[] memory hookTargets = new address[](1);
+
+        vm.expectRevert();
+        new HookTargetSplitter(address(0), address(eTST), hookTargets);
+
+        vm.expectRevert();
+        new HookTargetSplitter(address(factory), address(0), hookTargets);
+
+        // succeeds
+        new HookTargetSplitter(address(factory), address(eTST), hookTargets);
+
+        hookTargets = new address[](11);
         for (uint160 i = 0; i < hookTargets.length; ++i) {
             hookTargets[i] = address(i);
         }
-        vm.expectRevert();
-        new HookTargetSplitter(hookTargets);
 
-        hookTargets = new address[](1);
-        new HookTargetSplitter(hookTargets);
+        vm.expectRevert();
+        new HookTargetSplitter(address(factory), address(eTST), hookTargets);
     }
 
     function test_isHookTarget() public {
@@ -110,22 +119,28 @@ contract HookTargetSplitterTest is EVaultTestBase {
 
     function test_fallback() public {
         eTST.setHookConfig(address(hookTargetSplitter), OP_SKIM | OP_TOUCH);
-        hookTargetSplitter.delegatecallHookTarget(
-            address(hookTargetMock1),
-            abi.encodeCall(
-                HookTargetMock.setExpectedCalldataHash,
-                (
-                    keccak256(
-                        abi.encodePacked(
-                            abi.encodeCall(eTST.touch, ()),
-                            abi.encodePacked(bytes4(0), eTST.asset(), eTST.oracle(), eTST.unitOfAccount()),
-                            address(this)
-                        )
+        bytes memory data = abi.encodeCall(
+            HookTargetMock.setExpectedCalldataHash,
+            (
+                keccak256(
+                    abi.encodePacked(
+                        abi.encodeCall(eTST.touch, ()),
+                        abi.encodePacked(bytes4(0), eTST.asset(), eTST.oracle(), eTST.unitOfAccount()),
+                        address(this)
                     )
                 )
             )
         );
-        hookTargetSplitter.delegatecallHookTarget(
+
+        // fails if non-vault governor calls
+        vm.prank(address(1));
+        vm.expectRevert();
+        hookTargetSplitter.forwardCall(address(hookTargetMock1), data);
+
+        // succeeds if vault governor calls
+        hookTargetSplitter.forwardCall(address(hookTargetMock1), data);
+
+        hookTargetSplitter.forwardCall(
             address(hookTargetMock2),
             abi.encodeCall(
                 HookTargetMock.setExpectedCalldataHash,
@@ -142,14 +157,14 @@ contract HookTargetSplitterTest is EVaultTestBase {
         );
 
         vm.expectRevert();
-        hookTargetSplitter.delegatecallHookTarget(address(hookTargetSplitterFaulty), "");
+        hookTargetSplitter.forwardCall(address(hookTargetSplitterFaulty), "");
 
         vm.expectRevert();
         eTST.skim(0, address(0));
-        
+
         eTST.touch();
 
-        hookTargetSplitter.delegatecallHookTarget(
+        hookTargetSplitter.forwardCall(
             address(hookTargetMock1),
             abi.encodeCall(
                 HookTargetMock.setExpectedCalldataHash,
@@ -164,7 +179,7 @@ contract HookTargetSplitterTest is EVaultTestBase {
                 )
             )
         );
-        hookTargetSplitter.delegatecallHookTarget(
+        hookTargetSplitter.forwardCall(
             address(hookTargetMock2),
             abi.encodeCall(
                 HookTargetMock.setExpectedCalldataHash,

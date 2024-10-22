@@ -3,8 +3,10 @@
 pragma solidity ^0.8.0;
 
 import {Set, SetStorage} from "ethereum-vault-connector/Set.sol";
+import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 import {IHookTarget} from "evk/interfaces/IHookTarget.sol";
+import {IEVault} from "evk/EVault/IEVault.sol";
 
 /// @title HookTargetSplitter
 /// @custom:security-contact security@euler.xyz
@@ -13,17 +15,34 @@ import {IHookTarget} from "evk/interfaces/IHookTarget.sol";
 contract HookTargetSplitter is IHookTarget {
     using Set for SetStorage;
 
+    /// @notice The vault associated with this contract
+    IEVault internal immutable vault;
+
     /// @notice Storage for the set of hook target addresses
     SetStorage internal hookTargetsSet;
+
+    /// @notice Error thrown when the caller is not authorized to perform an operation
+    error HTS_Unauthorized();
 
     /// @notice Error thrown when an unexpected hook target is encountered
     error HTS_UnexpectedHookTarget();
 
+    /// @notice Modifier to restrict access to only the governor of the vault
+    modifier onlyGovernor() {
+        if (msg.sender != vault.governorAdmin()) revert HTS_Unauthorized();
+        _;
+    }
+
     /// @notice Constructor to initialize the contract with the hook targets.
-    /// @param hookTargets The addresses of the hook targets.
-    constructor(address[] memory hookTargets) {
-        for (uint256 i = 0; i < hookTargets.length; ++i) {
-            hookTargetsSet.insert(hookTargets[i]);
+    /// @param _eVaultFactory The address of the EVault factory contract.
+    /// @param _vault The address of the vault associated with this contract.
+    /// @param _hookTargets The addresses of the hook targets.
+    constructor(address _eVaultFactory, address _vault, address[] memory _hookTargets) {
+        require(GenericFactory(_eVaultFactory).isProxy(_vault), "HTS: Invalid vault");
+        vault = IEVault(_vault);
+
+        for (uint256 i = 0; i < _hookTargets.length; ++i) {
+            hookTargetsSet.insert(_hookTargets[i]);
         }
     }
 
@@ -41,8 +60,8 @@ contract HookTargetSplitter is IHookTarget {
     /// @dev This function checks if all the hook targets are valid. Some hook targets might rely on the caller
     /// address, so this function must delegatecall to the hook targets.
     function isHookTarget() external view override returns (bytes4) {
-        address[] memory hookTargets = hookTargetsSet.get();
         function (address) internal view returns (bool) isHookTargetPtr = asView(isHookTarget);
+        address[] memory hookTargets = hookTargetsSet.get();
 
         for (uint256 i = 0; i < hookTargets.length; ++i) {
             if (!isHookTargetPtr(hookTargets[i])) return 0;
@@ -51,17 +70,23 @@ contract HookTargetSplitter is IHookTarget {
         return this.isHookTarget.selector;
     }
 
-    /// @notice Delegates a call to a specific hook target
-    /// @param hookTarget The address of the hook target to delegate the call to
-    /// @param data The calldata to be passed to the hook target
+    /// @notice Forwards the call by delegatecalling to a specific hook target
+    /// @param hookTarget The address of the hook target to delegatecall
+    /// @param data The calldata to be called on the hook target
     /// @return The result of the delegatecall
-    function delegatecallHookTarget(address hookTarget, bytes calldata data) external returns (bytes memory) {
+    function forwardCall(address hookTarget, bytes calldata data) external onlyGovernor returns (bytes memory) {
         if (!hookTargetsSet.contains(hookTarget)) revert HTS_UnexpectedHookTarget();
 
         (bool success, bytes memory result) = hookTarget.delegatecall(data);
         if (!success) RevertBytes.revertBytes(result);
 
         return result;
+    }
+
+    /// @notice Retrieves the address of the vault associated with this contract
+    /// @return The address of the vault
+    function getVault() external view returns (address) {
+        return address(vault);
     }
 
     /// @notice Retrieves the list of hook targets
