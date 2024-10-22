@@ -36,9 +36,9 @@ if [[ "$@" == *"--dry-run"* ]]; then
     broadcast=""
 fi
 
-pk_arg="--private-key $DEPLOYER_KEY"
+pkArg="--private-key $DEPLOYER_KEY"
 if [[ "$@" == *"--batch-via-safe"* ]]; then
-    pk_arg="--private-key $SAFE_KEY"
+    pkArg="--private-key $SAFE_KEY"
 
     set -- "${@/--batch-via-safe/}"
     batch_via_safe="--batch-via-safe"
@@ -48,13 +48,16 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
         set -- "${@/--use-safe-api/}"
         use_safe_api="--use-safe-api"
     fi
+
+    read -p "Provide the directory name to store the Safe Transaction data (default: default): " deployment_name        
+    deployment_name=${deployment_name:-default}
 fi
 
-if [[ "$pk_arg" != *"0x"* ]]; then
-    pk_arg="$@"
+if [[ "$pkArg" != *"0x"* ]]; then
+    pkArg="$@"
 fi
 
-onBehalfOf=$(cast wallet address $pk_arg)
+onBehalfOf=$(cast wallet address $pkArg)
 
 if [ -z "$onBehalfOf" ]; then
     echo "Cannot retrieve the onBehalfOf address. Exiting..."
@@ -130,8 +133,6 @@ if [[ "$batch_via_safe" == "--batch-via-safe" ]]; then
     if env broadcast=$broadcast batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
         forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "create(address,address,uint256,bytes memory,uint256)" $SAFE_ADDRESS $evc 0 $calldata $nonce --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow "$@"; then
         
-        read -p "Provide the directory name to store the Safe Transaction data (default: default): " deployment_name        
-        deployment_name=${deployment_name:-default}
         deployment_dir="script/deployments/$deployment_name"
         mkdir -p "$deployment_dir/output"
 
@@ -151,5 +152,5 @@ else
         gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
     fi
 
-    cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --legacy --gas-price $gasPrice $pk_arg
+    cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --legacy --gas-price $gasPrice $pkArg
 fi
