@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
 import {OracleLens} from "./OracleLens.sol";
 import {UtilsLens} from "./UtilsLens.sol";
-import "./IYieldAggregator.sol"; // to be imported from the aggregator repo
-import "./ConstantsLib.sol"; // to be imported from the aggregator repo
+import "./IEulerEarn.sol"; // TODO: to be imported from the aggregator repo
+import "./ConstantsLib.sol"; // TODO: to be imported from the aggregator repo
 import {Utils} from "./Utils.sol";
 import "evk/EVault/shared/types/AmountCap.sol";
 import "./LensTypes.sol";
@@ -27,50 +27,50 @@ contract EulerEarnVaultLens is Utils {
         result.timestamp = block.timestamp;
 
         result.vault = vault;
-        result.vaultName = IYieldAggregator(vault).name();
-        result.vaultSymbol = IYieldAggregator(vault).symbol();
-        result.vaultDecimals = IYieldAggregator(vault).decimals();
+        result.vaultName = IEulerEarn(vault).name();
+        result.vaultSymbol = IEulerEarn(vault).symbol();
+        result.vaultDecimals = IEulerEarn(vault).decimals();
 
-        result.asset = IYieldAggregator(vault).asset();
-        result.assetName = _getStringOrBytes32(result.asset, IYieldAggregator(vault).name.selector);
-        result.assetSymbol = _getStringOrBytes32(result.asset, IYieldAggregator(vault).symbol.selector);
+        result.asset = IEulerEarn(vault).asset();
+        result.assetName = _getStringOrBytes32(result.asset, IEulerEarn(vault).name.selector);
+        result.assetSymbol = _getStringOrBytes32(result.asset, IEulerEarn(vault).symbol.selector);
         result.assetDecimals = _getDecimals(result.asset);
 
-        result.totalShares = IYieldAggregator(vault).totalSupply();
-        result.totalAssets = IYieldAggregator(vault).totalAssets();
-        result.totalAssetsDeposited = IYieldAggregator(vault).totalAssetsDeposited();
-        result.totalAssetsAllocated = IYieldAggregator(vault).totalAllocated();
-        result.totalAssetsAllocatable = IYieldAggregator(vault).totalAssetsAllocatable();
-        result.totalAllocationPoints = IYieldAggregator(vault).totalAllocationPoints();
-        result.interestAccrued = IYieldAggregator(vault).interestAccrued();
+        result.totalShares = IEulerEarn(vault).totalSupply();
+        result.totalAssets = IEulerEarn(vault).totalAssets();
+        result.totalAssetsDeposited = IEulerEarn(vault).totalAssetsDeposited();
+        result.totalAssetsAllocated = IEulerEarn(vault).totalAllocated();
+        result.totalAssetsAllocatable = IEulerEarn(vault).totalAssetsAllocatable();
+        result.totalAllocationPoints = IEulerEarn(vault).totalAllocationPoints();
+        result.interestAccrued = IEulerEarn(vault).interestAccrued();
 
         (result.lastInterestUpdate, result.interestSmearEnd, result.interestLeft) =
-            IYieldAggregator(vault).getYieldAggregatorSavingRate();
+            IEulerEarn(vault).getEulerEarnSavingRate();
 
-        result.lastHarvestTimestamp = IYieldAggregator(vault).lastHarvestTimestamp();
+        result.lastHarvestTimestamp = IEulerEarn(vault).lastHarvestTimestamp();
 
-        (result.feeReceiver, result.performanceFee) = IYieldAggregator(vault).performanceFeeConfig();
-        (result.hookTarget, result.hookedOperations) = IYieldAggregator(vault).getHooksConfig();
+        (result.feeReceiver, result.performanceFee) = IEulerEarn(vault).performanceFeeConfig();
+        (result.hookTarget, result.hookedOperations) = IEulerEarn(vault).getHooksConfig();
 
-        result.evc = IYieldAggregator(vault).EVC();
-        result.balanceTracker = IYieldAggregator(vault).balanceTrackerAddress();
-        result.permit2 = IYieldAggregator(vault).permit2Address();
-        result.isHarvestCoolDownCheckOn = IYieldAggregator(vault).isHarvestCoolDownCheckOn();
+        result.evc = IEulerEarn(vault).EVC();
+        result.balanceTracker = IEulerEarn(vault).balanceTrackerAddress();
+        result.permit2 = IEulerEarn(vault).permit2Address();
+        result.isHarvestCoolDownCheckOn = IEulerEarn(vault).isCheckingHarvestCoolDown();
 
         result.accessControlInfo = getVaultAccessControlInfo(vault);
 
-        address[] memory withdrawalQueue = IYieldAggregator(vault).withdrawalQueue();
+        address[] memory withdrawalQueue = IEulerEarn(vault).withdrawalQueue();
         result.strategies = new EulerEarnVaultStrategyInfo[](withdrawalQueue.length);
 
         for (uint256 i; i < withdrawalQueue.length; i++) {
-            IYieldAggregator.Strategy memory strategy = IYieldAggregator(vault).getStrategy(withdrawalQueue[i]);
+            IEulerEarn.Strategy memory strategy = IEulerEarn(vault).getStrategy(withdrawalQueue[i]);
 
             result.strategies[i] = EulerEarnVaultStrategyInfo({
                 strategy: withdrawalQueue[i],
                 assetsAllocated: strategy.allocated,
                 allocationPoints: strategy.allocationPoints,
                 allocationCap: uint120(strategy.cap.resolve()),
-                isInEmergency: strategy.status == IYieldAggregator.StrategyStatus.Emergency
+                isInEmergency: strategy.status == IEulerEarn.StrategyStatus.Emergency
             });
         }
 
@@ -106,17 +106,21 @@ contract EulerEarnVaultLens is Utils {
         result.guardianAdmins = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.GUARDIAN_ADMIN);
         result.strategyOperatorAdmins =
             AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.STRATEGY_OPERATOR_ADMIN);
-        result.yieldAggregatorManagerAdmins =
-            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.YIELD_AGGREGATOR_MANAGER_ADMIN);
+        result.eulerEarnManagerAdmins =
+            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.EULER_EARN_MANAGER_ADMIN);
         result.withdrawalQueueManagerAdmins =
             AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.WITHDRAWAL_QUEUE_MANAGER_ADMIN);
+        result.rebalancerAdmins =
+            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.REBALANCER_ADMIN);
 
         result.guardians = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.GUARDIAN);
         result.strategyOperators = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.STRATEGY_OPERATOR);
-        result.yieldAggregatorManagers =
-            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.YIELD_AGGREGATOR_MANAGER);
+        result.eulerEarnManagers =
+            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.EULER_EARN_MANAGER);
         result.withdrawalQueueManagers =
             AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.WITHDRAWAL_QUEUE_MANAGER);
+        result.rebalancers =
+            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.REBALANCER);
 
         return result;
     }

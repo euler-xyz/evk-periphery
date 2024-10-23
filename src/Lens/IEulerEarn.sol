@@ -6,10 +6,11 @@ import {Checkpoints} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Vo
 // libs
 import {AmountCap} from "evk/EVault/shared/types/AmountCap.sol";
 
-interface IYieldAggregator {
+// TODO: remove this once Euler Earn repo is public
+interface IEulerEarn {
     /// @dev Struct to pass to constructor.
     struct DeploymentParams {
-        address yieldAggregatorVaultModule;
+        address eulerEarnVaultModule;
         address rewardsModule;
         address hooksModule;
         address feeModule;
@@ -19,7 +20,7 @@ interface IYieldAggregator {
 
     /// @dev Struct to pass init() call params.
     struct InitParams {
-        address yieldAggregatorVaultOwner;
+        address eulerEarnVaultOwner;
         address asset;
         string name;
         string symbol;
@@ -40,11 +41,9 @@ interface IYieldAggregator {
 
     /// @dev An enum for strategy status.
     /// An inactive strategy is a strategy that is not added to and recognized by the withdrawal queue.
-    /// An active strategy is a well-functional strategy that is added in the withdrawal queue, can be rebalanced and
-    /// harvested.
-    /// A strategy status set as Emergency, if when the strategy for some reasons can no longer be withdrawn from or
-    /// deposited into it,
-    /// this will be used as a circuit-breaker to ensure that the Yield Aggregator can continue functioning as intended,
+    /// An active strategy is a well-functional strategy that is added in the withdrawal queue, can be rebalanced and harvested.
+    /// A strategy status set as Emergency, if when the strategy for some reasons can no longer be withdrawn from or deposited into it,
+    /// this will be used as a circuit-breaker to ensure that EulerEarn Vault can continue functioning as intended,
     /// and the only impacted strategy will be the one set as Emergency.
     enum StrategyStatus {
         Inactive,
@@ -87,9 +86,8 @@ interface IYieldAggregator {
         external;
 
     /// view functions
-    function asset() external view returns (address);
     function interestAccrued() external view returns (uint256);
-    function getYieldAggregatorSavingRate() external view returns (uint40, uint40, uint168);
+    function getEulerEarnSavingRate() external view returns (uint40, uint40, uint168);
     function totalAllocated() external view returns (uint256);
     function totalAssetsDeposited() external view returns (uint256);
     function lastHarvestTimestamp() external view returns (uint256);
@@ -126,9 +124,8 @@ interface IYieldAggregator {
     function getPastVotes(address _account, uint256 _timepoint) external view returns (uint256);
     function getPastTotalSupply(uint256 _timepoint) external view returns (uint256);
     function delegates(address _account) external view returns (address);
-
-    // to be added in the original IYieldAggregator
-    function EVC() external view returns (address);
+    function asset() external view returns (address);
     function permit2Address() external view returns (address);
-    function isHarvestCoolDownCheckOn() external view returns (bool);
+    function EVC() external view returns (address);
+    function isCheckingHarvestCoolDown() external view returns (bool);
 }
