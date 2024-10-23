@@ -356,12 +356,14 @@ struct EulerEarnVaultAccessControlInfo {
     address[] defaultAdmins;
     address[] guardianAdmins;
     address[] strategyOperatorAdmins;
-    address[] yieldAggregatorManagerAdmins;
+    address[] eulerEarnManagerAdmins;
     address[] withdrawalQueueManagerAdmins;
+    address[] rebalancerAdmins;
     address[] guardians;
     address[] strategyOperators;
-    address[] yieldAggregatorManagers;
+    address[] eulerEarnManagers;
     address[] withdrawalQueueManagers;
+    address[] rebalancers;
 }
 
 struct EulerEarnVaultStrategyInfo {
