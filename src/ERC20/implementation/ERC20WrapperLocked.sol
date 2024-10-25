@@ -11,10 +11,12 @@ import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A wrapper for locked ERC20 tokens that can be withdrawn as per the lock schedule.
-/// @dev Regular wrapping (`depositFor`), unwrapping (`withdrawTo`), and `transfer` are only supported for whitelisted
-/// callers. `transferFrom` is only supported for whitelisted `from` addresses. If the account balance is
-/// non-whitelisted, their tokens can only be withdrawn as per the lock schedule and the remainder of the amount is
-/// transferred to the receiver address configured.
+/// @dev Regular wrapping (`depositFor`), unwrapping (`withdrawTo`) are only supported for whitelisted callers. Regular
+/// ERC20 `transfer` and `transferFrom` are only supported between two whitelisted addresses. Under other circumstances,
+/// conditions apply; look at the `_update` function. If the account balance is non-whitelisted, their tokens can only
+/// be withdrawn as per the lock schedule and the remainder of the amount is transferred to the receiver address
+/// configured.
+/// @dev Avoid whitelisting untrusted addresses. They can be used by whitelisted addresses to avoid the lock schedule.
 /// @dev The wrapped token is assumed to be well behaved, including not rebasing, not attempting to re-enter this
 /// wrapper contract, and not presenting any other weird behavior.
 abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
@@ -161,13 +163,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param to The address to transfer tokens to
     /// @param amount The amount of tokens to transfer
     /// @return bool indicating success of the transfer
-    function transfer(address to, uint256 amount)
-        public
-        virtual
-        override
-        onlyWhitelisted(_msgSender())
-        returns (bool)
-    {
+    function transfer(address to, uint256 amount) public virtual override returns (bool) {
         return super.transfer(to, amount);
     }
 
@@ -176,13 +172,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param to The address to transfer tokens to
     /// @param amount The amount of tokens to transfer
     /// @return bool indicating success of the transfer
-    function transferFrom(address from, address to, uint256 amount)
-        public
-        virtual
-        override
-        onlyWhitelisted(from)
-        returns (bool)
-    {
+    function transferFrom(address from, address to, uint256 amount) public virtual override returns (bool) {
         return super.transferFrom(from, to, amount);
     }
 
@@ -294,30 +284,62 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @return Two arrays: normalized lock timestamps and corresponding amounts
     function getLockedAmounts(address account) public view returns (uint256[] memory, uint256[] memory) {
         EnumerableMap.UintToUintMap storage map = lockedAmounts[account];
-        uint256[] memory lockTimestamp = map.keys();
-        uint256[] memory amounts = new uint256[](lockTimestamp.length);
+        uint256[] memory lockTimestamps = map.keys();
+        uint256[] memory amounts = new uint256[](lockTimestamps.length);
 
-        for (uint256 i = 0; i < lockTimestamp.length; i++) {
-            amounts[i] = map.get(lockTimestamp[i]);
+        for (uint256 i = 0; i < lockTimestamps.length; i++) {
+            amounts[i] = map.get(lockTimestamps[i]);
         }
 
-        return (lockTimestamp, amounts);
+        return (lockTimestamps, amounts);
     }
 
     /// @notice Internal function to update balances
-    /// @dev Regular ERC20 transfers are only supported for whitelisted addresses. When the amount is transferred to a
-    /// non-whitelisted address, the amount is locked as per the lock schedule.
+    /// @dev Regular ERC20 transfers are only supported between two whitelisted addresses. When the amount is
+    /// transferred from non-whitelisted address to a whitelisted address, the locked amount entries get subsequently
+    /// removed (no particular order is guaranteed), up to the point when the whole requested amount is transferred
+    /// freely. When the amount is transferred from a whitelisted address to a non-whitelisted address, the amount is
+    /// locked as per the lock schedule. Transfers from a non-whitelisted address to another non-whitelisted address are
+    /// not supported and will revert.
     /// @param from Address to transfer from
     /// @param to Address to transfer to
     /// @param amount Amount to transfer
     function _update(address from, address to, uint256 amount) internal virtual override {
-        if (to != address(0) && amount != 0 && !isWhitelisted[to]) {
-            EnumerableMap.UintToUintMap storage map = lockedAmounts[to];
-            uint256 normalizedTimestamp = _getNormalizedTimestamp();
-            (, uint256 currentAmount) = map.tryGet(normalizedTimestamp);
+        if (from != address(0) && to != address(0) && amount != 0) {
+            bool fromIsWhitelisted = isWhitelisted[from];
+            bool toIsWhitelisted = isWhitelisted[to];
 
-            if (map.set(normalizedTimestamp, currentAmount + amount)) {
-                emit LockCreated(to, normalizedTimestamp);
+            if (fromIsWhitelisted && !toIsWhitelisted) {
+                EnumerableMap.UintToUintMap storage map = lockedAmounts[to];
+                uint256 normalizedTimestamp = _getNormalizedTimestamp();
+                (, uint256 currentAmount) = map.tryGet(normalizedTimestamp);
+
+                if (map.set(normalizedTimestamp, currentAmount + amount)) {
+                    emit LockCreated(to, normalizedTimestamp);
+                }
+            } else if (!fromIsWhitelisted && toIsWhitelisted) {
+                EnumerableMap.UintToUintMap storage map = lockedAmounts[from];
+                uint256 numberOfLocks = map.length();
+                uint256 unlockedAmount;
+
+                for (uint256 i = 0; i < numberOfLocks; ++i) {
+                    (uint256 lockTimestamp, uint256 currentAmount) = map.at(i);
+
+                    if (unlockedAmount + currentAmount > amount) {
+                        uint256 releasedAmount = amount - unlockedAmount;
+                        map.set(lockTimestamp, currentAmount - releasedAmount);
+                        currentAmount = releasedAmount;
+                    } else {
+                        map.remove(lockTimestamp);
+                        emit LockRemoved(from, lockTimestamp);
+                    }
+
+                    unlockedAmount += currentAmount;
+
+                    if (unlockedAmount >= amount) break;
+                }
+            } else if (!fromIsWhitelisted && !toIsWhitelisted) {
+                revert NotAuthorized();
             }
         }
 
