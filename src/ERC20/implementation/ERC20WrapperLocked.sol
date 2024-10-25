@@ -297,19 +297,20 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @notice Internal function to update balances
     /// @dev Regular ERC20 transfers are only supported between two whitelisted addresses. When the amount is
     /// transferred from non-whitelisted address to a whitelisted address, the locked amount entries get subsequently
-    /// removed (no particular order is guaranteed), up to the point when the whole requested amount is transferred
-    /// freely. When the amount is transferred from a whitelisted address to a non-whitelisted address, the amount is
-    /// locked as per the lock schedule. Transfers from a non-whitelisted address to another non-whitelisted address are
-    /// not supported and will revert.
+    /// removed starting from the oldest lock, up to the point when the whole requested amount is transferred freely.
+    /// When the amount is transferred from a whitelisted address to a non-whitelisted address, the amount is locked as
+    /// per the lock schedule. Transfers from a non-whitelisted address to another non-whitelisted address are not
+    /// supported and will revert.
     /// @param from Address to transfer from
     /// @param to Address to transfer to
     /// @param amount Amount to transfer
     function _update(address from, address to, uint256 amount) internal virtual override {
-        if (from != address(0) && to != address(0) && amount != 0) {
+        if (amount != 0) {
             bool fromIsWhitelisted = isWhitelisted[from];
             bool toIsWhitelisted = isWhitelisted[to];
 
-            if (fromIsWhitelisted && !toIsWhitelisted) {
+            if ((from == address(0) || fromIsWhitelisted) && !toIsWhitelisted) {
+                // Covers minting and transfers from whitelisted to non-whitelisted
                 EnumerableMap.UintToUintMap storage map = lockedAmounts[to];
                 uint256 normalizedTimestamp = _getNormalizedTimestamp();
                 (, uint256 currentAmount) = map.tryGet(normalizedTimestamp);
@@ -318,12 +319,14 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
                     emit LockCreated(to, normalizedTimestamp);
                 }
             } else if (!fromIsWhitelisted && toIsWhitelisted) {
+                // Covers transfers from non-whitelisted to whitelisted
                 EnumerableMap.UintToUintMap storage map = lockedAmounts[from];
-                uint256 numberOfLocks = map.length();
+                uint256[] memory lockTimestamps = map.keys();
                 uint256 unlockedAmount;
 
-                for (uint256 i = 0; i < numberOfLocks; ++i) {
-                    (uint256 lockTimestamp, uint256 currentAmount) = map.at(i);
+                for (uint256 i = 0; i < lockTimestamps.length; ++i) {
+                    uint256 lockTimestamp = lockTimestamps[i];
+                    uint256 currentAmount = map.get(lockTimestamp);
 
                     if (unlockedAmount + currentAmount > amount) {
                         uint256 releasedAmount = amount - unlockedAmount;
@@ -338,11 +341,14 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
 
                     if (unlockedAmount >= amount) break;
                 }
-            } else if (!fromIsWhitelisted && !toIsWhitelisted) {
+            } else if (from != address(0) && !fromIsWhitelisted && to != address(0) && !toIsWhitelisted) {
+                // Covers transfers from non-whitelisted to non-whitelisted
                 revert NotAuthorized();
             }
         }
 
+        // For burning and transfers from whitelisted to whitelisted, no special handling needs to be done.
+        // `setWhitelistStatus` ensures that only non-whitelisted accounts can have locked amounts
         super._update(from, to, amount);
     }
 
