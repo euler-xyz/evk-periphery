@@ -54,6 +54,10 @@ contract RewardTokenTest is Test {
         vm.assume(status < 3);
         vm.assume(nonOwner != owner && nonOwner != address(evc));
 
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(ERC20WrapperLocked.InvalidWhitelistStatus.selector));
+        rewardToken.setWhitelistStatus(account, 4);
+
         vm.prank(nonOwner);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
         rewardToken.setWhitelistStatus(account, status);
@@ -77,6 +81,9 @@ contract RewardTokenTest is Test {
     function test_setWhitelistStatus_downgrade(address account, uint8 status) external {
         vm.assume(status < 3);
         vm.startPrank(owner);
+
+        vm.expectRevert(abi.encodeWithSelector(ERC20WrapperLocked.InvalidWhitelistStatus.selector));
+        rewardToken.setWhitelistStatus(account, 4);
 
         if (status != WHITELIST_STATUS_NONE) {
             vm.expectEmit(true, false, false, true, address(rewardToken));
