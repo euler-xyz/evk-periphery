@@ -35,6 +35,7 @@ contract GovernorAccessControlEmergency is GovernorAccessControl {
     function setLTV(address collateral, uint16 borrowLTV, uint16 liquidationLTV, uint32 rampDuration)
         external
         virtual
+        onlyEVCAccountOwner
     {
         IGovernance vault = IGovernance(_targetContract());
         (uint16 currentBorrowLTV, uint16 currentLiquidationLTV,, uint48 currentTargetTimestamp,) =
@@ -52,7 +53,7 @@ contract GovernorAccessControlEmergency is GovernorAccessControl {
     }
 
     /// @dev Emergency process allows authorized users to disable all operations on the vault.
-    function setHookConfig(address newHookTarget, uint32 newHookedOps) external virtual {
+    function setHookConfig(address newHookTarget, uint32 newHookedOps) external virtual onlyEVCAccountOwner {
         IGovernance vault = IGovernance(_targetContract());
         bool isEmergency = newHookTarget == address(0) && newHookedOps == OP_MAX_VALUE - 1;
 
@@ -64,7 +65,7 @@ contract GovernorAccessControlEmergency is GovernorAccessControl {
     }
 
     /// @dev Emergency process allows authorized users to lower the caps.
-    function setCaps(uint16 supplyCap, uint16 borrowCap) external virtual {
+    function setCaps(uint16 supplyCap, uint16 borrowCap) external virtual onlyEVCAccountOwner {
         IGovernance vault = IGovernance(_targetContract());
         uint256 supplyCapResolved = AmountCap.wrap(supplyCap).resolve();
         uint256 borrowCapResolved = AmountCap.wrap(borrowCap).resolve();
