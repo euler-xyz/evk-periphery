@@ -2,23 +2,23 @@
 pragma solidity ^0.8.0;
 
 import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
+import {IEulerEarn} from "euler-earn/interface/IEulerEarn.sol";
 import {OracleLens} from "./OracleLens.sol";
 import {UtilsLens} from "./UtilsLens.sol";
-import "./IEulerEarn.sol"; // TODO: to be imported from the aggregator repo
-import "./ConstantsLib.sol"; // TODO: to be imported from the aggregator repo
 import {Utils} from "./Utils.sol";
-import "evk/EVault/shared/types/AmountCap.sol";
+import "euler-earn/lib/AmountCapLib.sol";
+import "euler-earn/lib/ConstantsLib.sol";
 import "./LensTypes.sol";
 
 contract EulerEarnVaultLens is Utils {
     OracleLens public immutable oracleLens;
     UtilsLens public immutable utilsLens;
-    address[] internal backupUnitOfAccounts;
+    address[] internal backupUnitsOfAccount;
 
     constructor(address _oracleLens, address _utilsLens) {
         oracleLens = OracleLens(_oracleLens);
         utilsLens = UtilsLens(_utilsLens);
-        backupUnitOfAccounts = [address(840), _getWETHAddress(), 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB];
+        backupUnitsOfAccount = [address(840), _getWETHAddress(), 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB];
     }
 
     function getVaultInfoFull(address vault) public view returns (EulerEarnVaultInfoFull memory) {
@@ -69,16 +69,16 @@ contract EulerEarnVaultLens is Utils {
                 strategy: withdrawalQueue[i],
                 assetsAllocated: strategy.allocated,
                 allocationPoints: strategy.allocationPoints,
-                allocationCap: uint120(strategy.cap.resolve()),
+                allocationCap: AmountCapLib.resolve(strategy.cap),
                 isInEmergency: strategy.status == IEulerEarn.StrategyStatus.Emergency
             });
         }
 
         address[] memory bases = new address[](1);
         address[] memory quotes = new address[](1);
-        for (uint256 i = 0; i < backupUnitOfAccounts.length; ++i) {
+        for (uint256 i = 0; i < backupUnitsOfAccount.length; ++i) {
             bases[0] = result.asset;
-            quotes[0] = backupUnitOfAccounts[i];
+            quotes[0] = backupUnitsOfAccount[i];
 
             result.backupAssetPriceInfo = utilsLens.getAssetPriceInfo(bases[0], quotes[0]);
 
@@ -110,17 +110,14 @@ contract EulerEarnVaultLens is Utils {
             AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.EULER_EARN_MANAGER_ADMIN);
         result.withdrawalQueueManagerAdmins =
             AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.WITHDRAWAL_QUEUE_MANAGER_ADMIN);
-        result.rebalancerAdmins =
-            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.REBALANCER_ADMIN);
+        result.rebalancerAdmins = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.REBALANCER_ADMIN);
 
         result.guardians = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.GUARDIAN);
         result.strategyOperators = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.STRATEGY_OPERATOR);
-        result.eulerEarnManagers =
-            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.EULER_EARN_MANAGER);
+        result.eulerEarnManagers = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.EULER_EARN_MANAGER);
         result.withdrawalQueueManagers =
             AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.WITHDRAWAL_QUEUE_MANAGER);
-        result.rebalancers =
-            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.REBALANCER);
+        result.rebalancers = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.REBALANCER);
 
         return result;
     }
