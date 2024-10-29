@@ -11,7 +11,7 @@ import "evk/EVault/shared/Constants.sol";
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A limited governor contract that allows whitelisted callers to call specific functions on target contracts.
-/// It special cases setting LTVs, setting hook config and setting caps to enable custom emergency flows. 
+/// It special cases setting LTVs, setting hook config and setting caps to enable custom emergency flows.
 contract GovernorAccessControlEmergency is GovernorAccessControl {
     using AmountCapLib for AmountCap;
 
@@ -73,7 +73,7 @@ contract GovernorAccessControlEmergency is GovernorAccessControl {
         currentBorrowCapResolved = AmountCap.wrap(uint16(currentBorrowCapResolved)).resolve();
 
         bool isEmergency = (
-            supplyCapResolved <= currentSupplyCapResolved || borrowCapResolved <= currentBorrowCapResolved
+            supplyCapResolved < currentSupplyCapResolved || borrowCapResolved < currentBorrowCapResolved
         ) && (supplyCapResolved <= currentSupplyCapResolved && borrowCapResolved <= currentBorrowCapResolved);
 
         if (!isEmergency || !hasRole(CAPS_EMERGENCY_ROLE, _msgSender())) {
