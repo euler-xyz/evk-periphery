@@ -116,8 +116,11 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     if [[ "$avoid_duplicates" == "y" ]]; then
         adapterAddress=$(find_adapter_address "$adapterName" "$csv_oracle_adapters_addresses_path")
 
-        if [[ "$adapterAddress" =~ ^0x && "$verbose" == "--verbose" ]]; then
-            echo "Skipping deployment of $adapterName. Adapter already deployed: $adapterAddress"
+        if [[ "$adapterAddress" =~ ^0x ]]; then
+            if [[ "$verbose" == "--verbose" ]]; then
+                echo "Skipping deployment of $adapterName. Adapter already deployed: $adapterAddress"
+            fi
+
             continue
         fi
     fi
