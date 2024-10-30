@@ -8,7 +8,7 @@ import {PeripheryFactories} from "../../02_PeripheryFactories.s.sol";
 import {EVaultImplementation} from "../../05_EVaultImplementation.s.sol";
 import {EVaultFactory} from "../../06_EVaultFactory.s.sol";
 import {Lenses} from "../../08_Lenses.s.sol";
-import {Perspectives} from "../../09_Perspectives.s.sol";
+import {EVKPerspectives} from "../../09_Perspectives.s.sol";
 import {Swap} from "../../10_Swap.s.sol";
 import {FeeFlow} from "../../11_FeeFlow.s.sol";
 import {FactoryGovernorDeployer} from "../../12_FactoryGovernor.s.sol";
@@ -109,7 +109,7 @@ contract DeployCoreAndPeriphery is ScriptUtils {
         }
         // deploy perspectives
         {
-            Perspectives deployer = new Perspectives();
+            EVKPerspectives deployer = new EVKPerspectives();
             address[] memory perspectives = deployer.deploy(
                 coreAddresses.eVaultFactory,
                 peripheryAddresses.oracleRouterFactory,
