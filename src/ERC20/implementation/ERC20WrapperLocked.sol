@@ -123,7 +123,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @notice Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current
     /// owner.
     /// @param newOwner The address of the new owner
-    function transferOwnership(address newOwner) public virtual override onlyEVCAccountOwner onlyOwner {
+    function transferOwnership(address newOwner) public virtual override onlyEVCAccountOwner {
         super.transferOwnership(newOwner);
     }
 
