@@ -40,16 +40,17 @@ contract SBuidlLiquidator is CustomLiquidatorBase {
         ISBToken sbToken = ISBToken(collateralVault.asset());
 
         // Pass though liquidation
+        uint256 collateralBalanceBefore = collateralVault.balanceOf(address(this));
         liabilityVault.liquidate(violator, collateral, repayAssets, minYieldBalance);
+        uint256 collateralBalanceAfter = collateralVault.balanceOf(address(this));
 
         evc.call(
             liability, _msgSender(), 0, abi.encodeCall(liabilityVault.pullDebt, (type(uint256).max, address(this)))
         );
 
-        // Redeem the entire collateral balance in this account
-        collateralVault.redeem(type(uint256).max, address(this), address(this));
-
-        uint256 sbTokenBalance = sbToken.balanceOf(address(this));
+        // Redeem the seized collateral shares and liquidate them
+        uint256 sbTokenBalance =
+            collateralVault.redeem(collateralBalanceAfter - collateralBalanceBefore, address(this), address(this));
         sbToken.liquidate(sbTokenBalance);
 
         IERC20 sbLiquidationToken = IERC20(sbToken.liquidationToken());

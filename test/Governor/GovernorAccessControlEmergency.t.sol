@@ -3,7 +3,10 @@
 pragma solidity ^0.8.0;
 
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
-import {GovernorAccessControl} from "../../src/Governor/GovernorAccessControl.sol";
+import {
+    GovernorAccessControl,
+    GovernorAccessControlEmergency
+} from "../../src/Governor/GovernorAccessControlEmergency.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {IGovernance} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
@@ -18,9 +21,9 @@ contract MockTarget {
     }
 }
 
-contract GovernorAccessControlTest is EVaultTestBase {
+contract GovernorAccessControlEmergencyTest is EVaultTestBase {
     MockTarget public mockTarget;
-    GovernorAccessControl public governorAccessControl;
+    GovernorAccessControlEmergency public governorAccessControl;
     address public user1;
     address public user2;
     address public user1SubAccount;
@@ -31,7 +34,7 @@ contract GovernorAccessControlTest is EVaultTestBase {
         user2 = makeAddr("user2");
         user1SubAccount = address(uint160(user1) ^ 100);
         mockTarget = new MockTarget();
-        governorAccessControl = new GovernorAccessControl(address(evc), admin);
+        governorAccessControl = new GovernorAccessControlEmergency(address(evc), admin);
     }
 
     function test_allowSelector() public {
@@ -333,6 +336,12 @@ contract GovernorAccessControlTest is EVaultTestBase {
         vm.revertTo(snapshot);
 
         // user1 cannot call the function in regular mode
+        vm.prank(user1);
+        (success,) = address(governorAccessControl).call(
+            abi.encodePacked(abi.encodeCall(IGovernance.setCaps, (uint16(1000 << 6), uint16(900 << 6))), address(eTST))
+        );
+        assertFalse(success);
+
         vm.prank(user1);
         (success,) = address(governorAccessControl).call(
             abi.encodePacked(abi.encodeCall(IGovernance.setCaps, (uint16(900 << 6), uint16(1000 << 6))), address(eTST))
