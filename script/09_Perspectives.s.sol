@@ -9,11 +9,12 @@ import {EVKFactoryPerspective} from "../src/Perspectives/deployed/EVKFactoryPers
 import {GovernedPerspective} from "../src/Perspectives/deployed/GovernedPerspective.sol";
 import {EscrowedCollateralPerspective} from "../src/Perspectives/deployed/EscrowedCollateralPerspective.sol";
 import {EulerUngovernedPerspective} from "../src/Perspectives/deployed/EulerUngovernedPerspective.sol";
+import {EulerEarnFactoryPerspective} from "../src/Perspectives/deployed/EulerEarnFactoryPerspective.sol";
 
-contract Perspectives is ScriptUtils {
+contract EVKPerspectives is ScriptUtils {
     function run() public broadcast returns (address[] memory perspectives) {
-        string memory inputScriptFileName = "09_Perspectives_input.json";
-        string memory outputScriptFileName = "09_Perspectives_output.json";
+        string memory inputScriptFileName = "09_EVKPerspectives_input.json";
+        string memory outputScriptFileName = "09_EVKPerspectives_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address eVaultFactory = abi.decode(vm.parseJson(json, ".eVaultFactory"), (address));
         address oracleRouterFactory = abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address));
@@ -131,5 +132,41 @@ contract Perspectives is ScriptUtils {
         perspectives[2] = escrowedCollateralPerspective;
         perspectives[3] = eulerUngoverned0xPerspective;
         perspectives[4] = eulerUngovernedNzxPerspective;
+    }
+}
+
+contract EulerEarnPerspectives is ScriptUtils {
+    function run() public broadcast returns (address[] memory perspectives) {
+        string memory inputScriptFileName = "09_EulerEarnPerspectives_input.json";
+        string memory outputScriptFileName = "09_EulerEarnPerspectives_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address eulerEarnFactory = abi.decode(vm.parseJson(json, ".eulerEarnFactory"), (address));
+
+        perspectives = execute(eulerEarnFactory);
+
+        string memory object;
+        object = vm.serializeAddress("perspectives", "eulerEarnFactoryPerspective", perspectives[0]);
+        object = vm.serializeAddress("perspectives", "governedPerspective", perspectives[1]);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address eulerEarnFactory) public broadcast returns (address[] memory perspectives) {
+        perspectives = execute(eulerEarnFactory);
+    }
+
+    function execute(address eulerEarnFactory) public returns (address[] memory perspectives) {
+        address evc;
+        {
+            (bool success, bytes memory data) = eulerEarnFactory.staticcall(abi.encodeWithSignature("eulerEarnImpl()"));
+            assert(success && data.length == 32);
+            evc = EVCUtil(abi.decode(data, (address))).EVC();
+        }
+
+        address eulerEarnFactoryPerspective = address(new EulerEarnFactoryPerspective(eulerEarnFactory));
+        address governedPerspective = address(new GovernedPerspective(evc, getDeployer()));
+
+        perspectives = new address[](2);
+        perspectives[0] = eulerEarnFactoryPerspective;
+        perspectives[1] = governedPerspective;
     }
 }

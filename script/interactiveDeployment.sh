@@ -783,33 +783,62 @@ while true; do
             ;;
         9)
             echo "Deploying Perspectives..."
-            
+            echo "Select the type of perspectives to deploy:"
+            echo "0. EVK Perspectives"
+            echo "1. Euler Earn Perspectives"
+            read -p "Enter your choice (0-1): " perspectives_choice
+
             baseName=09_Perspectives
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
 
-            read -p "Enter the EVault Factory address: " evault_factory
-            read -p "Enter the Oracle Router Factory address: " oracle_router_factory
-            read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
-            read -p "Enter the External Vault Registry address: " external_vault_registry
-            read -p "Enter the Kink IRM Factory address: " kink_irm_factory
-            read -p "Enter the IRM Registry address: " irm_registry
+            case $perspectives_choice in
+                0)
+                    echo "Deploying EVK Perspectives..."
 
-            jq -n \
-                --arg eVaultFactory "$evault_factory" \
-                --arg oracleRouterFactory "$oracle_router_factory" \
-                --arg oracleAdapterRegistry "$oracle_adapter_registry" \
-                --arg externalVaultRegistry "$external_vault_registry" \
-                --arg kinkIRMFactory "$kink_irm_factory" \
-                --arg irmRegistry "$irm_registry" \
-                '{
-                    eVaultFactory: $eVaultFactory,
-                    oracleRouterFactory: $oracleRouterFactory,
-                    oracleAdapterRegistry: $oracleAdapterRegistry,
-                    externalVaultRegistry: $externalVaultRegistry,
-                    kinkIRMFactory: $kinkIRMFactory,
-                    irmRegistry: $irmRegistry
-                }' --indent 4 > script/${jsonName}_input.json
+                    scriptName=${baseName}.s.sol:EVKPerspectives
+                    jsonName=09_EVKPerspectives
+
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+                    read -p "Enter the External Vault Registry address: " external_vault_registry
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+                    read -p "Enter the IRM Registry address: " irm_registry
+
+                    jq -n \
+                        --arg eVaultFactory "$evault_factory" \
+                        --arg oracleRouterFactory "$oracle_router_factory" \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        --arg externalVaultRegistry "$external_vault_registry" \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        --arg irmRegistry "$irm_registry" \
+                        '{
+                            eVaultFactory: $eVaultFactory,
+                            oracleRouterFactory: $oracleRouterFactory,
+                            oracleAdapterRegistry: $oracleAdapterRegistry,
+                            externalVaultRegistry: $externalVaultRegistry,
+                            kinkIRMFactory: $kinkIRMFactory,
+                            irmRegistry: $irmRegistry
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Euler Earn Perspectives..."
+
+                    scriptName=${baseName}.s.sol:EulerEarnPerspectives
+                    jsonName=09_EulerEarnPerspectives
+
+                    read -p "Enter the Euler Earn Factory address: " euler_earn_factory
+
+                    jq -n \
+                        --arg eulerEarnFactory "$euler_earn_factory" \
+                        '{
+                            eulerEarnFactory: $eulerEarnFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid perspectives choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         10)
             echo "Deploying Swapper..."
