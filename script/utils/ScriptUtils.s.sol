@@ -7,7 +7,6 @@ import {ScriptExtended} from "./ScriptExtended.s.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
-import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
@@ -17,7 +16,7 @@ import {SafeTransaction} from "./SafeUtils.s.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
-import {GovernorAccessControlEmergency} from "../../src/Governor/GovernorAccessControlEmergency.sol";
+import {GovernorAccessControl} from "../../src/Governor/GovernorAccessControl.sol";
 import "../../src/Lens/LensTypes.sol";
 
 abstract contract CoreAddressesLib is ScriptExtended {
@@ -153,7 +152,6 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
-    mapping(address admin => bytes32) internal expectedGovernorAccessControlEmergencyCodeHashes;
 
     constructor() {
         coreAddresses = deserializeCoreAddresses(getAddressesJson("CoreAddresses.json"));
@@ -334,34 +332,12 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
             || selector == IGovernance.setGovernorAdmin.selector;
     }
 
-    function isGovernorAccessControlEmergencyInstance(address governorAdmin) internal returns (bool) {
-        bytes32 codeHash;
-        assembly {
-            codeHash := extcodehash(governorAdmin)
-        }
+    function isGovernorAccessControlInstance(address governorAdmin) internal view returns (bool) {
+        (bool success, bytes memory result) =
+            governorAdmin.staticcall(abi.encodeCall(GovernorAccessControl.isGovernorAccessControl, ()));
 
-        if (expectedGovernorAccessControlEmergencyCodeHashes[governorAdmin] == bytes32(0)) {
-            (bool success, bytes memory result) =
-                governorAdmin.staticcall(abi.encodeCall(AccessControlEnumerable.getRoleMembers, (0)));
-
-            if (success && result.length >= 32) {
-                address[] memory defaultAdmins = abi.decode(result, (address[]));
-
-                if (defaultAdmins.length > 0) {
-                    address expectedGovernorAccessControlEmergency =
-                        address(new GovernorAccessControlEmergency(coreAddresses.evc, defaultAdmins[0]));
-
-                    bytes32 expectedCodeHash;
-                    assembly {
-                        expectedCodeHash := extcodehash(expectedGovernorAccessControlEmergency)
-                    }
-
-                    expectedGovernorAccessControlEmergencyCodeHashes[governorAdmin] = expectedCodeHash;
-                }
-            }
-        }
-
-        return codeHash == expectedGovernorAccessControlEmergencyCodeHashes[governorAdmin];
+        return success && result.length >= 32
+            && abi.decode(result, (bytes4)) == GovernorAccessControl.isGovernorAccessControl.selector;
     }
 }
 
@@ -421,11 +397,11 @@ abstract contract BatchBuilder is ScriptUtils {
             items = criticalItems;
         }
 
-        if (GenericFactory(coreAddresses.eVaultFactory).isProxy(targetContract) && isGovernanceOperation(bytes4(data)))
+        if (isGovernanceOperation(bytes4(data)) && GenericFactory(coreAddresses.eVaultFactory).isProxy(targetContract))
         {
             address governorAdmin = IEVault(targetContract).governorAdmin();
 
-            if (isGovernorAccessControlEmergencyInstance(governorAdmin)) {
+            if (isGovernorAccessControlInstance(governorAdmin)) {
                 data = abi.encodePacked(data, targetContract);
                 targetContract = governorAdmin;
             }
