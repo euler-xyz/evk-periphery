@@ -115,6 +115,18 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
         emit RemainderReceiverSet(_remainderReceiver);
     }
 
+    /// @notice Disables the ability to renounce ownership of the contract
+    function renounceOwnership() public pure override {
+        revert NotAuthorized();
+    }
+
+    /// @notice Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current
+    /// owner.
+    /// @param newOwner The address of the new owner
+    function transferOwnership(address newOwner) public virtual override onlyEVCAccountOwner onlyOwner {
+        super.transferOwnership(newOwner);
+    }
+
     /// @notice Sets a new remainder receiver address
     /// @param _remainderReceiver The address of the new remainder receiver. If zero address, the remainder of the
     /// tokens
