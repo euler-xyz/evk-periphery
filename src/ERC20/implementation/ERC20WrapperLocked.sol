@@ -18,7 +18,8 @@ import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 /// transferred to the receiver address configured. If the account has a DISTRIBUTOR whitelist status, their tokens
 /// cannot be unwrapped by them, but in order to be unwrapped, they can only be transferred to the account that is not
 /// whitelisted and become a subject to the locking schedule or transferred to the account with an ADMIN whitelist
-/// status. A whitelisted account can always degrade their whitelist status.
+/// status. A whitelisted account can always degrade their whitelist status and become a subject to the locking
+/// schedule.
 /// @dev Avoid giving an ADMIN whitelist status to untrusted addresses. They can be used by non-whitelisted accounts and
 /// accounts with the DISTRIBUTOR whitelist status to avoid the lock schedule.
 /// @dev Avoid giving approvals to untrusted spenders. If approved by both a whitelisted account and a non-whitelisted
