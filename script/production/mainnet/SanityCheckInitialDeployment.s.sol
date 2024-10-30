@@ -293,7 +293,7 @@ contract SanityCheckInitialDeployment is ScriptUtils {
                 revert("vault not found in perspectives");
             }
 
-            OracleVerifier.verifyOracleConfig(vaults[i]);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, vaults[i]);
         }
 
         // oracle config for escrow

@@ -9,6 +9,9 @@ source .env
 
 old_perspective="$1"
 new_perspective="$2"
+shift
+shift
+
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
 
@@ -17,13 +20,29 @@ if ! script/utils/checkEnvironment.sh; then
     exit 1
 fi
 
+broadcast="--broadcast"
+if [[ "$@" == *"--dry-run"* ]]; then
+    set -- "${@/--dry-run/}"
+    broadcast=""
+fi
+
+pkArg="--private-key $DEPLOYER_KEY"
+if [[ "$pkArg" != *"0x"* ]]; then
+    pkArg="$@"
+fi
+
 perspectiveName=$(cast call $new_perspective "name()(string)" --rpc-url $DEPLOYMENT_RPC_URL)
 vaults=$(cast call $old_perspective "verifiedArray()(address[])" --rpc-url $DEPLOYMENT_RPC_URL)
-onBehalfOf=$(cast wallet address --private-key $DEPLOYER_KEY)
+onBehalfOf=$(cast wallet address $pkArg)
 items="["
 
+if [ -z "$onBehalfOf" ]; then
+    echo "Cannot retrieve the onBehalfOf address. Exiting..."
+    exit 1
+fi
+
 for vault in $(echo $vaults | tr -d '[]' | tr ',' ' '); do
-    result=$(cast call $new_perspective "perspectiveVerify(address,bool)" $vault true --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY)
+    result=$(cast call $new_perspective "perspectiveVerify(address,bool)" $vault true --rpc-url $DEPLOYMENT_RPC_URL --from $onBehalfOf)
     
     if [ "$result" == "0x" ]; then
         echo "Adding 'perspectiveVerify' batch item for vault $vault and perspective $perspectiveName."
@@ -35,17 +54,17 @@ done
 
 items="${items%,}]"
 
-if [[ "$@" == *"--dry-run"* ]]; then
+if [[ "$broadcast" == "" ]]; then
     echo "Dry run. Exiting..."
     exit 0
 fi
 
-echo "Executing batch transaction..."
-currentGasPrice=$(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL")
-gasPrice=$(echo "if ($currentGasPrice * 1.25 > 2000000000) ($currentGasPrice * 1.25)/1 else 2000000000" | bc)
+echo "Executing the batch directly on the EVC..."
+chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+gasPrice=$(echo "($(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL") * 1.25)/1" | bc)
 
-if cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --private-key $DEPLOYER_KEY --legacy --gas-price $gasPrice; then
-    echo "Batch transaction successful."
-else
-    echo "Batch transaction failed."
+if [[ $chainId == "1" ]]; then
+    gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
 fi
+
+cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --legacy --gas-price $gasPrice $pkArg
