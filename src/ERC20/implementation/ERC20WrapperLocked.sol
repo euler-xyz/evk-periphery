@@ -335,7 +335,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
             bool fromIsWhitelisted = whitelistStatus[from] != WHITELIST_STATUS_NONE;
             bool toIsWhitelisted = whitelistStatus[to] != WHITELIST_STATUS_NONE;
 
-            if ((from == address(0) || fromIsWhitelisted) && !toIsWhitelisted) {
+            if ((from == address(0) || fromIsWhitelisted) && to != address(0) && !toIsWhitelisted) {
                 // Covers minting and transfers from whitelisted to non-whitelisted
                 EnumerableMap.UintToUintMap storage map = lockedAmounts[to];
                 uint256 normalizedTimestamp = _getNormalizedTimestamp();
