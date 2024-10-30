@@ -97,6 +97,7 @@ contract CustomLiquidatorBaseTests is EVaultTestBase {
         assertEq(
             liquidatorDebtAfter, liquidatorDebtBefore + amountDebtAbsorbed, "Debt not properly absorbed by liquidator"
         );
+        assertEq(evc.isControllerEnabled(address(customLiquidator), address(eTST)), false, "Controller not disabled");
     }
 
     function test_customLiquidation() public {
@@ -129,6 +130,7 @@ contract CustomLiquidatorBaseTests is EVaultTestBase {
         assertEq(
             liquidatorDebtAfter, liquidatorDebtBefore + amountDebtAbsorbed, "Debt not properly absorbed by liquidator"
         );
+        assertEq(evc.isControllerEnabled(address(customLiquidator), address(eTST)), false, "Controller not disabled");
 
         CustomLiquidatorBaseTestable.LiquidationParams memory liquidationParams =
             customLiquidator.getLiquidationParams();

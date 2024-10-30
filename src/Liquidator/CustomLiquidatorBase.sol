@@ -86,7 +86,7 @@ abstract contract CustomLiquidatorBase is EVCUtil, Ownable {
             collateralVault.transferFromMax(address(this), receiver);
         }
 
-        evc.disableController(liability);
+        liabilityVault.disableController();
     }
 
     /// @notice Overrides the default msgSender to use the EVCUtil msgSender.
