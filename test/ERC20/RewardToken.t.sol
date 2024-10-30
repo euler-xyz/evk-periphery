@@ -9,6 +9,10 @@ import {RewardToken} from "../../src/ERC20/deployed/RewardToken.sol";
 import {ERC20WrapperLocked, EVCUtil, Ownable} from "../../src/ERC20/implementation/ERC20WrapperLocked.sol";
 
 contract RewardTokenTest is Test {
+    uint256 public constant WHITELIST_STATUS_NONE = 0;
+    uint256 public constant WHITELIST_STATUS_ADMIN = 1;
+    uint256 public constant WHITELIST_STATUS_DISTRIBUTOR = 2;
+
     address owner = makeAddr("owner");
     address remainderReceiver = makeAddr("remainderReceiver");
     EthereumVaultConnector evc;
@@ -33,7 +37,7 @@ contract RewardTokenTest is Test {
 
     function test_setRemainderReceiver(address nonOwner, address newRemainderReceiver) external {
         vm.assume(nonOwner != owner && nonOwner != address(evc));
-        vm.assume(newRemainderReceiver != address(0));
+        vm.assume(newRemainderReceiver != rewardToken.remainderReceiver());
 
         vm.prank(nonOwner);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
@@ -46,42 +50,115 @@ contract RewardTokenTest is Test {
         assertEq(rewardToken.remainderReceiver(), newRemainderReceiver);
     }
 
-    function test_setWhitelistStatus(address nonOwner, address account, bool status) external {
+    function test_setWhitelistStatus_owner(address nonOwner, address account, uint8 status) external {
+        vm.assume(status < 3);
         vm.assume(nonOwner != owner && nonOwner != address(evc));
+
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(ERC20WrapperLocked.InvalidWhitelistStatus.selector));
+        rewardToken.setWhitelistStatus(account, 4);
 
         vm.prank(nonOwner);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
         rewardToken.setWhitelistStatus(account, status);
 
         vm.startPrank(owner);
-        bool statusWillChange = status != rewardToken.isWhitelisted(account);
-        if (statusWillChange) {
+        vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+        rewardToken.setWhitelistStatus(WHITELIST_STATUS_NONE);
+        vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+        rewardToken.setWhitelistStatus(WHITELIST_STATUS_ADMIN);
+        vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+        rewardToken.setWhitelistStatus(WHITELIST_STATUS_DISTRIBUTOR);
+
+        if (status != rewardToken.whitelistStatus(account)) {
             vm.expectEmit(true, false, false, true, address(rewardToken));
-            emit ERC20WrapperLocked.WhitelistStatus(account, status);
+            emit ERC20WrapperLocked.WhitelistStatusSet(account, status);
         }
         rewardToken.setWhitelistStatus(account, status);
-        assertEq(rewardToken.isWhitelisted(account), status);
+        assertEq(uint8(rewardToken.whitelistStatus(account)), status);
     }
 
-    function test_setWhitelistStatus_lockCreated(address account, uint256 amount, uint256 timestamp) external {
+    function test_setWhitelistStatus_downgrade(address account, uint8 status) external {
+        vm.assume(status < 3);
+        vm.startPrank(owner);
+
+        vm.expectRevert(abi.encodeWithSelector(ERC20WrapperLocked.InvalidWhitelistStatus.selector));
+        rewardToken.setWhitelistStatus(account, 4);
+
+        if (status != WHITELIST_STATUS_NONE) {
+            vm.expectEmit(true, false, false, true, address(rewardToken));
+            emit ERC20WrapperLocked.WhitelistStatusSet(account, status);
+        }
+        rewardToken.setWhitelistStatus(account, status);
+        assertEq(uint8(rewardToken.whitelistStatus(account)), status);
+        vm.stopPrank();
+
+        uint256 snapshot = vm.snapshotState();
+
+        vm.startPrank(account);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, account));
+        rewardToken.setWhitelistStatus(account, WHITELIST_STATUS_NONE);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, account));
+        rewardToken.setWhitelistStatus(account, WHITELIST_STATUS_ADMIN);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, account));
+        rewardToken.setWhitelistStatus(account, WHITELIST_STATUS_DISTRIBUTOR);
+
+        if (status == WHITELIST_STATUS_NONE) {
+            vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+            rewardToken.setWhitelistStatus(WHITELIST_STATUS_NONE);
+        } else {
+            rewardToken.setWhitelistStatus(WHITELIST_STATUS_NONE);
+            assertEq(rewardToken.whitelistStatus(account), WHITELIST_STATUS_NONE);
+        }
+
+        vm.revertToState(snapshot);
+        if (status == WHITELIST_STATUS_NONE) {
+            vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+            rewardToken.setWhitelistStatus(WHITELIST_STATUS_DISTRIBUTOR);
+        } else {
+            rewardToken.setWhitelistStatus(WHITELIST_STATUS_DISTRIBUTOR);
+            assertEq(uint8(rewardToken.whitelistStatus(account)), WHITELIST_STATUS_DISTRIBUTOR);
+        }
+
+        vm.revertToState(snapshot);
+        if (status == WHITELIST_STATUS_ADMIN) {
+            rewardToken.setWhitelistStatus(WHITELIST_STATUS_ADMIN);
+            assertEq(uint8(rewardToken.whitelistStatus(account)), WHITELIST_STATUS_ADMIN);
+        } else {
+            vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+            rewardToken.setWhitelistStatus(WHITELIST_STATUS_ADMIN);
+        }
+    }
+
+    function test_setWhitelistStatus_lockCreated(address account, uint256 amount, uint256 timestamp, uint8 status)
+        external
+    {
         vm.assume(owner != address(evc));
         vm.assume(account != address(0) && account != owner && account != address(rewardToken));
+        vm.assume(status != 0 && status < 3);
 
         vm.warp(timestamp);
         mint(owner, amount);
         uint256 normalizedTimestamp = block.timestamp - (block.timestamp % 1 days);
 
         vm.startPrank(owner);
-        rewardToken.setWhitelistStatus(owner, true);
-        rewardToken.setWhitelistStatus(account, true);
-        rewardToken.depositFor(account, amount);
+        rewardToken.setWhitelistStatus(owner, status);
+        rewardToken.setWhitelistStatus(account, status);
+
+        if (status == WHITELIST_STATUS_DISTRIBUTOR) {
+            vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+            rewardToken.depositFor(account, amount);
+            return;
+        } else {
+            rewardToken.depositFor(account, amount);
+        }
 
         assertEq(rewardToken.getLockedAmountsLength(account), 0);
         if (amount != 0) {
             vm.expectEmit(true, false, false, true, address(rewardToken));
             emit ERC20WrapperLocked.LockCreated(account, normalizedTimestamp);
         }
-        rewardToken.setWhitelistStatus(account, false);
+        rewardToken.setWhitelistStatus(account, WHITELIST_STATUS_NONE);
         if (amount != 0) {
             assertEq(rewardToken.getLockedAmountsLength(account), 1);
             assertEq(rewardToken.getLockedAmountsLockTimestamps(account)[0], normalizedTimestamp);
@@ -98,17 +175,19 @@ contract RewardTokenTest is Test {
         uint32 amount,
         uint8 i,
         uint32 timestamp,
-        uint256 delta
+        uint256 delta,
+        uint8 status
     ) external {
         vm.assume(account != address(0) && account != owner && account != address(rewardToken));
         vm.assume(i > 0);
+        vm.assume(status != 0 && status < 3);
         delta = bound(delta, 0, 2 days);
 
         vm.warp(timestamp);
         mint(owner, uint256(amount) * i);
 
         vm.startPrank(owner);
-        rewardToken.setWhitelistStatus(owner, true);
+        rewardToken.setWhitelistStatus(owner, WHITELIST_STATUS_ADMIN);
         rewardToken.depositFor(owner, uint256(amount) * i);
 
         Vm.Log[] memory logs;
@@ -156,7 +235,7 @@ contract RewardTokenTest is Test {
         }
 
         vm.recordLogs();
-        rewardToken.setWhitelistStatus(account, true);
+        rewardToken.setWhitelistStatus(account, status);
         logs = vm.getRecordedLogs();
 
         if (lockTimestamps1.length == 0) {
@@ -174,14 +253,15 @@ contract RewardTokenTest is Test {
     }
 
     function test_depositFor_withdrawTo_transfer_transferFrom(
-        bool isCallerWhitelisted,
-        bool isAccountWhitelisted,
-        bool isReceiverWhitelisted,
+        uint8 callerWhitelistStatus,
+        uint8 accountWhitelistStatus,
+        uint8 receiverWhitelistStatus,
         address caller,
         address account,
         address receiver,
         uint256 amount
     ) external {
+        vm.assume(callerWhitelistStatus < 3 && accountWhitelistStatus < 3 && receiverWhitelistStatus < 3);
         vm.assume(
             caller != address(0) && account != address(0) && caller != account && caller != address(rewardToken)
                 && account != address(rewardToken) && caller != address(evc) && account != address(evc)
@@ -195,12 +275,12 @@ contract RewardTokenTest is Test {
         mint(caller, amount);
 
         vm.startPrank(owner);
-        if (isCallerWhitelisted) rewardToken.setWhitelistStatus(caller, true);
-        if (isAccountWhitelisted) rewardToken.setWhitelistStatus(account, true);
-        if (isReceiverWhitelisted) rewardToken.setWhitelistStatus(receiver, true);
+        rewardToken.setWhitelistStatus(caller, callerWhitelistStatus);
+        rewardToken.setWhitelistStatus(account, accountWhitelistStatus);
+        rewardToken.setWhitelistStatus(receiver, receiverWhitelistStatus);
         vm.stopPrank();
 
-        if (isCallerWhitelisted) {
+        if (callerWhitelistStatus == WHITELIST_STATUS_ADMIN) {
             assertEq(erc20Mintable.balanceOf(caller), amount);
             assertEq(erc20Mintable.balanceOf(account), 0);
             vm.prank(caller);
@@ -208,21 +288,29 @@ contract RewardTokenTest is Test {
             assertEq(erc20Mintable.balanceOf(caller), 0);
             assertEq(rewardToken.balanceOf(account), amount);
 
-            uint256 snapshot = vm.snapshot();
+            uint256 snapshot = vm.snapshotState();
 
-            if (isAccountWhitelisted) {
+            if (accountWhitelistStatus != WHITELIST_STATUS_NONE) {
                 vm.startPrank(account);
-                rewardToken.withdrawTo(receiver, amount);
-                assertEq(erc20Mintable.balanceOf(receiver), amount);
-                assertEq(rewardToken.balanceOf(account), 0);
+                if (accountWhitelistStatus == WHITELIST_STATUS_ADMIN) {
+                    rewardToken.withdrawTo(receiver, amount);
+                    assertEq(erc20Mintable.balanceOf(receiver), amount);
+                    assertEq(rewardToken.balanceOf(account), 0);
+                } else {
+                    vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+                    rewardToken.withdrawTo(receiver, amount);
+                }
 
-                vm.revertTo(snapshot);
+                vm.revertToState(snapshot);
                 rewardToken.transfer(receiver, amount);
                 assertEq(rewardToken.balanceOf(receiver), amount);
                 assertEq(rewardToken.balanceOf(account), 0);
-                assertEq(rewardToken.getLockedAmountsLength(receiver), isReceiverWhitelisted ? 0 : 1);
+                assertEq(
+                    rewardToken.getLockedAmountsLength(receiver),
+                    receiverWhitelistStatus != WHITELIST_STATUS_NONE ? 0 : 1
+                );
 
-                vm.revertTo(snapshot);
+                vm.revertToState(snapshot);
                 rewardToken.approve(receiver, amount);
                 vm.stopPrank();
 
@@ -230,24 +318,53 @@ contract RewardTokenTest is Test {
                 rewardToken.transferFrom(account, receiver, amount);
                 assertEq(rewardToken.balanceOf(receiver), amount);
                 assertEq(rewardToken.balanceOf(account), 0);
-                assertEq(rewardToken.getLockedAmountsLength(receiver), isReceiverWhitelisted ? 0 : 1);
+                assertEq(
+                    rewardToken.getLockedAmountsLength(receiver),
+                    receiverWhitelistStatus != WHITELIST_STATUS_NONE ? 0 : 1
+                );
             } else {
                 vm.startPrank(account);
                 vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
                 rewardToken.withdrawTo(receiver, amount);
 
-                vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
-                rewardToken.transfer(receiver, amount);
+                if (receiverWhitelistStatus != WHITELIST_STATUS_NONE) {
+                    assertEq(rewardToken.balanceOf(account), amount);
+                    assertEq(rewardToken.balanceOf(receiver), 0);
+                    assertEq(rewardToken.getLockedAmountsLength(account), 1);
+                    rewardToken.transfer(receiver, amount);
+                    assertEq(rewardToken.balanceOf(account), 0);
+                    assertEq(rewardToken.balanceOf(receiver), amount);
+                    assertEq(rewardToken.getLockedAmountsLength(account), 0);
+                } else {
+                    vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+                    rewardToken.transfer(receiver, amount);
+                }
 
-                vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
-                rewardToken.withdrawTo(receiver, amount);
-
+                vm.revertToState(snapshot);
                 assertEq(rewardToken.getLockedAmountsLength(account), 1);
                 rewardToken.withdrawToByLockTimestamp(receiver, 0, true);
                 assertEq(erc20Mintable.balanceOf(receiver), amount / 5);
                 assertEq(erc20Mintable.balanceOf(remainderReceiver), amount - amount / 5);
                 assertEq(rewardToken.balanceOf(account), 0);
                 assertEq(rewardToken.getLockedAmountsLength(account), 0);
+
+                vm.revertToState(snapshot);
+                rewardToken.approve(caller, amount);
+                vm.stopPrank();
+                vm.startPrank(caller);
+
+                if (receiverWhitelistStatus != WHITELIST_STATUS_NONE) {
+                    assertEq(rewardToken.balanceOf(account), amount);
+                    assertEq(rewardToken.balanceOf(receiver), 0);
+                    assertEq(rewardToken.getLockedAmountsLength(account), 1);
+                    rewardToken.transferFrom(account, receiver, amount);
+                    assertEq(rewardToken.balanceOf(account), 0);
+                    assertEq(rewardToken.balanceOf(receiver), amount);
+                    assertEq(rewardToken.getLockedAmountsLength(account), 0);
+                } else {
+                    vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+                    rewardToken.transferFrom(account, receiver, amount);
+                }
             }
         } else {
             vm.prank(caller);
@@ -275,7 +392,7 @@ contract RewardTokenTest is Test {
         mint(owner, amount);
 
         vm.startPrank(owner);
-        rewardToken.setWhitelistStatus(owner, true);
+        rewardToken.setWhitelistStatus(owner, WHITELIST_STATUS_ADMIN);
         rewardToken.depositFor(account, amount);
         vm.stopPrank();
 
@@ -327,7 +444,7 @@ contract RewardTokenTest is Test {
         mint(owner, amount);
 
         vm.startPrank(owner);
-        rewardToken.setWhitelistStatus(owner, true);
+        rewardToken.setWhitelistStatus(owner, WHITELIST_STATUS_ADMIN);
         rewardToken.depositFor(account, amount);
         vm.stopPrank();
 
@@ -356,5 +473,66 @@ contract RewardTokenTest is Test {
             assertEq(rewardToken.balanceOf(account), 0);
             assertEq(rewardToken.getLockedAmountsLength(account), 0);
         }
+    }
+
+    function test_transfer() external {
+        mint(owner, 1e18);
+
+        vm.startPrank(owner);
+        rewardToken.setWhitelistStatus(owner, WHITELIST_STATUS_ADMIN);
+
+        vm.warp(1000);
+        rewardToken.depositFor(address(1), 1000);
+
+        vm.warp(1000 + 1 days);
+        rewardToken.depositFor(address(1), 1000);
+
+        vm.warp(1000 + 10 days);
+        rewardToken.depositFor(address(1), 1000);
+        vm.stopPrank();
+
+        assertEq(rewardToken.balanceOf(address(1)), 3000);
+        assertEq(rewardToken.getLockedAmountsLength(address(1)), 3);
+
+        vm.prank(address(1));
+        vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+        rewardToken.transfer(address(2), 1000);
+
+        vm.startPrank(owner);
+        rewardToken.setWhitelistStatus(address(2), WHITELIST_STATUS_DISTRIBUTOR);
+        vm.stopPrank();
+        uint256 snapshot = vm.snapshotState();
+
+        vm.startPrank(address(1));
+        rewardToken.transfer(address(2), 1000);
+        assertEq(rewardToken.balanceOf(address(1)), 2000);
+        assertEq(rewardToken.balanceOf(address(2)), 1000);
+        assertEq(rewardToken.getLockedAmountsLength(address(1)), 2);
+        assertEq(rewardToken.getLockedAmountsLength(address(2)), 0);
+
+        vm.revertToState(snapshot);
+        rewardToken.transfer(address(2), 1500);
+        assertEq(rewardToken.balanceOf(address(1)), 1500);
+        assertEq(rewardToken.balanceOf(address(2)), 1500);
+        assertEq(rewardToken.getLockedAmountsLength(address(1)), 2);
+        assertEq(rewardToken.getLockedAmountsLength(address(2)), 0);
+
+        vm.revertToState(snapshot);
+        rewardToken.transfer(address(2), 2000);
+        assertEq(rewardToken.balanceOf(address(1)), 1000);
+        assertEq(rewardToken.balanceOf(address(2)), 2000);
+        assertEq(rewardToken.getLockedAmountsLength(address(1)), 1);
+        assertEq(rewardToken.getLockedAmountsLength(address(2)), 0);
+
+        vm.revertToState(snapshot);
+        rewardToken.transfer(address(2), 3000);
+        assertEq(rewardToken.balanceOf(address(1)), 0);
+        assertEq(rewardToken.balanceOf(address(2)), 3000);
+        assertEq(rewardToken.getLockedAmountsLength(address(1)), 0);
+        assertEq(rewardToken.getLockedAmountsLength(address(2)), 0);
+
+        vm.revertToState(snapshot);
+        vm.expectRevert();
+        rewardToken.transfer(address(2), 3001);
     }
 }

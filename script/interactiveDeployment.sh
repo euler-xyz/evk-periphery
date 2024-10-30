@@ -21,33 +21,13 @@ function save_results {
 
 source .env
 
-echo ""
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
-
-read -p "Do you want to deploy on a local fork? (y/n) (default: y): " local_fork
-local_fork=${local_fork:-y}
-
-if [[ $local_fork == "y" ]]; then
-    if ! pgrep -x "anvil" > /dev/null; then
-        echo "Anvil is not running. Please start Anvil and try again."
-        echo "You can spin up a local fork with the following command:"
-        echo "anvil --fork-url ${FORK_RPC_URL}"
-        exit 1
-    fi  
-fi
-
-read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
-verify_contracts=${verify_contracts:-n}
-
-if [[ $verify_contracts == "y" ]]; then
-    verify_contracts="--verify"
-fi
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-if ! script/utils/checkEnvironment.sh $verify_contracts; then
+if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
 fi
@@ -910,6 +890,6 @@ while true; do
             ;;
     esac
 
-    script/utils/executeForgeScript.sh $scriptName $verify_contracts
+    script/utils/executeForgeScript.sh $scriptName "$@"
     save_results $jsonName "$deployment_name"
 done

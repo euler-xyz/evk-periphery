@@ -7,6 +7,7 @@ import {ScriptExtended} from "./ScriptExtended.s.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
+import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
@@ -16,7 +17,7 @@ import {SafeTransaction} from "./SafeUtils.s.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
-import {GovernorAccessControl} from "../../src/Governor/GovernorAccessControl.sol";
+import {GovernorAccessControlEmergency} from "../../src/Governor/GovernorAccessControlEmergency.sol";
 import "../../src/Lens/LensTypes.sol";
 
 abstract contract CoreAddressesLib is ScriptExtended {
@@ -152,7 +153,7 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
-    mapping(address admin => bytes32) internal expectedGovernorAccessControlCodeHashes;
+    mapping(address admin => bytes32) internal expectedGovernorAccessControlEmergencyCodeHashes;
 
     constructor() {
         coreAddresses = deserializeCoreAddresses(getAddressesJson("CoreAddresses.json"));
@@ -161,13 +162,13 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     modifier broadcast() {
-        vm.startBroadcast(getDeployerPK());
+        startBroadcast();
         _;
-        vm.stopBroadcast();
+        stopBroadcast();
     }
 
     function startBroadcast() internal {
-        vm.startBroadcast(getDeployerPK());
+        vm.startBroadcast(getDeployer());
     }
 
     function stopBroadcast() internal {
@@ -227,7 +228,7 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         }
 
         if (adapter == address(0) || counter > 1) {
-            if (bytes(provider).length == 42) return stringToAddress(provider);
+            if (bytes(provider).length == 42) return _stringToAddress(provider);
 
             console.log("base: %s, quote: %s, provider: %s", base, quote, provider);
 
@@ -324,36 +325,43 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     function isGovernanceOperation(bytes4 selector) internal pure returns (bool) {
-        return selector == IGovernance.setGovernorAdmin.selector ||
-            selector == IGovernance.setFeeReceiver.selector ||
-            selector == IGovernance.setLTV.selector ||
-            selector == IGovernance.setMaxLiquidationDiscount.selector ||
-            selector == IGovernance.setLiquidationCoolOffTime.selector ||
-            selector == IGovernance.setInterestRateModel.selector ||
-            selector == IGovernance.setHookConfig.selector ||
-            selector == IGovernance.setConfigFlags.selector ||
-            selector == IGovernance.setCaps.selector ||
-            selector == IGovernance.setInterestFee.selector ||
-            selector == IGovernance.setGovernorAdmin.selector ||
-            selector == IGovernance.setGovernorAdmin.selector;
+        return selector == IGovernance.setGovernorAdmin.selector || selector == IGovernance.setFeeReceiver.selector
+            || selector == IGovernance.setLTV.selector || selector == IGovernance.setMaxLiquidationDiscount.selector
+            || selector == IGovernance.setLiquidationCoolOffTime.selector
+            || selector == IGovernance.setInterestRateModel.selector || selector == IGovernance.setHookConfig.selector
+            || selector == IGovernance.setConfigFlags.selector || selector == IGovernance.setCaps.selector
+            || selector == IGovernance.setInterestFee.selector || selector == IGovernance.setGovernorAdmin.selector
+            || selector == IGovernance.setGovernorAdmin.selector;
     }
 
-    function isGovernorAccessControlInstance(address governorAdmin) internal returns (bool) {
+    function isGovernorAccessControlEmergencyInstance(address governorAdmin) internal returns (bool) {
         bytes32 codeHash;
         assembly {
             codeHash := extcodehash(governorAdmin)
         }
 
-        if (expectedGovernorAccessControlCodeHashes[governorAdmin] == bytes32(0)) {
-            address expectedGovernorAccessControl = address(new GovernorAccessControl(coreAddresses.evc, governorAdmin));
-            bytes32 expectedCodeHash;
-            assembly {
-                expectedCodeHash := extcodehash(expectedGovernorAccessControl)
+        if (expectedGovernorAccessControlEmergencyCodeHashes[governorAdmin] == bytes32(0)) {
+            (bool success, bytes memory result) =
+                governorAdmin.staticcall(abi.encodeCall(AccessControlEnumerable.getRoleMembers, (0)));
+
+            if (success && result.length >= 32) {
+                address[] memory defaultAdmins = abi.decode(result, (address[]));
+
+                if (defaultAdmins.length > 0) {
+                    address expectedGovernorAccessControlEmergency =
+                        address(new GovernorAccessControlEmergency(coreAddresses.evc, defaultAdmins[0]));
+
+                    bytes32 expectedCodeHash;
+                    assembly {
+                        expectedCodeHash := extcodehash(expectedGovernorAccessControlEmergency)
+                    }
+
+                    expectedGovernorAccessControlEmergencyCodeHashes[governorAdmin] = expectedCodeHash;
+                }
             }
-            expectedGovernorAccessControlCodeHashes[governorAdmin] = expectedCodeHash;
         }
 
-        return codeHash == expectedGovernorAccessControlCodeHashes[governorAdmin];
+        return codeHash == expectedGovernorAccessControlEmergencyCodeHashes[governorAdmin];
     }
 }
 
@@ -367,6 +375,7 @@ abstract contract BatchBuilder is ScriptUtils {
     IEVC.BatchItem[] internal batchItems;
     IEVC.BatchItem[] internal criticalItems;
     uint256 internal batchCounter;
+    uint256 internal currentSafeNonce = getSafeCurrentNonce();
 
     function addBatchItem(address targetContract, bytes memory data) internal {
         address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
@@ -408,27 +417,19 @@ abstract contract BatchBuilder is ScriptUtils {
         IEVC.BatchItem[] storage items;
         if (itemType == BatchItemType.REGULAR) {
             items = batchItems;
-            console.log("Adding batch item");
         } else {
             items = criticalItems;
-            console.log("Adding critical item");
         }
 
-        if (GenericFactory(coreAddresses.eVaultFactory).isProxy(targetContract) && isGovernanceOperation(bytes4(data))) {
+        if (GenericFactory(coreAddresses.eVaultFactory).isProxy(targetContract) && isGovernanceOperation(bytes4(data)))
+        {
             address governorAdmin = IEVault(targetContract).governorAdmin();
 
-            if (isGovernorAccessControlInstance(governorAdmin)) {
-                console.log("GovernorAccessControl detected in use for the target vault (%s)", targetContract);
+            if (isGovernorAccessControlEmergencyInstance(governorAdmin)) {
                 data = abi.encodePacked(data, targetContract);
                 targetContract = governorAdmin;
             }
         }
-
-        console.log("Target: %s", targetContract);
-        console.log("OnBehalfOfAccount: %s", onBehalfOfAccount);
-        console.log("Value: %s", value);
-        console.log("Data:");
-        console.logBytes(data);
 
         items.push(
             IEVC.BatchItem({
@@ -446,8 +447,6 @@ abstract contract BatchBuilder is ScriptUtils {
         if (criticalItems.length == 0) return;
 
         if (batchItems.length + criticalItems.length >= TRIGGER_EXECUTE_BATCH_AT_SIZE) executeBatch();
-
-        console.log("Appending critical section consisting of %s item(s) to batch items\n", criticalItems.length);
 
         for (uint256 i = 0; i < criticalItems.length; ++i) {
             batchItems.push(criticalItems[i]);
@@ -512,7 +511,10 @@ abstract contract BatchBuilder is ScriptUtils {
         dumpBatch(safe);
 
         SafeTransaction transaction = new SafeTransaction();
-        transaction.create(safe, coreAddresses.evc, getBatchValue(), getBatchCalldata());
+
+        if (currentSafeNonce == 0) currentSafeNonce = transaction.getNonce(safe);
+
+        transaction.create(safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), ++currentSafeNonce);
 
         clearBatchItems();
     }
@@ -532,44 +534,30 @@ abstract contract BatchBuilder is ScriptUtils {
 
     function perspectiveVerify(address perspective, address vault) internal {
         addBatchItem(perspective, abi.encodeCall(BasePerspective.perspectiveVerify, (vault, true)));
-        console.log("Data decoded:");
-        console.log("perspectiveVerify(%s, %s)\n", vault, true);
     }
 
     function transferGovernance(address oracleRouter, address newGovernor) internal {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter(oracleRouter).transferGovernance, (newGovernor)));
-        console.log("Data decoded:");
-        console.log("transferGovernance(%s)\n", newGovernor);
     }
 
     function govSetConfig(address oracleRouter, address base, address quote, address oracle) internal {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetConfig, (base, quote, oracle)));
-        console.log("Data decoded:");
-        console.log("govSetConfig(%s, %s, %s)\n", base, quote, oracle);
     }
 
     function govSetConfig_critical(address oracleRouter, address base, address quote, address oracle) internal {
         addCriticalItem(oracleRouter, abi.encodeCall(EulerRouter.govSetConfig, (base, quote, oracle)));
-        console.log("Data decoded:");
-        console.log("govSetConfig(%s, %s, %s)\n", base, quote, oracle);
     }
 
     function govSetResolvedVault(address oracleRouter, address vault, bool set) internal {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetResolvedVault, (vault, set)));
-        console.log("Data decoded:");
-        console.log("govSetResolvedVault(%s, %s)\n", vault, set);
     }
 
     function setGovernorAdmin(address vault, address newGovernorAdmin) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setGovernorAdmin, (newGovernorAdmin)));
-        console.log("Data decoded:");
-        console.log("setGovernorAdmin(%s)\n", newGovernorAdmin);
     }
 
     function setFeeReceiver(address vault, address newFeeReceiver) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setFeeReceiver, (newFeeReceiver)));
-        console.log("Data decoded:");
-        console.log("setFeeReceiver(%s)\n", newFeeReceiver);
     }
 
     function setLTV(address vault, address collateral, uint16 borrowLTV, uint16 liquidationLTV, uint32 rampDuration)
@@ -578,9 +566,6 @@ abstract contract BatchBuilder is ScriptUtils {
         addBatchItem(
             vault, abi.encodeCall(IEVault(vault).setLTV, (collateral, borrowLTV, liquidationLTV, rampDuration))
         );
-        console.log("Data decoded:");
-        console.log("setLTV(%s, %s,", collateral, borrowLTV);
-        console.log("%s, %s)\n", liquidationLTV, rampDuration);
     }
 
     function setLTV_critical(
@@ -593,51 +578,34 @@ abstract contract BatchBuilder is ScriptUtils {
         addCriticalItem(
             vault, abi.encodeCall(IEVault(vault).setLTV, (collateral, borrowLTV, liquidationLTV, rampDuration))
         );
-        console.log("Data decoded:");
-        console.log("setLTV(%s, %s,", collateral, borrowLTV);
-        console.log("%s, %s)\n", liquidationLTV, rampDuration);
     }
 
     function setMaxLiquidationDiscount(address vault, uint16 newDiscount) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setMaxLiquidationDiscount, (newDiscount)));
-        console.log("Data decoded:");
-        console.log("setMaxLiquidationDiscount(%s)\n", newDiscount);
     }
 
     function setLiquidationCoolOffTime(address vault, uint16 newCoolOffTime) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setLiquidationCoolOffTime, (newCoolOffTime)));
-        console.log("Data decoded:");
-        console.log("setLiquidationCoolOffTime(%s)\n", newCoolOffTime);
     }
 
     function setInterestRateModel(address vault, address newModel) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestRateModel, (newModel)));
-        console.log("Data decoded:");
-        console.log("setInterestRateModel(%s)\n", newModel);
     }
 
     function setHookConfig(address vault, address newHookTarget, uint32 newHookedOps) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setHookConfig, (newHookTarget, newHookedOps)));
-        console.log("Data decoded:");
-        console.log("setHookConfig(%s, %s)\n", newHookTarget, newHookedOps);
     }
 
     function setConfigFlags(address vault, uint32 newConfigFlags) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setConfigFlags, (newConfigFlags)));
-        console.log("Data decoded:");
-        console.log("setConfigFlags(%s)\n", newConfigFlags);
     }
 
     function setCaps(address vault, uint256 supplyCap, uint256 borrowCap) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setCaps, (uint16(supplyCap), uint16(borrowCap))));
-        console.log("Data decoded:");
-        console.log("setCaps(%s, %s)\n", supplyCap, borrowCap);
     }
 
     function setInterestFee(address vault, uint16 newInterestFee) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestFee, (newInterestFee)));
-        console.log("Data decoded:");
-        console.log("setInterestFee(%s)\n", newInterestFee);
     }
 }
 
