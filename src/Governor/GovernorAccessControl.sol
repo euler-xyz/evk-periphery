@@ -39,6 +39,12 @@ contract GovernorAccessControl is SelectorAccessControl {
         }
     }
 
+    /// @notice Returns the selector of this function to identify this contract as a GovernorAccessControl contract
+    /// instance
+    function isGovernorAccessControl() external pure returns (bytes4) {
+        return this.isGovernorAccessControl.selector;
+    }
+
     /// @notice Authenticates the caller based on their role and the function selector. In case of authentication
     /// through the EVC, it ensures that the caller is the EVC account owner.
     /// @inheritdoc SelectorAccessControl
