@@ -16,17 +16,20 @@ This contract is designed to be used as a governor for EVK vaults. It extends `S
 
 This contract can be installed as the governor of one or more EVK vaults and allows whitelisted callers to invoke specific functions on target contracts. It uses a fallback function to authenticate the caller and forward the call to the target contract. The address of the target contract is expected to be appended by the caller as trailing calldata and is extracted from it accordingly.
 
-The `GovernorAccessControl` contract also includes emergency functionality for certain critical operations. This allows authorized users to perform emergency actions without needing the full selector role:
+## `GovernorAccessControlEmergency`
+
+The `GovernorAccessControlEmergency` inherits from `GovernorAccessControl` and includes emergency functionality for certain critical operations. This allows authorized users to perform emergency actions without needing the full selector role:
 1. Emergency LTV Adjustment: Users with the `LTV_EMERGENCY_ROLE` can lower the borrow LTV without changing the liquidation LTV. As with all changes to borrow LTV, this takes effect immediately. The current ramp state for liquidation LTV (if any) is preserved.
 2. Emergency Vault Pausing: Users with the `HOOK_EMERGENCY_ROLE` can disable all operations on the vault.
 3. Emergency Caps Lowering: Users with the `CAPS_EMERGENCY_ROLE` can lower supply and/or borrow caps.
 
 These emergency roles provide a way to quickly respond to critical situations without compromising the overall access control structure of the governor.
 
-Usage:
-1. Deploy an instance of `GovernorAccessControl`, specifying the EVC address and the default admin
+## Usage
+
+1. Deploy an instance of `GovernorAccessControl` or `GovernorAccessControlEmergency`, specifying the EVC address and the default admin
 2. Grant roles to addresses for specific function selectors or the `WILD_CARD`
-3. Install the `GovernorAccessControl` instance as the governor of the desired vault(s)
+3. Install the deployed governor access control instance as the governor of the desired vault(s)
 4. Authorized callers can now invoke permitted functions on the vault through the governor contract
 
 ## `HookTargetAccessControl`
