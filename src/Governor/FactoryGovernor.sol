@@ -19,6 +19,9 @@ contract FactoryGovernor is AccessControlEnumerable {
     /// @notice Role identifier for admin allowed to unpause the factory.
     bytes32 public constant UNPAUSE_ADMIN_ROLE = keccak256("UNPAUSE_ADMIN_ROLE");
 
+    /// @dev Address of the read only proxy deployed during the latest pause
+    address internal latestReadOnlyProxy;
+
     /// @notice Event emitted when an admin call is made to a factory.
     /// @param admin The address of the admin making the call.
     /// @param factory The address of the factory being called.
@@ -64,15 +67,14 @@ contract FactoryGovernor is AccessControlEnumerable {
     function pause(address factory) external onlyRole(PAUSE_GUARDIAN_ROLE) {
         address oldImplementation = GenericFactory(factory).implementation();
 
-        // Not to pause twice, check if the old implementation already is a read only proxy
-        (bool success, bytes memory result) =
-            oldImplementation.staticcall(abi.encodeCall(ReadOnlyProxy.roProxyImplementation, ()));
-
-        if (success && result.length >= 32) {
+        // To prevent pausing twice, check if the factory implementation is already the latest read-only proxy.
+        // Only checking the latest pause, assuming the admin will not upgrade implementation to a previous proxy.
+        if (oldImplementation == latestReadOnlyProxy) {
             revert("already paused");
         } else {
             address readOnlyProxy = address(new ReadOnlyProxy(oldImplementation));
             GenericFactory(factory).setImplementation(readOnlyProxy);
+            latestReadOnlyProxy = readOnlyProxy;
 
             emit Paused(_msgSender(), factory, readOnlyProxy);
         }
@@ -84,12 +86,8 @@ contract FactoryGovernor is AccessControlEnumerable {
     function unpause(address factory) external onlyRole(UNPAUSE_ADMIN_ROLE) {
         address implementation = GenericFactory(factory).implementation();
 
-        // Check that current implementation is the read-only proxy and get the old implementation if it is
-        (bool success, bytes memory result) =
-            implementation.staticcall(abi.encodeCall(ReadOnlyProxy.roProxyImplementation, ()));
-
-        if (success && result.length >= 32) {
-            address previousImplementation = abi.decode(result, (address));
+        if (implementation == latestReadOnlyProxy) {
+            address previousImplementation = ReadOnlyProxy(implementation).roProxyImplementation();
             GenericFactory(factory).setImplementation(previousImplementation);
 
             emit Unpaused(_msgSender(), factory, previousImplementation);
