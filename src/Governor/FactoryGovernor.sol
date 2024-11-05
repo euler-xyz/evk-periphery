@@ -14,8 +14,10 @@ import {ReadOnlyProxy} from "./ReadOnlyProxy.sol";
 /// @notice Governor for the EVK beacon (factory), allowing pause guardians to upgrade the implementation to read only
 /// proxy
 contract FactoryGovernor is AccessControlEnumerable {
-    /// @notice Role identifier for the guardian role.
-    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
+    /// @notice Role identifier for the pause guardian role.
+    bytes32 public constant PAUSE_GUARDIAN_ROLE = keccak256("PAUSE_GUARDIAN_ROLE");
+    /// @notice Role identifier for admin allowed to unpause the factory.
+    bytes32 public constant UNPAUSE_ADMIN_ROLE = keccak256("UNPAUSE_ADMIN_ROLE");
 
     /// @notice Event emitted when an admin call is made to a factory.
     /// @param admin The address of the admin making the call.
@@ -28,6 +30,12 @@ contract FactoryGovernor is AccessControlEnumerable {
     /// @param factory The address of the factory that was paused.
     /// @param roProxy The address of the read-only proxy which was installed.
     event Paused(address indexed guardian, address indexed factory, address indexed roProxy);
+
+    /// @notice Event emitted when a factory is unpaused.
+    /// @param admin The address of the unpause admin who unpaused the factory.
+    /// @param factory The address of the factory that was unpaused.
+    /// @param implementation The address of the implementation which was restored.
+    event Unpaused(address indexed admin, address indexed factory, address indexed implementation);
 
     /// @notice Constructor to set the initial admin of the contract.
     /// @param admin The address of the initial admin.
@@ -53,7 +61,7 @@ contract FactoryGovernor is AccessControlEnumerable {
     /// @notice Pauses all upgradeable vaults by installing a new implementation,
     /// which is a read only proxy to the current implementation
     /// @param factory Address of the factory to pause.
-    function pause(address factory) external onlyRole(GUARDIAN_ROLE) {
+    function pause(address factory) external onlyRole(PAUSE_GUARDIAN_ROLE) {
         address oldImplementation = GenericFactory(factory).implementation();
 
         // Not to pause twice, check if the old implementation already is a read only proxy
@@ -67,6 +75,26 @@ contract FactoryGovernor is AccessControlEnumerable {
             GenericFactory(factory).setImplementation(readOnlyProxy);
 
             emit Paused(_msgSender(), factory, readOnlyProxy);
+        }
+    }
+
+    /// @notice Unpauses all upgradeable vaults by installing the previous implementation,
+    /// stored in the read only proxy
+    /// @param factory Address of the factory to unpause.
+    function unpause(address factory) external onlyRole(UNPAUSE_ADMIN_ROLE) {
+        address implementation = GenericFactory(factory).implementation();
+
+        // Check that current implementation is the read-only proxy and get the old implementation if it is
+        (bool success, bytes memory result) =
+            implementation.staticcall(abi.encodeCall(ReadOnlyProxy.roProxyImplementation, ()));
+
+        if (success && result.length >= 32) {
+            address previousImplementation = abi.decode(result, (address));
+            GenericFactory(factory).setImplementation(previousImplementation);
+
+            emit Unpaused(_msgSender(), factory, previousImplementation);
+        } else {
+            revert("not paused");
         }
     }
 }
