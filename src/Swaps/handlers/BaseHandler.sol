@@ -22,6 +22,7 @@ abstract contract BaseHandler is ISwapper {
 
     error Swapper_UnsupportedMode();
     error Swapper_TargetDebt();
+    error Swapper_SwapError(address swapProvider, bytes rawError);
 
     function resolveParams(SwapParams memory params) internal view returns (uint256 amountOut, address receiver) {
         amountOut = params.amountOut;

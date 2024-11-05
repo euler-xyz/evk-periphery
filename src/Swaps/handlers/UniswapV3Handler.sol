@@ -29,15 +29,19 @@ abstract contract UniswapV3Handler is BaseHandler {
         (uint256 amountOut, address receiver) = resolveParams(params);
 
         if (amountOut > 0) {
-            ISwapRouterV3(uniswapRouterV3).exactOutput(
-                ISwapRouterV3.ExactOutputParams({
-                    path: params.data,
-                    recipient: receiver,
-                    amountOut: amountOut,
-                    amountInMaximum: type(uint256).max,
-                    deadline: block.timestamp
-                })
+            (bool success, bytes memory result) = uniswapRouterV3.call(
+                abi.encodeCall(
+                    ISwapRouterV3.exactOutput,
+                    ISwapRouterV3.ExactOutputParams({
+                        path: params.data,
+                        recipient: receiver,
+                        amountOut: amountOut,
+                        amountInMaximum: type(uint256).max,
+                        deadline: block.timestamp
+                    })
+                )
             );
+            if (!success) revert Swapper_SwapError(uniswapRouterV3, result);
         }
     }
 }
