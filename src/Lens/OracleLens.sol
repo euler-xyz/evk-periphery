@@ -41,6 +41,8 @@ interface IOracle is IPriceOracle {
     function getConfiguredOracle(address base, address quote) external view returns (address);
     function description() external view returns (string memory);
     function pendleMarket() external view returns (address);
+    function safeguardPool() external view returns (address);
+    function poolId() external view returns (bytes32);
 }
 
 contract OracleLens is Utils {
@@ -167,6 +169,14 @@ contract OracleLens is Utils {
                     quote: IOracle(oracleAddress).quote(),
                     pendleMarket: IOracle(oracleAddress).pendleMarket(),
                     twapWindow: IOracle(oracleAddress).twapWindow()
+                })
+            );
+        } else if (_strEq(name, "SwaapSafeguardOracle")) {
+            oracleInfo = abi.encode(
+                SwaapSafeguardProviderOracleInfo({
+                    base: IOracle(oracleAddress).safeguardPool(),
+                    quote: IOracle(oracleAddress).quote(),
+                    poolId: IOracle(oracleAddress).poolId()
                 })
             );
         } else if (_strEq(name, "CrossAdapter")) {
