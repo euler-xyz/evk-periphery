@@ -8,9 +8,7 @@ import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {FactoryGovernor} from "../../../src/Governor/FactoryGovernor.sol";
 
 contract OwnershipTransferCore is ScriptUtils {
-    // TODO Revenue and Upgrade functionality: Euler DAO
-    address internal constant EULER_DAO = 0xcAD001c30E96765aC90307669d578219D4fb1DCe;
-
+    address internal constant EULER_DAO = 0x1e13B0847808045854Ddd908F2d770Dc902Dcfb8;
     address internal constant PROTOCOL_CONFIG_ADMIN = EULER_DAO;
     address internal constant EVAULT_FACTORY_GOVERNOR_ADMIN = EULER_DAO;
 

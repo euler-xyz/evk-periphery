@@ -18,13 +18,14 @@ import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
 contract DeployCoreAndPeriphery is ScriptUtils {
     address internal constant WETH = 0x4200000000000000000000000000000000000006;
+    address internal constant EULER_DAO = 0x1e13B0847808045854Ddd908F2d770Dc902Dcfb8;
     address internal constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address internal constant UNISWAP_ROUTER_V3 = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
 
     uint256 internal constant FEE_FLOW_INIT_PRICE = 1e18;
     address internal constant FEE_FLOW_PAYMENT_TOKEN = WETH;
-    address internal constant FEE_FLOW_PAYMENT_RECEIVER = 0xcAD001c30E96765aC90307669d578219D4fb1DCe; // TODO Euler DAO
+    address internal constant FEE_FLOW_PAYMENT_RECEIVER = EULER_DAO;
     uint256 internal constant FEE_FLOW_EPOCH_PERIOD = 14 days;
     uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18;
     uint256 internal constant FEE_FLOW_MIN_INIT_PRICE = 1e6;
