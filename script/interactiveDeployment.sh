@@ -47,7 +47,7 @@ while true; do
     echo "9. Perspectives"
     echo "10. Swap"
     echo "11. Fee Flow"
-    echo "12. EVault Factory Governor"
+    echo "12. Governors"
     echo "13. Terms of Use Signer"
     read -p "Enter your choice (0-13): " choice
 
@@ -863,11 +863,61 @@ while true; do
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         12)
-            echo "Deploying EVault Factory Governor..."
+            echo "Deploying governor..."
+            echo "Select the type of governor to deploy:"
+            echo "0. EVault Factory Governor"
+            echo "1. Governor Access Control"
+            echo "2. Governor Access Control Emergency"
+            read -p "Enter your choice (0-2): " governor_choice
+
+            baseName=12_Governor
+
+            case $governor_choice in
+                0)
+                    echo "Deploying EVault Factory Governor..."
             
-            baseName=12_FactoryGovernor
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
+                    scriptName=${baseName}.s.sol:EVaultFactoryGovernorDeployer
+                    jsonName=12_EVaultFactoryGovernor
+                    ;;
+                1)
+                    echo "Deploying Governor Access Control..."
+                    
+                    scriptName=${baseName}.s.sol:GovernorAccessControlDeployer
+                    jsonName=12_GovernorAccessControl
+                    
+                    read -p "Enter the EVC address: " evc
+                    read -p "Enter the admin address: " admin
+
+                    jq -n \
+                        --arg evc "$evc" \
+                        --arg admin "$admin" \
+                        '{
+                            evc: $evc,
+                            admin: $admin
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                2)
+                    echo "Deploying Governor Access Control Emergency..."
+                    
+                    scriptName=${baseName}.s.sol:GovernorAccessControlEmergencyDeployer
+                    jsonName=12_GovernorAccessControlEmergency
+                    
+                    read -p "Enter the EVC address: " evc
+                    read -p "Enter the admin address: " admin
+
+                    jq -n \
+                        --arg evc "$evc" \
+                        --arg admin "$admin" \
+                        '{
+                            evc: $evc,
+                            admin: $admin
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid governor choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         13)
             echo "Deploying Terms of Use Signer..."
