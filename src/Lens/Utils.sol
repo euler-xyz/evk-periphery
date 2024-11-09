@@ -40,6 +40,8 @@ abstract contract Utils {
     function _getWETHAddress() internal view returns (address) {
         if (block.chainid == 1) {
             return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        } else if (block.chainid == 8453) {
+            return 0x4200000000000000000000000000000000000006;
         } else if (block.chainid == 42161) {
             return 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
         } else {
