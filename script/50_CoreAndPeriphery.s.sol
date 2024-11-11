@@ -2,42 +2,47 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils} from "../../utils/ScriptUtils.s.sol";
-import {Integrations} from "../../01_Integrations.s.sol";
-import {PeripheryFactories} from "../../02_PeripheryFactories.s.sol";
-import {EVaultImplementation} from "../../05_EVaultImplementation.s.sol";
-import {EVaultFactory} from "../../06_EVaultFactory.s.sol";
-import {Lenses} from "../../08_Lenses.s.sol";
-import {EVKPerspectives} from "../../09_Perspectives.s.sol";
-import {Swap} from "../../10_Swap.s.sol";
-import {FeeFlow} from "../../11_FeeFlow.s.sol";
-import {FactoryGovernorDeployer} from "../../12_FactoryGovernor.s.sol";
-import {TermsOfUseSignerDeployer} from "../../13_TermsOfUseSigner.s.sol";
+import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
+import {Integrations} from "./01_Integrations.s.sol";
+import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
+import {EVaultImplementation} from "./05_EVaultImplementation.s.sol";
+import {EVaultFactory} from "./06_EVaultFactory.s.sol";
+import {Lenses} from "./08_Lenses.s.sol";
+import {EVKPerspectives} from "./09_Perspectives.s.sol";
+import {Swap} from "./10_Swap.s.sol";
+import {FeeFlow} from "./11_FeeFlow.s.sol";
+import {FactoryGovernorDeployer} from "./12_FactoryGovernor.s.sol";
+import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
-contract DeployCoreAndPeriphery is ScriptUtils {
-    address internal constant WETH = 0x4200000000000000000000000000000000000006;
-    address internal constant EULER_DAO = 0x1e13B0847808045854Ddd908F2d770Dc902Dcfb8;
-    address internal constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-    address internal constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-    address internal constant UNISWAP_ROUTER_V3 = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+contract CoreAndPeriphery is ScriptUtils {
+    struct Input {
+        address permit2;
+        address uniswapV2Router;
+        address uniswapV3Router;
+        uint256 feeFlowInitPrice;
+        address feeFlowPaymentToken;
+        address feeFlowPaymentReceiver;
+        uint256 feeFlowEpochPeriod;
+        uint256 feeFlowPriceMultiplier;
+        uint256 feeFlowMinInitPrice;
+    }
 
-    uint256 internal constant FEE_FLOW_INIT_PRICE = 1e18;
-    address internal constant FEE_FLOW_PAYMENT_TOKEN = WETH;
-    address internal constant FEE_FLOW_PAYMENT_RECEIVER = EULER_DAO;
-    uint256 internal constant FEE_FLOW_EPOCH_PERIOD = 14 days;
-    uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18;
-    uint256 internal constant FEE_FLOW_MIN_INIT_PRICE = 1e6;
+    function run() public returns (CoreAddresses memory, PeripheryAddresses memory, LensAddresses memory) {
+        string memory json = getInputConfig("50_CoreAndPeriphery_input.json");
+        Input memory input = Input({
+            permit2: abi.decode(vm.parseJson(json, ".permit2"), (address)),
+            uniswapV2Router: abi.decode(vm.parseJson(json, ".uniswapV2Router"), (address)),
+            uniswapV3Router: abi.decode(vm.parseJson(json, ".uniswapV3Router"), (address)),
+            feeFlowInitPrice: abi.decode(vm.parseJson(json, ".feeFlowInitPrice"), (uint256)),
+            feeFlowPaymentToken: abi.decode(vm.parseJson(json, ".feeFlowPaymentToken"), (address)),
+            feeFlowPaymentReceiver: abi.decode(vm.parseJson(json, ".feeFlowPaymentReceiver"), (address)),
+            feeFlowEpochPeriod: abi.decode(vm.parseJson(json, ".feeFlowEpochPeriod"), (uint256)),
+            feeFlowPriceMultiplier: abi.decode(vm.parseJson(json, ".feeFlowPriceMultiplier"), (uint256)),
+            feeFlowMinInitPrice: abi.decode(vm.parseJson(json, ".feeFlowMinInitPrice"), (uint256))
+        });
 
-    function run()
-        public
-        returns (
-            CoreAddresses memory coreAddresses,
-            PeripheryAddresses memory peripheryAddresses,
-            LensAddresses memory lensAddresses
-        )
-    {
         // deply integrations
         {
             Integrations deployer = new Integrations();
@@ -47,7 +52,7 @@ contract DeployCoreAndPeriphery is ScriptUtils {
                 coreAddresses.sequenceRegistry,
                 coreAddresses.balanceTracker,
                 coreAddresses.permit2
-            ) = deployer.deploy(PERMIT2_ADDRESS);
+            ) = deployer.deploy(input.permit2);
         }
         // deploy periphery factories
         {
@@ -86,19 +91,19 @@ contract DeployCoreAndPeriphery is ScriptUtils {
         {
             Swap deployer = new Swap();
             (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) =
-                deployer.deploy(UNISWAP_ROUTER_V2, UNISWAP_ROUTER_V3);
+                deployer.deploy(input.uniswapV2Router, input.uniswapV3Router);
         }
         // deploy fee flow
         {
             FeeFlow deployer = new FeeFlow();
             peripheryAddresses.feeFlowController = deployer.deploy(
                 coreAddresses.evc,
-                FEE_FLOW_INIT_PRICE,
-                FEE_FLOW_PAYMENT_TOKEN,
-                FEE_FLOW_PAYMENT_RECEIVER,
-                FEE_FLOW_EPOCH_PERIOD,
-                FEE_FLOW_PRICE_MULTIPLIER,
-                FEE_FLOW_MIN_INIT_PRICE
+                input.feeFlowInitPrice,
+                input.feeFlowPaymentToken,
+                input.feeFlowPaymentReceiver,
+                input.feeFlowEpochPeriod,
+                input.feeFlowPriceMultiplier,
+                input.feeFlowMinInitPrice
             );
         }
         // additional fee flow configuration
@@ -145,9 +150,11 @@ contract DeployCoreAndPeriphery is ScriptUtils {
         }
 
         // save results
-        vm.writeJson(serializeCoreAddresses(coreAddresses), getInputConfigFilePath("CoreAddresses.json"));
-        vm.writeJson(serializePeripheryAddresses(peripheryAddresses), getInputConfigFilePath("PeripheryAddresses.json"));
-        vm.writeJson(serializeLensAddresses(lensAddresses), getInputConfigFilePath("LensAddresses.json"));
+        vm.writeJson(serializeCoreAddresses(coreAddresses), getInputConfigFilePath("50_CoreAddresses_output.json"));
+        vm.writeJson(
+            serializePeripheryAddresses(peripheryAddresses), getInputConfigFilePath("50_PeripheryAddresses_output.json")
+        );
+        vm.writeJson(serializeLensAddresses(lensAddresses), getInputConfigFilePath("50_LensAddresses_output.json"));
 
         return (coreAddresses, peripheryAddresses, lensAddresses);
     }

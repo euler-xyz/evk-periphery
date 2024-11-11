@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ManageCluster} from "../ManageCluster.s.sol";
+import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 

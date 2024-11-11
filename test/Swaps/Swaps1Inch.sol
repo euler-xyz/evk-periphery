@@ -572,9 +572,8 @@ contract Swaps1Inch is EVaultTestBase {
             data: abi.encodeCall(swapVerifier.verifyAmountMinAndSkim, (address(eUSDC), user, 200e6, type(uint256).max))
         });
         bytes memory err = abi.encodeWithSignature("Error(string)", ("TransferHelper: TRANSFER_FROM_FAILED"));
-        bytes memory swapperErr = abi.encodePacked(
-            bytes4(keccak256("Swapper_SwapError(address,bytes)")), abi.encode(uniswapRouterV2, err)
-        );
+        bytes memory swapperErr =
+            abi.encodePacked(bytes4(keccak256("Swapper_SwapError(address,bytes)")), abi.encode(uniswapRouterV2, err));
         vm.expectRevert(swapperErr);
         evc.batch(items);
     }
@@ -637,9 +636,8 @@ contract Swaps1Inch is EVaultTestBase {
         });
 
         bytes memory err = abi.encodeWithSignature("Error(string)", ("STF"));
-        bytes memory swapperErr = abi.encodePacked(
-            bytes4(keccak256("Swapper_SwapError(address,bytes)")), abi.encode(uniswapRouterV3, err)
-        );
+        bytes memory swapperErr =
+            abi.encodePacked(bytes4(keccak256("Swapper_SwapError(address,bytes)")), abi.encode(uniswapRouterV3, err));
         vm.expectRevert(swapperErr);
         evc.batch(items);
     }
