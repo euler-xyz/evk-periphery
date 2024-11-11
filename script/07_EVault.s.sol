@@ -5,7 +5,10 @@ pragma solidity ^0.8.0;
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
+import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
+import {IEVault} from "evk/EVault/IEVault.sol";
 import {EulerRouterFactory} from "../src/EulerRouterFactory/EulerRouterFactory.sol";
+import {EscrowedCollateralPerspective} from "../src/Perspectives/deployed/EscrowedCollateralPerspective.sol";
 
 contract EVaultDeployer is ScriptUtils {
     function run() public broadcast returns (address oracleRouter, address eVault) {
@@ -78,6 +81,72 @@ contract EVaultDeployer is ScriptUtils {
                 abi.encodePacked(asset, deployRouterForOracle ? oracleRouter : oracle, unitOfAccount)
             )
         );
+    }
+}
+
+contract EVaultSingletonEscrowDeployer is ScriptUtils {
+    function run() public broadcast returns (address eVault) {
+        string memory inputScriptFileName = "07_EVaultSingletonEscrow_input.json";
+        string memory outputScriptFileName = "07_EVaultSingletonEscrow_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
+        address escrowedCollateralPerspective =
+            abi.decode(vm.parseJson(json, ".escrowedCollateralPerspective"), (address));
+        address eVaultFactory = abi.decode(vm.parseJson(json, ".eVaultFactory"), (address));
+        address asset = abi.decode(vm.parseJson(json, ".asset"), (address));
+
+        eVault = execute(evc, escrowedCollateralPerspective, eVaultFactory, asset);
+
+        string memory object;
+        object = vm.serializeAddress("eVault", "eVaultSingletonEscrow", eVault);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address evc, address escrowedCollateralPerspective, address eVaultFactory, address asset)
+        public
+        broadcast
+        returns (address eVault)
+    {
+        eVault = execute(evc, escrowedCollateralPerspective, eVaultFactory, asset);
+    }
+
+    function execute(address evc, address escrowedCollateralPerspective, address eVaultFactory, address asset)
+        public
+        returns (address eVault)
+    {
+        eVault = EscrowedCollateralPerspective(escrowedCollateralPerspective).singletonLookup(asset);
+
+        if (eVault == address(0)) {
+            eVault = address(
+                GenericFactory(eVaultFactory).createProxy(
+                    address(0), true, abi.encodePacked(asset, address(0), address(0))
+                )
+            );
+
+            address deployer = getDeployer();
+            IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+            items[0] = IEVC.BatchItem({
+                targetContract: eVault,
+                onBehalfOfAccount: deployer,
+                value: 0,
+                data: abi.encodeCall(IEVault(eVault).setHookConfig, (address(0), 0))
+            });
+            items[1] = IEVC.BatchItem({
+                targetContract: eVault,
+                onBehalfOfAccount: deployer,
+                value: 0,
+                data: abi.encodeCall(IEVault(eVault).setGovernorAdmin, (address(0)))
+            });
+            items[2] = IEVC.BatchItem({
+                targetContract: escrowedCollateralPerspective,
+                onBehalfOfAccount: deployer,
+                value: 0,
+                data: abi.encodeCall(
+                    EscrowedCollateralPerspective(escrowedCollateralPerspective).perspectiveVerify, (eVault, true)
+                )
+            });
+            IEVC(evc).batch(items);
+        }
     }
 }
 

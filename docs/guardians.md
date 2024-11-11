@@ -7,10 +7,11 @@ A guardian is an entity that has the ability to pause one or more vaults. Becaus
 
 This is a contract that is intended to be installed as the `upgradeAdmin` of the `GenericFactory` that is used to create EVK vaults. When invoked by a caller of suitable privilege, this contract will invoke methods on the factory.
 
-There are 2 privilege levels: default admin and guardian.
+There are 3 privilege levels: default admin and guardian.
 
 * Default admins can invoke the factory with arbitrary calldata using the `adminCall()` function.
-* Guardians can call `pause()` which replaces the factory implementation with a [ReadOnlyProxy](#ReadOnlyProxy) instance. To unpause, a default admins should use `adminCall()` to reinstate a (possibly fixed) implementation.
+* Pause Guardians can call `pause()` which replaces the factory implementation with a [ReadOnlyProxy](#ReadOnlyProxy) instance. To unpause, a default admins should use `adminCall()` to reinstate a (possibly fixed) implementation.
+* Unpause Guardians can call `unpause()` to reinstate a previously paused implementation in case the factory implementation was replaced with a [ReadOnlyProxy](#ReadOnlyProxy) instance due to a false positive.
 
 Note that invoking `pause()` on a `FactoryGovernor` will instantly pause all upgradeable vaults created by this factory, so it should be used with caution. Non-upgradeable vaults will be unaffected.
 

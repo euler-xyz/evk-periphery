@@ -8,9 +8,11 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {Errors} from "euler-price-oracle/lib/Errors.sol";
+import {OracleLens} from "../../src/Lens/OracleLens.sol";
 
 contract SanityCheckOracle is Script {
     function run() public view {
+        address oracleLens = vm.envOr("ORACLE_LENS", address(0));
         address vault = vm.envOr("VAULT_ADDRESS", address(0));
         address[] memory vaults;
 
@@ -22,16 +24,16 @@ contract SanityCheckOracle is Script {
             }
 
             for (uint256 i = 0; i < vaults.length; ++i) {
-                OracleVerifier.verifyOracleConfig(vaults[i]);
+                OracleVerifier.verifyOracleConfig(oracleLens, vaults[i]);
             }
         } else {
-            OracleVerifier.verifyOracleConfig(vault);
+            OracleVerifier.verifyOracleConfig(oracleLens, vault);
         }
     }
 }
 
 library OracleVerifier {
-    function verifyOracleConfig(address vault) internal view {
+    function verifyOracleConfig(address oracleLens, address vault) internal view {
         address asset = IEVault(vault).asset();
         address unitOfAccount = IEVault(vault).unitOfAccount();
         address oracle = IEVault(vault).oracle();
@@ -39,9 +41,7 @@ library OracleVerifier {
 
         console.log("Checking oracle config for %s (%s)", IEVault(vault).symbol(), vault);
         if (collaterals.length == 0) {
-            require(unitOfAccount == address(0), "unitOfAccount is not zero");
-            require(oracle == address(0), "oracle is not zero");
-            console.log("No oracle & unitOfAccount configured");
+            console.log("No collaterals configured. Oracle config irrelevant");
         } else {
             address unwrappedAsset = EulerRouter(oracle).resolvedVaults(asset);
             if (unwrappedAsset != address(0)) {
@@ -55,7 +55,7 @@ library OracleVerifier {
                 );
             }
 
-            OracleVerifier.verifyOracleCall(oracle, asset, unitOfAccount);
+            OracleVerifier.verifyOracleCall(oracleLens, oracle, asset, unitOfAccount);
 
             for (uint256 i = 0; i < collaterals.length; ++i) {
                 require(
@@ -66,13 +66,13 @@ library OracleVerifier {
                     EulerRouter(oracle).getConfiguredOracle(collaterals[i], unitOfAccount) == address(0),
                     "collateral short-circuiting adapter"
                 );
-                OracleVerifier.verifyOracleCall(oracle, collaterals[i], unitOfAccount);
+                OracleVerifier.verifyOracleCall(oracleLens, oracle, collaterals[i], unitOfAccount);
             }
             console.log("Oracle config is valid\n");
         }
     }
 
-    function verifyOracleCall(address oracle, address base, address quote) internal view {
+    function verifyOracleCall(address oracleLens, address oracle, address base, address quote) internal view {
         (, address finalBase,, address finalOracle) = EulerRouter(oracle).resolveOracle(0, base, quote);
         string memory oracleName =
             finalOracle == address(0) ? base == quote ? "Direct" : "Unknown" : IPriceOracle(finalOracle).name();
@@ -88,15 +88,7 @@ library OracleVerifier {
             price = abi.decode(result, (uint256));
             require(price > 0, "price is zero");
         } else {
-            bytes4 err = bytes4(result);
-
-            if (_strEq(oracleName, "PythOracle")) {
-                require(err == Errors.PriceOracle_InvalidAnswer.selector, "error is not PriceOracle_InvalidAnswer");
-            } else if (_strEq(oracleName, "RedstoneCoreOracle")) {
-                require(err == Errors.PriceOracle_TooStale.selector, "error is not PriceOracle_TooStale");
-            } else {
-                require(false, "unexpected oracle error");
-            }
+            require(OracleLens(oracleLens).isStalePullOracle(oracle, result), "oracle is not stale");
         }
 
         console.log("%s price for %s/%s:", oracleName, baseSymbol, quoteSymbol);

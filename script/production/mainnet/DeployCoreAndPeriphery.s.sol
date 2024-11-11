@@ -8,7 +8,7 @@ import {PeripheryFactories} from "../../02_PeripheryFactories.s.sol";
 import {EVaultImplementation} from "../../05_EVaultImplementation.s.sol";
 import {EVaultFactory} from "../../06_EVaultFactory.s.sol";
 import {Lenses} from "../../08_Lenses.s.sol";
-import {Perspectives} from "../../09_Perspectives.s.sol";
+import {EVKPerspectives} from "../../09_Perspectives.s.sol";
 import {Swap} from "../../10_Swap.s.sol";
 import {FeeFlow} from "../../11_FeeFlow.s.sol";
 import {FactoryGovernorDeployer} from "../../12_FactoryGovernor.s.sol";
@@ -17,6 +17,7 @@ import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 
 contract DeployCoreAndPeriphery is ScriptUtils {
+    address internal constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant EUL = 0xd9Fcd98c322942075A5C3860693e9f4f03AAE07b;
 
     address internal constant UNISWAP_ROUTER_V2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
@@ -47,7 +48,7 @@ contract DeployCoreAndPeriphery is ScriptUtils {
                 coreAddresses.sequenceRegistry,
                 coreAddresses.balanceTracker,
                 coreAddresses.permit2
-            ) = deployer.deploy();
+            ) = deployer.deploy(PERMIT2_ADDRESS);
         }
         // deploy periphery factories
         {
@@ -109,7 +110,7 @@ contract DeployCoreAndPeriphery is ScriptUtils {
         }
         // deploy perspectives
         {
-            Perspectives deployer = new Perspectives();
+            EVKPerspectives deployer = new EVKPerspectives();
             address[] memory perspectives = deployer.deploy(
                 coreAddresses.eVaultFactory,
                 peripheryAddresses.oracleRouterFactory,

@@ -507,7 +507,11 @@ contract Swaps1Inch is EVaultTestBase {
             data: abi.encodeCall(swapVerifier.verifyAmountMinAndSkim, (address(eUSDC), user, 1, type(uint256).max))
         });
 
-        vm.expectRevert("ERC20: transfer amount exceeds balance");
+        bytes memory err = abi.encodeWithSignature("Error(string)", ("ERC20: transfer amount exceeds balance"));
+        bytes memory swapperErr = abi.encodePacked(
+            bytes4(keccak256("Swapper_SwapError(address,bytes)")), abi.encode(oneInchAggregatorV5, err)
+        );
+        vm.expectRevert(swapperErr);
         evc.batch(items);
     }
 
@@ -567,8 +571,11 @@ contract Swaps1Inch is EVaultTestBase {
             value: 0,
             data: abi.encodeCall(swapVerifier.verifyAmountMinAndSkim, (address(eUSDC), user, 200e6, type(uint256).max))
         });
-
-        vm.expectRevert("TransferHelper: TRANSFER_FROM_FAILED");
+        bytes memory err = abi.encodeWithSignature("Error(string)", ("TransferHelper: TRANSFER_FROM_FAILED"));
+        bytes memory swapperErr = abi.encodePacked(
+            bytes4(keccak256("Swapper_SwapError(address,bytes)")), abi.encode(uniswapRouterV2, err)
+        );
+        vm.expectRevert(swapperErr);
         evc.batch(items);
     }
 
@@ -629,7 +636,11 @@ contract Swaps1Inch is EVaultTestBase {
             data: abi.encodeCall(swapVerifier.verifyAmountMinAndSkim, (address(eUSDC), user, 200e6, type(uint256).max))
         });
 
-        vm.expectRevert(bytes("STF"));
+        bytes memory err = abi.encodeWithSignature("Error(string)", ("STF"));
+        bytes memory swapperErr = abi.encodePacked(
+            bytes4(keccak256("Swapper_SwapError(address,bytes)")), abi.encode(uniswapRouterV3, err)
+        );
+        vm.expectRevert(swapperErr);
         evc.batch(items);
     }
 

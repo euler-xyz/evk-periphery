@@ -21,33 +21,13 @@ function save_results {
 
 source .env
 
-echo ""
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
-
-read -p "Do you want to deploy on a local fork? (y/n) (default: y): " local_fork
-local_fork=${local_fork:-y}
-
-if [[ $local_fork == "y" ]]; then
-    if ! pgrep -x "anvil" > /dev/null; then
-        echo "Anvil is not running. Please start Anvil and try again."
-        echo "You can spin up a local fork with the following command:"
-        echo "anvil --fork-url ${FORK_RPC_URL}"
-        exit 1
-    fi  
-fi
-
-read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
-verify_contracts=${verify_contracts:-n}
-
-if [[ $verify_contracts == "y" ]]; then
-    verify_contracts="--verify"
-fi
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-if ! script/utils/checkEnvironment.sh $verify_contracts; then
+if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
 fi
@@ -55,7 +35,7 @@ fi
 while true; do
     echo ""
     echo "Select an option to deploy:"
-    echo "0. ERC20 mock token"
+    echo "0. ERC20 tokens"
     echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
     echo "2. Periphery factories and registries"
     echo "3. Oracle adapter"
@@ -73,30 +53,74 @@ while true; do
 
     case $choice in
         0)
-            echo "Deploying ERC20 mock token..."
+            echo "Deploying ERC20 token..."
+            echo "Select the type of ERC20 token to deploy:"
+            echo "0. Mock ERC20"
+            echo "1. Reward token"
+            read -p "Enter your choice (0-1): " token_choice
 
-            baseName=00_MockERC20
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
+            baseName=00_ERC20
 
-            read -p "Enter token name (default: MockERC20): " token_name
-            token_name=${token_name:-MockERC20}
+            case $token_choice in
+                0)
+                    echo "Deploying Mock ERC20..."
 
-            read -p "Enter token symbol (default: MOCK): " token_symbol
-            token_symbol=${token_symbol:-MOCK}
+                    scriptName=${baseName}.s.sol:MockERC20Deployer
+                    jsonName=00_MockERC20
 
-            read -p "Enter token decimals (default: 18): " token_decimals
-            token_decimals=${token_decimals:-18}
+                    read -p "Enter token name (default: MockERC20): " token_name
+                    token_name=${token_name:-MockERC20}
 
-            jq -n \
-                --arg name "$token_name" \
-                --arg symbol "$token_symbol" \
-                --argjson decimals "$token_decimals" \
-                '{
-                    name: $name,
-                    symbol: $symbol,
-                    decimals: $decimals
-                }' --indent 4 > script/${jsonName}_input.json
+                    read -p "Enter token symbol (default: MOCK): " token_symbol
+                    token_symbol=${token_symbol:-MOCK}
+
+                    read -p "Enter token decimals (default: 18): " token_decimals
+                    token_decimals=${token_decimals:-18}
+
+                    jq -n \
+                        --arg name "$token_name" \
+                        --arg symbol "$token_symbol" \
+                        --argjson decimals "$token_decimals" \
+                        '{
+                            name: $name,
+                            symbol: $symbol,
+                            decimals: $decimals
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Reward token..."
+
+                    scriptName=${baseName}.s.sol:RewardTokenDeployer
+                    jsonName=00_RewardToken
+
+                    read -p "Enter EVC address: " evc
+                    read -p "Enter owner address: " owner
+                    read -p "Enter receiver address: " receiver
+                    read -p "Enter underlying token address: " underlying
+                    read -p "Enter token name: " token_name
+                    read -p "Enter token symbol: " token_symbol
+                    
+                    jq -n \
+                        --arg evc "$evc" \
+                        --arg owner "$owner" \
+                        --arg receiver "$receiver" \
+                        --arg underlying "$underlying" \
+                        --arg name "$token_name" \
+                        --arg symbol "$token_symbol" \
+                        '{
+                            evc: $evc,
+                            owner: $owner,
+                            receiver: $receiver,
+                            underlying: $underlying,
+                            name: $name,
+                            symbol: $symbol
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid token choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         1)
             echo "Deploying intergrations..."
@@ -104,6 +128,15 @@ while true; do
             baseName=01_Integrations
             scriptName=${baseName}.s.sol
             jsonName=$baseName
+
+            read -p "Enter the PERMIT2 contract address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+            permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
+
+            jq -n \
+                --arg permit2 "$permit2" \
+                '{
+                    permit2: $permit2
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         2)
             echo "Deploying periphery factories..."
@@ -549,43 +582,81 @@ while true; do
             ;;
         7)
             echo "Deploying EVault..."
+            echo "Select the type of EVault to deploy:"
+            echo "0. Vanilla EVault"
+            echo "1. Singleton Escrow EVault"
+            read -p "Enter your choice (0-1): " vault_choice
 
             baseName=07_EVault
-            scriptName=${baseName}.s.sol:EVaultDeployer
-            jsonName=$baseName
 
-            read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle
-            deploy_router_for_oracle=${deploy_router_for_oracle:-y}
+            case $vault_choice in
+                0)
+                    echo "Deploying vanilla EVault..."
+                    
+                    scriptName=${baseName}.s.sol:EVaultDeployer
+                    jsonName=07_EVault
 
-            oracle_router_factory=0x0000000000000000000000000000000000000000
-            if [[ $deploy_router_for_oracle != "n" ]]; then
-                read -p "Enter the Oracle Router Factory address: " oracle_router_factory
-            fi
-            
-            read -p "Enter the EVault Factory address: " evault_factory
-            read -p "Should the vault be upgradable? (y/n) (default: n): " upgradable
-            upgradable=${upgradable:-n}
-            read -p "Enter the Asset address: " asset
-            read -p "Enter the Oracle address: " oracle
-            read -p "Enter the Unit of Account address: " unit_of_account
+                    read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle
+                    deploy_router_for_oracle=${deploy_router_for_oracle:-y}
 
-            jq -n \
-                --argjson deployRouterForOracle "$(jq -n --argjson val \"$deploy_router_for_oracle\" 'if $val != "n" then true else false end')" \
-                --arg oracleRouterFactory "$oracle_router_factory" \
-                --arg eVaultFactory "$evault_factory" \
-                --argjson upgradable "$(jq -n --argjson val \"$upgradable\" 'if $val == "y" then true else false end')" \
-                --arg asset "$asset" \
-                --arg oracle "$oracle" \
-                --arg unitOfAccount "$unit_of_account" \
-                '{
-                    deployRouterForOracle: $deployRouterForOracle,
-                    oracleRouterFactory: $oracleRouterFactory,
-                    eVaultFactory: $eVaultFactory,
-                    upgradable: $upgradable,
-                    asset: $asset,
-                    oracle: $oracle,
-                    unitOfAccount: $unitOfAccount
-                }' --indent 4 > script/${jsonName}_input.json
+                    oracle_router_factory=0x0000000000000000000000000000000000000000
+                    if [[ $deploy_router_for_oracle != "n" ]]; then
+                        read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+                    fi
+                    
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Should the vault be upgradable? (y/n) (default: n): " upgradable
+                    upgradable=${upgradable:-n}
+                    read -p "Enter the Asset address: " asset
+                    read -p "Enter the Oracle address: " oracle
+                    read -p "Enter the Unit of Account address: " unit_of_account
+
+                    jq -n \
+                        --argjson deployRouterForOracle "$(jq -n --argjson val \"$deploy_router_for_oracle\" 'if $val != "n" then true else false end')" \
+                        --arg oracleRouterFactory "$oracle_router_factory" \
+                        --arg eVaultFactory "$evault_factory" \
+                        --argjson upgradable "$(jq -n --argjson val \"$upgradable\" 'if $val == "y" then true else false end')" \
+                        --arg asset "$asset" \
+                        --arg oracle "$oracle" \
+                        --arg unitOfAccount "$unit_of_account" \
+                        '{
+                            deployRouterForOracle: $deployRouterForOracle,
+                            oracleRouterFactory: $oracleRouterFactory,
+                            eVaultFactory: $eVaultFactory,
+                            upgradable: $upgradable,
+                            asset: $asset,
+                            oracle: $oracle,
+                            unitOfAccount: $unitOfAccount
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying singleton escrow EVault..."
+                    
+                    scriptName=${baseName}.s.sol:EVaultSingletonEscrowDeployer
+                    jsonName=07_EVaultSingletonEscrow
+
+                    read -p "Enter the EVC address: " evc
+                    read -p "Enter the Escrowed Collateral Perspective address: " escrowed_collateral_perspective
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Enter the Asset address: " asset
+
+                    jq -n \
+                        --arg evc "$evc" \
+                        --arg escrowedCollateralPerspective "$escrowed_collateral_perspective" \
+                        --arg eVaultFactory "$evault_factory" \
+                        --arg asset "$asset" \
+                        '{
+                            evc: $evc,
+                            escrowedCollateralPerspective: $escrowedCollateralPerspective,
+                            eVaultFactory: $eVaultFactory,
+                            asset: $asset
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid EVault choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         8)
             echo "Deploying lenses..."
@@ -712,33 +783,62 @@ while true; do
             ;;
         9)
             echo "Deploying Perspectives..."
-            
+            echo "Select the type of perspectives to deploy:"
+            echo "0. EVK Perspectives"
+            echo "1. Euler Earn Perspectives"
+            read -p "Enter your choice (0-1): " perspectives_choice
+
             baseName=09_Perspectives
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
 
-            read -p "Enter the EVault Factory address: " evault_factory
-            read -p "Enter the Oracle Router Factory address: " oracle_router_factory
-            read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
-            read -p "Enter the External Vault Registry address: " external_vault_registry
-            read -p "Enter the Kink IRM Factory address: " kink_irm_factory
-            read -p "Enter the IRM Registry address: " irm_registry
+            case $perspectives_choice in
+                0)
+                    echo "Deploying EVK Perspectives..."
 
-            jq -n \
-                --arg eVaultFactory "$evault_factory" \
-                --arg oracleRouterFactory "$oracle_router_factory" \
-                --arg oracleAdapterRegistry "$oracle_adapter_registry" \
-                --arg externalVaultRegistry "$external_vault_registry" \
-                --arg kinkIRMFactory "$kink_irm_factory" \
-                --arg irmRegistry "$irm_registry" \
-                '{
-                    eVaultFactory: $eVaultFactory,
-                    oracleRouterFactory: $oracleRouterFactory,
-                    oracleAdapterRegistry: $oracleAdapterRegistry,
-                    externalVaultRegistry: $externalVaultRegistry,
-                    kinkIRMFactory: $kinkIRMFactory,
-                    irmRegistry: $irmRegistry
-                }' --indent 4 > script/${jsonName}_input.json
+                    scriptName=${baseName}.s.sol:EVKPerspectives
+                    jsonName=09_EVKPerspectives
+
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+                    read -p "Enter the External Vault Registry address: " external_vault_registry
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+                    read -p "Enter the IRM Registry address: " irm_registry
+
+                    jq -n \
+                        --arg eVaultFactory "$evault_factory" \
+                        --arg oracleRouterFactory "$oracle_router_factory" \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        --arg externalVaultRegistry "$external_vault_registry" \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        --arg irmRegistry "$irm_registry" \
+                        '{
+                            eVaultFactory: $eVaultFactory,
+                            oracleRouterFactory: $oracleRouterFactory,
+                            oracleAdapterRegistry: $oracleAdapterRegistry,
+                            externalVaultRegistry: $externalVaultRegistry,
+                            kinkIRMFactory: $kinkIRMFactory,
+                            irmRegistry: $irmRegistry
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Euler Earn Perspectives..."
+
+                    scriptName=${baseName}.s.sol:EulerEarnPerspectives
+                    jsonName=09_EulerEarnPerspectives
+
+                    read -p "Enter the Euler Earn Factory address: " euler_earn_factory
+
+                    jq -n \
+                        --arg eulerEarnFactory "$euler_earn_factory" \
+                        '{
+                            eulerEarnFactory: $eulerEarnFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid perspectives choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         10)
             echo "Deploying Swapper..."
@@ -819,6 +919,6 @@ while true; do
             ;;
     esac
 
-    script/utils/executeForgeScript.sh $scriptName $verify_contracts
+    script/utils/executeForgeScript.sh $scriptName "$@"
     save_results $jsonName "$deployment_name"
 done
