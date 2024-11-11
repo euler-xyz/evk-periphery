@@ -1,24 +1,5 @@
 #!/bin/bash
 
-function save_results {
-    local jsonName=$1
-    local deployment_name=$2
-    local deployment_dir="script/deployments/$deployment_name"
-    local chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-
-    mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broadcast"
-
-    if [[ -f "script/${jsonName}_output.json" ]]; then
-        local counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
-
-        mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
-        mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"
-        mv "./broadcast/${jsonName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
-    else
-        rm "script/${jsonName}_input.json"
-    fi
-}
-
 source .env
 
 echo "Welcome to the deployment script!"
@@ -49,7 +30,10 @@ while true; do
     echo "11. Fee Flow"
     echo "12. EVault Factory Governor"
     echo "13. Terms of Use Signer"
-    read -p "Enter your choice (0-13): " choice
+    echo "50. Core and Periphery"
+    echo "51. Core Ownership Transfer"
+    echo "52. Periphery Ownership Transfer"
+    read -p "Enter your choice: " choice
 
     case $choice in
         0)
@@ -913,12 +897,131 @@ while true; do
                     evc: $evc
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
+        50)
+            echo "Deploying Core and Periphery..."
+
+            baseName=50_CoreAndPeriphery
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+            permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
+
+            read -p "Enter the Uniswap Router V2 address (default: 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D): " uniswap_router_v2
+            uniswap_router_v2=${uniswap_router_v2:-0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D}
+
+            read -p "Enter the Uniswap Router V3 address (default: 0xE592427A0AEce92De3Edee1F18E0157C05861564): " uniswap_router_v3
+            uniswap_router_v3=${uniswap_router_v3:-0xE592427A0AEce92De3Edee1F18E0157C05861564}
+
+            read -p "Enter the init price (default: 1e18): " init_price
+            init_price=${init_price:-1000000000000000000}
+
+            read -p "Enter the payment token address: " payment_token
+            read -p "Enter the payment receiver address: " payment_receiver
+            
+            read -p "Enter the epoch period (seconds) (default: 14 days): " epoch_period
+            epoch_period=${epoch_period:-1209600}
+
+            read -p "Enter the price multiplier (default: 2e18): " price_multiplier
+            price_multiplier=${price_multiplier:-2000000000000000000}
+
+            read -p "Enter the min init price (default: 1e6): " min_init_price
+            min_init_price=${min_init_price:-1000000}
+
+            jq -n \
+                --arg permit2 "$permit2" \
+                --arg uniswapRouterV2 "$uniswap_router_v2" \
+                --arg uniswapRouterV3 "$uniswap_router_v3" \
+                --argjson initPrice "$init_price" \
+                --arg paymentToken "$payment_token" \
+                --arg paymentReceiver "$payment_receiver" \
+                --argjson epochPeriod "$epoch_period" \
+                --argjson priceMultiplier "$price_multiplier" \
+                --argjson minInitPrice "$min_init_price" \
+                '{
+                    permit2: $permit2,
+                    uniswapV2Router: $uniswapRouterV2,
+                    uniswapV3Router: $uniswapRouterV3,
+                    feeFlowInitPrice: $initPrice,
+                    feeFlowPaymentToken: $paymentToken,
+                    feeFlowPaymentReceiver: $paymentReceiver,
+                    feeFlowEpochPeriod: $epochPeriod,
+                    feeFlowPriceMultiplier: $priceMultiplier,
+                    feeFlowMinInitPrice: $minInitPrice
+                }' --indent 4 > script/${jsonName}_input.json
+            ;;
+        51)
+            echo "Core Ownership Transfer..."
+
+            baseName=51_OwnershipTransferCore
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            read -p "Enter the Protocol Config Admin address: " protocol_config_admin
+            read -p "Enter the EVault Factory Governor Admin address: " evault_factory_governor_admin
+
+            jq -n \
+                --arg protocolConfigAdmin "$protocol_config_admin" \
+                --arg eVaultFactoryGovernorAdmin "$evault_factory_governor_admin" \
+                '{
+                    protocolConfigAdmin: $protocolConfigAdmin,
+                    eVaultFactoryGovernorAdmin: $eVaultFactoryGovernorAdmin
+                }' --indent 4 > script/${jsonName}_input.json
+            ;;
+        52)
+            echo "Periphery Ownership Transfer..."
+
+            baseName=52_OwnershipTransferPeriphery
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            read -p "Enter the Oracle Adapter Registry Admin address: " oracle_adapter_registry_admin
+            read -p "Enter the External Vault Registry Admin address: " external_vault_registry_admin
+            read -p "Enter the IRM Registry Admin address: " irm_registry_admin
+            read -p "Enter the Governed Perspective Admin address: " governed_perspective_admin
+
+            jq -n \
+                --arg oracleAdapterRegistryOwner "$oracle_adapter_registry_owner" \
+                --arg externalVaultRegistryOwner "$external_vault_registry_owner" \
+                --arg irmRegistryOwner "$irm_registry_owner" \
+                --arg governedPerspectiveOwner "$governed_perspective_owner" \
+                '{
+                    oracleAdapterRegistryOwner: $oracleAdapterRegistryOwner,
+                    externalVaultRegistryOwner: $externalVaultRegistryOwner,
+                    irmRegistryOwner: $irmRegistryOwner,
+                    governedPerspectiveOwner: $governedPerspectiveOwner
+                }' --indent 4 > script/${jsonName}_input.json
+            ;;
         *)
             echo "Invalid choice. Exiting."
             exit 1
             ;;
     esac
 
-    script/utils/executeForgeScript.sh $scriptName "$@"
-    save_results $jsonName "$deployment_name"
+    if script/utils/executeForgeScript.sh $scriptName "$@"; then
+        chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+        deployment_dir="script/deployments/$deployment_name"
+        mkdir -p "$deployment_dir/broadcast" "$deployment_dir/input" "$deployment_dir/output"
+
+        counter=$(script/utils/getFileNameCounter.sh "broadcast/${scriptName}/$chainId/run-latest.json")
+        cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${baseName}_${counter}.json"
+
+        for json_file in script/*_input.json; do
+            jsonFileName=$(basename "${json_file/_input/}")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/_input/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/input/${jsonFileName%.json}_$counter.json"
+        done
+
+        for json_file in script/*_output.json; do
+            jsonFileName=$(basename "${json_file/_output/}")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
+        done
+    else
+        for json_file in script/*.json; do
+            rm "$json_file"
+        done
+    fi
 done

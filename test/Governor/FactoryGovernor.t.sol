@@ -287,7 +287,9 @@ contract FactoryGovernorTests is EVaultTestBase {
         bytes32 unpauseAdminRole = factoryGovernor.UNPAUSE_ADMIN_ROLE();
 
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, unpauseAdmin2, unpauseAdminRole)
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, unpauseAdmin2, unpauseAdminRole
+            )
         );
         vm.prank(unpauseAdmin2);
         factoryGovernor.unpause(address(factory));
@@ -309,7 +311,9 @@ contract FactoryGovernorTests is EVaultTestBase {
         factoryGovernor.revokeRole(unpauseAdminRole, unpauseAdmin);
 
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, unpauseAdmin, unpauseAdminRole)
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, unpauseAdmin, unpauseAdminRole
+            )
         );
         vm.prank(unpauseAdmin);
         factoryGovernor.unpause(address(factory));
