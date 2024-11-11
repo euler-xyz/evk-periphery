@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ManageClusterBase} from "../ManageClusterBase.s.sol";
+import {ManageClusterBase} from "../../ManageClusterBase.s.sol";
 
 abstract contract Addresses {
     address internal constant EULER_DEPLOYER = 0xEe009FAF00CF54C1B4387829aF7A8Dc5f0c8C8C5;
