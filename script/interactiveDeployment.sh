@@ -663,14 +663,14 @@ while true; do
                     scriptName=${baseName}.s.sol:Lenses
                     jsonName=08_Lenses
 
-                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+                    read -p "Enter the Indicative Oracle Router address: " indicative_oracle_router
                     read -p "Enter the Kink IRM Factory address: " kink_irm_factory
 
                     jq -n \
-                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        --arg indicativeOracleRouter "$indicative_oracle_router" \
                         --arg kinkIRMFactory "$kink_irm_factory" \
                         '{
-                            oracleAdapterRegistry: $oracleAdapterRegistry,
+                            indicativeOracleRouter: $indicativeOracleRouter,
                             kinkIRMFactory: $kinkIRMFactory
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
@@ -722,14 +722,6 @@ while true; do
 
                     scriptName=${baseName}.s.sol:LensOracleDeployer
                     jsonName=08_LensOracle
-
-                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
-
-                    jq -n \
-                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
-                        '{
-                            oracleAdapterRegistry: $oracleAdapterRegistry
-                        }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 5)
                     echo "Deploying IRM Lens..."
@@ -751,19 +743,19 @@ while true; do
                     scriptName=${baseName}.s.sol:LensUtilsDeployer
                     jsonName=08_LensUtils
                     
-                    read -p "Enter the Oracle Lens address: " oracle_lens
+                    read -p "Enter the Indicative Oracle Router address: " indicative_oracle_router
 
                     jq -n \
-                        --arg oracleLens "$oracle_lens" \
+                        --arg indicativeOracleRouter "$indicative_oracle_router" \
                         '{
-                            oracleLens: $oracleLens
+                            indicativeOracleRouter: $indicativeOracleRouter
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
                     echo "Invalid lens choice. Exiting."
                     exit 1
                     ;;
-            esac            
+            esac
             ;;
         9)
             echo "Deploying Perspectives..."

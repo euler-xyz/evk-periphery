@@ -11,7 +11,7 @@ contract OracleLensChainlinkTest is ChainlinkOracleHelper {
     OracleLens lens;
 
     function setUp() public {
-        lens = new OracleLens(address(0));
+        lens = new OracleLens();
     }
 
     function testChainlinkOracle(FuzzableState memory s) public {

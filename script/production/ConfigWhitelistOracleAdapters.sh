@@ -13,6 +13,7 @@ shift
 
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
+indicative_oracle_router=$(jq -r '.indicativeOracleRouter' "$addresses_dir_path/PeripheryAddresses.json")
 adapter_registry=$(jq -r '.oracleAdapterRegistry' "$addresses_dir_path/PeripheryAddresses.json")
 external_vault_registry=$(jq -r '.externalVaultRegistry' "$addresses_dir_path/PeripheryAddresses.json")
 
@@ -22,6 +23,7 @@ if ! script/utils/checkEnvironment.sh; then
 fi
 
 echo "The EVC address is: $evc"
+echo "The Indicative Oracle Router address is: $indicative_oracle_router"
 echo "The Adapter Registry address is: $adapter_registry"
 echo "The External Vault Registry address is: $external_vault_registry"
 
@@ -64,6 +66,10 @@ if [ -z "$onBehalfOf" ]; then
     exit 1
 fi
 
+if ! script/utils/checkIndicativePrice.sh "$csv_file"; then
+    exit 1
+fi
+
 items="["
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
@@ -73,6 +79,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     base="${columns[5]}"
     quote="${columns[6]}"
     whitelist="${columns[7]}"
+    indicativePrice="${columns[8]}"
     registry=$adapter_registry
 
     if [[ "$adapter" == "Adapter" ]]; then
@@ -108,6 +115,22 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         fi
     else
         echo "Invalid Whitelist value for adapter $adapterName ($adapter). Skipping..."
+    fi
+
+    if [[ "$indicativePrice" == "Yes" ]]; then
+        echo "Adding 'govSetConfig' set batch item for adapter $adapterName ($adapter)."
+        items+="($indicative_oracle_router,$onBehalfOf,0,$(cast calldata "govSetConfig(address,address,address)" $base $quote $adapter)),"
+    elif [[ "$indicativePrice" == "No" ]]; then
+        oracle=$(cast call $indicative_oracle_router "getConfiguredOracle(address,address)(address)" $base $quote --rpc-url $DEPLOYMENT_RPC_URL)
+        oracle=$(echo "${oracle}" | tr '[:upper:]' '[:lower:]')
+        adapter=$(echo "${adapter}" | tr '[:upper:]' '[:lower:]')
+
+        if [[ "$oracle" == "$adapter" ]]; then
+            echo "Adding 'govSetConfig' clear batch item for adapter $adapterName ($adapter)."
+            items+="($indicative_oracle_router,$onBehalfOf,0,$(cast calldata "govSetConfig(address,address,address)" $base $quote 0x0000000000000000000000000000000000000000)),"
+        fi
+    else
+        echo "Invalid Indicative Price value for adapter $adapterName ($adapter). Skipping..."
     fi
 done < <(tr -d '\r' < "$csv_file")
 

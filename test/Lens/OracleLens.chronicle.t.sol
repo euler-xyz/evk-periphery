@@ -11,7 +11,7 @@ contract OracleLensChronicleTest is ChronicleOracleHelper {
     OracleLens lens;
 
     function setUp() public {
-        lens = new OracleLens(address(0));
+        lens = new OracleLens();
     }
 
     function testChronicleOracle(FuzzableState memory s) public {

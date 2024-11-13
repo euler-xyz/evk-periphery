@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 import {Utils} from "./Utils.sol";
-import {SnapshotRegistry} from "../SnapshotRegistry/SnapshotRegistry.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
 import {Errors} from "euler-price-oracle/lib/Errors.sol";
 import "./LensTypes.sol";
@@ -44,12 +43,6 @@ interface IOracle is IPriceOracle {
 }
 
 contract OracleLens is Utils {
-    SnapshotRegistry public immutable adapterRegistry;
-
-    constructor(address _adapterRegistry) {
-        adapterRegistry = SnapshotRegistry(_adapterRegistry);
-    }
-
     function getOracleInfo(address oracleAddress, address[] memory bases, address[] memory quotes)
         public
         view
@@ -221,10 +214,6 @@ contract OracleLens is Utils {
         return _isStalePythOracle(oracleAddress, failureReasonSelector)
             || _isStaleRedstoneOracle(oracleAddress, failureReasonSelector)
             || _isStaleCrossAdapter(oracleAddress, failureReasonSelector);
-    }
-
-    function getValidAdapters(address base, address quote) public view returns (address[] memory) {
-        return adapterRegistry.getValidAddresses(base, quote, block.timestamp);
     }
 
     function _routerResolve(

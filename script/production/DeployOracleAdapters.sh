@@ -1,5 +1,8 @@
 #!/bin/bash
 
+indicative_price
+yes_keys=()
+
 find_adapter_address() {
     local adapter_name="$1"
     local adapters_list="$2"
@@ -23,6 +26,56 @@ find_adapter_address() {
     echo "$result"
 }
 
+load_indicative_price_yes_keys() {
+    local adapters_list="$1"
+
+    if [[ -f "$adapters_list" ]]; then
+        while IFS=, read -r -a adapter_columns || [ -n "$adapter_columns" ]; do
+            local base_col=$(echo "${adapter_columns[5]}" | tr '[:upper:]' '[:lower:]')
+            local quote_col=$(echo "${adapter_columns[6]}" | tr '[:upper:]' '[:lower:]')
+            local indicative_price_col="${adapter_columns[8]}"
+            local key="${base_col}:${quote_col}"
+
+            if [[ "$indicative_price_col" == "Yes" && " ${yes_keys[*]} " != *" $key "* ]]; then
+                yes_keys+=("$key")
+            fi
+        done < <(tr -d '\r' < "$adapters_list")
+    fi
+}
+
+determine_indicative_price() {
+    local base=$1
+    local quote=$2
+    local router=$3
+    local utils_lens=$4
+
+    local USD=0x0000000000000000000000000000000000000348
+    local ETH=$(cast call $utils_lens "getWETHAddress()(address)" --rpc-url $DEPLOYMENT_RPC_URL)
+    local BTC=0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB
+
+    base=$(echo "$base" | tr '[:upper:]' '[:lower:]')
+    quote=$(echo "$quote" | tr '[:upper:]' '[:lower:]')
+    ETH=$(echo "$ETH" | tr '[:upper:]' '[:lower:]')
+    BTC=$(echo "$BTC" | tr '[:upper:]' '[:lower:]')
+
+    local key="${base}:${quote}"
+    local alternate_key="${base}:${USD}"
+    indicative_price="No"
+
+    if [[ "$quote" == "$USD" || "$quote" == "$ETH" || "$quote" == "$BTC" ]]; then
+        local oracle=$(cast call $router "getConfiguredOracle(address,address)(address)" $base $quote --rpc-url $DEPLOYMENT_RPC_URL)
+
+        if [[ "$oracle" == "0x0000000000000000000000000000000000000000" ]]; then
+            oracle=$(cast call $router "getConfiguredOracle(address,address)(address)" $base $USD --rpc-url $DEPLOYMENT_RPC_URL)
+
+            if [[ "$oracle" == "0x0000000000000000000000000000000000000000" && " ${yes_keys[*]} " != *" $key "* && " ${yes_keys[*]} " != *" $alternate_key "* ]]; then
+                indicative_price="Yes"
+                yes_keys+=("$key")
+            fi
+        fi
+    fi
+}
+
 if [ -z "$1" ]; then
     echo "Usage: $0 <csv_input_file_path> [csv_oracle_adapters_addresses_path]"
     exit 1
@@ -34,10 +87,19 @@ if [ ! -z "$2" ] && [[ ! -f "$2" ]]; then
     exit 1
 fi
 
+source .env
+
 csv_file="$1"
 csv_oracle_adapters_addresses_path="$2"
 shift
 shift
+
+addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
+indicative_oracle_router=$(jq -r '.indicativeOracleRouter' "$addresses_dir_path/PeripheryAddresses.json")
+utils_lens=$(jq -r '.utilsLens' "$addresses_dir_path/LensAddresses.json")
+
+echo "The Indicative Oracle Router address is: $indicative_oracle_router"
+echo "The Utils Lens address is: $utils_lens"
 
 if [[ "$@" == *"--verbose"* ]]; then
     set -- "${@/--verbose/}"
@@ -52,7 +114,6 @@ fi
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-source .env
 deployment_dir="script/deployments/$deployment_name"
 oracleAdaptersAddresses="$deployment_dir/output/OracleAdaptersAddresses.csv"
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
@@ -70,7 +131,11 @@ if [ -f "$csv_oracle_adapters_addresses_path" ]; then
 fi
 
 if [[ ! -f "$oracleAdaptersAddresses" ]]; then
-    echo "Asset,Quote,Provider,Adapter Name,Adapter,Base,Quote,Whitelist" > "$oracleAdaptersAddresses"
+    echo "Asset,Quote,Provider,Adapter Name,Adapter,Base,Quote,Whitelist,Indicative Price" > "$oracleAdaptersAddresses"
+fi
+
+if [[ -n "$csv_oracle_adapters_addresses_path" ]]; then
+    load_indicative_price_yes_keys "$csv_oracle_adapters_addresses_path"
 fi
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
@@ -402,14 +467,19 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
     script/utils/executeForgeScript.sh $scriptName "$@"
 
     if [[ -f "script/${jsonName}_output.json" ]]; then
+        indicative_price="No"
+        if [[ "$shouldWhitelist" == "Yes" ]]; then
+            determine_indicative_price "$base" "$quote" "$indicative_oracle_router" "$utils_lens"
+        fi
+
         counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
         adapter=$(jq -r '.adapter' "script/${jsonName}_output.json")
-        entry="${baseSymbol},${quoteSymbol},${provider},${adapterName},${adapter},$base,$quote,${shouldWhitelist}"
+        entry="${baseSymbol},${quoteSymbol},${provider},${adapterName},${adapter},$base,$quote,${shouldWhitelist},${indicative_price}"
 
         echo "Successfully deployed $adapterName: $adapter"
         echo "$entry" >> "$oracleAdaptersAddresses"
 
-        if [[ "$add_to_csv" == "y" ]]; then
+        if [[ "$add_to_csv" == "y" && "$csv_oracle_adapters_addresses_path" != "$oracleAdaptersAddresses" ]]; then
             echo "$entry" >> "$csv_oracle_adapters_addresses_path"
         fi
 

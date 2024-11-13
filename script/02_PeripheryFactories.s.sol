@@ -13,6 +13,7 @@ contract PeripheryFactories is ScriptUtils {
         broadcast
         returns (
             address oracleRouterFactory,
+            address indicativeOracleRouter,
             address oracleAdapterRegistry,
             address externalVaultRegistry,
             address kinkIRMFactory,
@@ -24,10 +25,18 @@ contract PeripheryFactories is ScriptUtils {
         string memory json = getInputConfig(inputScriptFileName);
         address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
 
-        (oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory, irmRegistry) = execute(evc);
+        (
+            oracleRouterFactory,
+            indicativeOracleRouter,
+            oracleAdapterRegistry,
+            externalVaultRegistry,
+            kinkIRMFactory,
+            irmRegistry
+        ) = execute(evc);
 
         string memory object;
         object = vm.serializeAddress("peripheryFactories", "oracleRouterFactory", oracleRouterFactory);
+        object = vm.serializeAddress("peripheryFactories", "indicativeOracleRouter", indicativeOracleRouter);
         object = vm.serializeAddress("peripheryFactories", "oracleAdapterRegistry", oracleAdapterRegistry);
         object = vm.serializeAddress("peripheryFactories", "externalVaultRegistry", externalVaultRegistry);
         object = vm.serializeAddress("peripheryFactories", "kinkIRMFactory", kinkIRMFactory);
@@ -40,19 +49,28 @@ contract PeripheryFactories is ScriptUtils {
         broadcast
         returns (
             address oracleRouterFactory,
+            address indicativeOracleRouter,
             address oracleAdapterRegistry,
             address externalVaultRegistry,
             address kinkIRMFactory,
             address irmRegistry
         )
     {
-        (oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory, irmRegistry) = execute(evc);
+        (
+            oracleRouterFactory,
+            indicativeOracleRouter,
+            oracleAdapterRegistry,
+            externalVaultRegistry,
+            kinkIRMFactory,
+            irmRegistry
+        ) = execute(evc);
     }
 
     function execute(address evc)
         public
         returns (
             address oracleRouterFactory,
+            address indicativeOracleRouter,
             address oracleAdapterRegistry,
             address externalVaultRegistry,
             address kinkIRMFactory,
@@ -60,6 +78,7 @@ contract PeripheryFactories is ScriptUtils {
         )
     {
         oracleRouterFactory = address(new EulerRouterFactory(evc));
+        indicativeOracleRouter = address(EulerRouterFactory(oracleRouterFactory).deploy(getDeployer()));
         oracleAdapterRegistry = address(new SnapshotRegistry(evc, getDeployer()));
         externalVaultRegistry = address(new SnapshotRegistry(evc, getDeployer()));
         kinkIRMFactory = address(new EulerKinkIRMFactory());

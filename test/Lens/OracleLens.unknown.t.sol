@@ -11,7 +11,7 @@ contract OracleLensUnknownTest is Test {
     OracleLens lens;
 
     function setUp() public {
-        lens = new OracleLens(address(0));
+        lens = new OracleLens();
     }
 
     function testUnknownOracle() public {

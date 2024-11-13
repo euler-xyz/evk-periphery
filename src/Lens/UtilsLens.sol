@@ -4,15 +4,15 @@ pragma solidity ^0.8.0;
 
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
-import {OracleLens} from "./OracleLens.sol";
+import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {Utils} from "./Utils.sol";
 import "./LensTypes.sol";
 
 contract UtilsLens is Utils {
-    OracleLens public immutable oracleLens;
+    EulerRouter public immutable indicativeOracleRouter;
 
-    constructor(address _oracleLens) {
-        oracleLens = OracleLens(_oracleLens);
+    constructor(address _indicativeOracleRouter) {
+        indicativeOracleRouter = EulerRouter(_indicativeOracleRouter);
     }
 
     function computeSupplySPY(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
@@ -88,18 +88,19 @@ contract UtilsLens is Utils {
         AssetPriceInfo memory result;
 
         result.timestamp = block.timestamp;
+        result.oracle = indicativeOracleRouter.getConfiguredOracle(asset, unitOfAccount);
 
         result.asset = asset;
         result.unitOfAccount = unitOfAccount;
 
         result.amountIn = 10 ** _getDecimals(asset);
-
-        address[] memory adapters = oracleLens.getValidAdapters(asset, unitOfAccount);
         uint256 amountIn = result.amountIn;
 
-        if (adapters.length == 0) {
-            (bool success, bytes memory data) =
-                asset.staticcall(abi.encodeCall(IEVault(asset).convertToAssets, (amountIn)));
+        bool success = true;
+        bytes memory data;
+        uint256 counter;
+        while (result.oracle == address(0) && success && counter < 3) {
+            (success, data) = asset.staticcall(abi.encodeCall(IEVault(asset).convertToAssets, (amountIn)));
 
             if (success && data.length >= 32) {
                 amountIn = abi.decode(data, (uint256));
@@ -107,39 +108,34 @@ contract UtilsLens is Utils {
 
                 if (success && data.length >= 32) {
                     asset = abi.decode(data, (address));
-                    adapters = oracleLens.getValidAdapters(asset, unitOfAccount);
+                    result.oracle = indicativeOracleRouter.getConfiguredOracle(asset, unitOfAccount);
                 }
             }
+            ++counter;
         }
 
-        if (adapters.length == 0) {
+        if (result.oracle == address(0)) {
             result.queryFailure = true;
             return result;
         }
 
-        for (uint256 i = 0; i < adapters.length; ++i) {
-            result.oracle = adapters[i];
+        (success, data) =
+            result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (amountIn, asset, unitOfAccount)));
 
-            (bool success, bytes memory data) =
-                result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (amountIn, asset, unitOfAccount)));
+        if (success && data.length >= 32) {
+            result.amountOutMid = abi.decode(data, (uint256));
+        } else {
+            result.queryFailure = true;
+            result.queryFailureReason = data;
+        }
 
-            if (success && data.length >= 32) {
-                result.amountOutMid = abi.decode(data, (uint256));
-            } else {
-                result.queryFailure = true;
-                result.queryFailureReason = data;
-            }
+        (success, data) =
+            result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuotes, (amountIn, asset, unitOfAccount)));
 
-            (success, data) =
-                result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuotes, (amountIn, asset, unitOfAccount)));
-
-            if (success && data.length >= 64) {
-                (result.amountOutBid, result.amountOutAsk) = abi.decode(data, (uint256, uint256));
-            } else {
-                result.queryFailure = true;
-            }
-
-            if (!result.queryFailure) break;
+        if (success && data.length >= 64) {
+            (result.amountOutBid, result.amountOutAsk) = abi.decode(data, (uint256, uint256));
+        } else {
+            result.queryFailure = true;
         }
 
         return result;

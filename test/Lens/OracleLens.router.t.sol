@@ -26,7 +26,7 @@ contract OracleLensEulerRouterTest is Test {
     address usdtVault;
 
     function setUp() public {
-        lens = new OracleLens(address(0));
+        lens = new OracleLens();
     }
 
     function testEulerRouter() public {

@@ -59,6 +59,7 @@ contract CoreAndPeriphery is ScriptUtils {
             PeripheryFactories deployer = new PeripheryFactories();
             (
                 peripheryAddresses.oracleRouterFactory,
+                peripheryAddresses.indicativeOracleRouter,
                 peripheryAddresses.oracleAdapterRegistry,
                 peripheryAddresses.externalVaultRegistry,
                 peripheryAddresses.kinkIRMFactory,

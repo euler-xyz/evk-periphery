@@ -15,10 +15,10 @@ contract Lenses is ScriptUtils {
         string memory inputScriptFileName = "08_Lenses_input.json";
         string memory outputScriptFileName = "08_Lenses_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
+        address indicativeOracleRouter = abi.decode(vm.parseJson(json, ".indicativeOracleRouter"), (address));
         address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
 
-        lenses = execute(oracleAdapterRegistry, kinkIRMFactory);
+        lenses = execute(indicativeOracleRouter, kinkIRMFactory);
 
         string memory object;
         object = vm.serializeAddress("lenses", "accountLens", lenses[0]);
@@ -30,20 +30,20 @@ contract Lenses is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address oracleAdapterRegistry, address kinkIRMFactory)
+    function deploy(address indicativeOracleRouter, address kinkIRMFactory)
         public
         broadcast
         returns (address[] memory lenses)
     {
-        lenses = execute(oracleAdapterRegistry, kinkIRMFactory);
+        lenses = execute(indicativeOracleRouter, kinkIRMFactory);
     }
 
-    function execute(address oracleAdapterRegistry, address kinkIRMFactory) public returns (address[] memory lenses) {
+    function execute(address indicativeOracleRouter, address kinkIRMFactory) public returns (address[] memory lenses) {
         lenses = new address[](6);
         lenses[0] = address(new AccountLens());
-        lenses[1] = address(new OracleLens(oracleAdapterRegistry));
+        lenses[1] = address(new OracleLens());
         lenses[2] = address(new IRMLens(kinkIRMFactory));
-        lenses[3] = address(new UtilsLens(address(lenses[1])));
+        lenses[3] = address(new UtilsLens(indicativeOracleRouter));
         lenses[4] = address(new VaultLens(address(lenses[1]), address(lenses[3]), address(lenses[2])));
         lenses[5] = address(new EulerEarnVaultLens(address(lenses[1]), address(lenses[3])));
     }
@@ -71,24 +71,21 @@ contract LensAccountDeployer is ScriptUtils {
 
 contract LensOracleDeployer is ScriptUtils {
     function run() public broadcast returns (address oracleLens) {
-        string memory inputScriptFileName = "08_LensOracle_input.json";
         string memory outputScriptFileName = "08_LensOracle_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
-        address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
 
-        oracleLens = execute(oracleAdapterRegistry);
+        oracleLens = execute();
 
         string memory object;
         object = vm.serializeAddress("lens", "oracleLens", oracleLens);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address oracleAdapterRegistry) public broadcast returns (address oracleLens) {
-        oracleLens = execute(oracleAdapterRegistry);
+    function deploy() public broadcast returns (address oracleLens) {
+        oracleLens = execute();
     }
 
-    function execute(address oracleAdapterRegistry) public returns (address oracleLens) {
-        oracleLens = address(new OracleLens(oracleAdapterRegistry));
+    function execute() public returns (address oracleLens) {
+        oracleLens = address(new OracleLens());
     }
 }
 
@@ -149,21 +146,21 @@ contract LensUtilsDeployer is ScriptUtils {
         string memory inputScriptFileName = "08_LensUtils_input.json";
         string memory outputScriptFileName = "08_LensUtils_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address oracleLens = abi.decode(vm.parseJson(json, ".oracleLens"), (address));
+        address indicativeOracleRouter = abi.decode(vm.parseJson(json, ".indicativeOracleRouter"), (address));
 
-        utilsLens = execute(oracleLens);
+        utilsLens = execute(indicativeOracleRouter);
 
         string memory object;
         object = vm.serializeAddress("lens", "utilsLens", utilsLens);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address oracleLens) public broadcast returns (address utilsLens) {
-        utilsLens = execute(oracleLens);
+    function deploy(address indicativeOracleRouter) public broadcast returns (address utilsLens) {
+        utilsLens = execute(indicativeOracleRouter);
     }
 
-    function execute(address oracleLens) public returns (address utilsLens) {
-        utilsLens = address(new UtilsLens(oracleLens));
+    function execute(address indicativeOracleRouter) public returns (address utilsLens) {
+        utilsLens = address(new UtilsLens(indicativeOracleRouter));
     }
 }
 

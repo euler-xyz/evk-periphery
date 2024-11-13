@@ -57,6 +57,7 @@ abstract contract CoreAddressesLib is ScriptExtended {
 abstract contract PeripheryAddressesLib is ScriptExtended {
     struct PeripheryAddresses {
         address oracleRouterFactory;
+        address indicativeOracleRouter;
         address oracleAdapterRegistry;
         address externalVaultRegistry;
         address kinkIRMFactory;
@@ -74,6 +75,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("peripheryAddresses", "oracleRouterFactory", Addresses.oracleRouterFactory);
+        result = vm.serializeAddress("peripheryAddresses", "indicativeOracleRouter", Addresses.indicativeOracleRouter);
         result = vm.serializeAddress("peripheryAddresses", "oracleAdapterRegistry", Addresses.oracleAdapterRegistry);
         result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
         result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
@@ -98,6 +100,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
         return PeripheryAddresses({
             oracleRouterFactory: getAddressFromJson(json, ".oracleRouterFactory"),
+            indicativeOracleRouter: getAddressFromJson(json, ".indicativeOracleRouter"),
             oracleAdapterRegistry: getAddressFromJson(json, ".oracleAdapterRegistry"),
             externalVaultRegistry: getAddressFromJson(json, ".externalVaultRegistry"),
             kinkIRMFactory: getAddressFromJson(json, ".kinkIRMFactory"),
@@ -221,7 +224,8 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
 
         if (isExternalVault) base = IEVault(base).asset();
 
-        address[] memory adapters = OracleLens(lensAddresses.oracleLens).getValidAdapters(base, quote);
+        address[] memory adapters =
+            SnapshotRegistry(peripheryAddresses.oracleAdapterRegistry).getValidAddresses(base, quote, block.timestamp);
 
         uint256 counter;
         for (uint256 i = 0; i < adapters.length; ++i) {
