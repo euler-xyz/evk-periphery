@@ -1,8 +1,5 @@
 #!/bin/bash
 
-indicative_price
-yes_keys=()
-
 find_adapter_address() {
     local adapter_name="$1"
     local adapters_list="$2"
