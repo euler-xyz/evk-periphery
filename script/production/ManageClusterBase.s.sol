@@ -21,8 +21,8 @@ abstract contract ManageClusterBase is BatchBuilder {
         address[] oracleRouters;
         uint32 rampDuration;
         uint16[][] ltvs;
-        address[] auxiliaryVaults;
-        uint16[][] auxiliaryLTVs;
+        address[] externalVaults;
+        uint16[][] externalLTVs;
         address unitOfAccount;
         address feeReceiver;
         uint16 interestFee;
@@ -260,7 +260,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             }
 
             setLTVs(vault, cluster.vaults, getLTVs(cluster.ltvs, i));
-            setLTVs(vault, cluster.auxiliaryVaults, getLTVs(cluster.auxiliaryLTVs, i));
+            setLTVs(vault, cluster.externalVaults, getLTVs(cluster.externalLTVs, i));
 
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
             if (hookTarget != cluster.hookTarget || hookedOps != cluster.hookedOps) {
@@ -411,7 +411,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         result = vm.serializeAddress("cluster", "oracleRouters", cluster.oracleRouters);
         result = vm.serializeAddress("cluster", "vaults", cluster.vaults);
         result = vm.serializeAddress("cluster", "irms", cluster.irms);
-        result = vm.serializeAddress("cluster", "auxiliaryVaults", cluster.auxiliaryVaults);
+        result = vm.serializeAddress("cluster", "externalVaults", cluster.externalVaults);
         result = vm.serializeAddress("cluster", "stubOracle", cluster.stubOracle);
 
         vm.writeJson(result, string.concat(vm.projectRoot(), "/script/Cluster.json"));
@@ -430,7 +430,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                 cluster.oracleRouters = getAddressesFromJson(json, ".oracleRouters");
                 cluster.vaults = getAddressesFromJson(json, ".vaults");
                 cluster.irms = getAddressesFromJson(json, ".irms");
-                cluster.auxiliaryVaults = getAddressesFromJson(json, ".auxiliaryVaults");
+                cluster.externalVaults = getAddressesFromJson(json, ".externalVaults");
                 cluster.stubOracle = getAddressFromJson(json, ".stubOracle");
             }
         }
@@ -465,7 +465,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         require(cluster.irms.length == cluster.assets.length, "IRMs and assets length mismatch");
         require(cluster.ltvs.length == cluster.assets.length, "LTVs and assets length mismatch");
         require(
-            cluster.auxiliaryLTVs.length == cluster.auxiliaryVaults.length,
+            cluster.externalLTVs.length == cluster.externalVaults.length,
             "Auxiliary LTVs and auxiliary vaults length mismatch"
         );
 
@@ -483,17 +483,17 @@ abstract contract ManageClusterBase is BatchBuilder {
             );
         }
 
-        for (uint256 i = 0; i < cluster.auxiliaryVaults.length; ++i) {
-            require(cluster.auxiliaryVaults[i] != address(0), "Auxiliary vault cannot be zero address");
+        for (uint256 i = 0; i < cluster.externalVaults.length; ++i) {
+            require(cluster.externalVaults[i] != address(0), "External vault cannot be zero address");
         }
 
         for (uint256 i = 0; i < cluster.ltvs.length; ++i) {
             require(cluster.ltvs[i].length == cluster.assets.length, "LTVs and assets length mismatch");
         }
 
-        for (uint256 i = 0; i < cluster.auxiliaryLTVs.length; ++i) {
+        for (uint256 i = 0; i < cluster.externalLTVs.length; ++i) {
             require(
-                cluster.auxiliaryLTVs[i].length == cluster.assets.length, "Auxiliary LTVs and assets length mismatch"
+                cluster.externalLTVs[i].length == cluster.assets.length, "External LTVs and assets length mismatch"
             );
         }
 

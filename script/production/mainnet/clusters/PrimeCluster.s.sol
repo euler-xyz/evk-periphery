@@ -161,9 +161,9 @@ contract Cluster is ManageCluster {
         /* 13 LBTC    */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4]
         ];
 
-        // define auxiliary ltvs here. columns are liability vaults, rows are collateral vaults. 
-        // double check the order of collaterals against the order of auxiliaryVaults in the addresses file
-        cluster.auxiliaryLTVs = [
+        // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
+        // double check the order of collaterals against the order of externalVaults in the addresses file
+        cluster.externalLTVs = [
             //                       0       1       2       3       4       5       6       7       8       9       10      11      12      13
             //                       WETH    wstETH  cbETH   WEETH   USDC    USDT    USDS    sUSDS   mTBILL  wM      tBTC    WBTC    cbBTC   LBTC
             /* 0  Escrow WETH    */ [0.00e4, 0.92e4, 0.95e4, 0.90e4, 0.87e4, 0.87e4, 0.91e4, 0.79e4, 0.91e4, 0.91e4, 0.82e4, 0.84e4, 0.85e4, 0.85e4],

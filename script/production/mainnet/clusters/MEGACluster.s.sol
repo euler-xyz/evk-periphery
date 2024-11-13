@@ -244,9 +244,9 @@ contract Cluster is ManageCluster {
         /* 35 SOLVBTC */ [0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.00e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4]
         ];
 
-        // define auxiliary ltvs here. columns are liability vaults, rows are collateral vaults. 
-        // double check the order of collaterals against the order of auxiliaryVaults in the addresses file
-        cluster.auxiliaryLTVs = [
+        // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
+        // double check the order of collaterals against the order of externalVaults in the addresses file
+        cluster.externalLTVs = [
             //                      0       1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22      23      24      25      26      27      28      29      30      31      32      33      34      35
             //                      WETH    wstETH  cbETH   WEETH   ezETH   RETH    METH    RSETH   sfrxETH ETHx    rswETH  USDC    USDT    PYUSD   USDY    wM      mTBILL  USDe    wUSDM   EURC    sUSDe   USDS    sUSDS   stUSD   stEUR   FDUSD   USD0    GHO     crvUSD  FRAX    tBTC    WBTC    cbBTC   LBTC    eBTC    SOLVBTC
             /* 0  Prime WETH    */ [0]
