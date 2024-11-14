@@ -155,7 +155,7 @@ abstract contract Utils {
 
                 if (overflow) return TTL_ERROR;
 
-                collateralInterest = collateralValues[i] * multiplier / ONE - collateralValues[i];
+                collateralInterest += collateralValues[i] * multiplier / ONE - collateralValues[i];
             }
 
             // calculate the health factor
