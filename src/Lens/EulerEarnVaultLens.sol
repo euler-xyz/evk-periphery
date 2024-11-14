@@ -18,7 +18,7 @@ contract EulerEarnVaultLens is Utils {
     constructor(address _oracleLens, address _utilsLens) {
         oracleLens = OracleLens(_oracleLens);
         utilsLens = UtilsLens(_utilsLens);
-        backupUnitsOfAccount = [address(840), _getWETHAddress(), 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB];
+        backupUnitsOfAccount = [address(840), getWETHAddress(), 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB];
     }
 
     function getVaultInfoFull(address vault) public view returns (EulerEarnVaultInfoFull memory) {
