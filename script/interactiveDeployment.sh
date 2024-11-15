@@ -1006,12 +1006,12 @@ while true; do
         deployment_dir="script/deployments/$deployment_name"
         mkdir -p "$deployment_dir/broadcast" "$deployment_dir/input" "$deployment_dir/output"
 
-        counter=$(script/utils/getFileNameCounter.sh "broadcast/${scriptName}/$chainId/run-latest.json")
-        cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${baseName}_${counter}.json"
+        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
+        cp "broadcast/${baseName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
 
         for json_file in script/*_input.json; do
             jsonFileName=$(basename "${json_file/_input/}")
-            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/_input/$jsonFileName")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/$jsonFileName")
 
             mv "$json_file" "$deployment_dir/input/${jsonFileName%.json}_$counter.json"
         done
