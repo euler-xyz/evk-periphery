@@ -1,0 +1,11 @@
+{
+  "externalVaults": [
+    "0x056f3a2E41d2778D3a0c0714439c53af2987718E",
+    "0x998D761eC1BAdaCeb064624cc3A1d37A46C88bA4",
+    "0xbC35161043EE2D74816d421EfD6a45fDa73B050A"
+  ],
+  "irms": [],
+  "oracleRouters": [],
+  "stubOracle": "0xbF045915CaF2C309A5bA1A3Ae024EFD8E54fB66c",
+  "vaults": []
+}

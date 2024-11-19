@@ -9,6 +9,7 @@ abstract contract Addresses {
     address internal constant EULER_DAO_MULTISIG = 0xcAD001c30E96765aC90307669d578219D4fb1DCe;
 
     address internal constant USD = address(840);
+    address internal constant BTC = 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB;
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address internal constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address internal constant cbETH = 0xBe9895146f7AF43049ca1c1AE358B0541Ea49704;
@@ -45,6 +46,14 @@ abstract contract Addresses {
     address internal constant LBTC = 0x8236a87084f8B84306f72007F36F2618A5634494;
     address internal constant eBTC = 0x657e8C867D8B37dCC18fA4Caead9C45EB088C642;
     address internal constant SOLVBTC = 0x7A56E1C57C7475CCf742a1832B028F0456652F97;
+    address internal constant pumpBTC = 0xF469fBD2abcd6B9de8E169d128226C0Fc90a012e;
+    address internal constant PT_LBTC_27MAR2025 = 0xEc5a52C685CC3Ad79a6a347aBACe330d69e0b1eD;
+    address internal constant PT_cornLBTC_26DEC2024 = 0x332A8ee60EdFf0a11CF3994b1b846BBC27d3DcD6;
+    address internal constant PT_EBTC_26DEC2024 = 0xB997B3418935A1Df0F914Ee901ec83927c1509A0;
+    address internal constant PT_cornEBTC_27MAR2025 = 0x44A7876cA99460ef3218bf08b5f52E2dbE199566;
+    address internal constant PT_cornPumpBTC_26DEC2024 = 0xa76f0C6e5f286bFF151b891d2A0245077F1Ad74c;
+    address internal constant PT_pumpBTC_27MAR2025 = 0x997Ec6Bf18a30Ef01ed8D9c90718C7726a213527;
+    address internal constant PT_solvBTC_26DEC2024 = 0x23e479ddcda990E8523494895759bD98cD2fDBF6;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}

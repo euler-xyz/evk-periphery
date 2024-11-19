@@ -1,5 +1,5 @@
 {
-  "auxiliaryVaults": [TODO put the Prime vaults in here],
+  "externalVaults": [TODO put the Prime vaults in here],
   "irms": [],
   "oracleRouters": [],
   "stubOracle": "0xbF045915CaF2C309A5bA1A3Ae024EFD8E54fB66c",

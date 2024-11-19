@@ -88,7 +88,7 @@ library OracleVerifier {
             price = abi.decode(result, (uint256));
             require(price > 0, "price is zero");
         } else {
-            require(OracleLens(oracleLens).isStalePullOracle(oracle, result), "oracle is not stale");
+            require(OracleLens(oracleLens).isStalePullOracle(finalOracle, result), "oracle is not stale");
         }
 
         console.log("%s price for %s/%s:", oracleName, baseSymbol, quoteSymbol);
