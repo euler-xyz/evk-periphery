@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import {CrossAdapter} from "euler-price-oracle/adapter/CrossAdapter.sol";
 import {BatchBuilder} from "../utils/ScriptUtils.s.sol";
 import {IRMLens} from "../../src/Lens/IRMLens.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
@@ -23,6 +24,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         uint16[][] ltvs;
         address[] externalVaults;
         uint16[][] externalLTVs;
+        uint16 spreadLTV;
         address unitOfAccount;
         address feeReceiver;
         uint16 interestFee;
@@ -56,6 +58,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         pendingResolvedVaults;
     mapping(address router => mapping(address base => mapping(address quote => bool set))) internal
         pendingConfiguredAdapters;
+    mapping(address router => bool transferred) internal pendingGovernanceTransfer;
 
     modifier initialize() {
         vm.pauseGasMetering();
@@ -288,8 +291,12 @@ abstract contract ManageClusterBase is BatchBuilder {
         // transfer the oracle router governance
         for (uint256 i = 0; i < cluster.oracleRouters.length; ++i) {
             address oracleRouter = cluster.oracleRouters[i];
-            if (EulerRouter(oracleRouter).governor() != cluster.oracleRoutersGovernor) {
+            if (
+                !pendingGovernanceTransfer[oracleRouter]
+                    && EulerRouter(oracleRouter).governor() != cluster.oracleRoutersGovernor
+            ) {
                 transferGovernance(oracleRouter, cluster.oracleRoutersGovernor);
+                pendingGovernanceTransfer[oracleRouter] = true;
             }
         }
 
@@ -315,6 +322,19 @@ abstract contract ManageClusterBase is BatchBuilder {
         string memory name = EulerRouter(adapter).name();
         if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle")) {
             useStub = true;
+        } else if (_strEq(name, "CrossAdapter")) {
+            address baseCross = CrossAdapter(adapter).oracleBaseCross();
+            address crossBase = CrossAdapter(adapter).oracleCrossQuote();
+
+            name = EulerRouter(baseCross).name();
+            if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle") || _strEq(name, "CrossAdapter")) {
+                useStub = true;
+            } else {
+                name = EulerRouter(crossBase).name();
+                if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle") || _strEq(name, "CrossAdapter")) {
+                    useStub = true;
+                }
+            }
         }
 
         return (base, adapter, useStub);
@@ -330,7 +350,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             (address base, address adapter, bool useStub) =
                 computeRouterConfiguration(collateralAsset, unitOfAccount, cluster.oracleProviders[collateralAsset]);
             uint16 liquidationLTV = ltvs[i];
-            uint16 borrowLTV = liquidationLTV > 0.02e4 ? liquidationLTV - 0.02e4 : 0;
+            uint16 borrowLTV = liquidationLTV > cluster.spreadLTV ? liquidationLTV - cluster.spreadLTV : 0;
             (uint16 currentBorrowLTV, uint16 targetLiquidationLTV,,,) = IEVault(vault).LTVFull(collateral);
 
             // configure the oracle router for the collateral before setting the LTV. recognize potentially pending
@@ -492,9 +512,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         }
 
         for (uint256 i = 0; i < cluster.externalLTVs.length; ++i) {
-            require(
-                cluster.externalLTVs[i].length == cluster.assets.length, "External LTVs and assets length mismatch"
-            );
+            require(cluster.externalLTVs[i].length == cluster.assets.length, "External LTVs and assets length mismatch");
         }
 
         require(bytes(cluster.clusterAddressesPath).length != 0, "Invalid cluster addresses path");
