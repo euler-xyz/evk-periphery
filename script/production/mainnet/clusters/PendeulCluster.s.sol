@@ -21,7 +21,7 @@ contract Cluster is ManageCluster {
         cluster.vaultsGovernor = EULER_DAO_MULTISIG;
 
         // define unit of account here
-        cluster.unitOfAccount = BTC;
+        cluster.unitOfAccount = USD;
 
         // define fee receiver here and interest fee here. if needed to be defined per asset, populate the feeReceiverOverride and interestFeeOverride mappings
         cluster.feeReceiver = address(0);
@@ -49,19 +49,19 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[LBTC                    ] = "RedstoneClassicOracle";
-        cluster.oracleProviders[eBTC                    ] = "FixedRateOracle";
-        cluster.oracleProviders[WBTC                    ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
-        cluster.oracleProviders[cbBTC                   ] = "CrossAdapter=ChronicleOracle+ChainlinkOracle";
-        cluster.oracleProviders[pumpBTC                 ] = "FixedRateOracle";
-        cluster.oracleProviders[SOLVBTC                 ] = "FixedRateOracle";
-        cluster.oracleProviders[PT_LBTC_27MAR2025       ] = "CrossAdapter=PendleOracle+";
-        cluster.oracleProviders[PT_cornLBTC_26DEC2024   ] = "CrossAdapter=PendleOracle+";
-        cluster.oracleProviders[PT_EBTC_26DEC2024       ] = "CrossAdapter=PendleOracle+";
-        cluster.oracleProviders[PT_cornEBTC_27MAR2025   ] = "CrossAdapter=PendleOracle+";
-        cluster.oracleProviders[PT_cornPumpBTC_26DEC2024] = "CrossAdapter=PendleOracle+";
-        cluster.oracleProviders[PT_pumpBTC_27MAR2025    ] = "CrossAdapter=PendleOracle+";
-        cluster.oracleProviders[PT_solvBTC_26DEC2024    ] = "CrossAdapter=PendleOracle+";
+        cluster.oracleProviders[LBTC                    ] = "CrossAdapter=RedstoneClassicOracle+PythOracle";
+        cluster.oracleProviders[eBTC                    ] = "CrossAdapter=RateProviderOracle+PythOracle";
+        cluster.oracleProviders[WBTC                    ] = "PythOracle";
+        cluster.oracleProviders[cbBTC                   ] = "PythOracle";
+        cluster.oracleProviders[pumpBTC                 ] = "CrossAdapter=FixedRateOracle+PythOracle";
+        cluster.oracleProviders[SOLVBTC                 ] = "CrossAdapter=FixedRateOracle+PythOracle";
+        cluster.oracleProviders[PT_LBTC_27MAR2025       ] = "CrossAdapter=PendleOracle+PythOracle";
+        cluster.oracleProviders[PT_cornLBTC_26DEC2024   ] = "CrossAdapter=PendleOracle+PythOracle";
+        cluster.oracleProviders[PT_EBTC_26DEC2024       ] = "CrossAdapter=PendleOracle+PythOracle";
+        cluster.oracleProviders[PT_cornEBTC_27MAR2025   ] = "CrossAdapter=PendleOracle+PythOracle";
+        cluster.oracleProviders[PT_cornPumpBTC_26DEC2024] = "CrossAdapter=PendleOracle+PythOracle";
+        cluster.oracleProviders[PT_pumpBTC_27MAR2025    ] = "CrossAdapter=PendleOracle+PythOracle";
+        cluster.oracleProviders[PT_solvBTC_26DEC2024    ] = "CrossAdapter=PendleOracle+PythOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[LBTC                    ] = 150;
@@ -85,13 +85,13 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[cbBTC                   ] = 128;
         cluster.borrowCaps[pumpBTC                 ] = 128;
         cluster.borrowCaps[SOLVBTC                 ] = 128;
-        cluster.borrowCaps[PT_LBTC_27MAR2025       ] = 0;
-        cluster.borrowCaps[PT_cornLBTC_26DEC2024   ] = 0;
-        cluster.borrowCaps[PT_EBTC_26DEC2024       ] = 0;
-        cluster.borrowCaps[PT_cornEBTC_27MAR2025   ] = 0;
-        cluster.borrowCaps[PT_cornPumpBTC_26DEC2024] = 0;
-        cluster.borrowCaps[PT_pumpBTC_27MAR2025    ] = 0;
-        cluster.borrowCaps[PT_solvBTC_26DEC2024    ] = 0;
+        cluster.borrowCaps[PT_LBTC_27MAR2025       ] = type(uint256).max;
+        cluster.borrowCaps[PT_cornLBTC_26DEC2024   ] = type(uint256).max;
+        cluster.borrowCaps[PT_EBTC_26DEC2024       ] = type(uint256).max;
+        cluster.borrowCaps[PT_cornEBTC_27MAR2025   ] = type(uint256).max;
+        cluster.borrowCaps[PT_cornPumpBTC_26DEC2024] = type(uint256).max;
+        cluster.borrowCaps[PT_pumpBTC_27MAR2025    ] = type(uint256).max;
+        cluster.borrowCaps[PT_solvBTC_26DEC2024    ] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
         {
@@ -111,6 +111,9 @@ contract Cluster is ManageCluster {
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
         cluster.rampDuration = 1 days;
+
+        // define the spread between borrow and liquidation ltv
+        cluster.spreadLTV = 0.02e4;
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
@@ -163,8 +166,8 @@ contract Cluster is ManageCluster {
                     peripheryAddresses.escrowedCollateralPerspective,
                     cluster.vaults[i],
                     PerspectiveVerifier.E__ORACLE_INVALID_ROUTER | PerspectiveVerifier.E__UNIT_OF_ACCOUNT | 
-                    PerspectiveVerifier.E__GOVERNOR | PerspectiveVerifier.E__FEE_RECEIVER | 
-                    PerspectiveVerifier.E__LIQUIDATION_DISCOUNT | PerspectiveVerifier.E__LIQUIDATION_COOL_OFF_TIME,
+                    PerspectiveVerifier.E__GOVERNOR | PerspectiveVerifier.E__LIQUIDATION_DISCOUNT | 
+                    PerspectiveVerifier.E__LIQUIDATION_COOL_OFF_TIME,
                     PerspectiveVerifier.E__SINGLETON
                 );
             }
