@@ -9,36 +9,47 @@ source .env
 scriptPath="${1#./}"
 scriptPath="${scriptPath#script/}"
 scriptName=$(basename "$1")
-
-read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
-verify_contracts=${verify_contracts:-n}
-
-if [[ $verify_contracts == "y" ]]; then
-    verify_contracts="--verify"
-fi
+shift
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-if ! script/utils/checkEnvironment.sh $verify_contracts; then
+if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
 fi
 
-if [[ "$@" == *"--dry-run"* ]]; then
-    dry_run="--dry-run"
-fi
+if script/utils/executeForgeScript.sh "$scriptPath" "$@"; then
+    chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+    deployment_dir="script/deployments/$deployment_name"
+    
+    if [[ "$@" == *"--dry-run"* ]]; then
+        mkdir -p "$deployment_dir/dry-run/broadcast"
 
-if script/utils/executeForgeScript.sh "$scriptPath" $verify_contracts $dry_run; then
-    if [[ $dry_run == "" ]]; then
-        deployment_dir="script/deployments/$deployment_name"
-        chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/dry-run/broadcast/${jsonName}.json")
+        cp "broadcast/${scriptName}/$chainId/dry-run/run-latest.json" "$deployment_dir/dry-run/broadcast/${jsonName}_${counter}.json"
 
+        for json_file in script/*.json; do
+            jsonFileName=$(basename "$json_file")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/dry-run/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/dry-run/${jsonFileName%.json}_$counter.json"
+        done
+    else
         mkdir -p "$deployment_dir/broadcast" "$deployment_dir/output"
-        cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${scriptName}.json"
 
-        [ -f "script/CoreAddresses.json" ] && mv "script/CoreAddresses.json" "$deployment_dir/output/CoreAddresses.json"
-        [ -f "script/PeripheryAddresses.json" ] && mv "script/PeripheryAddresses.json" "$deployment_dir/output/PeripheryAddresses.json"
-        [ -f "script/LensAddresses.json" ] && mv "script/LensAddresses.json" "$deployment_dir/output/LensAddresses.json"
+        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
+        cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
+
+        for json_file in script/*.json; do
+            jsonFileName=$(basename "$json_file")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
+        done
     fi
+else
+    for json_file in script/*.json; do
+        rm "$json_file"
+    done
 fi

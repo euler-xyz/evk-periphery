@@ -300,6 +300,19 @@ struct RateProviderOracleInfo {
     address rateProvider;
 }
 
+struct PendleProviderOracleInfo {
+    address base;
+    address quote;
+    address pendleMarket;
+    uint32 twapWindow;
+}
+
+struct SwaapSafeguardProviderOracleInfo {
+    address base;
+    address quote;
+    bytes32 poolId;
+}
+
 struct CrossAdapterInfo {
     address base;
     address cross;
@@ -349,12 +362,14 @@ struct EulerEarnVaultAccessControlInfo {
     address[] defaultAdmins;
     address[] guardianAdmins;
     address[] strategyOperatorAdmins;
-    address[] yieldAggregatorManagerAdmins;
+    address[] eulerEarnManagerAdmins;
     address[] withdrawalQueueManagerAdmins;
+    address[] rebalancerAdmins;
     address[] guardians;
     address[] strategyOperators;
-    address[] yieldAggregatorManagers;
+    address[] eulerEarnManagers;
     address[] withdrawalQueueManagers;
+    address[] rebalancers;
 }
 
 struct EulerEarnVaultStrategyInfo {

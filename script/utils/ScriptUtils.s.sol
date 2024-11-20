@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import "forge-std/Script.sol";
+import {console} from "forge-std/console.sol";
+import {ScriptExtended} from "./ScriptExtended.s.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
@@ -10,17 +11,11 @@ import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
+import {SafeTransaction} from "./SafeUtils.s.sol";
+import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
-
-abstract contract ScriptExtended is Script {
-    function getAddressFromJson(string memory json, string memory key) internal pure returns (address) {
-        try vm.parseJsonAddress(json, key) returns (address result) {
-            return result;
-        } catch {
-            revert(string(abi.encodePacked("getAddressFromJson: failed to parse JSON for key: ", key)));
-        }
-    }
-}
+import {OracleLens} from "../../src/Lens/OracleLens.sol";
+import "../../src/Lens/LensTypes.sol";
 
 abstract contract CoreAddressesLib is ScriptExtended {
     struct CoreAddresses {
@@ -155,7 +150,6 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
-    IEVC.BatchItem[] private items;
 
     constructor() {
         coreAddresses = deserializeCoreAddresses(getAddressesJson("CoreAddresses.json"));
@@ -164,22 +158,17 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     modifier broadcast() {
-        vm.startBroadcast(vm.envUint("DEPLOYER_KEY"));
+        startBroadcast();
         _;
-        vm.stopBroadcast();
+        stopBroadcast();
     }
 
     function startBroadcast() internal {
-        vm.startBroadcast(vm.envUint("DEPLOYER_KEY"));
+        vm.startBroadcast(getDeployer());
     }
 
     function stopBroadcast() internal {
         vm.stopBroadcast();
-    }
-
-    function getDeployer() internal view returns (address) {
-        address deployer = vm.addr(vm.envOr("DEPLOYER_KEY", uint256(1)));
-        return deployer == vm.addr(1) ? address(this) : deployer;
     }
 
     function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {
@@ -198,63 +187,167 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
             revert("getAddressesJson: ADDRESSES_DIR_PATH environment variable is not set");
         }
 
-        return vm.readFile(string.concat(addressesDirPath, "/", jsonFile));
+        try vm.readFile(string.concat(addressesDirPath, "/", jsonFile)) returns (string memory result) {
+            return result;
+        } catch {
+            return "";
+        }
     }
 
     function getWETHAddress() internal view returns (address) {
         if (block.chainid == 1) {
             return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        } else if (block.chainid == 10) {
+            return 0x4200000000000000000000000000000000000006;
+        } else if (block.chainid == 137) {
+            return 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619;
+        } else if (block.chainid == 8453) {
+            return 0x4200000000000000000000000000000000000006;
         } else if (block.chainid == 42161) {
             return 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+        } else if (block.chainid == 43114) {
+            return 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB;
         } else {
             revert("getWETHAddress: Unsupported chain");
         }
     }
 
-    function encodeAmountCap(address asset, uint16 amountNoDecimals) internal view returns (uint16) {
-        uint256 decimals = ERC20(asset).decimals();
-        uint16 result;
+    function getValidAdapter(address base, address quote, string memory provider)
+        internal
+        view
+        returns (address adapter)
+    {
+        bool isExternalVault = isValidExternalVault(base);
 
-        if (amountNoDecimals == type(uint16).max) {
-            return 0;
-        } else if (amountNoDecimals >= 100) {
-            uint256 scale = Math.log10(amountNoDecimals);
-            result = uint16(((amountNoDecimals / 10 ** (scale - 2)) << 6) | (scale + decimals));
-        } else {
-            result = uint16((100 * amountNoDecimals << 6) | decimals);
+        if (isExternalVault) base = IEVault(base).asset();
+
+        address[] memory adapters = OracleLens(lensAddresses.oracleLens).getValidAdapters(base, quote);
+
+        uint256 counter;
+        for (uint256 i = 0; i < adapters.length; ++i) {
+            string memory resolvedOracleName = resolveOracleName(
+                OracleLens(lensAddresses.oracleLens).getOracleInfo(adapters[i], new address[](0), new address[](0))
+            );
+
+            if (_strEq(provider, string.concat(isExternalVault ? "ExternalVault|" : "", resolvedOracleName))) {
+                adapter = adapters[i];
+                ++counter;
+            }
         }
 
-        require(
-            AmountCapLib.resolve(AmountCap.wrap(result)) == amountNoDecimals * 10 ** decimals,
-            "encodeAmountCap: incorrect encoding"
-        );
+        if (adapter == address(0) || counter > 1) {
+            if (bytes(provider).length == 42) return _stringToAddress(provider);
+
+            console.log("base: %s, quote: %s, provider: %s", base, quote, provider);
+
+            if (adapter == address(0)) revert("getValidAdapters: Adapter not found");
+            if (counter > 1) revert("getValidAdapters: Multiple adapters found");
+        }
+    }
+
+    function isValidExternalVault(address vault) internal view returns (bool) {
+        (bool success, bytes memory result) = vault.staticcall(abi.encodeCall(IEVault(vault).asset, ()));
+
+        if (!success || result.length < 32) return false;
+
+        address asset = abi.decode(result, (address));
+        address[] memory validVaults =
+            SnapshotRegistry(peripheryAddresses.externalVaultRegistry).getValidAddresses(vault, asset, block.timestamp);
+
+        return validVaults.length == 1 && validVaults[0] == vault;
+    }
+
+    function resolveOracleName(OracleDetailedInfo memory oracleInfo) internal pure returns (string memory) {
+        if (_strEq(oracleInfo.name, "ChainlinkOracle")) {
+            if (isRedstoneClassicOracle(abi.decode(oracleInfo.oracleInfo, (ChainlinkOracleInfo)))) {
+                return "RedstoneClassicOracle";
+            } else {
+                return "ChainlinkOracle";
+            }
+        } else if (_strEq(oracleInfo.name, "CrossAdapter")) {
+            CrossAdapterInfo memory crossOracleInfo = abi.decode(oracleInfo.oracleInfo, (CrossAdapterInfo));
+            string memory oracleBaseCrossName = crossOracleInfo.oracleBaseCrossInfo.name;
+            string memory oracleCrossQuoteName = crossOracleInfo.oracleCrossQuoteInfo.name;
+
+            if (
+                _strEq(oracleBaseCrossName, "ChainlinkOracle")
+                    && isRedstoneClassicOracle(
+                        abi.decode(crossOracleInfo.oracleBaseCrossInfo.oracleInfo, (ChainlinkOracleInfo))
+                    )
+            ) {
+                oracleBaseCrossName = "RedstoneClassicOracle";
+            }
+
+            if (
+                _strEq(oracleCrossQuoteName, "ChainlinkOracle")
+                    && isRedstoneClassicOracle(
+                        abi.decode(crossOracleInfo.oracleCrossQuoteInfo.oracleInfo, (ChainlinkOracleInfo))
+                    )
+            ) {
+                oracleCrossQuoteName = "RedstoneClassicOracle";
+            }
+
+            return string.concat("CrossAdapter=", oracleBaseCrossName, "+", oracleCrossQuoteName);
+        }
+
+        return oracleInfo.name;
+    }
+
+    function isRedstoneClassicOracle(ChainlinkOracleInfo memory chainlinkOracleInfo) internal pure returns (bool) {
+        if (_strEq(chainlinkOracleInfo.feedDescription, "Redstone Price Feed")) {
+            return true;
+        }
+        return false;
+    }
+
+    function encodeAmountCap(address asset, uint256 amountNoDecimals) internal view returns (uint256) {
+        if (amountNoDecimals == type(uint256).max) return 0;
+
+        uint256 decimals = ERC20(asset).decimals();
+        uint256 scale = amountNoDecimals == 0 ? 0 : Math.log10(amountNoDecimals);
+        uint256 result = (
+            amountNoDecimals >= 100
+                ? (amountNoDecimals / 10 ** (scale - 2)) << 6
+                : (amountNoDecimals * 10 ** scale) << 6
+        ) | (scale + decimals);
+
+        if (AmountCapLib.resolve(AmountCap.wrap(uint16(result))) != amountNoDecimals * 10 ** decimals) {
+            console.log(
+                "expected: %s; actual: %s",
+                amountNoDecimals * 10 ** decimals,
+                AmountCapLib.resolve(AmountCap.wrap(uint16(result)))
+            );
+            revert("encodeAmountCap: incorrect encoding");
+        }
 
         return result;
     }
 
-    function encodeAmountCaps(address[] storage assets, uint16[] storage amountsNoDecimals)
+    function encodeAmountCaps(address[] storage assets, mapping(address => uint256 amountsNoDecimals) storage caps)
         internal
-        view
-        returns (uint16[] memory)
     {
-        require(
-            assets.length == amountsNoDecimals.length,
-            "encodeAmountCaps: assets and amountsNoDecimals must have the same length"
-        );
-
-        uint16[] memory result = new uint16[](assets.length);
         for (uint256 i = 0; i < assets.length; ++i) {
-            result[i] = encodeAmountCap(assets[i], amountsNoDecimals[i]);
+            address asset = assets[i];
+            caps[asset] = encodeAmountCap(asset, caps[asset]);
         }
-        return result;
     }
 }
 
 abstract contract BatchBuilder is ScriptUtils {
-    IEVC.BatchItem[] internal items;
+    enum BatchItemType {
+        REGULAR,
+        CRITICAL
+    }
+
+    uint256 internal constant TRIGGER_EXECUTE_BATCH_AT_SIZE = 250;
+    IEVC.BatchItem[] internal batchItems;
+    IEVC.BatchItem[] internal criticalItems;
+    uint256 internal batchCounter;
+    uint256 internal currentSafeNonce = getSafeCurrentNonce();
 
     function addBatchItem(address targetContract, bytes memory data) internal {
-        addBatchItem(targetContract, getDeployer(), data);
+        address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
+        addBatchItem(targetContract, onBehalfOfAccount, data);
     }
 
     function addBatchItem(address targetContract, address onBehalfOfAccount, bytes memory data) internal {
@@ -264,6 +357,38 @@ abstract contract BatchBuilder is ScriptUtils {
     function addBatchItem(address targetContract, address onBehalfOfAccount, uint256 value, bytes memory data)
         internal
     {
+        addItem(BatchItemType.REGULAR, targetContract, onBehalfOfAccount, value, data);
+    }
+
+    function addCriticalItem(address targetContract, bytes memory data) internal {
+        address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
+        addCriticalItem(targetContract, onBehalfOfAccount, data);
+    }
+
+    function addCriticalItem(address targetContract, address onBehalfOfAccount, bytes memory data) internal {
+        addCriticalItem(targetContract, onBehalfOfAccount, 0, data);
+    }
+
+    function addCriticalItem(address targetContract, address onBehalfOfAccount, uint256 value, bytes memory data)
+        internal
+    {
+        addItem(BatchItemType.CRITICAL, targetContract, onBehalfOfAccount, value, data);
+    }
+
+    function addItem(
+        BatchItemType itemType,
+        address targetContract,
+        address onBehalfOfAccount,
+        uint256 value,
+        bytes memory data
+    ) internal {
+        IEVC.BatchItem[] storage items;
+        if (itemType == BatchItemType.REGULAR) {
+            items = batchItems;
+        } else {
+            items = criticalItems;
+        }
+
         items.push(
             IEVC.BatchItem({
                 targetContract: targetContract,
@@ -272,19 +397,97 @@ abstract contract BatchBuilder is ScriptUtils {
                 data: data
             })
         );
+
+        if (batchItems.length >= TRIGGER_EXECUTE_BATCH_AT_SIZE) executeBatch();
+    }
+
+    function appendCriticalSectionToBatch() internal {
+        if (criticalItems.length == 0) return;
+
+        if (batchItems.length + criticalItems.length >= TRIGGER_EXECUTE_BATCH_AT_SIZE) executeBatch();
+
+        for (uint256 i = 0; i < criticalItems.length; ++i) {
+            batchItems.push(criticalItems[i]);
+        }
+
+        clearCriticalItems();
     }
 
     function clearBatchItems() internal {
-        delete items;
+        delete batchItems;
+    }
+
+    function clearCriticalItems() internal {
+        delete criticalItems;
     }
 
     function getBatchCalldata() internal view returns (bytes memory) {
-        return abi.encodeCall(IEVC.batch, (items));
+        return abi.encodeCall(IEVC.batch, (batchItems));
     }
 
-    function executeBatch() internal broadcast {
-        IEVC(coreAddresses.evc).batch(items);
+    function getBatchValue() internal view returns (uint256 value) {
+        for (uint256 i = 0; i < batchItems.length; ++i) {
+            value += batchItems[i].value;
+        }
+    }
+
+    function executeBatchPrank(address caller) internal {
+        if (batchItems.length == 0) return;
+
+        console.log("Pranking the batch execution as %s on the EVC (%s)\n", caller, coreAddresses.evc);
+
+        for (uint256 i = 0; i < batchItems.length; ++i) {
+            batchItems[i].onBehalfOfAccount = caller;
+        }
+
+        vm.prank(caller);
+        IEVC(coreAddresses.evc).batch{value: getBatchValue()}(batchItems);
+
         clearBatchItems();
+    }
+
+    function executeBatch() internal {
+        if (isBatchViaSafe()) executeBatchViaSafe();
+        else executeBatchDirectly();
+    }
+
+    function executeBatchDirectly() internal broadcast {
+        if (batchItems.length == 0) return;
+
+        console.log("Executing the batch directly on the EVC (%s)\n", coreAddresses.evc);
+        dumpBatch(getDeployer());
+
+        IEVC(coreAddresses.evc).batch{value: getBatchValue()}(batchItems);
+        clearBatchItems();
+    }
+
+    function executeBatchViaSafe() internal {
+        if (batchItems.length == 0) return;
+
+        address safe = getSafe();
+        console.log("Executing the batch via the Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
+        dumpBatch(safe);
+
+        SafeTransaction transaction = new SafeTransaction();
+
+        if (currentSafeNonce == 0) currentSafeNonce = transaction.getNonce(safe);
+
+        transaction.create(safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), ++currentSafeNonce);
+
+        clearBatchItems();
+    }
+
+    function dumpBatch(address from) internal {
+        string memory path = string.concat(vm.projectRoot(), "/script/Batches.json");
+        string memory json = vm.exists(path) ? vm.readFile(path) : "{}";
+        string memory key = vm.toString(batchCounter++);
+
+        json = vm.serializeAddress(key, "from", from);
+        json = vm.serializeAddress(key, "to", coreAddresses.evc);
+        json = vm.serializeUint(key, "value", getBatchValue());
+        json = vm.serializeBytes(key, "data", getBatchCalldata());
+
+        vm.writeJson(vm.serializeString("", key, json), path);
     }
 
     function perspectiveVerify(address perspective, address vault) internal {
@@ -297,6 +500,10 @@ abstract contract BatchBuilder is ScriptUtils {
 
     function govSetConfig(address oracleRouter, address base, address quote, address oracle) internal {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetConfig, (base, quote, oracle)));
+    }
+
+    function govSetConfig_critical(address oracleRouter, address base, address quote, address oracle) internal {
+        addCriticalItem(oracleRouter, abi.encodeCall(EulerRouter.govSetConfig, (base, quote, oracle)));
     }
 
     function govSetResolvedVault(address oracleRouter, address vault, bool set) internal {
@@ -315,6 +522,18 @@ abstract contract BatchBuilder is ScriptUtils {
         internal
     {
         addBatchItem(
+            vault, abi.encodeCall(IEVault(vault).setLTV, (collateral, borrowLTV, liquidationLTV, rampDuration))
+        );
+    }
+
+    function setLTV_critical(
+        address vault,
+        address collateral,
+        uint16 borrowLTV,
+        uint16 liquidationLTV,
+        uint32 rampDuration
+    ) internal {
+        addCriticalItem(
             vault, abi.encodeCall(IEVault(vault).setLTV, (collateral, borrowLTV, liquidationLTV, rampDuration))
         );
     }
@@ -339,8 +558,8 @@ abstract contract BatchBuilder is ScriptUtils {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setConfigFlags, (newConfigFlags)));
     }
 
-    function setCaps(address vault, uint16 supplyCap, uint16 borrowCap) internal {
-        addBatchItem(vault, abi.encodeCall(IEVault(vault).setCaps, (supplyCap, borrowCap)));
+    function setCaps(address vault, uint256 supplyCap, uint256 borrowCap) internal {
+        addBatchItem(vault, abi.encodeCall(IEVault(vault).setCaps, (uint16(supplyCap), uint16(borrowCap))));
     }
 
     function setInterestFee(address vault, uint16 newInterestFee) internal {
@@ -364,5 +583,17 @@ contract ERC20Mintable is Ownable, ERC20 {
 
     function mint(address account, uint256 amount) external onlyOwner {
         _mint(account, amount);
+    }
+}
+
+contract StubOracle {
+    string public name = "StubOracle";
+
+    function getQuote(uint256, address, address) external pure returns (uint256) {
+        return 0;
+    }
+
+    function getQuotes(uint256, address, address) external pure returns (uint256, uint256) {
+        return (0, 0);
     }
 }

@@ -23,7 +23,9 @@ number_underscore = "preserve"
 override_spacing = true
 wrap_comments = true
 ignore = [
-    "script/production/mainnet/DeployCBBTC.s.sol"
+    "script/production/mainnet/clusters/MEGACluster.s.sol",
+    "script/production/mainnet/clusters/PrimeCluster.s.sol",
+    "script/production/mainnet/clusters/PendeulCluster.s.sol"
 ]
 
 [profile.default.fuzz]

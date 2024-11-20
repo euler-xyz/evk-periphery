@@ -1,4 +1,5 @@
 openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/
+openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 ethereum-vault-connector/=lib/ethereum-vault-connector/src/
 evc/=lib/ethereum-vault-connector/src/
 evk/=lib/euler-vault-kit/src/
@@ -7,5 +8,7 @@ euler-price-oracle/=lib/euler-price-oracle/src/
 euler-price-oracle-test/=lib/euler-price-oracle/test/
 fee-flow/=lib/fee-flow/src/
 reward-streams/=lib/reward-streams/src/
-@openzeppelin/contracts/=lib/euler-price-oracle/lib/openzeppelin-contracts/contracts/
 solady/=lib/euler-price-oracle/lib/solady/src/
+lib/euler-price-oracle:@openzeppelin/contracts/=lib/euler-price-oracle/lib/openzeppelin-contracts/contracts/
+@openzeppelin/=lib/openzeppelin-contracts/contracts/
+euler-earn/=lib/euler-earn/src/

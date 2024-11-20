@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 import {BaseHandler} from "./BaseHandler.sol";
-import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 
 /// @title GenericHandler
 /// @custom:security-contact security@euler.xyz
@@ -19,6 +18,6 @@ abstract contract GenericHandler is BaseHandler {
         setMaxAllowance(params.tokenIn, target);
 
         (bool success, bytes memory result) = target.call(payload);
-        if (!success) RevertBytes.revertBytes(result);
+        if (!success) revert Swapper_SwapError(target, result);
     }
 }

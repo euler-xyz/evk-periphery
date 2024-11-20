@@ -13,6 +13,8 @@ contract FactoryGovernorTests is EVaultTestBase {
     address depositor;
     address guardian;
     address guardian2;
+    address unpauseAdmin;
+    address unpauseAdmin2;
 
     FactoryGovernor factoryGovernor;
 
@@ -22,6 +24,8 @@ contract FactoryGovernorTests is EVaultTestBase {
         depositor = makeAddr("depositor");
         guardian = makeAddr("guardian");
         guardian2 = makeAddr("guardian2");
+        unpauseAdmin = makeAddr("unpauseAdmin");
+        unpauseAdmin2 = makeAddr("unpauseAdmin2");
 
         startHoax(depositor);
 
@@ -33,9 +37,13 @@ contract FactoryGovernorTests is EVaultTestBase {
 
         factoryGovernor = new FactoryGovernor(admin);
 
-        bytes32 guardianRole = factoryGovernor.GUARDIAN_ROLE();
+        bytes32 guardianRole = factoryGovernor.PAUSE_GUARDIAN_ROLE();
         vm.prank(admin);
         factoryGovernor.grantRole(guardianRole, guardian);
+
+        bytes32 unpauseAdminRole = factoryGovernor.UNPAUSE_ADMIN_ROLE();
+        vm.prank(admin);
+        factoryGovernor.grantRole(unpauseAdminRole, unpauseAdmin);
 
         vm.prank(admin);
         factory.setUpgradeAdmin(address(factoryGovernor));
@@ -74,13 +82,68 @@ contract FactoryGovernorTests is EVaultTestBase {
         vm.expectRevert("contract is in read-only mode");
         eTST.deposit(1e18, depositor);
 
-        // admin can roll back changes
+        // admin can roll back changes by installing previous imlpementation
         vm.prank(admin);
         factoryGovernor.adminCall(address(factory), abi.encodeCall(factory.setImplementation, (oldImplementation)));
 
         vm.prank(depositor);
         eTST.deposit(1e18, depositor);
         assertEq(eTST.balanceOf(depositor), 102e18);
+    }
+
+    function test_FactoryGovernor_unathorizedCantTriggePause() external {
+        vm.prank(admin);
+        vm.expectRevert();
+        factoryGovernor.pause(address(factory));
+
+        vm.prank(depositor);
+        vm.expectRevert();
+        factoryGovernor.pause(address(factory));
+
+        vm.prank(unpauseAdmin);
+        vm.expectRevert();
+        factoryGovernor.pause(address(factory));
+    }
+
+    function test_FactoryGovernor_unpauseAdminCanUnpause() external {
+        // not paused yet
+        vm.prank(unpauseAdmin);
+        vm.expectRevert("not paused");
+        factoryGovernor.unpause(address(factory));
+
+        address oldImplementation = factory.implementation();
+        vm.prank(guardian);
+        factoryGovernor.pause(address(factory));
+
+        vm.prank(unpauseAdmin);
+        vm.expectEmit(true, false, false, false);
+        emit FactoryGovernor.Unpaused(unpauseAdmin, address(factory), oldImplementation);
+        factoryGovernor.unpause(address(factory));
+
+        // not paused anymore
+        vm.prank(unpauseAdmin);
+        vm.expectRevert("not paused");
+        factoryGovernor.unpause(address(factory));
+
+        assertEq(factory.implementation(), oldImplementation);
+
+        vm.prank(depositor);
+        eTST.deposit(1e18, depositor);
+        assertEq(eTST.balanceOf(depositor), 101e18);
+    }
+
+    function test_FactoryGovernor_unathorizedCantTriggeUnpause() external {
+        vm.prank(admin);
+        vm.expectRevert();
+        factoryGovernor.unpause(address(factory));
+
+        vm.prank(depositor);
+        vm.expectRevert();
+        factoryGovernor.unpause(address(factory));
+
+        vm.prank(guardian);
+        vm.expectRevert();
+        factoryGovernor.unpause(address(factory));
     }
 
     function test_FactoryGovernor_triggerEmergencyByAdmin() external {
@@ -93,7 +156,7 @@ contract FactoryGovernorTests is EVaultTestBase {
         uint256 totalSupply = eTST.totalSupply();
         assertEq(totalSupply, 101e18);
 
-        bytes32 guardianRole = factoryGovernor.GUARDIAN_ROLE();
+        bytes32 guardianRole = factoryGovernor.PAUSE_GUARDIAN_ROLE();
         vm.prank(admin);
         factoryGovernor.grantRole(guardianRole, admin);
 
@@ -189,7 +252,7 @@ contract FactoryGovernorTests is EVaultTestBase {
     }
 
     function test_FactoryGovernor_addGuardians() external {
-        bytes32 guardianRole = factoryGovernor.GUARDIAN_ROLE();
+        bytes32 guardianRole = factoryGovernor.PAUSE_GUARDIAN_ROLE();
 
         vm.expectRevert(
             abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, guardian2, guardianRole)
@@ -205,7 +268,7 @@ contract FactoryGovernorTests is EVaultTestBase {
     }
 
     function test_FactoryGovernor_removeGuardians() external {
-        bytes32 guardianRole = factoryGovernor.GUARDIAN_ROLE();
+        bytes32 guardianRole = factoryGovernor.PAUSE_GUARDIAN_ROLE();
 
         vm.prank(admin);
         factoryGovernor.revokeRole(guardianRole, guardian);
@@ -215,6 +278,45 @@ contract FactoryGovernorTests is EVaultTestBase {
         );
         vm.prank(guardian);
         factoryGovernor.pause(address(factory));
+    }
+
+    function test_FactoryGovernor_addUnpauseAdmins() external {
+        vm.prank(guardian);
+        factoryGovernor.pause(address(factory));
+
+        bytes32 unpauseAdminRole = factoryGovernor.UNPAUSE_ADMIN_ROLE();
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, unpauseAdmin2, unpauseAdminRole
+            )
+        );
+        vm.prank(unpauseAdmin2);
+        factoryGovernor.unpause(address(factory));
+
+        vm.prank(admin);
+        factoryGovernor.grantRole(unpauseAdminRole, unpauseAdmin2);
+
+        vm.prank(unpauseAdmin2);
+        factoryGovernor.unpause(address(factory));
+    }
+
+    function test_FactoryGovernor_removeUnpauseAdmins() external {
+        vm.prank(guardian);
+        factoryGovernor.pause(address(factory));
+
+        bytes32 unpauseAdminRole = factoryGovernor.UNPAUSE_ADMIN_ROLE();
+
+        vm.prank(admin);
+        factoryGovernor.revokeRole(unpauseAdminRole, unpauseAdmin);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, unpauseAdmin, unpauseAdminRole
+            )
+        );
+        vm.prank(unpauseAdmin);
+        factoryGovernor.unpause(address(factory));
     }
 
     function test_FactoryGovernor_proxyDelegateViewIsNotCallableExternally() external {

@@ -11,10 +11,19 @@ import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A wrapper for locked ERC20 tokens that can be withdrawn as per the lock schedule.
-/// @dev Regular wrapping (`depositFor`), unwrapping (`withdrawTo`), and `transfer` are only supported for whitelisted
-/// callers. `transferFrom` is only supported for whitelisted `from` addresses. If the account balance is
+/// @dev Regular wrapping (`depositFor`), unwrapping (`withdrawTo`) are only supported for whitelisted callers with
+/// an ADMIN whitelist status. Regular ERC20 `transfer` and `transferFrom` are only supported between two whitelisted
+/// accounts. Under other circumstances, conditions apply; look at the `_update` function. If the account balance is
 /// non-whitelisted, their tokens can only be withdrawn as per the lock schedule and the remainder of the amount is
-/// transferred to the receiver address configured.
+/// transferred to the receiver address configured. If the account has a DISTRIBUTOR whitelist status, their tokens
+/// cannot be unwrapped by them, but in order to be unwrapped, they can only be transferred to the account that is not
+/// whitelisted and become a subject to the locking schedule or transferred to the account with an ADMIN whitelist
+/// status. A whitelisted account can always degrade their whitelist status and become a subject to the locking
+/// schedule.
+/// @dev Avoid giving an ADMIN whitelist status to untrusted addresses. They can be used by non-whitelisted accounts and
+/// accounts with the DISTRIBUTOR whitelist status to avoid the lock schedule.
+/// @dev Avoid giving approvals to untrusted spenders. If approved by both a whitelisted account and a non-whitelisted
+/// account, they can reset the non-whitelisted account's lock schedule.
 /// @dev The wrapped token is assumed to be well behaved, including not rebasing, not attempting to re-enter this
 /// wrapper contract, and not presenting any other weird behavior.
 abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
@@ -28,12 +37,21 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @notice Scaling factor for percentage calculations
     uint256 internal constant SCALE = 1e18;
 
+    /// @notice Constant representing no whitelist status
+    uint256 public constant WHITELIST_STATUS_NONE = 0;
+
+    /// @notice Constant representing admin whitelist status
+    uint256 public constant WHITELIST_STATUS_ADMIN = 1;
+
+    /// @notice Constant representing distributor whitelist status
+    uint256 public constant WHITELIST_STATUS_DISTRIBUTOR = 2;
+
     /// @notice Address that will receive the remainder of the tokens after the lock schedule is applied. If zero
     /// address, the remainder of the tokens will be sent to the owner.
     address public remainderReceiver;
 
-    /// @notice Mapping to store whitelist status of addresses
-    mapping(address => bool) public isWhitelisted;
+    /// @notice Mapping to store whitelist status of an addresses
+    mapping(address => uint256) public whitelistStatus;
 
     /// @notice Mapping to store locked token amount for each address and normalized lock timestamp
     mapping(address => EnumerableMap.UintToUintMap) internal lockedAmounts;
@@ -45,7 +63,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @notice Emitted when an account's whitelist status changes
     /// @param account The address of the account
     /// @param status The new whitelist status
-    event WhitelistStatus(address indexed account, bool status);
+    event WhitelistStatusSet(address indexed account, uint256 status);
 
     /// @notice Emitted when a new lock is created for an account
     /// @param account The address of the account for which the lock was created
@@ -57,13 +75,23 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param lockTimestamp The normalized timestamp of the removed lock
     event LockRemoved(address indexed account, uint256 lockTimestamp);
 
+    /// @notice Error thrown when an invalid whitelist status is provided
+    error InvalidWhitelistStatus();
+
     /// @notice Thrown when the remainder loss is not allowed but the calculated remainder amount is non-zero
     error RemainderLossNotAllowed();
 
-    /// @notice Modifier to restrict function access to whitelisted addresses
+    /// @notice Modifier to restrict function access to the whitelisted addresses
     /// @param account The address to check for whitelist status
     modifier onlyWhitelisted(address account) {
-        if (!isWhitelisted[account]) revert NotAuthorized();
+        if (whitelistStatus[account] == WHITELIST_STATUS_NONE) revert NotAuthorized();
+        _;
+    }
+
+    /// @notice Modifier to restrict function access to the whitelisted ADMIN addresses
+    /// @param account The address to check for whitelist status
+    modifier onlyWhitelistedAdmin(address account) {
+        if (whitelistStatus[account] != WHITELIST_STATUS_ADMIN) revert NotAuthorized();
         _;
     }
 
@@ -87,6 +115,18 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
         emit RemainderReceiverSet(_remainderReceiver);
     }
 
+    /// @notice Disables the ability to renounce ownership of the contract
+    function renounceOwnership() public pure override {
+        revert NotAuthorized();
+    }
+
+    /// @notice Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current
+    /// owner.
+    /// @param newOwner The address of the new owner
+    function transferOwnership(address newOwner) public virtual override onlyEVCAccountOwner {
+        super.transferOwnership(newOwner);
+    }
+
     /// @notice Sets a new remainder receiver address
     /// @param _remainderReceiver The address of the new remainder receiver. If zero address, the remainder of the
     /// tokens
@@ -97,35 +137,23 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
         }
     }
 
-    /// @notice Sets the whitelist status for an account
-    /// @dev If the account is being whitelisted, all the locked amounts are removed resulting in all the tokens being
-    /// unlocked. If the account being removed from the whitelist, the current account balance is locked. The side
-    /// effect of this behavior is that the owner can modify the lock schedule for users, i.e. by adding and then
-    /// removing an account from the whitelist, the owner can reset the unlock schedule for that account. It must be
-    /// noted though that the ability to modify whitelist status and its effects on locks is a core feature of this
-    /// contract.
+    /// @notice Sets the whitelist status for a specified account
     /// @param account The address to set the whitelist status for
-    /// @param status The whitelist status to set
-    function setWhitelistStatus(address account, bool status) public onlyEVCAccountOwner onlyOwner {
-        if (isWhitelisted[account] != status) {
-            if (status) {
-                EnumerableMap.UintToUintMap storage map = lockedAmounts[account];
-                uint256[] memory lockTimestamps = map.keys();
-                for (uint256 i = 0; i < lockTimestamps.length; ++i) {
-                    map.remove(lockTimestamps[i]);
-                    emit LockRemoved(account, lockTimestamps[i]);
-                }
-            } else {
-                uint256 amount = balanceOf(account);
-                if (amount != 0) {
-                    uint256 normalizedTimestamp = _getNormalizedTimestamp();
-                    lockedAmounts[account].set(normalizedTimestamp, amount);
-                    emit LockCreated(account, normalizedTimestamp);
-                }
-            }
+    /// @param status The new whitelist status to set
+    function setWhitelistStatus(address account, uint256 status) public onlyEVCAccountOwner onlyOwner {
+        if (whitelistStatus[account] != status) _setWhitelistStatus(account, status);
+    }
 
-            isWhitelisted[account] = status;
-            emit WhitelistStatus(account, status);
+    /// @notice Allows a whitelisted account to degrade its own whitelist status
+    /// @param status The new whitelist status to set
+    function setWhitelistStatus(uint256 status) public onlyWhitelisted(_msgSender()) {
+        address account = _msgSender();
+        if (whitelistStatus[account] != status) {
+            if (status == WHITELIST_STATUS_ADMIN) {
+                revert NotAuthorized();
+            } else {
+                _setWhitelistStatus(account, status);
+            }
         }
     }
 
@@ -137,7 +165,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
         public
         virtual
         override
-        onlyWhitelisted(_msgSender())
+        onlyWhitelistedAdmin(_msgSender())
         returns (bool)
     {
         return super.depositFor(account, amount);
@@ -151,7 +179,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
         public
         virtual
         override
-        onlyWhitelisted(_msgSender())
+        onlyWhitelistedAdmin(_msgSender())
         returns (bool)
     {
         return super.withdrawTo(account, amount);
@@ -161,13 +189,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param to The address to transfer tokens to
     /// @param amount The amount of tokens to transfer
     /// @return bool indicating success of the transfer
-    function transfer(address to, uint256 amount)
-        public
-        virtual
-        override
-        onlyWhitelisted(_msgSender())
-        returns (bool)
-    {
+    function transfer(address to, uint256 amount) public virtual override returns (bool) {
         return super.transfer(to, amount);
     }
 
@@ -176,13 +198,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @param to The address to transfer tokens to
     /// @param amount The amount of tokens to transfer
     /// @return bool indicating success of the transfer
-    function transferFrom(address from, address to, uint256 amount)
-        public
-        virtual
-        override
-        onlyWhitelisted(from)
-        returns (bool)
-    {
+    function transferFrom(address from, address to, uint256 amount) public virtual override returns (bool) {
         return super.transferFrom(from, to, amount);
     }
 
@@ -294,34 +310,106 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     /// @return Two arrays: normalized lock timestamps and corresponding amounts
     function getLockedAmounts(address account) public view returns (uint256[] memory, uint256[] memory) {
         EnumerableMap.UintToUintMap storage map = lockedAmounts[account];
-        uint256[] memory lockTimestamp = map.keys();
-        uint256[] memory amounts = new uint256[](lockTimestamp.length);
+        uint256[] memory lockTimestamps = map.keys();
+        uint256[] memory amounts = new uint256[](lockTimestamps.length);
 
-        for (uint256 i = 0; i < lockTimestamp.length; i++) {
-            amounts[i] = map.get(lockTimestamp[i]);
+        for (uint256 i = 0; i < lockTimestamps.length; i++) {
+            amounts[i] = map.get(lockTimestamps[i]);
         }
 
-        return (lockTimestamp, amounts);
+        return (lockTimestamps, amounts);
     }
 
     /// @notice Internal function to update balances
-    /// @dev Regular ERC20 transfers are only supported for whitelisted addresses. When the amount is transferred to a
-    /// non-whitelisted address, the amount is locked as per the lock schedule.
+    /// @dev Regular ERC20 transfers are only supported between two whitelisted addresses. When the amount is
+    /// transferred from non-whitelisted address to a whitelisted address, the locked amount entries get subsequently
+    /// removed starting from the oldest lock, up to the point when the whole requested amount is transferred freely.
+    /// When the amount is transferred from a whitelisted address to a non-whitelisted address, the amount is locked as
+    /// per the lock schedule. Transfers from a non-whitelisted address to another non-whitelisted address are not
+    /// supported and will revert.
     /// @param from Address to transfer from
     /// @param to Address to transfer to
     /// @param amount Amount to transfer
     function _update(address from, address to, uint256 amount) internal virtual override {
-        if (to != address(0) && amount != 0 && !isWhitelisted[to]) {
-            EnumerableMap.UintToUintMap storage map = lockedAmounts[to];
-            uint256 normalizedTimestamp = _getNormalizedTimestamp();
-            (, uint256 currentAmount) = map.tryGet(normalizedTimestamp);
+        if (amount != 0) {
+            bool fromIsWhitelisted = whitelistStatus[from] != WHITELIST_STATUS_NONE;
+            bool toIsWhitelisted = whitelistStatus[to] != WHITELIST_STATUS_NONE;
 
-            if (map.set(normalizedTimestamp, currentAmount + amount)) {
-                emit LockCreated(to, normalizedTimestamp);
+            if ((from == address(0) || fromIsWhitelisted) && to != address(0) && !toIsWhitelisted) {
+                // Covers minting and transfers from whitelisted to non-whitelisted
+                EnumerableMap.UintToUintMap storage map = lockedAmounts[to];
+                uint256 normalizedTimestamp = _getNormalizedTimestamp();
+                (, uint256 currentAmount) = map.tryGet(normalizedTimestamp);
+
+                if (map.set(normalizedTimestamp, currentAmount + amount)) {
+                    emit LockCreated(to, normalizedTimestamp);
+                }
+            } else if (!fromIsWhitelisted && toIsWhitelisted) {
+                // Covers transfers from non-whitelisted to whitelisted
+                EnumerableMap.UintToUintMap storage map = lockedAmounts[from];
+                uint256[] memory lockTimestamps = map.keys();
+                uint256 unlockedAmount;
+
+                for (uint256 i = 0; i < lockTimestamps.length; ++i) {
+                    uint256 lockTimestamp = lockTimestamps[i];
+                    uint256 currentAmount = map.get(lockTimestamp);
+
+                    if (unlockedAmount + currentAmount > amount) {
+                        uint256 releasedAmount = amount - unlockedAmount;
+                        map.set(lockTimestamp, currentAmount - releasedAmount);
+                        currentAmount = releasedAmount;
+                    } else {
+                        map.remove(lockTimestamp);
+                        emit LockRemoved(from, lockTimestamp);
+                    }
+
+                    unlockedAmount += currentAmount;
+
+                    if (unlockedAmount >= amount) break;
+                }
+            } else if (from != address(0) && !fromIsWhitelisted && to != address(0) && !toIsWhitelisted) {
+                // Covers transfers from non-whitelisted to non-whitelisted
+                revert NotAuthorized();
             }
         }
 
+        // For burning and transfers from whitelisted to whitelisted, no special handling needs to be done.
+        // `_setWhitelistStatus` ensures that only non-whitelisted accounts can have locked amounts
         super._update(from, to, amount);
+    }
+
+    /// @notice Sets the whitelist status for an account
+    /// @dev If the account is being whitelisted, all locked amounts are removed, resulting in all tokens being
+    /// unlocked. If the account is being removed from the whitelist, the current account balance is locked. A side
+    /// effect of this behavior is that the owner (and by extension, approved token spenders) can modify the lock
+    /// schedule for users. For example, by adding and then removing the account from the whitelist, or by transferring
+    /// tokens from a non-whitelisted account to a whitelisted account and back, the owner and approved token spenders
+    /// can reset the unlock schedule for that account. It should be noted that the ability to modify whitelist status
+    /// and its effects on locks is a core feature of this contract. On the other hand, regular users must be vigilant
+    /// about which addresses they approve to spend their locked tokens which is not unlike other ERC20 approvals.
+    /// @param account The address to set the whitelist status for
+    /// @param status The whitelist status to set
+    function _setWhitelistStatus(address account, uint256 status) internal {
+        if (status > WHITELIST_STATUS_DISTRIBUTOR) revert InvalidWhitelistStatus();
+
+        if (status == WHITELIST_STATUS_NONE) {
+            uint256 amount = balanceOf(account);
+            if (amount != 0) {
+                uint256 normalizedTimestamp = _getNormalizedTimestamp();
+                lockedAmounts[account].set(normalizedTimestamp, amount);
+                emit LockCreated(account, normalizedTimestamp);
+            }
+        } else {
+            EnumerableMap.UintToUintMap storage map = lockedAmounts[account];
+            uint256[] memory lockTimestamps = map.keys();
+            for (uint256 i = 0; i < lockTimestamps.length; ++i) {
+                map.remove(lockTimestamps[i]);
+                emit LockRemoved(account, lockTimestamps[i]);
+            }
+        }
+
+        whitelistStatus[account] = status;
+        emit WhitelistStatusSet(account, status);
     }
 
     /// @notice Calculates the share of tokens that can be unlocked based on the lock timestamp

@@ -11,12 +11,14 @@ contract PerspectiveCheck is Script {
     function run() public {
         address perspective = vm.envAddress("PERSPECTIVE_ADDRESS");
         address vault = vm.envAddress("VAULT_ADDRESS");
-        PerspectiveVerifier.verifyPerspective(perspective, vault, 0);
+        PerspectiveVerifier.verifyPerspective(perspective, vault, 0, 0);
     }
 }
 
 library PerspectiveVerifier {
-    function verifyPerspective(address perspective, address vault, uint256 expectedErrors) internal {
+    function verifyPerspective(address perspective, address vault, uint256 expectedErrors, uint256 ignoredErrors)
+        internal
+    {
         console.log("Checking %s perspective for %s (%s)", perspective, IEVault(vault).symbol(), vault);
 
         (bool success, bytes memory result) =
@@ -65,7 +67,7 @@ library PerspectiveVerifier {
         if (codes & E__LTV_COLLATERAL_RAMPING != 0) console.log("E__LTV_COLLATERAL_RAMPING");
         if (codes & E__LTV_COLLATERAL_RECOGNITION != 0) console.log("E__LTV_COLLATERAL_RECOGNITION");
 
-        if (expectedErrors != codes) revert("Perspective check failed");
+        if (expectedErrors != (codes & ~ignoredErrors)) revert("Perspective check failed");
         console.log("Only expected errors detected\n");
     }
 
