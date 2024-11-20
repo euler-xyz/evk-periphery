@@ -9,14 +9,15 @@ The primary purpose of the `HookTargetFirewall` is to enforce security policies 
 ## Key Features
 
 1. Each vault can have its own security policy, including:
-    - A set of accepted attesters
+    - A set of accepted attesters (including trusted origin addresses)
     - Thresholds for incoming and outgoing transfers (both constant and accumulated within a transaction)
     - An operation counter threshold to limit the frequency of operations that do not require attestation
 2. The contract intercepts key vault operations like `deposit`, `withdraw`, `mint`, `redeem`, `borrow`, and `repay`, validating them against the stored policy.
 3. For transactions exceeding defined thresholds, `HookTargetFirewall` requires an appropriate attestation to be obtained and saved in the `SecurityValidator` contract prior to the operation being executed.
 4. The contract implements a sliding window mechanism to track frequency of operations that do not require attestation, using bit manipulation for gas-efficient storage and calculation.
 5. The contract implements an operation counter to prevent replay attacks and preserve the integrity of operations even if they do not require attestation. Operation counter is incremented for each intercepted operation.
-6. The firewall ensures that only authorized vaults (proxies deployed by the recognized EVault factory) can use it.
+6. The contract allows to specify trusted origin addresses which are allowed to bypass the attestation checks.
+7. The contract ensures that only authorized vaults (proxies deployed by the recognized EVault factory) can use it.
 
 ## How It Works
 

@@ -41,6 +41,8 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     struct PolicyStorage {
         /// @notice Whether the vault is authenticated.
         bool isAuthenticated;
+        /// @notice Whether the vault allows trusted origin address to bypass the attestation check.
+        bool allowTrustedOrigin;
         /// @notice The max operations counter threshold per 3 minutes that can be executed without attestation.
         uint32 operationCounterThreshold;
         /// @notice The normalized timestamp of the last update, rounded down to the nearest one minute interval.
@@ -67,6 +69,21 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
         Out
     }
 
+    /// @custom:storage-location erc7201:euler.storage.HookTargetFirewall
+    struct HookTargetFirewallStorage {
+        /// @notice Mapping of vault addresses to their set of accepted attesters.
+        /// @dev This set is also used to store the trusted origin addresses.
+        mapping(address vault => SetStorage) attesters;
+        /// @notice Mapping of vault addresses to their policy storage.
+        mapping(address vault => PolicyStorage) policies;
+        /// @notice Mapping of address prefixes to their operation counter.
+        mapping(bytes19 addressPrefix => uint256) operationCounters;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("euler.storage.HookTargetFirewall")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 internal constant HookTargetFirewallStorageLocation =
+        0xd3e74b2efd7e77af7296587b6de98af243f03ea83f111b434fed08f9d95e5500;
+
     /// @notice The number of bits used to represent each window in the packed operation counters.
     uint256 internal constant WINDOW_BITS = 32;
 
@@ -81,15 +98,6 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
 
     /// @notice The immutable ID of the attester controller
     bytes32 internal immutable controllerId;
-
-    /// @notice Mapping of vault addresses to their set of accepted attesters.
-    mapping(address vault => SetStorage) internal attesters;
-
-    /// @notice Mapping of vault addresses to their policy storage.
-    mapping(address vault => PolicyStorage) internal policies;
-
-    /// @notice Mapping of address prefixes to their operation counter.
-    mapping(bytes19 addressPrefix => uint256) internal operationCounters;
 
     /// @notice Emitted when the attester controller ID is updated
     /// @param attesterControllerId The new attester controller ID
@@ -108,6 +116,12 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @param vault The address of the vault.
     /// @param attester The address of the attester.
     event RemovePolicyAttester(address indexed vault, address attester);
+
+    /// @notice Emitted when the allowed trusted origin address is set for a vault.
+    /// @param vault The address of the vault.
+    /// @param allowTrustedOrigin A boolean indicating whether trusted origin is allowed to bypass the attestation
+    /// check.
+    event SetAllowTrustedOrigin(address indexed vault, bool allowTrustedOrigin);
 
     /// @notice Emitted when a policy thresholds are set for a vault.
     /// @param vault The address of the vault.
@@ -184,7 +198,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @param vault The address of the vault.
     /// @param attester The address of the attester to be added.
     function addPolicyAttester(address vault, address attester) external onlyEVCAccountOwner onlyGovernor(vault) {
-        if (attesters[vault].insert(attester)) {
+        if (getHookTargetFirewallStorage().attesters[vault].insert(attester)) {
             emit AddPolicyAttester(vault, attester);
         }
     }
@@ -193,7 +207,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @param vault The address of the vault.
     /// @param attester The address of the attester to be removed.
     function removePolicyAttester(address vault, address attester) external onlyEVCAccountOwner onlyGovernor(vault) {
-        if (attesters[vault].remove(attester)) {
+        if (getHookTargetFirewallStorage().attesters[vault].remove(attester)) {
             emit RemovePolicyAttester(vault, attester);
         }
     }
@@ -202,7 +216,26 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @param vault The address of the vault.
     /// @return An array of addresses representing the accepted attesters for the specified vault.
     function getPolicyAttesters(address vault) external view returns (address[] memory) {
-        return attesters[vault].get();
+        return getHookTargetFirewallStorage().attesters[vault].get();
+    }
+
+    /// @notice Sets whether the vault allows trusted origin address to bypass the attestation check.
+    /// @param vault The address of the vault.
+    /// @param allowTrustedOrigin A boolean indicating whether to allow trusted origin to bypass the attestation check.
+    function setAllowTrustedOrigin(address vault, bool allowTrustedOrigin)
+        external
+        onlyEVCAccountOwner
+        onlyGovernor(vault)
+    {
+        getHookTargetFirewallStorage().policies[vault].allowTrustedOrigin = allowTrustedOrigin;
+        emit SetAllowTrustedOrigin(vault, allowTrustedOrigin);
+    }
+
+    /// @notice Retrieves whether the vault allows trusted origin address to bypass the attestation check.
+    /// @param vault The address of the vault.
+    /// @return A boolean indicating whether trusted origin is allowed to bypass the attestation check.
+    function getAllowTrustedOrigin(address vault) external view returns (bool) {
+        return getHookTargetFirewallStorage().policies[vault].allowTrustedOrigin;
     }
 
     /// @notice Sets the policy thresholds for a given vault.
@@ -221,7 +254,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
         uint16 outConstantAmountThreshold,
         uint16 outAccumulatedAmountThreshold
     ) external onlyEVCAccountOwner onlyGovernor(vault) {
-        PolicyStorage storage policyStorage = policies[vault];
+        PolicyStorage storage policyStorage = getHookTargetFirewallStorage().policies[vault];
         policyStorage.operationCounterThreshold = operationCounterThreshold;
         policyStorage.inConstantAmountThreshold = AmountCap.wrap(inConstantAmountThreshold);
         policyStorage.inAccumulatedAmountThreshold = AmountCap.wrap(inAccumulatedAmountThreshold);
@@ -247,7 +280,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @return outConstantAmountThreshold The constant amount threshold for outgoing transfers.
     /// @return outAccumulatedAmountThreshold The accumulated amount threshold for outgoing transfers.
     function getPolicyThresholds(address vault) external view returns (uint32, uint16, uint16, uint16, uint16) {
-        PolicyStorage storage policyStorage = policies[vault];
+        PolicyStorage storage policyStorage = getHookTargetFirewallStorage().policies[vault];
         return (
             policyStorage.operationCounterThreshold,
             AmountCap.unwrap(policyStorage.inConstantAmountThreshold),
@@ -270,7 +303,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
         view
         returns (uint256, uint256, uint256, uint256, uint256)
     {
-        PolicyStorage storage policyStorage = policies[vault];
+        PolicyStorage storage policyStorage = getHookTargetFirewallStorage().policies[vault];
         return (
             policyStorage.operationCounterThreshold,
             policyStorage.inConstantAmountThreshold.resolve(),
@@ -285,7 +318,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @param vault The address of the vault
     /// @return The current operation counter for the vault
     function getOperationCounter(address vault) external view returns (uint256) {
-        return updateVaultOperationCounter(policies[vault]) - 1;
+        return updateVaultOperationCounter(getHookTargetFirewallStorage().policies[vault]) - 1;
     }
 
     /// @notice Saves an attestation.
@@ -359,12 +392,20 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
         return 0;
     }
 
+    /// @notice Retrieves the storage struct for HookTargetFirewall
+    /// @return $ The HookTargetFirewallStorage struct storage slot
+    function getHookTargetFirewallStorage() internal pure returns (HookTargetFirewallStorage storage $) {
+        assembly {
+            $.slot := HookTargetFirewallStorageLocation
+        }
+    }
+
     /// @notice Executes a checkpoint for a given transfer type and reference amount.
     /// @param transferType The type of transfer (In or Out).
     /// @param referenceAmount The reference amount for the transfer.
     /// @param hashable Additional data to be hashed.
     function executeCheckpoint(TransferType transferType, uint256 referenceAmount, bytes memory hashable) internal {
-        PolicyStorage memory policy = policies[msg.sender];
+        PolicyStorage memory policy = getHookTargetFirewallStorage().policies[msg.sender];
         if (!policy.isAuthenticated) {
             authenticateVault(msg.sender);
         }
@@ -380,7 +421,7 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
             vaultOperationCounter >= operationCounterThreshold || referenceAmount >= constantAmountThreshold
                 || accumulatedAmount >= accumulatedAmountThreshold
         ) {
-            if (!evc.isSimulationInProgress()) {
+            if (!evc.isSimulationInProgress() && (!policy.allowTrustedOrigin || !isTrustedOrigin())) {
                 // to prevent replay attacks, the hash must depend on:
                 // - the vault address that is a caller of the hook target
                 // - the operation type executed (function selector)
@@ -402,23 +443,22 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
                 );
 
                 // this check must be done after the checkpoint is executed so that at this point, in case the
-                // storeAttestation function is used instead of the saveAttestation function, the current attester must
-                // be
-                // already defined by the validator contract
+                // storeAttestation function is used on the validator instead of the saveAttestation function,
+                // the current attester must be already defined by the validator contract
                 if (!isAttestationInProgress()) {
                     revert HTF_Unauthorized();
                 }
             }
         } else {
-            // apply the operation counter update only if the checkpoint does not need to be executed
-            policies[msg.sender] = policy;
+            // apply the vault operation counter update only if the checkpoint does not need to be executed
+            getHookTargetFirewallStorage().policies[msg.sender] = policy;
         }
     }
 
     /// @notice Authenticates the vault if it is a proxy deployed by the recognized eVault factory.
     function authenticateVault(address vault) internal {
         if (eVaultFactory.isProxy(msg.sender)) {
-            policies[vault].isAuthenticated = true;
+            getHookTargetFirewallStorage().policies[vault].isAuthenticated = true;
             emit AuthenticateVault(msg.sender);
         } else {
             revert HTF_Unauthorized();
@@ -429,6 +469,8 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @param account The account for which the operation counter is updated.
     /// @return The updated operation counter.
     function updateAccountOperationCounter(address account) internal returns (uint256) {
+        mapping(bytes19 prefix => uint256 counter) storage operationCounters =
+            getHookTargetFirewallStorage().operationCounters;
         bytes19 prefix = _getAddressPrefix(account);
         uint256 counter = operationCounters[prefix] + 1;
         operationCounters[prefix] = counter;
@@ -476,7 +518,14 @@ contract HookTargetFirewall is IHookTarget, EVCUtil {
     /// @return True if an attestation is in progress, false otherwise.
     function isAttestationInProgress() internal view returns (bool) {
         address currentAttester = validator.getCurrentAttester();
-        return currentAttester != address(0) && attesters[msg.sender].contains(currentAttester);
+        return currentAttester != address(0)
+            && getHookTargetFirewallStorage().attesters[msg.sender].contains(currentAttester);
+    }
+
+    /// @notice Checks if the transaction origin is trusted.
+    /// @return True if the transaction origin is trusted, false otherwise.
+    function isTrustedOrigin() internal view returns (bool) {
+        return getHookTargetFirewallStorage().attesters[msg.sender].contains(tx.origin);
     }
 
     /// @notice Resolves the thresholds for a given vault and transfer type.
