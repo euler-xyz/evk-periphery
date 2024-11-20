@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
-import {ManageCluster} from "../ManageCluster.s.sol";
+import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 import "evk/EVault/shared/Constants.sol";

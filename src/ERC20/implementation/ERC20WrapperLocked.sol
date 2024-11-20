@@ -16,11 +16,14 @@ import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 /// accounts. Under other circumstances, conditions apply; look at the `_update` function. If the account balance is
 /// non-whitelisted, their tokens can only be withdrawn as per the lock schedule and the remainder of the amount is
 /// transferred to the receiver address configured. If the account has a DISTRIBUTOR whitelist status, their tokens
-/// cannot be unwrapped by them, but can only be transferred to the account that is not whitelisted and become a subject
-/// to the locking schedule or transferred to the account with an ADMIN whitelist status. The whitelisted account can
-/// degrade their whitelist status.
+/// cannot be unwrapped by them, but in order to be unwrapped, they can only be transferred to the account that is not
+/// whitelisted and become a subject to the locking schedule or transferred to the account with an ADMIN whitelist
+/// status. A whitelisted account can always degrade their whitelist status and become a subject to the locking
+/// schedule.
 /// @dev Avoid giving an ADMIN whitelist status to untrusted addresses. They can be used by non-whitelisted accounts and
 /// accounts with the DISTRIBUTOR whitelist status to avoid the lock schedule.
+/// @dev Avoid giving approvals to untrusted spenders. If approved by both a whitelisted account and a non-whitelisted
+/// account, they can reset the non-whitelisted account's lock schedule.
 /// @dev The wrapped token is assumed to be well behaved, including not rebasing, not attempting to re-enter this
 /// wrapper contract, and not presenting any other weird behavior.
 abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
@@ -110,6 +113,18 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     ) EVCUtil(_evc) Ownable(_owner) ERC20Wrapper(IERC20(_underlying)) ERC20(_name, _symbol) {
         remainderReceiver = _remainderReceiver;
         emit RemainderReceiverSet(_remainderReceiver);
+    }
+
+    /// @notice Disables the ability to renounce ownership of the contract
+    function renounceOwnership() public pure override {
+        revert NotAuthorized();
+    }
+
+    /// @notice Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current
+    /// owner.
+    /// @param newOwner The address of the new owner
+    function transferOwnership(address newOwner) public virtual override onlyEVCAccountOwner {
+        super.transferOwnership(newOwner);
     }
 
     /// @notice Sets a new remainder receiver address
@@ -320,7 +335,7 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
             bool fromIsWhitelisted = whitelistStatus[from] != WHITELIST_STATUS_NONE;
             bool toIsWhitelisted = whitelistStatus[to] != WHITELIST_STATUS_NONE;
 
-            if ((from == address(0) || fromIsWhitelisted) && !toIsWhitelisted) {
+            if ((from == address(0) || fromIsWhitelisted) && to != address(0) && !toIsWhitelisted) {
                 // Covers minting and transfers from whitelisted to non-whitelisted
                 EnumerableMap.UintToUintMap storage map = lockedAmounts[to];
                 uint256 normalizedTimestamp = _getNormalizedTimestamp();
@@ -364,12 +379,14 @@ abstract contract ERC20WrapperLocked is EVCUtil, Ownable, ERC20Wrapper {
     }
 
     /// @notice Sets the whitelist status for an account
-    /// @dev If the account is being whitelisted, all the locked amounts are removed resulting in all the tokens being
-    /// unlocked. If the account being removed from the whitelist, the current account balance is locked. The side
-    /// effect of this behavior is that the owner can modify the lock schedule for users, i.e. by adding and then
-    /// removing an account from the whitelist, the owner can reset the unlock schedule for that account. It must be
-    /// noted though that the ability to modify whitelist status and its effects on locks is a core feature of this
-    /// contract.
+    /// @dev If the account is being whitelisted, all locked amounts are removed, resulting in all tokens being
+    /// unlocked. If the account is being removed from the whitelist, the current account balance is locked. A side
+    /// effect of this behavior is that the owner (and by extension, approved token spenders) can modify the lock
+    /// schedule for users. For example, by adding and then removing the account from the whitelist, or by transferring
+    /// tokens from a non-whitelisted account to a whitelisted account and back, the owner and approved token spenders
+    /// can reset the unlock schedule for that account. It should be noted that the ability to modify whitelist status
+    /// and its effects on locks is a core feature of this contract. On the other hand, regular users must be vigilant
+    /// about which addresses they approve to spend their locked tokens which is not unlike other ERC20 approvals.
     /// @param account The address to set the whitelist status for
     /// @param status The whitelist status to set
     function _setWhitelistStatus(address account, uint256 status) internal {

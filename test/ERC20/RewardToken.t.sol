@@ -535,4 +535,23 @@ contract RewardTokenTest is Test {
         vm.expectRevert();
         rewardToken.transfer(address(2), 3001);
     }
+
+    function test_renounceOwnership(address account) external {
+        vm.assume(account != address(evc));
+        vm.prank(account);
+        vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
+        rewardToken.renounceOwnership();
+    }
+
+    function test_transferOwnership(address account) external {
+        vm.assume(account != address(0) && account != address(evc));
+        vm.prank(account);
+        if (account != owner) {
+            vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, account));
+        }
+        rewardToken.transferOwnership(account);
+
+        vm.prank(owner);
+        rewardToken.transferOwnership(account);
+    }
 }

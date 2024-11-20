@@ -24,24 +24,28 @@ if script/utils/executeForgeScript.sh "$scriptPath" "$@"; then
     deployment_dir="script/deployments/$deployment_name"
     
     if [[ "$@" == *"--dry-run"* ]]; then
-        mkdir -p "$deployment_dir/broadcast" "$deployment_dir/output"
-        cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${scriptName}.json"
-
-        for json_file in script/*.json; do
-            jsonFileName=$(basename "$json_file")
-            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
-
-            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
-        done
-    else
         mkdir -p "$deployment_dir/dry-run/broadcast"
-        cp "broadcast/${scriptName}/$chainId/dry-run/run-latest.json" "$deployment_dir/dry-run/broadcast/${scriptName}.json"
+
+        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/dry-run/broadcast/${jsonName}.json")
+        cp "broadcast/${scriptName}/$chainId/dry-run/run-latest.json" "$deployment_dir/dry-run/broadcast/${jsonName}_${counter}.json"
 
         for json_file in script/*.json; do
             jsonFileName=$(basename "$json_file")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/dry-run/$jsonFileName")
 
             mv "$json_file" "$deployment_dir/dry-run/${jsonFileName%.json}_$counter.json"
+        done
+    else
+        mkdir -p "$deployment_dir/broadcast" "$deployment_dir/output"
+
+        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
+        cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
+
+        for json_file in script/*.json; do
+            jsonFileName=$(basename "$json_file")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
         done
     fi
 else

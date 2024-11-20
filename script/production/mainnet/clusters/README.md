@@ -4,7 +4,7 @@ This README explains how to manage a cluster using the provided scripts.
 
 ## Overview
 
-A cluster is a collection of vaults that work together in the system. The `ManageCluster.s.sol` contract provides the base functionality for configuring and managing clusters, while specific cluster implementations (like `PrimeCluster.s.sol` or `MEGACluster.s.sol`) define the actual configuration for each cluster.
+A cluster is a collection of vaults that work together in the system. The `ManageClusterBase.s.sol` contract provides the base functionality for configuring and managing clusters, while specific cluster implementations (like `PrimeCluster.s.sol` or `MEGACluster.s.sol`) define the actual configuration for each cluster.
 
 ## Management Process
 

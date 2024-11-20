@@ -409,7 +409,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         echo "Successfully deployed $adapterName: $adapter"
         echo "$entry" >> "$oracleAdaptersAddresses"
 
-        if [[ "$add_to_csv" == "y" ]]; then
+        if [[ "$add_to_csv" == "y" && "$csv_oracle_adapters_addresses_path" != "$oracleAdaptersAddresses" ]]; then
             echo "$entry" >> "$csv_oracle_adapters_addresses_path"
         fi
 
