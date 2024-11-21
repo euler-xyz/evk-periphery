@@ -8,6 +8,11 @@ echo "This script will guide you through the deployment process."
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
+pkArg="--private-key $DEPLOYER_KEY"
+if [[ "$pkArg" != *"0x"* ]]; then
+    pkArg="$@"
+fi
+
 if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
@@ -15,7 +20,7 @@ fi
 
 while true; do
     echo ""
-    echo "Select an option to deploy:"
+    echo "Select an option to deploy/configure:"
     echo "0. ERC20 tokens"
     echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
     echo "2. Periphery factories and registries"
@@ -28,11 +33,13 @@ while true; do
     echo "9. Perspectives"
     echo "10. Swap"
     echo "11. Fee Flow"
-    echo "12. EVault Factory Governor"
+    echo "12. Governors"
     echo "13. Terms of Use Signer"
-    echo "50. Core and Periphery"
+    echo "---------------------------------"
+    echo "50. Core and Periphery Deployment"
     echo "51. Core Ownership Transfer"
     echo "52. Periphery Ownership Transfer"
+    echo "53. Governor Roles Configuration"
     read -p "Enter your choice: " choice
 
     case $choice in
@@ -879,11 +886,61 @@ while true; do
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         12)
-            echo "Deploying EVault Factory Governor..."
+            echo "Deploying governor..."
+            echo "Select the type of governor to deploy:"
+            echo "0. EVault Factory Governor"
+            echo "1. Governor Access Control"
+            echo "2. Governor Access Control Emergency"
+            read -p "Enter your choice (0-2): " governor_choice
+
+            baseName=12_Governor
+
+            case $governor_choice in
+                0)
+                    echo "Deploying EVault Factory Governor..."
             
-            baseName=12_FactoryGovernor
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
+                    scriptName=${baseName}.s.sol:EVaultFactoryGovernorDeployer
+                    jsonName=12_EVaultFactoryGovernor
+                    ;;
+                1)
+                    echo "Deploying Governor Access Control..."
+                    
+                    scriptName=${baseName}.s.sol:GovernorAccessControlDeployer
+                    jsonName=12_GovernorAccessControl
+                    
+                    read -p "Enter the EVC address: " evc
+                    read -p "Enter the admin address: " admin
+
+                    jq -n \
+                        --arg evc "$evc" \
+                        --arg admin "$admin" \
+                        '{
+                            evc: $evc,
+                            admin: $admin
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                2)
+                    echo "Deploying Governor Access Control Emergency..."
+                    
+                    scriptName=${baseName}.s.sol:GovernorAccessControlEmergencyDeployer
+                    jsonName=12_GovernorAccessControlEmergency
+                    
+                    read -p "Enter the EVC address: " evc
+                    read -p "Enter the admin address: " admin
+
+                    jq -n \
+                        --arg evc "$evc" \
+                        --arg admin "$admin" \
+                        '{
+                            evc: $evc,
+                            admin: $admin
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid governor choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         13)
             echo "Deploying Terms of Use Signer..."
@@ -995,11 +1052,75 @@ while true; do
                     governedPerspectiveOwner: $governedPerspectiveOwner
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
+        53)
+            echo "Governor Roles Configuration..."
+            
+            baseName=skip
+            
+            read -p "Enter the Governor contract address: " governor_contract_address
+            read -p "Enter the Account address to grant/revoke role: " account_address
+
+            echo "Enter the role by: "
+            echo "0. Bytes32 role identifier"
+            echo "1. Bytes4 function selector, i.e. 0x12345678"
+            echo "2. String function signature, i.e. setFeeReceiver(address)"
+            echo "3. String role name, i.e. LTV_EMERGENCY_ROLE"
+            read -p "Enter your choice (0-3): " role_choice
+            
+            case $role_choice in
+                0)
+                    read -p "Enter the bytes32 role identifier: " bytes32_role_identifier
+                    ;;
+                1)
+                    read -p "Enter the bytes4 function selector: " selector_role
+                    bytes32_role_identifier=$(cast to-bytes32 $selector_role)
+                    ;;
+                2)
+                    read -p "Enter the string function signature: " signature_role
+                    selector_role=$(cast sig $signature_role)
+                    bytes32_role_identifier=$(cast to-bytes32 $selector_role)
+                    ;;
+                3)
+                    read -p "Enter the string role name: " string_role_name
+                    bytes32_role_identifier=$(cast keccak $string_role_name)
+                    ;;
+                *)
+                    echo "Invalid role choice. Exiting."
+                    exit 1
+                    ;;
+            esac
+
+            echo "Select the operation type:"
+            echo "0. Grant Role"
+            echo "1. Revoke Role"
+            read -p "Enter your choice (0-1): " operation_type
+            
+            case $operation_type in
+                0)
+                    echo "Granting role ($bytes32_role_identifier) to account ($account_address) on governor contract ($governor_contract_address)"
+                    signature="grantRole(bytes32,address)"
+                    ;;
+                1)
+                    echo "Revoking role ($bytes32_role_identifier) from account ($account_address) on governor contract ($governor_contract_address)"
+                    signature="revokeRole(bytes32,address)"
+                    ;;
+                *)
+                    echo "Invalid operation type. Exiting."
+                    exit 1
+                    ;;
+            esac
+
+            cast send $governor_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $pkArg
+            ;;
         *)
             echo "Invalid choice. Exiting."
             exit 1
             ;;
     esac
+
+    if [ $baseName == "skip" ]; then
+        continue
+    fi
 
     if script/utils/executeForgeScript.sh $scriptName "$@"; then
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)

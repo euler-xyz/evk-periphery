@@ -11,7 +11,7 @@ import {Lenses} from "./08_Lenses.s.sol";
 import {EVKPerspectives} from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
-import {FactoryGovernorDeployer} from "./12_FactoryGovernor.s.sol";
+import {EVaultFactoryGovernorDeployer} from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
@@ -84,7 +84,7 @@ contract CoreAndPeriphery is ScriptUtils {
         }
         // deploy factory governor
         {
-            FactoryGovernorDeployer deployer = new FactoryGovernorDeployer();
+            EVaultFactoryGovernorDeployer deployer = new EVaultFactoryGovernorDeployer();
             coreAddresses.eVaultFactoryGovernor = deployer.deploy();
         }
         // deploy swapper
