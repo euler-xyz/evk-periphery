@@ -16,12 +16,12 @@ contract EVKPerspectives is ScriptUtils {
         string memory inputScriptFileName = "09_EVKPerspectives_input.json";
         string memory outputScriptFileName = "09_EVKPerspectives_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address eVaultFactory = abi.decode(vm.parseJson(json, ".eVaultFactory"), (address));
-        address oracleRouterFactory = abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address));
-        address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
-        address externalVaultRegistry = abi.decode(vm.parseJson(json, ".externalVaultRegistry"), (address));
-        address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
-        address irmRegistry = abi.decode(vm.parseJson(json, ".irmRegistry"), (address));
+        address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
+        address oracleRouterFactory = vm.parseJsonAddress(json, ".oracleRouterFactory");
+        address oracleAdapterRegistry = vm.parseJsonAddress(json, ".oracleAdapterRegistry");
+        address externalVaultRegistry = vm.parseJsonAddress(json, ".externalVaultRegistry");
+        address kinkIRMFactory = vm.parseJsonAddress(json, ".kinkIRMFactory");
+        address irmRegistry = vm.parseJsonAddress(json, ".irmRegistry");
 
         perspectives = execute(
             eVaultFactory,
@@ -140,7 +140,7 @@ contract EulerEarnPerspectives is ScriptUtils {
         string memory inputScriptFileName = "09_EulerEarnPerspectives_input.json";
         string memory outputScriptFileName = "09_EulerEarnPerspectives_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address eulerEarnFactory = abi.decode(vm.parseJson(json, ".eulerEarnFactory"), (address));
+        address eulerEarnFactory = vm.parseJsonAddress(json, ".eulerEarnFactory");
 
         perspectives = execute(eulerEarnFactory);
 

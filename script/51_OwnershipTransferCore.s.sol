@@ -10,8 +10,8 @@ import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 contract OwnershipTransferCore is ScriptUtils {
     function run() public {
         string memory json = getInputConfig("51_OwnershipTransferCore_input.json");
-        address protocolConfigAdmin = abi.decode(vm.parseJson(json, ".protocolConfigAdmin"), (address));
-        address eVaultFactoryGovernorAdmin = abi.decode(vm.parseJson(json, ".eVaultFactoryGovernorAdmin"), (address));
+        address protocolConfigAdmin = vm.parseJsonAddress(json, ".protocolConfigAdmin");
+        address eVaultFactoryGovernorAdmin = vm.parseJsonAddress(json, ".eVaultFactoryGovernorAdmin");
 
         startBroadcast();
         transferOwnership(protocolConfigAdmin, eVaultFactoryGovernorAdmin);

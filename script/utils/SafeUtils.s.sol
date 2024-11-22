@@ -31,9 +31,9 @@ abstract contract SafeUtil is ScriptExtended {
         (uint256 status, bytes memory response) = endpoint.get();
 
         if (status == 200) {
-            return abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0
+            return vm.parseJsonStringArray(string(response), ".results").length == 0
                 ? 0
-                : abi.decode(vm.parseJson(string(response), ".results[0].nonce"), (uint256));
+                : vm.parseJsonUint(string(response), ".results[0].nonce");
         } else {
             revert("getNonce: Failed to get nonce");
         }
@@ -44,7 +44,7 @@ abstract contract SafeUtil is ScriptExtended {
         (uint256 status, bytes memory response) = endpoint.get();
 
         if (status == 200) {
-            return abi.decode(vm.parseJson(string(response), ".safes"), (address[]));
+            return vm.parseJsonAddressArray(string(response), ".safes");
         } else {
             revert("getSafes: Failed to get safes");
         }
@@ -55,13 +55,12 @@ abstract contract SafeUtil is ScriptExtended {
         (uint256 status, bytes memory response) = endpoint.get();
 
         if (status == 200) {
-            uint256 count = abi.decode(vm.parseJson(string(response), ".count"), (uint256));
+            uint256 count = vm.parseJsonUint(string(response), ".count");
             address[] memory delegates = new address[](count);
 
             for (uint256 i = 0; i < count; ++i) {
-                delegates[i] = abi.decode(
-                    vm.parseJson(string(response), string.concat(".results[", vm.toString(i), "].delegate")), (address)
-                );
+                delegates[i] =
+                    vm.parseJsonAddress(string(response), string.concat(".results[", vm.toString(i), "].delegate"));
             }
 
             return delegates;

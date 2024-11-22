@@ -9,10 +9,10 @@ import {GovernedPerspective} from "./../src/Perspectives/deployed/GovernedPerspe
 contract OwnershipTransferPeriphery is ScriptUtils {
     function run() public {
         string memory json = getInputConfig("52_OwnershipTransferPeriphery_input.json");
-        address oracleAdapterRegistryOwner = abi.decode(vm.parseJson(json, ".oracleAdapterRegistryOwner"), (address));
-        address externalVaultRegistryOwner = abi.decode(vm.parseJson(json, ".externalVaultRegistryOwner"), (address));
-        address irmRegistryOwner = abi.decode(vm.parseJson(json, ".irmRegistryOwner"), (address));
-        address governedPerspectiveOwner = abi.decode(vm.parseJson(json, ".governedPerspectiveOwner"), (address));
+        address oracleAdapterRegistryOwner = vm.parseJsonAddress(json, ".oracleAdapterRegistryOwner");
+        address externalVaultRegistryOwner = vm.parseJsonAddress(json, ".externalVaultRegistryOwner");
+        address irmRegistryOwner = vm.parseJsonAddress(json, ".irmRegistryOwner");
+        address governedPerspectiveOwner = vm.parseJsonAddress(json, ".governedPerspectiveOwner");
 
         startBroadcast();
         SnapshotRegistry(peripheryAddresses.oracleAdapterRegistry).transferOwnership(oracleAdapterRegistryOwner);

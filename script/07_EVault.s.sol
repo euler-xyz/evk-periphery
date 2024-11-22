@@ -15,13 +15,13 @@ contract EVaultDeployer is ScriptUtils {
         string memory inputScriptFileName = "07_EVault_input.json";
         string memory outputScriptFileName = "07_EVault_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address oracleRouterFactory = abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address));
-        bool deployRouterForOracle = abi.decode(vm.parseJson(json, ".deployRouterForOracle"), (bool));
-        address eVaultFactory = abi.decode(vm.parseJson(json, ".eVaultFactory"), (address));
-        bool upgradable = abi.decode(vm.parseJson(json, ".upgradable"), (bool));
-        address asset = abi.decode(vm.parseJson(json, ".asset"), (address));
-        address oracle = abi.decode(vm.parseJson(json, ".oracle"), (address));
-        address unitOfAccount = abi.decode(vm.parseJson(json, ".unitOfAccount"), (address));
+        address oracleRouterFactory = vm.parseJsonAddress(json, ".oracleRouterFactory");
+        bool deployRouterForOracle = vm.parseJsonBool(json, ".deployRouterForOracle");
+        address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
+        bool upgradable = vm.parseJsonBool(json, ".upgradable");
+        address asset = vm.parseJsonAddress(json, ".asset");
+        address oracle = vm.parseJsonAddress(json, ".oracle");
+        address unitOfAccount = vm.parseJsonAddress(json, ".unitOfAccount");
 
         (oracleRouter, eVault) =
             execute(oracleRouterFactory, deployRouterForOracle, eVaultFactory, upgradable, asset, oracle, unitOfAccount);
@@ -89,11 +89,10 @@ contract EVaultSingletonEscrowDeployer is ScriptUtils {
         string memory inputScriptFileName = "07_EVaultSingletonEscrow_input.json";
         string memory outputScriptFileName = "07_EVaultSingletonEscrow_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
-        address escrowedCollateralPerspective =
-            abi.decode(vm.parseJson(json, ".escrowedCollateralPerspective"), (address));
-        address eVaultFactory = abi.decode(vm.parseJson(json, ".eVaultFactory"), (address));
-        address asset = abi.decode(vm.parseJson(json, ".asset"), (address));
+        address evc = vm.parseJsonAddress(json, ".evc");
+        address escrowedCollateralPerspective = vm.parseJsonAddress(json, ".escrowedCollateralPerspective");
+        address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
+        address asset = vm.parseJsonAddress(json, ".asset");
 
         eVault = execute(evc, escrowedCollateralPerspective, eVaultFactory, asset);
 
@@ -155,7 +154,7 @@ contract OracleRouterDeployer is ScriptUtils {
         string memory inputScriptFileName = "07_OracleRouter_input.json";
         string memory outputScriptFileName = "07_OracleRouter_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address oracleRouterFactory = abi.decode(vm.parseJson(json, ".oracleRouterFactory"), (address));
+        address oracleRouterFactory = vm.parseJsonAddress(json, ".oracleRouterFactory");
 
         oracleRouter = execute(oracleRouterFactory);
 

@@ -20,7 +20,7 @@ contract Integrations is ScriptUtils {
         string memory inputScriptFileName = "01_Integrations_input.json";
         string memory outputScriptFileName = "01_Integrations_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        permit2 = abi.decode(vm.parseJson(json, ".permit2"), (address));
+        permit2 = vm.parseJsonAddress(json, ".permit2");
 
         (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2) = execute(permit2);
 

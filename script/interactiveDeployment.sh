@@ -1017,8 +1017,8 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            read -p "Enter the Protocol Config Admin address: " protocol_config_admin
-            read -p "Enter the EVault Factory Governor Admin address: " evault_factory_governor_admin
+            read -p "Enter the new Protocol Config Admin address: " protocol_config_admin
+            read -p "Enter the new EVault Factory Governor Admin address: " evault_factory_governor_admin
 
             jq -n \
                 --arg protocolConfigAdmin "$protocol_config_admin" \
@@ -1035,10 +1035,10 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            read -p "Enter the Oracle Adapter Registry Admin address: " oracle_adapter_registry_admin
-            read -p "Enter the External Vault Registry Admin address: " external_vault_registry_admin
-            read -p "Enter the IRM Registry Admin address: " irm_registry_admin
-            read -p "Enter the Governed Perspective Admin address: " governed_perspective_admin
+            read -p "Enter the new Oracle Adapter Registry Owner address: " oracle_adapter_registry_owner
+            read -p "Enter the new External Vault Registry Owner address: " external_vault_registry_owner
+            read -p "Enter the new IRM Registry Owner address: " irm_registry_owner
+            read -p "Enter the new Governed Perspective Owner address: " governed_perspective_owner
 
             jq -n \
                 --arg oracleAdapterRegistryOwner "$oracle_adapter_registry_owner" \

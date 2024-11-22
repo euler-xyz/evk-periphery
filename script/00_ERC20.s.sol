@@ -10,9 +10,9 @@ contract MockERC20Deployer is ScriptUtils {
         string memory inputScriptFileName = "00_MockERC20_input.json";
         string memory outputScriptFileName = "00_MockERC20_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        string memory name = abi.decode(vm.parseJson(json, ".name"), (string));
-        string memory symbol = abi.decode(vm.parseJson(json, ".symbol"), (string));
-        uint8 decimals = abi.decode(vm.parseJson(json, ".decimals"), (uint8));
+        string memory name = vm.parseJsonString(json, ".name");
+        string memory symbol = vm.parseJsonString(json, ".symbol");
+        uint8 decimals = uint8(vm.parseJsonUint(json, ".decimals"));
 
         mockERC20 = execute(name, symbol, decimals);
 
@@ -39,12 +39,12 @@ contract RewardTokenDeployer is ScriptUtils {
         string memory inputScriptFileName = "00_RewardToken_input.json";
         string memory outputScriptFileName = "00_RewardToken_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
-        address owner = abi.decode(vm.parseJson(json, ".owner"), (address));
-        address receiver = abi.decode(vm.parseJson(json, ".receiver"), (address));
-        address underlying = abi.decode(vm.parseJson(json, ".underlying"), (address));
-        string memory name = abi.decode(vm.parseJson(json, ".name"), (string));
-        string memory symbol = abi.decode(vm.parseJson(json, ".symbol"), (string));
+        address evc = vm.parseJsonAddress(json, ".evc");
+        address owner = vm.parseJsonAddress(json, ".owner");
+        address receiver = vm.parseJsonAddress(json, ".receiver");
+        address underlying = vm.parseJsonAddress(json, ".underlying");
+        string memory name = vm.parseJsonString(json, ".name");
+        string memory symbol = vm.parseJsonString(json, ".symbol");
 
         rewardToken = execute(evc, owner, receiver, underlying, name, symbol);
 
