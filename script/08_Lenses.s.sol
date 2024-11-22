@@ -15,8 +15,8 @@ contract Lenses is ScriptUtils {
         string memory inputScriptFileName = "08_Lenses_input.json";
         string memory outputScriptFileName = "08_Lenses_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
-        address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
+        address oracleAdapterRegistry = vm.parseJsonAddress(json, ".oracleAdapterRegistry");
+        address kinkIRMFactory = vm.parseJsonAddress(json, ".kinkIRMFactory");
 
         lenses = execute(oracleAdapterRegistry, kinkIRMFactory);
 
@@ -74,7 +74,7 @@ contract LensOracleDeployer is ScriptUtils {
         string memory inputScriptFileName = "08_LensOracle_input.json";
         string memory outputScriptFileName = "08_LensOracle_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address oracleAdapterRegistry = abi.decode(vm.parseJson(json, ".oracleAdapterRegistry"), (address));
+        address oracleAdapterRegistry = vm.parseJsonAddress(json, ".oracleAdapterRegistry");
 
         oracleLens = execute(oracleAdapterRegistry);
 
@@ -97,7 +97,7 @@ contract LensIRMDeployer is ScriptUtils {
         string memory inputScriptFileName = "08_LensIRM_input.json";
         string memory outputScriptFileName = "08_LensIRM_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
+        address kinkIRMFactory = vm.parseJsonAddress(json, ".kinkIRMFactory");
 
         irmLens = execute(kinkIRMFactory);
 
@@ -120,9 +120,9 @@ contract LensVaultDeployer is ScriptUtils {
         string memory inputScriptFileName = "08_LensVault_input.json";
         string memory outputScriptFileName = "08_LensVault_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address oracleLens = abi.decode(vm.parseJson(json, ".oracleLens"), (address));
-        address utilsLens = abi.decode(vm.parseJson(json, ".utilsLens"), (address));
-        address irmLens = abi.decode(vm.parseJson(json, ".irmLens"), (address));
+        address oracleLens = vm.parseJsonAddress(json, ".oracleLens");
+        address utilsLens = vm.parseJsonAddress(json, ".utilsLens");
+        address irmLens = vm.parseJsonAddress(json, ".irmLens");
 
         vaultLens = execute(oracleLens, utilsLens, irmLens);
 
@@ -149,7 +149,7 @@ contract LensUtilsDeployer is ScriptUtils {
         string memory inputScriptFileName = "08_LensUtils_input.json";
         string memory outputScriptFileName = "08_LensUtils_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address oracleLens = abi.decode(vm.parseJson(json, ".oracleLens"), (address));
+        address oracleLens = vm.parseJsonAddress(json, ".oracleLens");
 
         utilsLens = execute(oracleLens);
 
@@ -172,8 +172,8 @@ contract LensEulerEarnVaultDeployer is ScriptUtils {
         string memory inputScriptFileName = "08_LensEulerEarnVault_input.json";
         string memory outputScriptFileName = "08_LensEulerEarnVault_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address oracleLens = abi.decode(vm.parseJson(json, ".oracleLens"), (address));
-        address utilsLens = abi.decode(vm.parseJson(json, ".utilsLens"), (address));
+        address oracleLens = vm.parseJsonAddress(json, ".oracleLens");
+        address utilsLens = vm.parseJsonAddress(json, ".utilsLens");
 
         eulerEarnVaultLens = execute(oracleLens, utilsLens);
 

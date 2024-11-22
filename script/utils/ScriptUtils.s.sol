@@ -7,14 +7,16 @@ import {ScriptExtended} from "./ScriptExtended.s.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
+import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
-import {IEVault} from "evk/EVault/IEVault.sol";
+import {IEVault, IGovernance} from "evk/EVault/IEVault.sol";
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {SafeTransaction} from "./SafeUtils.s.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
+import {GovernorAccessControl} from "../../src/Governor/GovernorAccessControl.sol";
 import "../../src/Lens/LensTypes.sol";
 
 abstract contract CoreAddressesLib is ScriptExtended {
@@ -331,6 +333,24 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
             caps[asset] = encodeAmountCap(asset, caps[asset]);
         }
     }
+
+    function isGovernanceOperation(bytes4 selector) internal pure returns (bool) {
+        return selector == IGovernance.setGovernorAdmin.selector || selector == IGovernance.setFeeReceiver.selector
+            || selector == IGovernance.setLTV.selector || selector == IGovernance.setMaxLiquidationDiscount.selector
+            || selector == IGovernance.setLiquidationCoolOffTime.selector
+            || selector == IGovernance.setInterestRateModel.selector || selector == IGovernance.setHookConfig.selector
+            || selector == IGovernance.setConfigFlags.selector || selector == IGovernance.setCaps.selector
+            || selector == IGovernance.setInterestFee.selector || selector == IGovernance.setGovernorAdmin.selector
+            || selector == IGovernance.setGovernorAdmin.selector;
+    }
+
+    function isGovernorAccessControlInstance(address governorAdmin) internal view returns (bool) {
+        (bool success, bytes memory result) =
+            governorAdmin.staticcall(abi.encodeCall(GovernorAccessControl.isGovernorAccessControl, ()));
+
+        return success && result.length >= 32
+            && abi.decode(result, (bytes4)) == GovernorAccessControl.isGovernorAccessControl.selector;
+    }
 }
 
 abstract contract BatchBuilder is ScriptUtils {
@@ -387,6 +407,16 @@ abstract contract BatchBuilder is ScriptUtils {
             items = batchItems;
         } else {
             items = criticalItems;
+        }
+
+        if (isGovernanceOperation(bytes4(data)) && GenericFactory(coreAddresses.eVaultFactory).isProxy(targetContract))
+        {
+            address governorAdmin = IEVault(targetContract).governorAdmin();
+
+            if (isGovernorAccessControlInstance(governorAdmin)) {
+                data = abi.encodePacked(data, targetContract);
+                targetContract = governorAdmin;
+            }
         }
 
         items.push(

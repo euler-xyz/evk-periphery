@@ -11,7 +11,7 @@ import {Lenses} from "./08_Lenses.s.sol";
 import {EVKPerspectives} from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
-import {FactoryGovernorDeployer} from "./12_FactoryGovernor.s.sol";
+import {EVaultFactoryGovernorDeployer} from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
@@ -32,15 +32,15 @@ contract CoreAndPeriphery is ScriptUtils {
     function run() public returns (CoreAddresses memory, PeripheryAddresses memory, LensAddresses memory) {
         string memory json = getInputConfig("50_CoreAndPeriphery_input.json");
         Input memory input = Input({
-            permit2: abi.decode(vm.parseJson(json, ".permit2"), (address)),
-            uniswapV2Router: abi.decode(vm.parseJson(json, ".uniswapV2Router"), (address)),
-            uniswapV3Router: abi.decode(vm.parseJson(json, ".uniswapV3Router"), (address)),
-            feeFlowInitPrice: abi.decode(vm.parseJson(json, ".feeFlowInitPrice"), (uint256)),
-            feeFlowPaymentToken: abi.decode(vm.parseJson(json, ".feeFlowPaymentToken"), (address)),
-            feeFlowPaymentReceiver: abi.decode(vm.parseJson(json, ".feeFlowPaymentReceiver"), (address)),
-            feeFlowEpochPeriod: abi.decode(vm.parseJson(json, ".feeFlowEpochPeriod"), (uint256)),
-            feeFlowPriceMultiplier: abi.decode(vm.parseJson(json, ".feeFlowPriceMultiplier"), (uint256)),
-            feeFlowMinInitPrice: abi.decode(vm.parseJson(json, ".feeFlowMinInitPrice"), (uint256))
+            permit2: vm.parseJsonAddress(json, ".permit2"),
+            uniswapV2Router: vm.parseJsonAddress(json, ".uniswapV2Router"),
+            uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
+            feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice"),
+            feeFlowPaymentToken: vm.parseJsonAddress(json, ".feeFlowPaymentToken"),
+            feeFlowPaymentReceiver: vm.parseJsonAddress(json, ".feeFlowPaymentReceiver"),
+            feeFlowEpochPeriod: vm.parseJsonUint(json, ".feeFlowEpochPeriod"),
+            feeFlowPriceMultiplier: vm.parseJsonUint(json, ".feeFlowPriceMultiplier"),
+            feeFlowMinInitPrice: vm.parseJsonUint(json, ".feeFlowMinInitPrice")
         });
 
         // deply integrations
@@ -84,7 +84,7 @@ contract CoreAndPeriphery is ScriptUtils {
         }
         // deploy factory governor
         {
-            FactoryGovernorDeployer deployer = new FactoryGovernorDeployer();
+            EVaultFactoryGovernorDeployer deployer = new EVaultFactoryGovernorDeployer();
             coreAddresses.eVaultFactoryGovernor = deployer.deploy();
         }
         // deploy swapper

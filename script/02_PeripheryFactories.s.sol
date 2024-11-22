@@ -22,7 +22,7 @@ contract PeripheryFactories is ScriptUtils {
         string memory inputScriptFileName = "02_PeripheryFactories_input.json";
         string memory outputScriptFileName = "02_PeripheryFactories_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
+        address evc = vm.parseJsonAddress(json, ".evc");
 
         (oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory, irmRegistry) = execute(evc);
 

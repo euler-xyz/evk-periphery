@@ -28,12 +28,6 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-if [ ! -z "$2" ] && [[ ! -f "$2" ]]; then
-    echo "Error: The specified adapters list file does not exist."
-    echo "Usage: $0 <csv_input_file_path> [csv_oracle_adapters_addresses_path]"
-    exit 1
-fi
-
 csv_file="$1"
 csv_oracle_adapters_addresses_path="$2"
 shift
@@ -409,7 +403,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         echo "Successfully deployed $adapterName: $adapter"
         echo "$entry" >> "$oracleAdaptersAddresses"
 
-        if [[ "$add_to_csv" == "y" ]]; then
+        if [[ "$add_to_csv" == "y" && "$csv_oracle_adapters_addresses_path" != "$oracleAdaptersAddresses" ]]; then
             echo "$entry" >> "$csv_oracle_adapters_addresses_path"
         fi
 

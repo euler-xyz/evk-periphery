@@ -3,6 +3,7 @@
 source .env
 
 scriptPath=$1
+shift
 
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 gasPrice=$(echo "($(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL") * 1.25)/1" | bc)

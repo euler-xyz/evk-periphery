@@ -14,8 +14,8 @@ contract Swap is ScriptUtils {
         string memory inputScriptFileName = "10_Swap_input.json";
         string memory outputScriptFileName = "10_Swap_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address uniswapRouterV2 = abi.decode(vm.parseJson(json, ".uniswapRouterV2"), (address));
-        address uniswapRouterV3 = abi.decode(vm.parseJson(json, ".uniswapRouterV3"), (address));
+        address uniswapRouterV2 = vm.parseJsonAddress(json, ".uniswapRouterV2");
+        address uniswapRouterV3 = vm.parseJsonAddress(json, ".uniswapRouterV3");
 
         (swapper, swapVerifier) = execute(uniswapRouterV2, uniswapRouterV3);
 

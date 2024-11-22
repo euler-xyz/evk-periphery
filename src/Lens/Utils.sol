@@ -17,6 +17,24 @@ abstract contract Utils {
     int256 public constant TTL_LIQUIDATION = -1;
     int256 public constant TTL_ERROR = -2;
 
+    function getWETHAddress() internal view returns (address) {
+        if (block.chainid == 1) {
+            return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        } else if (block.chainid == 10) {
+            return 0x4200000000000000000000000000000000000006;
+        } else if (block.chainid == 137) {
+            return 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619;
+        } else if (block.chainid == 8453) {
+            return 0x4200000000000000000000000000000000000006;
+        } else if (block.chainid == 42161) {
+            return 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+        } else if (block.chainid == 43114) {
+            return 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB;
+        } else {
+            revert("getWETHAddress: Unsupported chain");
+        }
+    }
+
     function _strEq(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(bytes(a)) == keccak256(bytes(b));
     }
@@ -35,18 +53,6 @@ abstract contract Utils {
             contractAddress.staticcall(abi.encodeCall(IEVault(contractAddress).decimals, ()));
 
         return success && data.length >= 32 ? abi.decode(data, (uint8)) : 18;
-    }
-
-    function _getWETHAddress() internal view returns (address) {
-        if (block.chainid == 1) {
-            return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        } else if (block.chainid == 8453) {
-            return 0x4200000000000000000000000000000000000006;
-        } else if (block.chainid == 42161) {
-            return 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
-        } else {
-            revert("Unsupported chain");
-        }
     }
 
     function _computeSupplySPY(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
@@ -155,7 +161,7 @@ abstract contract Utils {
 
                 if (overflow) return TTL_ERROR;
 
-                collateralInterest = collateralValues[i] * multiplier / ONE - collateralValues[i];
+                collateralInterest += collateralValues[i] * multiplier / ONE - collateralValues[i];
             }
 
             // calculate the health factor

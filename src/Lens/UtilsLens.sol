@@ -119,6 +119,8 @@ contract UtilsLens is Utils {
 
         for (uint256 i = 0; i < adapters.length; ++i) {
             result.oracle = adapters[i];
+            result.queryFailure = false;
+            result.queryFailureReason = "";
 
             (bool success, bytes memory data) =
                 result.oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (amountIn, asset, unitOfAccount)));

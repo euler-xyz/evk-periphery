@@ -307,6 +307,12 @@ struct PendleProviderOracleInfo {
     uint32 twapWindow;
 }
 
+struct SwaapSafeguardProviderOracleInfo {
+    address base;
+    address quote;
+    bytes32 poolId;
+}
+
 struct CrossAdapterInfo {
     address base;
     address cross;
