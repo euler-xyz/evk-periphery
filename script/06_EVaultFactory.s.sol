@@ -10,7 +10,7 @@ contract EVaultFactory is ScriptUtils {
         string memory inputScriptFileName = "06_EVaultFactory_input.json";
         string memory outputScriptFileName = "06_EVaultFactory_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address eVaultImplementation = abi.decode(vm.parseJson(json, ".eVaultImplementation"), (address));
+        address eVaultImplementation = vm.parseJsonAddress(json, ".eVaultImplementation");
 
         eVaultFactory = execute(eVaultImplementation);
 

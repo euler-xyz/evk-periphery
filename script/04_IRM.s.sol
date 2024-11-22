@@ -10,11 +10,11 @@ contract KinkIRM is ScriptUtils {
         string memory inputScriptFileName = "04_KinkIRM_input.json";
         string memory outputScriptFileName = "04_KinkIRM_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address kinkIRMFactory = abi.decode(vm.parseJson(json, ".kinkIRMFactory"), (address));
-        uint256 baseRate = abi.decode(vm.parseJson(json, ".baseRate"), (uint256));
-        uint256 slope1 = abi.decode(vm.parseJson(json, ".slope1"), (uint256));
-        uint256 slope2 = abi.decode(vm.parseJson(json, ".slope2"), (uint256));
-        uint32 kink = abi.decode(vm.parseJson(json, ".kink"), (uint32));
+        address kinkIRMFactory = vm.parseJsonAddress(json, ".kinkIRMFactory");
+        uint256 baseRate = vm.parseJsonUint(json, ".baseRate");
+        uint256 slope1 = vm.parseJsonUint(json, ".slope1");
+        uint256 slope2 = vm.parseJsonUint(json, ".slope2");
+        uint32 kink = uint32(vm.parseJsonUint(json, ".kink"));
 
         irm = execute(kinkIRMFactory, baseRate, slope1, slope2, kink);
 

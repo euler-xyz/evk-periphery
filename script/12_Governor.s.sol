@@ -32,8 +32,8 @@ contract GovernorAccessControlDeployer is ScriptUtils {
         string memory inputScriptFileName = "12_GovernorAccessControl_input.json";
         string memory outputScriptFileName = "12_GovernorAccessControl_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
-        address admin = abi.decode(vm.parseJson(json, ".admin"), (address));
+        address evc = vm.parseJsonAddress(json, ".evc");
+        address admin = vm.parseJsonAddress(json, ".admin");
 
         governorAccessControl = execute(evc, admin);
 
@@ -56,13 +56,15 @@ contract GovernorAccessControlEmergencyDeployer is ScriptUtils {
         string memory inputScriptFileName = "12_GovernorAccessControlEmergency_input.json";
         string memory outputScriptFileName = "12_GovernorAccessControlEmergency_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
-        address admin = abi.decode(vm.parseJson(json, ".admin"), (address));
+        address evc = vm.parseJsonAddress(json, ".evc");
+        address admin = vm.parseJsonAddress(json, ".admin");
 
         governorAccessControlEmergency = execute(evc, admin);
 
         string memory object;
-        object = vm.serializeAddress("governorAccessControlEmergency", "governorAccessControlEmergency", governorAccessControlEmergency);
+        object = vm.serializeAddress(
+            "governorAccessControlEmergency", "governorAccessControlEmergency", governorAccessControlEmergency
+        );
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 

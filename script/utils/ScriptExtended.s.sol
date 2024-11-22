@@ -84,7 +84,7 @@ abstract contract ScriptExtended is Script {
         try vm.parseJson(json, key) returns (bytes memory data) {
             return abi.decode(data, (address[]));
         } catch {
-            revert(string.concat("getAddressesFromJson: failed to parse JSON for key: ", key));
+            return new address[](0);
         }
     }
 

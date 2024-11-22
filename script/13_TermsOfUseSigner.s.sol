@@ -10,7 +10,7 @@ contract TermsOfUseSignerDeployer is ScriptUtils {
         string memory inputScriptFileName = "13_TermsOfUseSigner_input.json";
         string memory outputScriptFileName = "13_TermsOfUseSigner_output.json";
         string memory json = getInputConfig(inputScriptFileName);
-        address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
+        address evc = vm.parseJsonAddress(json, ".evc");
 
         termsOfUseSigner = execute(evc);
 
