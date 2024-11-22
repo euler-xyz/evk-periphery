@@ -132,7 +132,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
             --arg feed "${columns[10]}" \
-            --argjson maxStaleness "${columns[11]}" \
+            --arg maxStaleness "${columns[11]}" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
@@ -154,7 +154,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
             --arg feed "${columns[10]}" \
-            --argjson maxStaleness "${columns[11]}" \
+            --arg maxStaleness "${columns[11]}" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
@@ -176,7 +176,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
             --arg feed "${columns[10]}" \
-            --argjson maxStaleness "${columns[11]}" \
+            --arg maxStaleness "${columns[11]}" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
@@ -236,7 +236,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
             --arg feed "${columns[10]}" \
-            --argjson maxStaleness "${columns[11]}" \
+            --arg maxStaleness "${columns[11]}" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
@@ -258,8 +258,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --arg base "${columns[6]}" \
             --arg quote "${columns[7]}" \
             --arg feedId "${columns[8]}" \
-            --argjson feedDecimals "${columns[9]}" \
-            --argjson maxStaleness "${columns[10]}" \
+            --arg feedDecimals "${columns[9]}" \
+            --arg maxStaleness "${columns[10]}" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
@@ -283,8 +283,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --arg base "${columns[7]}" \
             --arg quote "${columns[8]}" \
             --arg feedId "${columns[9]}" \
-            --argjson maxStaleness "${columns[10]}" \
-            --argjson maxConfWidth "${columns[11]}" \
+            --arg maxStaleness "${columns[10]}" \
+            --arg maxConfWidth "${columns[11]}" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
@@ -307,7 +307,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
             --arg base "${columns[6]}" \
             --arg quote "${columns[7]}" \
-            --argjson rate "${columns[8]}" \
+            --arg rate "${columns[8]}" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,
@@ -373,7 +373,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             --arg pendleMarket "${columns[7]}" \
             --arg base "${columns[8]}" \
             --arg quote "${columns[9]}" \
-            --argjson twapWindow "${columns[10]}" \
+            --arg twapWindow "${columns[10]}" \
             '{
                 addToAdapterRegistry: $addToAdapterRegistry,
                 adapterRegistry: $adapterRegistry,

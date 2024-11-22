@@ -71,7 +71,7 @@ while true; do
                     jq -n \
                         --arg name "$token_name" \
                         --arg symbol "$token_symbol" \
-                        --argjson decimals "$token_decimals" \
+                        --arg decimals "$token_decimals" \
                         '{
                             name: $name,
                             symbol: $symbol,
@@ -189,7 +189,7 @@ while true; do
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feed "$feed" \
-                        --argjson maxStaleness "$max_staleness" \
+                        --arg maxStaleness "$max_staleness" \
                         '{
                             addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
@@ -216,7 +216,7 @@ while true; do
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feed "$feed" \
-                        --argjson maxStaleness "$max_staleness" \
+                        --arg maxStaleness "$max_staleness" \
                         '{
                             addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
@@ -260,8 +260,8 @@ while true; do
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feedId "$feed_id" \
-                        --argjson maxStaleness "$max_staleness" \
-                        --argjson maxConfWidth "$max_conf_width" \
+                        --arg maxStaleness "$max_staleness" \
+                        --arg maxConfWidth "$max_conf_width" \
                         '{
                             addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
@@ -291,8 +291,8 @@ while true; do
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feedId "$feed_id" \
-                        --argjson feedDecimals "$feed_decimals" \
-                        --argjson maxStaleness "$max_staleness" \
+                        --arg feedDecimals "$feed_decimals" \
+                        --arg maxStaleness "$max_staleness" \
                         '{
                             addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
@@ -350,8 +350,8 @@ while true; do
                         --arg adapterRegistry "$adapter_registry" \
                         --arg tokenA "$token_a" \
                         --arg tokenB "$token_b" \
-                        --argjson fee "$fee" \
-                        --argjson twapWindow "$twap_window" \
+                        --arg fee "$fee" \
+                        --arg twapWindow "$twap_window" \
                         --arg uniswapV3Factory "$uniswap_v3_factory" \
                         '{
                             addToAdapterRegistry: $addToAdapterRegistry,
@@ -392,7 +392,7 @@ while true; do
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg quote "$quote" \
-                        --argjson rate "$rate" \
+                        --arg rate "$rate" \
                         '{
                             addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
@@ -444,7 +444,7 @@ while true; do
                         --arg pendleMarket "$pendle_market" \
                         --arg base "$base" \
                         --arg quote "$quote" \
-                        --argjson twapWindow "$twap_window" \
+                        --arg twapWindow "$twap_window" \
                         '{
                             addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
@@ -472,7 +472,7 @@ while true; do
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feed "$feed" \
-                        --argjson maxStaleness "$max_staleness" \
+                        --arg maxStaleness "$max_staleness" \
                         '{
                             addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
@@ -511,10 +511,10 @@ while true; do
 
                     jq -n \
                         --arg kinkIRMFactory "$kinkIRMFactory" \
-                        --argjson baseRate "$base_rate" \
-                        --argjson slope1 "$slope1" \
-                        --argjson slope2 "$slope2" \
-                        --argjson kink "$kink" \
+                        --arg baseRate "$base_rate" \
+                        --arg slope1 "$slope1" \
+                        --arg slope2 "$slope2" \
+                        --arg kink "$kink" \
                         '{
                             kinkIRMFactory: $kinkIRMFactory,
                             baseRate: $baseRate,
@@ -968,12 +968,12 @@ while true; do
 
             jq -n \
                 --arg evc "$evc" \
-                --argjson initPrice "$init_price" \
+                --arg initPrice "$init_price" \
                 --arg paymentToken "$payment_token" \
                 --arg paymentReceiver "$payment_receiver" \
-                --argjson epochPeriod "$epoch_period" \
-                --argjson priceMultiplier "$price_multiplier" \
-                --argjson minInitPrice "$min_init_price" \
+                --arg epochPeriod "$epoch_period" \
+                --arg priceMultiplier "$price_multiplier" \
+                --arg minInitPrice "$min_init_price" \
                 '{
                     evc: $evc,
                     initPrice: $initPrice,
@@ -1091,12 +1091,12 @@ while true; do
                 --arg permit2 "$permit2" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
-                --argjson initPrice "$init_price" \
+                --arg initPrice "$init_price" \
                 --arg paymentToken "$payment_token" \
                 --arg paymentReceiver "$payment_receiver" \
-                --argjson epochPeriod "$epoch_period" \
-                --argjson priceMultiplier "$price_multiplier" \
-                --argjson minInitPrice "$min_init_price" \
+                --arg epochPeriod "$epoch_period" \
+                --arg priceMultiplier "$price_multiplier" \
+                --arg minInitPrice "$min_init_price" \
                 '{
                     permit2: $permit2,
                     uniswapV2Router: $uniswapRouterV2,
