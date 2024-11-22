@@ -775,15 +775,19 @@ while true; do
         9)
             echo "Deploying Perspectives..."
             echo "Select the type of perspectives to deploy:"
-            echo "0. EVK Perspectives"
-            echo "1. Euler Earn Perspectives"
-            read -p "Enter your choice (0-1): " perspectives_choice
+            echo "0. All EVK Perspectives (EVK Factory, Governed, Escrowed Collateral, Euler Ungoverned 0x, Euler Ungoverned nzx)"
+            echo "1. Governed Perspective"
+            echo "2. EVK Escrowed Collateral Perspective"
+            echo "3. EVK Euler Ungoverned 0x Perspective"
+            echo "4. EVK Euler Ungoverned nzx Perspective"
+            echo "5. Euler Earn Perspective"
+            read -p "Enter your choice (0-5): " perspectives_choice
 
             baseName=09_Perspectives
 
             case $perspectives_choice in
                 0)
-                    echo "Deploying EVK Perspectives..."
+                    echo "Deploying all EVK Perspectives..."
 
                     scriptName=${baseName}.s.sol:EVKPerspectives
                     jsonName=09_EVKPerspectives
@@ -812,6 +816,101 @@ while true; do
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 1)
+                    echo "Deploying Governed Perspective..."
+
+                    scriptName=${baseName}.s.sol:PerspectiveGovernedDeployer
+                    jsonName=09_PerspectiveGoverned
+
+                    read -p "Enter the EVC address: " evc
+
+                    jq -n \
+                        --arg evc "$evc" \
+                        '{
+                            evc: $evc
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                2)
+                    echo "Deploying EVK Escrowed Collateral Perspective..."
+
+                    scriptName=${baseName}.s.sol:EVKPerspectiveEscrowedCollateralDeployer
+                    jsonName=09_EVKPerspectiveEscrowedCollateral
+
+                    read -p "Enter the EVault Factory address: " evault_factory
+
+                    jq -n \
+                        --arg eVaultFactory "$evault_factory" \
+                        '{
+                            eVaultFactory: $eVaultFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                3)
+                    echo "Deploying EVK Euler Ungoverned 0x Perspective..."
+
+                    scriptName=${baseName}.s.sol:EVKPerspectiveEulerUngoverned0xDeployer
+                    jsonName=09_EVKPerspectiveEulerUngoverned0x
+
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+                    read -p "Enter the External Vault Registry address: " external_vault_registry
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+                    read -p "Enter the IRM Registry address: " irm_registry
+                    read -p "Enter the Escrowed Collateral Perspective address: " escrowed_collateral_perspective
+
+                    jq -n \
+                        --arg eVaultFactory "$evault_factory" \
+                        --arg oracleRouterFactory "$oracle_router_factory" \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        --arg externalVaultRegistry "$external_vault_registry" \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        --arg irmRegistry "$irm_registry" \
+                        --arg escrowedCollateralPerspective "$escrowed_collateral_perspective" \
+                        '{
+                            eVaultFactory: $eVaultFactory,
+                            oracleRouterFactory: $oracleRouterFactory,
+                            oracleAdapterRegistry: $oracleAdapterRegistry,
+                            externalVaultRegistry: $externalVaultRegistry,
+                            kinkIRMFactory: $kinkIRMFactory,
+                            irmRegistry: $irmRegistry,
+                            escrowedCollateralPerspective: $escrowedCollateralPerspective
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                4)
+                    echo "Deploying EVK Euler Ungoverned nzx Perspective..."
+
+                    scriptName=${baseName}.s.sol:EVKPerspectiveEulerUngovernedNzxDeployer
+                    jsonName=09_EVKPerspectiveEulerUngovernedNzx
+
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+                    read -p "Enter the External Vault Registry address: " external_vault_registry
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+                    read -p "Enter the IRM Registry address: " irm_registry
+                    read -p "Enter the Governed Perspective address: " governed_perspective
+                    read -p "Enter the Escrowed Collateral Perspective address: " escrowed_collateral_perspective
+
+                    jq -n \
+                        --arg eVaultFactory "$evault_factory" \
+                        --arg oracleRouterFactory "$oracle_router_factory" \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        --arg externalVaultRegistry "$external_vault_registry" \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        --arg irmRegistry "$irm_registry" \
+                        --arg governedPerspective "$governed_perspective" \
+                        --arg escrowedCollateralPerspective "$escrowed_collateral_perspective" \
+                        '{
+                            eVaultFactory: $eVaultFactory,
+                            oracleRouterFactory: $oracleRouterFactory,
+                            oracleAdapterRegistry: $oracleAdapterRegistry,
+                            externalVaultRegistry: $externalVaultRegistry,
+                            kinkIRMFactory: $kinkIRMFactory,
+                            irmRegistry: $irmRegistry,
+                            governedPerspective: $governedPerspective,
+                            escrowedCollateralPerspective: $escrowedCollateralPerspective
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                5)
                     echo "Deploying Euler Earn Perspectives..."
 
                     scriptName=${baseName}.s.sol:EulerEarnPerspectives
