@@ -26,14 +26,13 @@ if [[ "$@" == *"--dry-run"* ]]; then
     broadcast=""
 fi
 
-pkArg="--private-key $DEPLOYER_KEY"
-if [[ "$pkArg" != *"0x"* ]]; then
-    pkArg="$@"
+if [ -n "$DEPLOYER_KEY" ]; then
+    set -- "$@" --private-key "$DEPLOYER_KEY"
 fi
 
 perspectiveName=$(cast call $new_perspective "name()(string)" --rpc-url $DEPLOYMENT_RPC_URL)
 vaults=$(cast call $old_perspective "verifiedArray()(address[])" --rpc-url $DEPLOYMENT_RPC_URL)
-onBehalfOf=$(cast wallet address $pkArg)
+onBehalfOf=$(cast wallet address $@)
 items="["
 
 if [ -z "$onBehalfOf" ]; then
@@ -67,4 +66,4 @@ if [[ $chainId == "1" ]]; then
     gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
 fi
 
-cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --legacy --gas-price $gasPrice $pkArg
+cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --legacy --gas-price $gasPrice $@

@@ -399,6 +399,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
     if [[ "$@" == *"--dry-run"* ]]; then
         echo "Dry run: Deploying $adapterName..."
+        rm "script/${jsonName}_input.json"
         continue
     fi
 

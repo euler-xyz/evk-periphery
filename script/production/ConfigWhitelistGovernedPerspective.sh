@@ -34,9 +34,26 @@ if [[ "$@" == *"--dry-run"* ]]; then
     broadcast=""
 fi
 
-pkArg="--private-key $DEPLOYER_KEY"
+if [ -n "$DEPLOYER_KEY" ]; then
+    set -- "$@" --private-key "$DEPLOYER_KEY"
+fi
+
 if [[ "$@" == *"--batch-via-safe"* ]]; then
-    pkArg="--private-key $SAFE_KEY"
+    read -p "Provide the directory name to store the Safe Transaction data (default: default): " deployment_name        
+    deployment_name=${deployment_name:-default}
+
+    if [ -n "$SAFE_KEY" ]; then
+        set -- "${@/--private-key/}"
+        set -- "$@" --private-key "$SAFE_KEY"
+    fi
+
+    if [[ "$@" == *"--account"* && -z "$DEPLOYER_KEY" && -z "$SAFE_KEY" ]]; then
+        read -s -p "Enter keystore password: " password
+        set -- "$@" --password "$password"
+        echo ""
+    fi
+
+    onBehalfOf=$SAFE_ADDRESS
 
     set -- "${@/--batch-via-safe/}"
     batch_via_safe="--batch-via-safe"
@@ -46,16 +63,9 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
         set -- "${@/--use-safe-api/}"
         use_safe_api="--use-safe-api"
     fi
-
-    read -p "Provide the directory name to store the Safe Transaction data (default: default): " deployment_name        
-    deployment_name=${deployment_name:-default}
+else
+    onBehalfOf=$(cast wallet address $@)
 fi
-
-if [[ "$pkArg" != *"0x"* ]]; then
-    pkArg="$@"
-fi
-
-onBehalfOf=$(cast wallet address $pkArg)
 
 if [ -z "$onBehalfOf" ]; then
     echo "Cannot retrieve the onBehalfOf address. Exiting..."
@@ -105,7 +115,7 @@ if [[ "$batch_via_safe" == "--batch-via-safe" ]]; then
     calldata=$(cast calldata "batch((address,address,uint256,bytes)[])" $items)
     
     if [ -z "$SAFE_NONCE" ]; then
-        nonce=$(forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "getNonce(address)" $SAFE_ADDRESS --rpc-url "$DEPLOYMENT_RPC_URL" $ffi | grep -oE '[0-9]+$')
+        nonce=$(forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "getNonce(address)" $SAFE_ADDRESS --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $@ | grep -oE '[0-9]+$')
     else
         nonce=$SAFE_NONCE
     fi
@@ -113,7 +123,7 @@ if [[ "$batch_via_safe" == "--batch-via-safe" ]]; then
     nonce=$((nonce + 1))
 
     if env broadcast=$broadcast batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
-        forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "create(address,address,uint256,bytes memory,uint256)" $SAFE_ADDRESS $evc 0 $calldata $nonce --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow "$@"; then
+        forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "create(address,address,uint256,bytes memory,uint256)" $SAFE_ADDRESS $evc 0 $calldata $nonce --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow $@; then
 
         deployment_dir="script/deployments/$deployment_name"
         mkdir -p "$deployment_dir/output"
@@ -134,5 +144,5 @@ else
         gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
     fi
 
-    cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --legacy --gas-price $gasPrice $pkArg
+    cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --legacy --gas-price $gasPrice $@
 fi
