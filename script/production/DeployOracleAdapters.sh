@@ -29,9 +29,12 @@ if [ -z "$1" ]; then
 fi
 
 csv_file="$1"
-csv_oracle_adapters_addresses_path="$2"
 shift
-shift
+
+csv_oracle_adapters_addresses_path="$1"
+if [ -f "$csv_oracle_adapters_addresses_path" ]; then
+    shift
+fi
 
 if [[ "$@" == *"--verbose"* ]]; then
     set -- "${@/--verbose/}"
@@ -45,6 +48,12 @@ fi
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
+
+if [[ "$@" == *"--account"* ]]; then
+    read -s -p "Enter keystore password: " password
+    set -- "$@" --password "$password"
+    echo ""
+fi
 
 source .env
 deployment_dir="script/deployments/$deployment_name"
@@ -390,6 +399,7 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
     if [[ "$@" == *"--dry-run"* ]]; then
         echo "Dry run: Deploying $adapterName..."
+        rm "script/${jsonName}_input.json"
         continue
     fi
 

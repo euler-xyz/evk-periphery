@@ -31,7 +31,7 @@ abstract contract SafeUtil is ScriptExtended {
         (uint256 status, bytes memory response) = endpoint.get();
 
         if (status == 200) {
-            return vm.parseJsonStringArray(string(response), ".results").length == 0
+            return abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0
                 ? 0
                 : vm.parseJsonUint(string(response), ".results[0].nonce");
         } else {

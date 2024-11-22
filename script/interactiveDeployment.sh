@@ -8,9 +8,14 @@ echo "This script will guide you through the deployment process."
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-pkArg="--private-key $DEPLOYER_KEY"
-if [[ "$pkArg" != *"0x"* ]]; then
-    pkArg="$@"
+if [ -n "$DEPLOYER_KEY" ]; then
+    set -- "$@" --private-key "$DEPLOYER_KEY"
+fi
+
+if [[ "$@" == *"--account"* && -z "$DEPLOYER_KEY" ]]; then
+    read -s -p "Enter keystore password: " password
+    set -- "$@" --password "$password"
+    echo ""
 fi
 
 if ! script/utils/checkEnvironment.sh "$@"; then
@@ -1209,7 +1214,7 @@ while true; do
                     ;;
             esac
 
-            cast send $governor_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $pkArg
+            cast send $governor_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $@
             ;;
         *)
             echo "Invalid choice. Exiting."
