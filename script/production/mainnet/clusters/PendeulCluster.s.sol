@@ -6,8 +6,6 @@ import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 
-import {SnapshotRegistry} from "../../../../src/SnapshotRegistry/SnapshotRegistry.sol";
-
 contract Cluster is ManageCluster {
     function configureCluster() internal override {
         // define the path to the cluster addresses file here
@@ -123,14 +121,14 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 5_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[USDC                     ] = 10_560_000;
-        cluster.borrowCaps[LBTC                     ] = 128;
-        cluster.borrowCaps[eBTC                     ] = 128;
-        cluster.borrowCaps[WBTC                     ] = 128;
-        cluster.borrowCaps[cbBTC                    ] = 128;
-        cluster.borrowCaps[tBTC                     ] = 128;
-        cluster.borrowCaps[pumpBTC                  ] = 128;
-        cluster.borrowCaps[SOLVBTC                  ] = 128;
+        cluster.borrowCaps[USDC                     ] = 10_500_000;
+        cluster.borrowCaps[LBTC                     ] = 127;
+        cluster.borrowCaps[eBTC                     ] = 127;
+        cluster.borrowCaps[WBTC                     ] = 127;
+        cluster.borrowCaps[cbBTC                    ] = 127;
+        cluster.borrowCaps[tBTC                     ] = 127;
+        cluster.borrowCaps[pumpBTC                  ] = 127;
+        cluster.borrowCaps[SOLVBTC                  ] = 127;
         cluster.borrowCaps[USD0                     ] = 9_840_000;
         cluster.borrowCaps[USD0PlusPlus             ] = 2_500_000;
         cluster.borrowCaps[PT_LBTC_27MAR2025        ] = type(uint256).max;
