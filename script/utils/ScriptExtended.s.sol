@@ -11,24 +11,25 @@ abstract contract ScriptExtended is Script {
     constructor() {
         uint256 deployerPK = vm.envOr("DEPLOYER_KEY", uint256(0));
         uint256 safeSignerPK = vm.envOr("SAFE_KEY", uint256(0));
+        uint256 rememberDeployerLength;
+        uint256 rememberSafeSignerLength;
 
         if (deployerPK != 0) {
             vm.rememberKey(deployerPK);
-            deployerAddress = vm.addr(deployerPK);
+            rememberDeployerLength = vm.getWallets().length;
         }
 
         if (safeSignerPK != 0) {
             vm.rememberKey(safeSignerPK);
-            safeSignerAddress = vm.addr(safeSignerPK);
+            rememberSafeSignerLength = vm.getWallets().length;
         }
 
         address[] memory wallets = vm.getWallets();
-        if (deployerAddress == address(0) && wallets.length > 0) {
-            deployerAddress = wallets[0];
-        }
-
-        if (safeSignerAddress == address(0) && wallets.length > 0) {
-            safeSignerAddress = wallets.length > 1 ? wallets[1] : wallets[0];
+        if (wallets.length > 0) {
+            deployerAddress = rememberDeployerLength > 0 ? wallets[rememberDeployerLength - 1] : wallets[0];
+            safeSignerAddress = rememberSafeSignerLength > 0
+                ? wallets[rememberSafeSignerLength - 1]
+                : rememberDeployerLength > 0 ? wallets[0] : wallets.length > 1 ? wallets[1] : wallets[0];
         }
 
         if (!vm.envOr("FORCE_NO_KEY", false)) {
