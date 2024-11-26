@@ -1,3 +1,3 @@
 Asset,Quote,Provider,Deploy,Whitelist,Heartbeat,Deviation %,Class,base,quote,feed,maxStaleness,,,,,,,Asset class
 mTBILL,USD,Chainlink Infrequent,Yes,No,31536000,-,ChainlinkInfrequentOracle,0xDD629E5241CbC5919847783e6C96B2De4754e438,0x0000000000000000000000000000000000000348,0x056339C044055819E8Db84E71f5f2E1F536b2E5b,31536000,,,,,,,Crypto
-mBTC,USD,Chainlink Infrequent,Yes,No,31536000,-,ChainlinkInfrequentOracle,0x007115416AB6c266329a03B09a8aa39aC2eF7d9d,0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB,0xA537EF0343e83761ED42B8E017a1e495c9a189Ee,31536000,,,,,,,Crypto
+mBTC,BTC,Chainlink Infrequent,Yes,No,31536000,-,ChainlinkInfrequentOracle,0x007115416AB6c266329a03B09a8aa39aC2eF7d9d,0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB,0xA537EF0343e83761ED42B8E017a1e495c9a189Ee,31536000,,,,,,,Crypto
