@@ -73,7 +73,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDT   ] = 1_000_000_000;
         cluster.supplyCaps[USDS   ] = 50_000_000;
         cluster.supplyCaps[sUSDS  ] = 45_000_000;
-        cluster.supplyCaps[mTBILL ] = 2_500_000;
+        cluster.supplyCaps[mTBILL ] = 15_000_000;
         cluster.supplyCaps[wM     ] = 2_500_000;
         cluster.supplyCaps[tBTC   ] = 157;
         cluster.supplyCaps[WBTC   ] = 1_570;
@@ -89,7 +89,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDT   ] = 880_000_000;
         cluster.borrowCaps[USDS   ] = 41_000_000;
         cluster.borrowCaps[sUSDS  ] = 18_000_000;
-        cluster.borrowCaps[mTBILL ] = 1_000_000;
+        cluster.borrowCaps[mTBILL ] = 6_000_000;
         cluster.borrowCaps[wM     ] = 2_050_000;
         cluster.borrowCaps[tBTC   ] = 133;
         cluster.borrowCaps[WBTC   ] = 1_330;
@@ -139,7 +139,7 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 30 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
@@ -156,7 +156,7 @@ contract Cluster is ManageCluster {
         /* 5  USDT    */ [0.85e4, 0.82e4, 0.89e4, 0.80e4, 0.95e4, 0.00e4, 0.95e4, 0.85e4, 0.95e4, 0.95e4, 0.77e4, 0.82e4, 0.89e4, 0.89e4],
         /* 6  USDS    */ [0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.92e4, 0.92e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4],
         /* 7  sUSDS   */ [0.83e4, 0.82e4, 0.83e4, 0.80e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.92e4, 0.77e4, 0.82e4, 0.83e4, 0.83e4],
-        /* 8  mTBILL  */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.71e4, 0.71e4, 0.71e4, 0.71e4],
+        /* 8  mTBILL  */ [0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 9  wM      */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.71e4, 0.71e4, 0.71e4, 0.71e4],
         /* 10 tBTC    */ [0.71e4, 0.71e4, 0.71e4, 0.71e4, 0.80e4, 0.80e4, 0.80e4, 0.77e4, 0.80e4, 0.80e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4],
         /* 11 WBTC    */ [0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.83e4, 0.83e4, 0.83e4, 0.77e4, 0.83e4, 0.83e4, 0.85e4, 0.00e4, 0.92e4, 0.92e4],
@@ -177,7 +177,7 @@ contract Cluster is ManageCluster {
             /* 5  Escrow USDT    */ [0.87e4, 0.84e4, 0.91e4, 0.82e4, 0.97e4, 0.00e4, 0.97e4, 0.87e4, 0.97e4, 0.97e4, 0.79e4, 0.84e4, 0.91e4, 0.91e4],
             /* 6  Escrow USDS    */ [0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.94e4, 0.94e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4],
             /* 7  Escrow sUSDS   */ [0.85e4, 0.84e4, 0.85e4, 0.82e4, 0.94e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.94e4, 0.79e4, 0.84e4, 0.85e4, 0.85e4],
-            /* 8  Escrow mTBILL  */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.94e4, 0.94e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.73e4, 0.73e4, 0.73e4, 0.73e4],
+            /* 8  Escrow mTBILL  */ [0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.94e4, 0.94e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
             /* 9  Escrow wM      */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.73e4, 0.73e4, 0.73e4, 0.73e4],
             /* 10 Escrow tBTC    */ [0.73e4, 0.73e4, 0.73e4, 0.73e4, 0.82e4, 0.82e4, 0.82e4, 0.79e4, 0.82e4, 0.82e4, 0.00e4, 0.92e4, 0.92e4, 0.92e4],
             /* 11 Escrow WBTC    */ [0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.85e4, 0.85e4, 0.85e4, 0.79e4, 0.85e4, 0.85e4, 0.87e4, 0.00e4, 0.94e4, 0.94e4],
@@ -199,7 +199,9 @@ contract Cluster is ManageCluster {
                 peripheryAddresses.eulerUngovernedNzxPerspective,
                 cluster.vaults[i],
                 PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR,
-                PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING | PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER
+                PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_SEPARATION | PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_BORROW |
+                PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_LIQUIDATION | PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING |
+                PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER
             );
         }
     }
