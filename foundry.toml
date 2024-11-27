@@ -25,7 +25,8 @@ wrap_comments = true
 ignore = [
     "script/production/mainnet/clusters/MEGACluster.s.sol",
     "script/production/mainnet/clusters/PrimeCluster.s.sol",
-    "script/production/mainnet/clusters/PendeulCluster.s.sol"
+    "script/production/mainnet/clusters/PendeulCluster.s.sol",
+    "script/production/base/clusters/BaseCluster.s.sol"
 ]
 
 [profile.default.fuzz]

@@ -11,8 +11,9 @@ import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {IEVault, IGovernance} from "evk/EVault/IEVault.sol";
-import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
+import {EulerRouter, Governable} from "euler-price-oracle/EulerRouter.sol";
 import {SafeTransaction} from "./SafeUtils.s.sol";
+import {BaseFactory} from "../../src/BaseFactory/BaseFactory.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
@@ -335,8 +336,10 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     function isGovernanceOperation(bytes4 selector) internal pure returns (bool) {
-        return selector == IGovernance.setGovernorAdmin.selector || selector == IGovernance.setFeeReceiver.selector
-            || selector == IGovernance.setLTV.selector || selector == IGovernance.setMaxLiquidationDiscount.selector
+        return selector == Governable.transferGovernance.selector || selector == EulerRouter.govSetConfig.selector
+            || selector == EulerRouter.govSetResolvedVault.selector || selector == IGovernance.setGovernorAdmin.selector
+            || selector == IGovernance.setFeeReceiver.selector || selector == IGovernance.setLTV.selector
+            || selector == IGovernance.setMaxLiquidationDiscount.selector
             || selector == IGovernance.setLiquidationCoolOffTime.selector
             || selector == IGovernance.setInterestRateModel.selector || selector == IGovernance.setHookConfig.selector
             || selector == IGovernance.setConfigFlags.selector || selector == IGovernance.setCaps.selector
@@ -345,6 +348,8 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     function isGovernorAccessControlInstance(address governorAdmin) internal view returns (bool) {
+        if (governorAdmin == address(0)) return false;
+
         (bool success, bytes memory result) =
             governorAdmin.staticcall(abi.encodeCall(GovernorAccessControl.isGovernorAccessControl, ()));
 
@@ -409,9 +414,14 @@ abstract contract BatchBuilder is ScriptUtils {
             items = criticalItems;
         }
 
-        if (isGovernanceOperation(bytes4(data)) && GenericFactory(coreAddresses.eVaultFactory).isProxy(targetContract))
-        {
-            address governorAdmin = IEVault(targetContract).governorAdmin();
+        if (isGovernanceOperation(bytes4(data))) {
+            address governorAdmin;
+
+            if (GenericFactory(coreAddresses.eVaultFactory).isProxy(targetContract)) {
+                governorAdmin = IEVault(targetContract).governorAdmin();
+            } else if (BaseFactory(peripheryAddresses.oracleRouterFactory).isValidDeployment(targetContract)) {
+                governorAdmin = EulerRouter(targetContract).governor();
+            }
 
             if (isGovernorAccessControlInstance(governorAdmin)) {
                 data = abi.encodePacked(data, targetContract);

@@ -75,7 +75,8 @@ abstract contract ScriptExtended is Script {
 
     function getAddressFromJson(string memory json, string memory key) internal pure returns (address) {
         try vm.parseJson(json, key) returns (bytes memory data) {
-            return abi.decode(data, (address));
+            if (data.length < 32) return address(0);
+            else return abi.decode(data, (address));
         } catch {
             return address(0);
         }
@@ -83,7 +84,8 @@ abstract contract ScriptExtended is Script {
 
     function getAddressesFromJson(string memory json, string memory key) internal pure returns (address[] memory) {
         try vm.parseJson(json, key) returns (bytes memory data) {
-            return abi.decode(data, (address[]));
+            if (data.length < 32) return new address[](0);
+            else return abi.decode(data, (address[]));
         } catch {
             return new address[](0);
         }
