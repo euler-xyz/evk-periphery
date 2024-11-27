@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
@@ -190,7 +191,7 @@ contract Cluster is ManageCluster {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             perspectiveVerify(peripheryAddresses.governedPerspective, cluster.vaults[i]);
         }
-        executeBatchPrank(EULER_DEPLOYER);
+        executeBatchPrank(Ownable(peripheryAddresses.governedPerspective).owner());
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i]);

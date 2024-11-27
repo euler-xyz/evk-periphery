@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import {Vm, Test} from "forge-std/Test.sol";
 import {EthereumVaultConnector} from "evc/EthereumVaultConnector.sol";
-import {ERC20Mintable} from "../../script/utils/ScriptUtils.s.sol";
+import {ERC20MintableBurnable} from "../../script/utils/ERC20MintableBurnable.sol";
 import {RewardToken} from "../../src/ERC20/deployed/RewardToken.sol";
 import {ERC20WrapperLocked, EVCUtil, Ownable} from "../../src/ERC20/implementation/ERC20WrapperLocked.sol";
 
@@ -16,23 +16,23 @@ contract RewardTokenTest is Test {
     address owner = makeAddr("owner");
     address remainderReceiver = makeAddr("remainderReceiver");
     EthereumVaultConnector evc;
-    ERC20Mintable erc20Mintable;
+    ERC20MintableBurnable erc20;
     RewardToken rewardToken;
 
     function setUp() public {
         evc = new EthereumVaultConnector();
-        erc20Mintable = new ERC20Mintable(owner, "ERC20Mintable", "ERC20Mintable", 18);
+        erc20 = new ERC20MintableBurnable(owner, "ERC20", "ERC20", 18);
         rewardToken = new RewardToken(
-            address(evc), owner, remainderReceiver, address(erc20Mintable), "RewardToken", "RewardToken"
+            address(evc), owner, remainderReceiver, address(erc20), "RewardToken", "RewardToken"
         );
     }
 
     function mint(address account, uint256 amount) internal {
         vm.prank(owner);
-        erc20Mintable.mint(account, amount);
+        erc20.mint(account, amount);
 
         vm.prank(account);
-        erc20Mintable.approve(address(rewardToken), amount);
+        erc20.approve(address(rewardToken), amount);
     }
 
     function test_setRemainderReceiver(address nonOwner, address newRemainderReceiver) external {
@@ -281,11 +281,11 @@ contract RewardTokenTest is Test {
         vm.stopPrank();
 
         if (callerWhitelistStatus == WHITELIST_STATUS_ADMIN) {
-            assertEq(erc20Mintable.balanceOf(caller), amount);
-            assertEq(erc20Mintable.balanceOf(account), 0);
+            assertEq(erc20.balanceOf(caller), amount);
+            assertEq(erc20.balanceOf(account), 0);
             vm.prank(caller);
             rewardToken.depositFor(account, amount);
-            assertEq(erc20Mintable.balanceOf(caller), 0);
+            assertEq(erc20.balanceOf(caller), 0);
             assertEq(rewardToken.balanceOf(account), amount);
 
             uint256 snapshot = vm.snapshotState();
@@ -294,7 +294,7 @@ contract RewardTokenTest is Test {
                 vm.startPrank(account);
                 if (accountWhitelistStatus == WHITELIST_STATUS_ADMIN) {
                     rewardToken.withdrawTo(receiver, amount);
-                    assertEq(erc20Mintable.balanceOf(receiver), amount);
+                    assertEq(erc20.balanceOf(receiver), amount);
                     assertEq(rewardToken.balanceOf(account), 0);
                 } else {
                     vm.expectRevert(abi.encodeWithSelector(EVCUtil.NotAuthorized.selector));
@@ -343,8 +343,8 @@ contract RewardTokenTest is Test {
                 vm.revertToState(snapshot);
                 assertEq(rewardToken.getLockedAmountsLength(account), 1);
                 rewardToken.withdrawToByLockTimestamp(receiver, 0, true);
-                assertEq(erc20Mintable.balanceOf(receiver), amount / 5);
-                assertEq(erc20Mintable.balanceOf(remainderReceiver), amount - amount / 5);
+                assertEq(erc20.balanceOf(receiver), amount / 5);
+                assertEq(erc20.balanceOf(remainderReceiver), amount - amount / 5);
                 assertEq(rewardToken.balanceOf(account), 0);
                 assertEq(rewardToken.getLockedAmountsLength(account), 0);
 
@@ -416,8 +416,8 @@ contract RewardTokenTest is Test {
             rewardToken.withdrawToByLockTimestamp(receiver, normalizedTimestamp, allowRemainderLoss);
         } else {
             rewardToken.withdrawToByLockTimestamp(receiver, normalizedTimestamp, allowRemainderLoss);
-            assertEq(erc20Mintable.balanceOf(receiver), expectedAmount);
-            assertEq(erc20Mintable.balanceOf(remainderReceiver), amount - expectedAmount);
+            assertEq(erc20.balanceOf(receiver), expectedAmount);
+            assertEq(erc20.balanceOf(remainderReceiver), amount - expectedAmount);
             assertEq(rewardToken.balanceOf(account), 0);
             assertEq(rewardToken.getLockedAmountsLength(account), 0);
         }
@@ -432,7 +432,7 @@ contract RewardTokenTest is Test {
         uint256 delta
     ) external {
         rewardToken =
-            new RewardToken(address(evc), owner, address(0), address(erc20Mintable), "RewardToken", "RewardToken");
+            new RewardToken(address(evc), owner, address(0), address(erc20), "RewardToken", "RewardToken");
         vm.assume(
             account != address(0) && account != owner && account != address(rewardToken) && account != address(evc)
         );
@@ -468,8 +468,8 @@ contract RewardTokenTest is Test {
             rewardToken.withdrawToByLockTimestamp(receiver, normalizedTimestamp, allowRemainderLoss);
         } else {
             rewardToken.withdrawToByLockTimestamp(receiver, normalizedTimestamp, allowRemainderLoss);
-            assertEq(erc20Mintable.balanceOf(receiver), expectedAmount);
-            assertEq(erc20Mintable.balanceOf(owner), amount - expectedAmount);
+            assertEq(erc20.balanceOf(receiver), expectedAmount);
+            assertEq(erc20.balanceOf(owner), amount - expectedAmount);
             assertEq(rewardToken.balanceOf(account), 0);
             assertEq(rewardToken.getLockedAmountsLength(account), 0);
         }

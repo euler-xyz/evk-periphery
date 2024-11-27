@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils, ERC20Mintable} from "./utils/ScriptUtils.s.sol";
+import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
+import {ERC20MintableBurnable} from "./utils/ERC20MintableBurnable.sol";
 import {RewardToken} from "../src/ERC20/deployed/RewardToken.sol";
 
 contract MockERC20Deployer is ScriptUtils {
@@ -30,7 +31,7 @@ contract MockERC20Deployer is ScriptUtils {
     }
 
     function execute(string memory name, string memory symbol, uint8 decimals) public returns (address mockERC20) {
-        mockERC20 = address(new ERC20Mintable(getDeployer(), name, symbol, decimals));
+        mockERC20 = address(new ERC20MintableBurnable(getDeployer(), name, symbol, decimals));
     }
 }
 
