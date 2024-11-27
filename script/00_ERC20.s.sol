@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils, ERC20Mintable} from "./utils/ScriptUtils.s.sol";
+import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
+import {ERC20Mintable} from "./utils/ERC20Mintable.sol";
 import {RewardToken} from "../src/ERC20/deployed/RewardToken.sol";
 
 contract MockERC20Deployer is ScriptUtils {

@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import {Vm, Test} from "forge-std/Test.sol";
 import {EthereumVaultConnector} from "evc/EthereumVaultConnector.sol";
-import {ERC20Mintable} from "../../script/utils/ScriptUtils.s.sol";
+import {ERC20Mintable} from "../../script/utils/ERC20Mintable.sol";
 import {RewardToken} from "../../src/ERC20/deployed/RewardToken.sol";
 import {ERC20WrapperLocked, EVCUtil, Ownable} from "../../src/ERC20/implementation/ERC20WrapperLocked.sol";
 

@@ -606,34 +606,3 @@ abstract contract BatchBuilder is ScriptUtils {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setInterestFee, (newInterestFee)));
     }
 }
-
-contract ERC20Mintable is Ownable, ERC20 {
-    uint8 internal immutable _decimals;
-
-    constructor(address owner, string memory name_, string memory symbol_, uint8 decimals_)
-        Ownable(owner)
-        ERC20(name_, symbol_)
-    {
-        _decimals = decimals_;
-    }
-
-    function decimals() public view virtual override returns (uint8) {
-        return _decimals;
-    }
-
-    function mint(address account, uint256 amount) external onlyOwner {
-        _mint(account, amount);
-    }
-}
-
-contract StubOracle {
-    string public name = "StubOracle";
-
-    function getQuote(uint256, address, address) external pure returns (uint256) {
-        return 0;
-    }
-
-    function getQuotes(uint256, address, address) external pure returns (uint256, uint256) {
-        return (0, 0);
-    }
-}

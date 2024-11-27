@@ -9,7 +9,7 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 import {KinkIRM} from "../04_IRM.s.sol";
 import {EVaultDeployer, OracleRouterDeployer, EulerRouter} from "../07_EVault.s.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
-import {StubOracle} from "../utils/ScriptUtils.s.sol";
+import {StubOracle} from "../utils/StubOracle.sol";
 import "../../src/Lens/LensTypes.sol";
 
 abstract contract ManageClusterBase is BatchBuilder {
