@@ -15,7 +15,7 @@ contract Cluster is ManageCluster {
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [WETH, wstETH, cbETH, WEETH, USDC, EURC, cbBTC];
+        cluster.assets = [WETH, wstETH, cbETH, WEETH, USDC, EURC, cbBTC, LBTC];
 
         // define the governors here
         cluster.oracleRoutersGovernor = GOVERNOR_ACCESS_CONTROL;
@@ -57,6 +57,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[USDC  ] = "ChainlinkOracle";
         cluster.oracleProviders[EURC  ] = "ChainlinkOracle";
         cluster.oracleProviders[cbBTC ] = "CrossAdapter=ChronicleOracle+ChronicleOracle";
+        cluster.oracleProviders[LBTC  ] = "CrossAdapter=RedstoneClassicOracle+ChainlinkOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH  ] = type(uint256).max;
@@ -66,6 +67,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDC  ] = type(uint256).max;
         cluster.supplyCaps[EURC  ] = type(uint256).max;
         cluster.supplyCaps[cbBTC ] = type(uint256).max;
+        cluster.supplyCaps[LBTC  ] = type(uint256).max;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[WETH  ] = type(uint256).max;
@@ -75,6 +77,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDC  ] = type(uint256).max;
         cluster.borrowCaps[EURC  ] = type(uint256).max;
         cluster.borrowCaps[cbBTC ] = type(uint256).max;
+        cluster.borrowCaps[LBTC  ] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
         {
@@ -88,6 +91,7 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[USDC  ] = irmDummy;
             cluster.kinkIRMParams[EURC  ] = irmDummy;
             cluster.kinkIRMParams[cbBTC ] = irmDummy;
+            cluster.kinkIRMParams[LBTC  ] = irmDummy;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -98,15 +102,16 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0       1       2       3       4       5       6    
-        //                WETH    wstETH  cbETH   WEETH   USDC    EURC    cbBTC
-        /* 0  WETH    */ [0.00e4, 0.90e4, 0.88e4, 0.00e4, 0.85e4, 0.82e4, 0.83e4],
-        /* 1  wstETH  */ [0.92e4, 0.00e4, 0.90e4, 0.88e4, 0.83e4, 0.80e4, 0.81e4],
-        /* 2  cbETH   */ [0.93e4, 0.92e4, 0.00e4, 0.89e4, 0.84e4, 0.81e4, 0.82e4],
-        /* 3  WEETH   */ [0.90e4, 0.89e4, 0.87e4, 0.00e4, 0.81e4, 0.78e4, 0.79e4],
-        /* 4  USDC    */ [0.85e4, 0.82e4, 0.81e4, 0.79e4, 0.00e4, 0.83e4, 0.84e4],
-        /* 5  EURC    */ [0.82e4, 0.79e4, 0.78e4, 0.76e4, 0.82e4, 0.00e4, 0.80e4],
-        /* 6  cbBTC   */ [0.85e4, 0.82e4, 0.81e4, 0.79e4, 0.83e4, 0.80e4, 0.00e4]
+        //                0       1       2       3       4       5       6       7
+        //                WETH    wstETH  cbETH   WEETH   USDC    EURC    cbBTC   LBTC
+        /* 0  WETH    */ [0.00e4, 0.90e4, 0.88e4, 0.00e4, 0.85e4, 0.82e4, 0.83e4, 0.83e4],
+        /* 1  wstETH  */ [0.92e4, 0.00e4, 0.90e4, 0.88e4, 0.83e4, 0.80e4, 0.81e4, 0.81e4],
+        /* 2  cbETH   */ [0.93e4, 0.92e4, 0.00e4, 0.89e4, 0.84e4, 0.81e4, 0.82e4, 0.82e4],
+        /* 3  WEETH   */ [0.90e4, 0.89e4, 0.87e4, 0.00e4, 0.81e4, 0.78e4, 0.79e4, 0.79e4],
+        /* 4  USDC    */ [0.85e4, 0.82e4, 0.81e4, 0.79e4, 0.00e4, 0.83e4, 0.84e4, 0.84e4],
+        /* 5  EURC    */ [0.82e4, 0.79e4, 0.78e4, 0.76e4, 0.82e4, 0.00e4, 0.80e4, 0.80e4],
+        /* 6  cbBTC   */ [0.85e4, 0.82e4, 0.81e4, 0.79e4, 0.83e4, 0.80e4, 0.00e4, 0.87e4],
+        /* 7  LBTC    */ [0.85e4, 0.82e4, 0.81e4, 0.79e4, 0.83e4, 0.80e4, 0.89e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
