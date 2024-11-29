@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import {Vm, Test} from "forge-std/Test.sol";
 import {EthereumVaultConnector} from "evc/EthereumVaultConnector.sol";
-import {ERC20MintableBurnable} from "../../script/utils/ERC20MintableBurnable.sol";
+import {MockERC20Mintable} from "../../script/utils/MockERC20Mintable.sol";
 import {RewardToken} from "../../src/ERC20/deployed/RewardToken.sol";
 import {ERC20WrapperLocked, EVCUtil, Ownable} from "../../src/ERC20/implementation/ERC20WrapperLocked.sol";
 
@@ -16,15 +16,14 @@ contract RewardTokenTest is Test {
     address owner = makeAddr("owner");
     address remainderReceiver = makeAddr("remainderReceiver");
     EthereumVaultConnector evc;
-    ERC20MintableBurnable erc20;
+    MockERC20Mintable erc20;
     RewardToken rewardToken;
 
     function setUp() public {
         evc = new EthereumVaultConnector();
-        erc20 = new ERC20MintableBurnable(owner, "ERC20", "ERC20", 18);
-        rewardToken = new RewardToken(
-            address(evc), owner, remainderReceiver, address(erc20), "RewardToken", "RewardToken"
-        );
+        erc20 = new MockERC20Mintable(owner, "ERC20", "ERC20", 18);
+        rewardToken =
+            new RewardToken(address(evc), owner, remainderReceiver, address(erc20), "RewardToken", "RewardToken");
     }
 
     function mint(address account, uint256 amount) internal {
@@ -431,8 +430,7 @@ contract RewardTokenTest is Test {
         uint32 timestamp,
         uint256 delta
     ) external {
-        rewardToken =
-            new RewardToken(address(evc), owner, address(0), address(erc20), "RewardToken", "RewardToken");
+        rewardToken = new RewardToken(address(evc), owner, address(0), address(erc20), "RewardToken", "RewardToken");
         vm.assume(
             account != address(0) && account != owner && account != address(rewardToken) && account != address(evc)
         );
