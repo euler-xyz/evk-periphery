@@ -17,6 +17,7 @@ abstract contract Addresses {
     address internal constant USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address internal constant EURC = 0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42;
     address internal constant cbBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
+    address internal constant LBTC = 0xecAc9C5F704e954931349Da37F60E39f515c11c1;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}
