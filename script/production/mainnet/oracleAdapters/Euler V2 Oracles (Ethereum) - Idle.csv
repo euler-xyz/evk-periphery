@@ -1,0 +1,2 @@
+Asset,Quote,Provider,Deploy,Whitelist,Class,base,quote,cdo,tranche
+AA_idle_Fasanara,USDC,Idle,Yes,No,IdleTranchesOracle,0x45054c6753b4Bce40C5d54418DabC20b070F85bE,0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2,0x45054c6753b4Bce40C5d54418DabC20b070F85bE

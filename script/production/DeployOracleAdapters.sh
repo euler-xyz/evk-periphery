@@ -392,6 +392,24 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 quote: $quote,
                 twapWindow: $twapWindow
             }' --indent 4 > script/${jsonName}_input.json
+    elif [[ "$provider" == "Idle" ]]; then
+        scriptName=${baseName}.s.sol:IdleTrancheAdapter
+        jsonName=03_IdleTrancheAdapter
+
+        base="${columns[6]}"
+        quote="${columns[7]}"
+
+        jq -n \
+            --argjson addToAdapterRegistry false \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
+            --arg cdo "${columns[8]}" \
+            --arg tranche "${columns[9]}" \
+            '{
+                addToAdapterRegistry: $addToAdapterRegistry,
+                adapterRegistry: $adapterRegistry,
+                cdo: $cdo,
+                tranche: $tranche
+            }' --indent 4 > script/${jsonName}_input.json
     else
         echo "Error!"
         exit 1

@@ -17,6 +17,7 @@ import {UniswapV3Oracle} from "euler-price-oracle/adapter/uniswap/UniswapV3Oracl
 import {FixedRateOracle} from "euler-price-oracle/adapter/fixed/FixedRateOracle.sol";
 import {RateProviderOracle} from "euler-price-oracle/adapter/rate/RateProviderOracle.sol";
 import {PendleOracle} from "euler-price-oracle/adapter/pendle/PendleOracle.sol";
+import {IdleTranchesOracle} from "euler-price-oracle/adapter/idle/IdleTranchesOracle.sol";
 
 contract ChainlinkAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
@@ -519,5 +520,39 @@ contract PendleAdapter is ScriptUtils {
     ) public returns (address adapter) {
         adapter = address(new PendleOracle(pendleOracle, pendleMarket, base, quote, twapWindow));
         if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
+    }
+}
+
+contract IdleTranchesAdapter is ScriptUtils {
+    function run() public broadcast returns (address adapter) {
+        string memory inputScriptFileName = "03_IdleTranchesAdapter_input.json";
+        string memory outputScriptFileName = "03_IdleTranchesAdapter_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
+        bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
+        address cdo = vm.parseJsonAddress(json, ".cdo");
+        address tranche = vm.parseJsonAddress(json, ".tranche");
+
+        adapter = execute(adapterRegistry, addToAdapterRegistry, cdo, tranche);
+
+        string memory object;
+        object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address adapterRegistry, bool addToAdapterRegistry, address cdo, address tranche)
+        public
+        broadcast
+        returns (address adapter)
+    {
+        adapter = execute(adapterRegistry, addToAdapterRegistry, cdo, tranche);
+    }
+
+    function execute(address adapterRegistry, bool addToAdapterRegistry, address cdo, address tranche)
+        public
+        returns (address adapter)
+    {
+        adapter = address(new IdleTranchesOracle(cdo, tranche));
+        if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, cdo, tranche);
     }
 }
