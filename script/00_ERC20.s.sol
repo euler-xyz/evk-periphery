@@ -3,35 +3,71 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
-import {ERC20MintableBurnable} from "./utils/ERC20MintableBurnable.sol";
+import {MockERC20Mintable} from "./utils/MockERC20Mintable.sol";
+import {ERC20BurnableMintable} from "../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "../src/ERC20/deployed/RewardToken.sol";
 
-contract MockERC20Deployer is ScriptUtils {
-    function run() public broadcast returns (address mockERC20) {
-        string memory inputScriptFileName = "00_MockERC20_input.json";
-        string memory outputScriptFileName = "00_MockERC20_output.json";
+contract MockERC20MintableDeployer is ScriptUtils {
+    function run() public broadcast returns (address mockERC20Mintable) {
+        string memory inputScriptFileName = "00_MockERC20Mintable_input.json";
+        string memory outputScriptFileName = "00_MockERC20Mintable_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         string memory name = vm.parseJsonString(json, ".name");
         string memory symbol = vm.parseJsonString(json, ".symbol");
         uint8 decimals = uint8(vm.parseJsonUint(json, ".decimals"));
 
-        mockERC20 = execute(name, symbol, decimals);
+        mockERC20Mintable = execute(name, symbol, decimals);
 
         string memory object;
-        object = vm.serializeAddress("mock", "mockERC20", mockERC20);
+        object = vm.serializeAddress("mockERC20Mintable", "mockERC20Mintable", mockERC20Mintable);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
     function deploy(string memory name, string memory symbol, uint8 decimals)
         public
         broadcast
-        returns (address mockERC20)
+        returns (address mockERC20Mintable)
     {
-        mockERC20 = execute(name, symbol, decimals);
+        mockERC20Mintable = execute(name, symbol, decimals);
     }
 
-    function execute(string memory name, string memory symbol, uint8 decimals) public returns (address mockERC20) {
-        mockERC20 = address(new ERC20MintableBurnable(getDeployer(), name, symbol, decimals));
+    function execute(string memory name, string memory symbol, uint8 decimals)
+        public
+        returns (address mockERC20Mintable)
+    {
+        mockERC20Mintable = address(new MockERC20Mintable(getDeployer(), name, symbol, decimals));
+    }
+}
+
+contract ERC20BurnableMintableDeployer is ScriptUtils {
+    function run() public broadcast returns (address erc20BurnableMintable) {
+        string memory inputScriptFileName = "00_ERC20BurnableMintable_input.json";
+        string memory outputScriptFileName = "00_ERC20BurnableMintable_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        string memory name = vm.parseJsonString(json, ".name");
+        string memory symbol = vm.parseJsonString(json, ".symbol");
+        uint8 decimals = uint8(vm.parseJsonUint(json, ".decimals"));
+
+        erc20BurnableMintable = execute(name, symbol, decimals);
+
+        string memory object;
+        object = vm.serializeAddress("erc20BurnableMintable", "erc20BurnableMintable", erc20BurnableMintable);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(string memory name, string memory symbol, uint8 decimals)
+        public
+        broadcast
+        returns (address erc20BurnableMintable)
+    {
+        erc20BurnableMintable = execute(name, symbol, decimals);
+    }
+
+    function execute(string memory name, string memory symbol, uint8 decimals)
+        public
+        returns (address erc20BurnableMintable)
+    {
+        erc20BurnableMintable = address(new ERC20BurnableMintable(getDeployer(), name, symbol, decimals));
     }
 }
 
