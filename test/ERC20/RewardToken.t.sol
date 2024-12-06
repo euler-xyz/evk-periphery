@@ -50,12 +50,12 @@ contract RewardTokenTest is Test {
     }
 
     function test_setWhitelistStatus_owner(address nonOwner, address account, uint8 status) external {
-        vm.assume(status < 3);
+        vm.assume(status < 4);
         vm.assume(nonOwner != owner && nonOwner != address(evc));
 
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSelector(ERC20WrapperLocked.InvalidWhitelistStatus.selector));
-        rewardToken.setWhitelistStatus(account, 4);
+        rewardToken.setWhitelistStatus(account, 3);
 
         vm.prank(nonOwner);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
@@ -78,7 +78,7 @@ contract RewardTokenTest is Test {
     }
 
     function test_setWhitelistStatus_downgrade(address account, uint8 status) external {
-        vm.assume(status < 3);
+        vm.assume(status < 4);
         vm.startPrank(owner);
 
         vm.expectRevert(abi.encodeWithSelector(ERC20WrapperLocked.InvalidWhitelistStatus.selector));
@@ -134,7 +134,7 @@ contract RewardTokenTest is Test {
     {
         vm.assume(owner != address(evc));
         vm.assume(account != address(0) && account != owner && account != address(rewardToken));
-        vm.assume(status != 0 && status < 3);
+        vm.assume(status != 0 && status < 4);
 
         vm.warp(timestamp);
         mint(owner, amount);
@@ -179,7 +179,7 @@ contract RewardTokenTest is Test {
     ) external {
         vm.assume(account != address(0) && account != owner && account != address(rewardToken));
         vm.assume(i > 0);
-        vm.assume(status != 0 && status < 3);
+        vm.assume(status != 0 && status < 4);
         delta = bound(delta, 0, 2 days);
 
         vm.warp(timestamp);
@@ -260,7 +260,7 @@ contract RewardTokenTest is Test {
         address receiver,
         uint256 amount
     ) external {
-        vm.assume(callerWhitelistStatus < 3 && accountWhitelistStatus < 3 && receiverWhitelistStatus < 3);
+        vm.assume(callerWhitelistStatus < 4 && accountWhitelistStatus < 4 && receiverWhitelistStatus < 4);
         vm.assume(
             caller != address(0) && account != address(0) && caller != account && caller != address(rewardToken)
                 && account != address(rewardToken) && caller != address(evc) && account != address(evc)
