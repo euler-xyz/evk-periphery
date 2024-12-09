@@ -186,7 +186,8 @@ while true; do
             echo "9. Rate Provider"
             echo "10. Pendle"
             echo "11. Chainlink Infrequent"
-            read -p "Enter your choice (0-11): " adapter_choice
+            echo "12. Idle Tranche"
+            read -p "Enter your choice (0-12): " adapter_choice
 
             baseName=03_OracleAdapters
 
@@ -507,6 +508,27 @@ while true; do
                             quote: $quote,
                             feed: $feed,
                             maxStaleness: $maxStaleness
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                12)
+                    echo "Deploying Idle Tranche Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:IdleTrancheAdapter
+                    jsonName=03_IdleTrancheAdapter
+
+                    read -p "Enter CDO address: " cdo
+                    read -p "Enter tranche address: " tranche
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg cdo "$cdo" \
+                        --arg tranche "$tranche" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            cdo: $cdo,
+                            tranche: $tranche
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
