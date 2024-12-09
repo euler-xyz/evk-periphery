@@ -168,7 +168,12 @@ contract LidoAdapter is ScriptUtils {
     }
 
     function execute(address adapterRegistry, bool addToAdapterRegistry) public returns (address adapter) {
-        adapter = address(new LidoOracle());
+        if (block.chainid == 1) {
+            adapter = address(new LidoOracle());
+        } else {
+            revert("LidoOracle not yet supported on this chain");
+        }
+
         if (addToAdapterRegistry) {
             SnapshotRegistry(adapterRegistry).add(adapter, LidoOracle(adapter).WSTETH(), LidoOracle(adapter).STETH());
         }
@@ -195,7 +200,12 @@ contract LidoFundamentalAdapter is ScriptUtils {
     }
 
     function execute(address adapterRegistry, bool addToAdapterRegistry) public returns (address adapter) {
-        adapter = address(new LidoFundamentalOracle());
+        if (block.chainid == 1) {
+            adapter = address(new LidoFundamentalOracle());
+        } else {
+            revert("LidoFundamentalOracle not yet supported on this chain");
+        }
+
         if (addToAdapterRegistry) {
             SnapshotRegistry(adapterRegistry).add(
                 adapter, LidoFundamentalOracle(adapter).WSTETH(), LidoFundamentalOracle(adapter).WETH()
@@ -299,11 +309,11 @@ contract RedstoneAdapter is ScriptUtils {
         uint8 feedDecimals,
         uint256 maxStaleness
     ) public returns (address adapter) {
-        if (block.chainid == 42161) {
+        if (block.chainid == 1) {
             //adapter = address(new RedstoneCoreArbitrumOracle(base, quote, feedId, feedDecimals, maxStaleness));
-            require(false, "redstone not yet supported on arbitrum");
-        } else {
             adapter = address(new RedstoneCoreOracle(base, quote, feedId, feedDecimals, maxStaleness));
+        } else {
+            revert("RedstoneCoreOracle not yet supported on this chain");
         }
 
         if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
