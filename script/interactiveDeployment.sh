@@ -51,21 +51,22 @@ while true; do
         0)
             echo "Deploying ERC20 token..."
             echo "Select the type of ERC20 token to deploy:"
-            echo "0. Mock ERC20"
-            echo "1. Reward token"
-            read -p "Enter your choice (0-1): " token_choice
+            echo "0. Mock Mintable ERC20"
+            echo "1. Burnable-Mintable ERC20"
+            echo "2. Reward token"
+            read -p "Enter your choice (0-2): " token_choice
 
             baseName=00_ERC20
 
             case $token_choice in
                 0)
-                    echo "Deploying Mock ERC20..."
+                    echo "Deploying Mock Mintable ERC20..."
 
-                    scriptName=${baseName}.s.sol:MockERC20Deployer
-                    jsonName=00_MockERC20
+                    scriptName=${baseName}.s.sol:MockERC20MintableDeployer
+                    jsonName=00_MockERC20Mintable
 
-                    read -p "Enter token name (default: MockERC20): " token_name
-                    token_name=${token_name:-MockERC20}
+                    read -p "Enter token name (default: MockERC20Mintable): " token_name
+                    token_name=${token_name:-MockERC20Mintable}
 
                     read -p "Enter token symbol (default: MOCK): " token_symbol
                     token_symbol=${token_symbol:-MOCK}
@@ -84,6 +85,27 @@ while true; do
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 1)
+                    echo "Deploying Burnable-Mintable ERC20..."
+
+                    scriptName=${baseName}.s.sol:ERC20BurnableMintableDeployer
+                    jsonName=00_ERC20BurnableMintable
+
+                    read -p "Enter token name: " token_name
+                    read -p "Enter token symbol: " token_symbol
+                    read -p "Enter token decimals (default: 18): " token_decimals
+                    token_decimals=${token_decimals:-18}
+
+                    jq -n \
+                        --arg name "$token_name" \
+                        --arg symbol "$token_symbol" \
+                        --arg decimals "$token_decimals" \
+                        '{
+                            name: $name,
+                            symbol: $symbol,
+                            decimals: $decimals
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                2)
                     echo "Deploying Reward token..."
 
                     scriptName=${baseName}.s.sol:RewardTokenDeployer
