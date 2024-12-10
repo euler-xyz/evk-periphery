@@ -513,8 +513,8 @@ while true; do
                 12)
                     echo "Deploying Idle Tranche Adapter..."
                     
-                    scriptName=${baseName}.s.sol:IdleTrancheAdapter
-                    jsonName=03_IdleTrancheAdapter
+                    scriptName=${baseName}.s.sol:IdleTranchesAdapter
+                    jsonName=03_IdleTranchesAdapter
 
                     read -p "Enter CDO address: " cdo
                     read -p "Enter tranche address: " tranche

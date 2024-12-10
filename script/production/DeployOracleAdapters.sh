@@ -393,8 +393,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 twapWindow: $twapWindow
             }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider" == "Idle" ]]; then
-        scriptName=${baseName}.s.sol:IdleTrancheAdapter
-        jsonName=03_IdleTrancheAdapter
+        scriptName=${baseName}.s.sol:IdleTranchesAdapter
+        jsonName=03_IdleTranchesAdapter
 
         base="${columns[6]}"
         quote="${columns[7]}"
