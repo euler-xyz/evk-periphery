@@ -5,9 +5,20 @@ function verify_contract {
     local contractAddress=$1
     local contractName=$2
     local constructorArgs=$3
+    local verifierArgs="--verifier-url $VERIFIER_URL"
+    
+    if [[ $VERIFIER_URL == *"api."* ]]; then
+        verifierArgs="$verifierArgs --verifier-api-key $VERIFIER_API_KEY"
+    elif [[ $VERIFIER_URL == *"explorer."* ]]; then
+        verifierArgs="$verifierArgs --verifier=blockscout"
+
+        if [[ $constructorArgs == "--guess-constructor-args" ]]; then
+            constructorArgs=""
+        fi
+    fi
 
     echo "Verifying $contractName: $contractAddress"
-    forge verify-contract $contractAddress $contractName $constructorArgs --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId --verifier-url $VERIFIER_URL --etherscan-api-key $VERIFIER_API_KEY --watch
+    forge verify-contract $contractAddress $contractName $constructorArgs --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId $verifierArgs --watch
 }
 
 function verify_broadcast {
