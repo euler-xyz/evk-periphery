@@ -101,30 +101,30 @@ contract CoreAndPeriphery is ScriptUtils {
         } else {
             console.log("Euler Access Control Emergency Governor already deployed. Skipping...");
         }
-
         // deploy EUL
-        if (peripheryAddresses.EUL == address(0)) {
+        if (coreAddresses.EUL == address(0)) {
             console.log("Deploying EUL...");
             ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
-            peripheryAddresses.EUL = deployer.deploy(keccak256("EUL"), "Euler", "EUL", 18);
+            coreAddresses.EUL = deployer.deploy(keccak256("EUL"), "Euler", "EUL", 18);
         } else {
             console.log("EUL already deployed. Skipping...");
         }
         // deploy rEUL
-        if (peripheryAddresses.rEUL == address(0)) {
+        if (coreAddresses.rEUL == address(0)) {
             console.log("Deploying rEUL...");
             RewardTokenDeployer deployer = new RewardTokenDeployer();
-            peripheryAddresses.rEUL = deployer.deploy(
+            coreAddresses.rEUL = deployer.deploy(
                 keccak256("rEUL"),
                 coreAddresses.evc,
                 address(0x000000000000000000000000000000000000dEaD),
-                peripheryAddresses.EUL,
+                coreAddresses.EUL,
                 "Reward EUL",
                 "rEUL"
             );
         } else {
             console.log("rEUL already deployed. Skipping...");
         }
+
         // deploy periphery factories
         if (
             peripheryAddresses.oracleRouterFactory == address(0)

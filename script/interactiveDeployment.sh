@@ -1156,18 +1156,30 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
+            chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+
             read -p "Enter the new Protocol Config Admin address: " protocol_config_admin
             read -p "Enter the new EVault Factory Governor Admin address: " evault_factory_governor_admin
             read -p "Enter the new Euler Access Control Emergency Governor Admin address: " euler_access_control_emergency_governor_admin
+            
+            if [ "$chainId" != "1" ]; then
+                read -p "Enter the new EUL Admin address: " eul_admin
+            fi
+
+            read -p "Enter the new rEUL Owner address: " rEUL_owner
 
             jq -n \
                 --arg protocolConfigAdmin "$protocol_config_admin" \
                 --arg eVaultFactoryGovernorAdmin "$evault_factory_governor_admin" \
                 --arg eulerAccessControlEmergencyGovernorAdmin "$euler_access_control_emergency_governor_admin" \
+                --arg eulAdmin "$eul_admin" \
+                --arg rEULOwner "$rEUL_owner" \
                 '{
                     protocolConfigAdmin: $protocolConfigAdmin,
                     eVaultFactoryGovernorAdmin: $eVaultFactoryGovernorAdmin,
-                    eulerAccessControlEmergencyGovernorAdmin: $eulerAccessControlEmergencyGovernorAdmin
+                    eulerAccessControlEmergencyGovernorAdmin: $eulerAccessControlEmergencyGovernorAdmin,
+                    eulAdmin: $eulAdmin,
+                    rEULOwner: $rEULOwner
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         52)
@@ -1177,28 +1189,17 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-            
-            if [ "$chainId" != "1" ]; then
-                read -p "Enter the new EUL Admin address: " eul_admin
-            fi
-
-            read -p "Enter the new rEUL Owner address: " rEUL_owner
             read -p "Enter the new Oracle Adapter Registry Owner address: " oracle_adapter_registry_owner
             read -p "Enter the new External Vault Registry Owner address: " external_vault_registry_owner
             read -p "Enter the new IRM Registry Owner address: " irm_registry_owner
             read -p "Enter the new Governed Perspective Owner address: " governed_perspective_owner
 
             jq -n \
-                --arg eulAdmin "$eul_admin" \
-                --arg rEULOwner "$rEUL_owner" \
                 --arg oracleAdapterRegistryOwner "$oracle_adapter_registry_owner" \
                 --arg externalVaultRegistryOwner "$external_vault_registry_owner" \
                 --arg irmRegistryOwner "$irm_registry_owner" \
                 --arg governedPerspectiveOwner "$governed_perspective_owner" \
                 '{
-                    eulAdmin: $eulAdmin,
-                    rEULOwner: $rEULOwner,
                     oracleAdapterRegistryOwner: $oracleAdapterRegistryOwner,
                     externalVaultRegistryOwner: $externalVaultRegistryOwner,
                     irmRegistryOwner: $irmRegistryOwner,

@@ -7,6 +7,8 @@ import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {GovernorAccessControlEmergency} from "./../src/Governor/GovernorAccessControlEmergency.sol";
+import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
+import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
 
 contract OwnershipTransferCore is ScriptUtils {
     function run() public {
@@ -15,6 +17,8 @@ contract OwnershipTransferCore is ScriptUtils {
         address eVaultFactoryGovernorAdmin = vm.parseJsonAddress(json, ".eVaultFactoryGovernorAdmin");
         address eulerAccessControlEmergencyGovernorAdmin =
             vm.parseJsonAddress(json, ".eulerAccessControlEmergencyGovernorAdmin");
+        address eulAdmin = vm.parseJsonAddress(json, ".eulAdmin");
+        address rEULOwner = vm.parseJsonAddress(json, ".rEULOwner");
 
         startBroadcast();
 
@@ -132,6 +136,37 @@ contract OwnershipTransferCore is ScriptUtils {
             } else {
                 console.log("The deployer is not the default admin of the GovernorAccessControlEmergency. Skipping...");
             }
+        }
+
+        {
+            (bool success, bytes memory result) = coreAddresses.EUL.staticcall(
+                abi.encodeCall(ERC20BurnableMintable(coreAddresses.EUL).DEFAULT_ADMIN_ROLE, ())
+            );
+
+            if (success && result.length >= 32) {
+                bytes32 defaultAdminRole = abi.decode(result, (bytes32));
+
+                if (!ERC20BurnableMintable(coreAddresses.EUL).hasRole(defaultAdminRole, eulAdmin)) {
+                    console.log("Granting EUL default admin role to the desired address %s", eulAdmin);
+                    ERC20BurnableMintable(coreAddresses.EUL).grantRole(defaultAdminRole, eulAdmin);
+                } else {
+                    console.log("EUL default admin role is already set to the desired address. Skipping...");
+                }
+
+                if (ERC20BurnableMintable(coreAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
+                    console.log("Renouncing EUL default admin role from the deployer %s", getDeployer());
+                    ERC20BurnableMintable(coreAddresses.EUL).renounceRole(defaultAdminRole, getDeployer());
+                } else {
+                    console.log("The deployer is not the default admin of EUL. Skipping...");
+                }
+            }
+        }
+
+        if (RewardToken(coreAddresses.rEUL).owner() != rEULOwner) {
+            console.log("Transferring ownership of rEUL to %s", rEULOwner);
+            RewardToken(coreAddresses.rEUL).transferOwnership(rEULOwner);
+        } else {
+            console.log("rEUL owner is already set to the desired address. Skipping...");
         }
 
         stopBroadcast();

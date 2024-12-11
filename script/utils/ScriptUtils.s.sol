@@ -31,6 +31,8 @@ abstract contract CoreAddressesLib is ScriptExtended {
         address eVaultFactory;
         address eVaultFactoryGovernor;
         address eulerAccessControlEmergencyGovernor;
+        address EUL;
+        address rEUL;
     }
 
     function serializeCoreAddresses(CoreAddresses memory Addresses) internal returns (string memory result) {
@@ -45,6 +47,8 @@ abstract contract CoreAddressesLib is ScriptExtended {
         result = vm.serializeAddress(
             "coreAddresses", "eulerAccessControlEmergencyGovernor", Addresses.eulerAccessControlEmergencyGovernor
         );
+        result = vm.serializeAddress("coreAddresses", "EUL", Addresses.EUL);
+        result = vm.serializeAddress("coreAddresses", "rEUL", Addresses.rEUL);
     }
 
     function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory) {
@@ -57,15 +61,15 @@ abstract contract CoreAddressesLib is ScriptExtended {
             eVaultImplementation: getAddressFromJson(json, ".eVaultImplementation"),
             eVaultFactory: getAddressFromJson(json, ".eVaultFactory"),
             eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor"),
-            eulerAccessControlEmergencyGovernor: getAddressFromJson(json, ".eulerAccessControlEmergencyGovernor")
+            eulerAccessControlEmergencyGovernor: getAddressFromJson(json, ".eulerAccessControlEmergencyGovernor"),
+            EUL: getAddressFromJson(json, ".EUL"),
+            rEUL: getAddressFromJson(json, ".rEUL")
         });
     }
 }
 
 abstract contract PeripheryAddressesLib is ScriptExtended {
     struct PeripheryAddresses {
-        address EUL;
-        address rEUL;
         address oracleRouterFactory;
         address oracleAdapterRegistry;
         address externalVaultRegistry;
@@ -83,8 +87,6 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
-        result = vm.serializeAddress("peripheryAddresses", "EUL", Addresses.EUL);
-        result = vm.serializeAddress("peripheryAddresses", "rEUL", Addresses.rEUL);
         result = vm.serializeAddress("peripheryAddresses", "oracleRouterFactory", Addresses.oracleRouterFactory);
         result = vm.serializeAddress("peripheryAddresses", "oracleAdapterRegistry", Addresses.oracleAdapterRegistry);
         result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
@@ -109,8 +111,6 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
         return PeripheryAddresses({
-            EUL: getAddressFromJson(json, ".EUL"),
-            rEUL: getAddressFromJson(json, ".rEUL"),
             oracleRouterFactory: getAddressFromJson(json, ".oracleRouterFactory"),
             oracleAdapterRegistry: getAddressFromJson(json, ".oracleAdapterRegistry"),
             externalVaultRegistry: getAddressFromJson(json, ".externalVaultRegistry"),
