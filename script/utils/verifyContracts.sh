@@ -21,7 +21,7 @@ function verify_contract {
     
     if [[ $verifier_url == *"api."* ]]; then
         verifierArgs="$verifierArgs --verifier-api-key $verifier_api_key --verifier=etherscan"
-    elif [[ $verifier_url == *"explorer."* ]]; then
+    elif [[ $verifier_url == *"explorer."* || $verifier_url == *"blockscout."* ]]; then
         verifierArgs="$verifierArgs --verifier=blockscout"
 
         if [[ $constructorArgs == "--guess-constructor-args" ]]; then

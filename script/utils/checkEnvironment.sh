@@ -33,7 +33,7 @@ if [[ "$@" == *"--verify"* ]]; then
         verifier_api_key=$VERIFIER_API_KEY
     fi
 
-    if [[ $verifier_url == "" ]] || [[ $verifier_api_key == "" && $verifier_url != *"explorer."* && $verifier_url != *"snowtrace."* ]]; then
+    if [[ $verifier_url == "" ]] || [[ $verifier_api_key == "" && $verifier_url != *"explorer."* && $verifier_url != *"blockscout."* && $verifier_url != *"snowtrace."* ]]; then
         echo "Error: You must set either:"
         echo "  - both VERIFIER_URL and VERIFIER_API_KEY, or"
         echo "  - both VERIFIER_URL_${chainId} and VERIFIER_API_KEY_${chainId}"
