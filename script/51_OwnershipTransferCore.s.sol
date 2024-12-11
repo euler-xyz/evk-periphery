@@ -70,7 +70,7 @@ contract OwnershipTransferCore is ScriptUtils {
             console.log("Renouncing FactoryGovernor default admin role from the deployer %s", getDeployer());
             FactoryGovernor(coreAddresses.eVaultFactoryGovernor).renounceRole(defaultAdminRole, getDeployer());
         } else {
-            console.log("The deployer is not the default admin of the factory governor. Skipping...");
+            console.log("The deployer is not the default admin of the FactoryGovernor. Skipping...");
         }
 
         if (GenericFactory(coreAddresses.eVaultFactory).upgradeAdmin() != coreAddresses.eVaultFactoryGovernor) {

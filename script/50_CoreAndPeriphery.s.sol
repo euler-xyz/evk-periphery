@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils, console} from "./utils/ScriptUtils.s.sol";
+import {ERC20BurnableMintableDeployer, RewardTokenDeployer} from "./00_ERC20.s.sol";
 import {Integrations} from "./01_Integrations.s.sol";
 import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
 import {EVaultImplementation} from "./05_EVaultImplementation.s.sol";
@@ -63,27 +64,6 @@ contract CoreAndPeriphery is ScriptUtils {
                 console.log("At least one of the Integrations contracts already deployed. Skipping...");
             }
         }
-        // deploy periphery factories
-        {
-            if (
-                peripheryAddresses.oracleRouterFactory == address(0)
-                    && peripheryAddresses.oracleAdapterRegistry == address(0)
-                    && peripheryAddresses.externalVaultRegistry == address(0)
-                    && peripheryAddresses.kinkIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
-            ) {
-                console.log("Deploying Periphery factories...");
-                PeripheryFactories deployer = new PeripheryFactories();
-                (
-                    peripheryAddresses.oracleRouterFactory,
-                    peripheryAddresses.oracleAdapterRegistry,
-                    peripheryAddresses.externalVaultRegistry,
-                    peripheryAddresses.kinkIRMFactory,
-                    peripheryAddresses.irmRegistry
-                ) = deployer.deploy(coreAddresses.evc);
-            } else {
-                console.log("At least one of the Periphery factories contracts already deployed. Skipping...");
-            }
-        }
         // deploy EVault implementation
         {
             if (coreAddresses.eVaultImplementation == address(0)) {
@@ -121,15 +101,53 @@ contract CoreAndPeriphery is ScriptUtils {
                 console.log("EVault factory governor already deployed. Skipping...");
             }
         }
-        // deploy swapper
+
+        // deploy EUL
         {
-            if (peripheryAddresses.swapper == address(0) && peripheryAddresses.swapVerifier == address(0)) {
-                console.log("Deploying Swapper...");
-                Swap deployer = new Swap();
-                (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) =
-                    deployer.deploy(input.uniswapV2Router, input.uniswapV3Router);
+            if (peripheryAddresses.EUL == address(0)) {
+                console.log("Deploying EUL...");
+                ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
+                peripheryAddresses.EUL = deployer.deploy(keccak256("EUL"), "Euler", "EUL", 18);
             } else {
-                console.log("At least one of the Swapper contracts already deployed. Skipping...");
+                console.log("EUL already deployed. Skipping...");
+            }
+        }
+        // deploy rEUL
+        {
+            if (peripheryAddresses.rEUL == address(0)) {
+                console.log("Deploying rEUL...");
+                RewardTokenDeployer deployer = new RewardTokenDeployer();
+                peripheryAddresses.rEUL = deployer.deploy(
+                    keccak256("rEUL"),
+                    coreAddresses.evc,
+                    address(0x000000000000000000000000000000000000dEaD),
+                    peripheryAddresses.EUL,
+                    "Reward EUL",
+                    "rEUL"
+                );
+            } else {
+                console.log("rEUL already deployed. Skipping...");
+            }
+        }
+        // deploy periphery factories
+        {
+            if (
+                peripheryAddresses.oracleRouterFactory == address(0)
+                    && peripheryAddresses.oracleAdapterRegistry == address(0)
+                    && peripheryAddresses.externalVaultRegistry == address(0)
+                    && peripheryAddresses.kinkIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
+            ) {
+                console.log("Deploying Periphery factories...");
+                PeripheryFactories deployer = new PeripheryFactories();
+                (
+                    peripheryAddresses.oracleRouterFactory,
+                    peripheryAddresses.oracleAdapterRegistry,
+                    peripheryAddresses.externalVaultRegistry,
+                    peripheryAddresses.kinkIRMFactory,
+                    peripheryAddresses.irmRegistry
+                ) = deployer.deploy(coreAddresses.evc);
+            } else {
+                console.log("At least one of the Periphery factories contracts already deployed. Skipping...");
             }
         }
         // deploy fee flow
@@ -150,7 +168,17 @@ contract CoreAndPeriphery is ScriptUtils {
                 console.log("FeeFlow controller already deployed. Skipping...");
             }
         }
-
+        // deploy swapper
+        {
+            if (peripheryAddresses.swapper == address(0) && peripheryAddresses.swapVerifier == address(0)) {
+                console.log("Deploying Swapper...");
+                Swap deployer = new Swap();
+                (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) =
+                    deployer.deploy(input.uniswapV2Router, input.uniswapV3Router);
+            } else {
+                console.log("At least one of the Swapper contracts already deployed. Skipping...");
+            }
+        }
         // deploy perspectives
         {
             if (
@@ -190,6 +218,7 @@ contract CoreAndPeriphery is ScriptUtils {
                 console.log("Terms of use signer already deployed. Skipping...");
             }
         }
+
         // deploy lenses
         {
             if (

@@ -112,7 +112,6 @@ while true; do
                     jsonName=00_RewardToken
 
                     read -p "Enter EVC address: " evc
-                    read -p "Enter owner address: " owner
                     read -p "Enter receiver address: " receiver
                     read -p "Enter underlying token address: " underlying
                     read -p "Enter token name: " token_name
@@ -120,14 +119,12 @@ while true; do
                     
                     jq -n \
                         --arg evc "$evc" \
-                        --arg owner "$owner" \
                         --arg receiver "$receiver" \
                         --arg underlying "$underlying" \
                         --arg name "$token_name" \
                         --arg symbol "$token_symbol" \
                         '{
                             evc: $evc,
-                            owner: $owner,
                             receiver: $receiver,
                             underlying: $underlying,
                             name: $name,
@@ -1183,17 +1180,28 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
+            chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+            
+            if [ "$chainId" != "1" ]; then
+                read -p "Enter the new EUL Admin address: " eul_admin
+            fi
+
+            read -p "Enter the new rEUL Owner address: " rEUL_owner
             read -p "Enter the new Oracle Adapter Registry Owner address: " oracle_adapter_registry_owner
             read -p "Enter the new External Vault Registry Owner address: " external_vault_registry_owner
             read -p "Enter the new IRM Registry Owner address: " irm_registry_owner
             read -p "Enter the new Governed Perspective Owner address: " governed_perspective_owner
 
             jq -n \
+                --arg eulAdmin "$eul_admin" \
+                --arg rEULOwner "$rEUL_owner" \
                 --arg oracleAdapterRegistryOwner "$oracle_adapter_registry_owner" \
                 --arg externalVaultRegistryOwner "$external_vault_registry_owner" \
                 --arg irmRegistryOwner "$irm_registry_owner" \
                 --arg governedPerspectiveOwner "$governed_perspective_owner" \
                 '{
+                    eulAdmin: $eulAdmin,
+                    rEULOwner: $rEULOwner,
                     oracleAdapterRegistryOwner: $oracleAdapterRegistryOwner,
                     externalVaultRegistryOwner: $externalVaultRegistryOwner,
                     irmRegistryOwner: $irmRegistryOwner,
