@@ -240,11 +240,11 @@ contract CoreAndPeriphery is ScriptUtils {
         }
 
         // save results
-        vm.writeJson(serializeCoreAddresses(coreAddresses), getInputConfigFilePath("50_CoreAddresses_output.json"));
+        vm.writeJson(serializeCoreAddresses(coreAddresses), getInputConfigFilePath("CoreAddresses_output.json"));
         vm.writeJson(
-            serializePeripheryAddresses(peripheryAddresses), getInputConfigFilePath("50_PeripheryAddresses_output.json")
+            serializePeripheryAddresses(peripheryAddresses), getInputConfigFilePath("PeripheryAddresses_output.json")
         );
-        vm.writeJson(serializeLensAddresses(lensAddresses), getInputConfigFilePath("50_LensAddresses_output.json"));
+        vm.writeJson(serializeLensAddresses(lensAddresses), getInputConfigFilePath("LensAddresses_output.json"));
 
         return (coreAddresses, peripheryAddresses, lensAddresses);
     }
