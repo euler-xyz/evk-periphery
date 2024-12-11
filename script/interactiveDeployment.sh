@@ -1270,6 +1270,14 @@ while true; do
         continue
     fi
 
+    if [ $choice -lt 50 ]; then
+        if [[ "$@" != *"--force-no-addresses-dir-path"* ]]; then
+            set -- "$@" --force-no-addresses-dir-path
+        fi
+    else
+        set -- "${@/--force-no-addresses-dir-path/}"
+    fi
+
     if script/utils/executeForgeScript.sh $scriptName "$@"; then
         source .env
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)

@@ -23,6 +23,11 @@ if [[ "$@" == *"--dry-run"* ]]; then
     broadcast=""
 fi
 
+if [[ "$@" == *"--force-no-addresses-dir-path"* ]]; then
+    set -- "${@/--force-no-addresses-dir-path/}"
+    force_no_addresses_dir_path="--force-no-addresses-dir-path"
+fi
+
 if [[ "$@" == *"--batch-via-safe"* ]]; then
     set -- "${@/--batch-via-safe/}"
     batch_via_safe="--batch-via-safe"
@@ -34,7 +39,7 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
     fi
 fi
 
-if ! env broadcast=$broadcast batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
+if ! env broadcast=$broadcast batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api force_no_addresses_dir_path=$force_no_addresses_dir_path \
     forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
     exit 1
 fi

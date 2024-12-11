@@ -65,6 +65,10 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("broadcast", string("")), "--broadcast");
     }
 
+    function isForceNoAddressesDirPath() internal view returns (bool) {
+        return _strEq(vm.envOr("force_no_addresses_dir_path", string("")), "--force-no-addresses-dir-path");
+    }
+
     function isBatchViaSafe() internal view returns (bool) {
         return _strEq(vm.envOr("batch_via_safe", string("")), "--batch-via-safe");
     }
