@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {Script} from "forge-std/Script.sol";
+import {console} from "forge-std/console.sol";
 
 abstract contract ScriptExtended is Script {
     address private deployerAddress;

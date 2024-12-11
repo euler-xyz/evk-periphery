@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {console} from "forge-std/console.sol";
-import {ScriptExtended} from "./ScriptExtended.s.sol";
+import {ScriptExtended, console} from "./ScriptExtended.s.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
@@ -167,11 +167,11 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     function startBroadcast() internal {
-        vm.startBroadcast(getDeployer());
+        if (isBroadcast()) vm.startBroadcast(getDeployer());
     }
 
     function stopBroadcast() internal {
-        vm.stopBroadcast();
+        if (isBroadcast()) vm.stopBroadcast();
     }
 
     function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {

@@ -41,7 +41,7 @@ while true; do
     echo "12. Governors"
     echo "13. Terms of Use Signer"
     echo "---------------------------------"
-    echo "50. Core and Periphery Deployment"
+    echo "50. Core and Periphery Deployment and Configuration"
     echo "51. Core Ownership Transfer"
     echo "52. Periphery Ownership Transfer"
     echo "53. Governor Roles Configuration"
@@ -1106,7 +1106,7 @@ while true; do
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         50)
-            echo "Deploying Core and Periphery..."
+            echo "Deploying and configuring Core and Periphery..."
 
             baseName=50_CoreAndPeriphery
             scriptName=${baseName}.s.sol

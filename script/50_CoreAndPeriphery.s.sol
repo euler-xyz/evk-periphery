@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
+import {ScriptUtils, console} from "./utils/ScriptUtils.s.sol";
 import {Integrations} from "./01_Integrations.s.sol";
 import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
 import {EVaultImplementation} from "./05_EVaultImplementation.s.sol";
@@ -43,110 +43,187 @@ contract CoreAndPeriphery is ScriptUtils {
             feeFlowMinInitPrice: vm.parseJsonUint(json, ".feeFlowMinInitPrice")
         });
 
-        // deply integrations
+        // deploy integrations
         {
-            Integrations deployer = new Integrations();
-            (
-                coreAddresses.evc,
-                coreAddresses.protocolConfig,
-                coreAddresses.sequenceRegistry,
-                coreAddresses.balanceTracker,
-                coreAddresses.permit2
-            ) = deployer.deploy(input.permit2);
+            if (
+                coreAddresses.evc == address(0) && coreAddresses.protocolConfig == address(0)
+                    && coreAddresses.sequenceRegistry == address(0) && coreAddresses.balanceTracker == address(0)
+                    && coreAddresses.permit2 == address(0)
+            ) {
+                console.log("Deploying Integrations...");
+                Integrations deployer = new Integrations();
+                (
+                    coreAddresses.evc,
+                    coreAddresses.protocolConfig,
+                    coreAddresses.sequenceRegistry,
+                    coreAddresses.balanceTracker,
+                    coreAddresses.permit2
+                ) = deployer.deploy(input.permit2);
+            } else {
+                console.log("At least one of the Integrations contracts already deployed. Skipping...");
+            }
         }
         // deploy periphery factories
         {
-            PeripheryFactories deployer = new PeripheryFactories();
-            (
-                peripheryAddresses.oracleRouterFactory,
-                peripheryAddresses.oracleAdapterRegistry,
-                peripheryAddresses.externalVaultRegistry,
-                peripheryAddresses.kinkIRMFactory,
-                peripheryAddresses.irmRegistry
-            ) = deployer.deploy(coreAddresses.evc);
+            if (
+                peripheryAddresses.oracleRouterFactory == address(0)
+                    && peripheryAddresses.oracleAdapterRegistry == address(0)
+                    && peripheryAddresses.externalVaultRegistry == address(0)
+                    && peripheryAddresses.kinkIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
+            ) {
+                console.log("Deploying Periphery factories...");
+                PeripheryFactories deployer = new PeripheryFactories();
+                (
+                    peripheryAddresses.oracleRouterFactory,
+                    peripheryAddresses.oracleAdapterRegistry,
+                    peripheryAddresses.externalVaultRegistry,
+                    peripheryAddresses.kinkIRMFactory,
+                    peripheryAddresses.irmRegistry
+                ) = deployer.deploy(coreAddresses.evc);
+            } else {
+                console.log("At least one of the Periphery factories contracts already deployed. Skipping...");
+            }
         }
         // deploy EVault implementation
         {
-            EVaultImplementation deployer = new EVaultImplementation();
-            Base.Integrations memory integrations = Base.Integrations({
-                evc: coreAddresses.evc,
-                protocolConfig: coreAddresses.protocolConfig,
-                sequenceRegistry: coreAddresses.sequenceRegistry,
-                balanceTracker: coreAddresses.balanceTracker,
-                permit2: coreAddresses.permit2
-            });
-            (, coreAddresses.eVaultImplementation) = deployer.deploy(integrations);
+            if (coreAddresses.eVaultImplementation == address(0)) {
+                console.log("Deploying EVault implementation...");
+                EVaultImplementation deployer = new EVaultImplementation();
+                Base.Integrations memory integrations = Base.Integrations({
+                    evc: coreAddresses.evc,
+                    protocolConfig: coreAddresses.protocolConfig,
+                    sequenceRegistry: coreAddresses.sequenceRegistry,
+                    balanceTracker: coreAddresses.balanceTracker,
+                    permit2: coreAddresses.permit2
+                });
+                (, coreAddresses.eVaultImplementation) = deployer.deploy(integrations);
+            } else {
+                console.log("EVault implementation already deployed. Skipping...");
+            }
         }
         // deploy EVault factory
         {
-            EVaultFactory deployer = new EVaultFactory();
-            coreAddresses.eVaultFactory = deployer.deploy(coreAddresses.eVaultImplementation);
+            if (coreAddresses.eVaultFactory == address(0)) {
+                console.log("Deploying EVault factory...");
+                EVaultFactory deployer = new EVaultFactory();
+                coreAddresses.eVaultFactory = deployer.deploy(coreAddresses.eVaultImplementation);
+            } else {
+                console.log("EVault factory already deployed. Skipping...");
+            }
         }
         // deploy factory governor
         {
-            EVaultFactoryGovernorDeployer deployer = new EVaultFactoryGovernorDeployer();
-            coreAddresses.eVaultFactoryGovernor = deployer.deploy();
+            if (coreAddresses.eVaultFactoryGovernor == address(0)) {
+                console.log("Deploying EVault factory governor...");
+                EVaultFactoryGovernorDeployer deployer = new EVaultFactoryGovernorDeployer();
+                coreAddresses.eVaultFactoryGovernor = deployer.deploy();
+            } else {
+                console.log("EVault factory governor already deployed. Skipping...");
+            }
         }
         // deploy swapper
         {
-            Swap deployer = new Swap();
-            (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) =
-                deployer.deploy(input.uniswapV2Router, input.uniswapV3Router);
+            if (peripheryAddresses.swapper == address(0) && peripheryAddresses.swapVerifier == address(0)) {
+                console.log("Deploying Swapper...");
+                Swap deployer = new Swap();
+                (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) =
+                    deployer.deploy(input.uniswapV2Router, input.uniswapV3Router);
+            } else {
+                console.log("At least one of the Swapper contracts already deployed. Skipping...");
+            }
         }
         // deploy fee flow
         {
-            FeeFlow deployer = new FeeFlow();
-            peripheryAddresses.feeFlowController = deployer.deploy(
-                coreAddresses.evc,
-                input.feeFlowInitPrice,
-                input.feeFlowPaymentToken,
-                input.feeFlowPaymentReceiver,
-                input.feeFlowEpochPeriod,
-                input.feeFlowPriceMultiplier,
-                input.feeFlowMinInitPrice
-            );
+            if (peripheryAddresses.feeFlowController == address(0)) {
+                console.log("Deploying FeeFlow...");
+                FeeFlow deployer = new FeeFlow();
+                peripheryAddresses.feeFlowController = deployer.deploy(
+                    coreAddresses.evc,
+                    input.feeFlowInitPrice,
+                    input.feeFlowPaymentToken,
+                    input.feeFlowPaymentReceiver,
+                    input.feeFlowEpochPeriod,
+                    input.feeFlowPriceMultiplier,
+                    input.feeFlowMinInitPrice
+                );
+            } else {
+                console.log("FeeFlow controller already deployed. Skipping...");
+            }
         }
-        // additional fee flow configuration
-        {
-            startBroadcast();
-            ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(peripheryAddresses.feeFlowController);
-            stopBroadcast();
-        }
+
         // deploy perspectives
         {
-            EVKPerspectives deployer = new EVKPerspectives();
-            address[] memory perspectives = deployer.deploy(
-                coreAddresses.eVaultFactory,
-                peripheryAddresses.oracleRouterFactory,
-                peripheryAddresses.oracleAdapterRegistry,
-                peripheryAddresses.externalVaultRegistry,
-                peripheryAddresses.kinkIRMFactory,
-                peripheryAddresses.irmRegistry
-            );
+            if (
+                peripheryAddresses.evkFactoryPerspective == address(0)
+                    && peripheryAddresses.governedPerspective == address(0)
+                    && peripheryAddresses.escrowedCollateralPerspective == address(0)
+                    && peripheryAddresses.eulerUngoverned0xPerspective == address(0)
+                    && peripheryAddresses.eulerUngovernedNzxPerspective == address(0)
+            ) {
+                console.log("Deploying Perspectives...");
+                EVKPerspectives deployer = new EVKPerspectives();
+                address[] memory perspectives = deployer.deploy(
+                    coreAddresses.eVaultFactory,
+                    peripheryAddresses.oracleRouterFactory,
+                    peripheryAddresses.oracleAdapterRegistry,
+                    peripheryAddresses.externalVaultRegistry,
+                    peripheryAddresses.kinkIRMFactory,
+                    peripheryAddresses.irmRegistry
+                );
 
-            peripheryAddresses.evkFactoryPerspective = perspectives[0];
-            peripheryAddresses.governedPerspective = perspectives[1];
-            peripheryAddresses.escrowedCollateralPerspective = perspectives[2];
-            peripheryAddresses.eulerUngoverned0xPerspective = perspectives[3];
-            peripheryAddresses.eulerUngovernedNzxPerspective = perspectives[4];
+                peripheryAddresses.evkFactoryPerspective = perspectives[0];
+                peripheryAddresses.governedPerspective = perspectives[1];
+                peripheryAddresses.escrowedCollateralPerspective = perspectives[2];
+                peripheryAddresses.eulerUngoverned0xPerspective = perspectives[3];
+                peripheryAddresses.eulerUngovernedNzxPerspective = perspectives[4];
+            } else {
+                console.log("At least one of the Perspectives contracts already deployed. Skipping...");
+            }
         }
         // deploy terms of use signer
         {
-            TermsOfUseSignerDeployer deployer = new TermsOfUseSignerDeployer();
-            peripheryAddresses.termsOfUseSigner = deployer.deploy(coreAddresses.evc);
+            if (peripheryAddresses.termsOfUseSigner == address(0)) {
+                console.log("Deploying Terms of use signer...");
+                TermsOfUseSignerDeployer deployer = new TermsOfUseSignerDeployer();
+                peripheryAddresses.termsOfUseSigner = deployer.deploy(coreAddresses.evc);
+            } else {
+                console.log("Terms of use signer already deployed. Skipping...");
+            }
         }
         // deploy lenses
         {
-            Lenses deployer = new Lenses();
-            address[] memory lenses =
-                deployer.deploy(peripheryAddresses.oracleAdapterRegistry, peripheryAddresses.kinkIRMFactory);
+            if (
+                lensAddresses.accountLens == address(0) && lensAddresses.oracleLens == address(0)
+                    && lensAddresses.irmLens == address(0) && lensAddresses.utilsLens == address(0)
+                    && lensAddresses.vaultLens == address(0) && lensAddresses.eulerEarnVaultLens == address(0)
+            ) {
+                console.log("Deploying Lenses...");
+                Lenses deployer = new Lenses();
+                address[] memory lenses =
+                    deployer.deploy(peripheryAddresses.oracleAdapterRegistry, peripheryAddresses.kinkIRMFactory);
 
-            lensAddresses.accountLens = lenses[0];
-            lensAddresses.oracleLens = lenses[1];
-            lensAddresses.irmLens = lenses[2];
-            lensAddresses.utilsLens = lenses[3];
-            lensAddresses.vaultLens = lenses[4];
-            lensAddresses.eulerEarnVaultLens = lenses[5];
+                lensAddresses.accountLens = lenses[0];
+                lensAddresses.oracleLens = lenses[1];
+                lensAddresses.irmLens = lenses[2];
+                lensAddresses.utilsLens = lenses[3];
+                lensAddresses.vaultLens = lenses[4];
+                lensAddresses.eulerEarnVaultLens = lenses[5];
+            } else {
+                console.log("At least one of the Lens contracts already deployed. Skipping...");
+            }
+        }
+
+        // additional configuration
+        if (ProtocolConfig(coreAddresses.protocolConfig).feeReceiver() != peripheryAddresses.feeFlowController) {
+            console.log(
+                "Setting ProtocolConfig fee receiver to the feeFlowController address %s",
+                peripheryAddresses.feeFlowController
+            );
+            startBroadcast();
+            ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(peripheryAddresses.feeFlowController);
+            stopBroadcast();
+        } else {
+            console.log("ProtocolConfig fee receiver is already set to the feeFlowController address. Skipping...");
         }
 
         // save results
