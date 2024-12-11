@@ -13,8 +13,12 @@ factory_perspective=$(jq -r '.evkFactoryPerspective' "$addresses_dir_path/Periph
 factoryVaults=$(cast call $factory_perspective "verifiedArray()(address[])" --rpc-url $DEPLOYMENT_RPC_URL)
 factoryVaults=($(echo "$factoryVaults" | sed 's/[][]//g' | tr ',' '\n'))
 
+chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+verifier_url_var="VERIFIER_URL_${chainId}"
+verifier_url=${VERIFIER_URL:-${!verifier_url_var}}
+
 for contractAddress in "${factoryVaults[@]}"; do
     echo "Verifying proxy contract for address: $contractAddress"
-    curl -d "address=$contractAddress" "$VERIFIER_URL?module=contract&action=verifyproxycontract&apikey=$VERIFIER_API_KEY"
+    curl -d "address=$contractAddress" "$verifier_url?module=contract&action=verifyproxycontract&apikey=$VERIFIER_API_KEY"
     echo ""
 done

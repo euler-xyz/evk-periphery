@@ -5,11 +5,23 @@ function verify_contract {
     local contractAddress=$1
     local contractName=$2
     local constructorArgs=$3
-    local verifierArgs="--verifier-url $VERIFIER_URL"
     
-    if [[ $VERIFIER_URL == *"api."* ]]; then
-        verifierArgs="$verifierArgs --verifier-api-key $VERIFIER_API_KEY"
-    elif [[ $VERIFIER_URL == *"explorer."* ]]; then
+    local verifier_url_var="VERIFIER_URL_${chainId}"
+    local verifier_api_key_var="VERIFIER_API_KEY_${chainId}"
+    local verifier_url=${VERIFIER_URL:-${!verifier_url_var}}
+    local verifier_api_key=""
+
+    if [[ $VERIFIER_URL == "" ]]; then
+        verifier_api_key=${!verifier_api_key_var}
+    else
+        verifier_api_key=$VERIFIER_API_KEY
+    fi
+
+    local verifierArgs="--verifier-url $verifier_url"
+    
+    if [[ $verifier_url == *"api."* ]]; then
+        verifierArgs="$verifierArgs --verifier-api-key $verifier_api_key --verifier=etherscan"
+    elif [[ $verifier_url == *"explorer."* ]]; then
         verifierArgs="$verifierArgs --verifier=blockscout"
 
         if [[ $constructorArgs == "--guess-constructor-args" ]]; then
