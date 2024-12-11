@@ -56,9 +56,9 @@ if [[ "$@" == *"--account"* ]]; then
 fi
 
 source .env
-deployment_dir="script/deployments/$deployment_name"
-oracleAdaptersAddresses="$deployment_dir/output/OracleAdaptersAddresses.csv"
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+deployment_dir="script/deployments/$deployment_name/$chainId"
+oracleAdaptersAddresses="$deployment_dir/output/OracleAdaptersAddresses.csv"
 
 mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broadcast"
 

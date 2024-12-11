@@ -1271,8 +1271,9 @@ while true; do
     fi
 
     if script/utils/executeForgeScript.sh $scriptName "$@"; then
+        source .env
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-        deployment_dir="script/deployments/$deployment_name"
+        deployment_dir="script/deployments/$deployment_name/$chainId"
         mkdir -p "$deployment_dir/broadcast" "$deployment_dir/input" "$deployment_dir/output"
 
         counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")

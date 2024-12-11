@@ -21,7 +21,7 @@ fi
 
 if script/utils/executeForgeScript.sh "$scriptPath" "$@"; then
     chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-    deployment_dir="script/deployments/$deployment_name"
+    deployment_dir="script/deployments/$deployment_name/$chainId"
     jsonName="${scriptName%.s.*}"
     
     if [[ "$@" == *"--dry-run"* ]]; then

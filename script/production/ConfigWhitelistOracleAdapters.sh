@@ -143,7 +143,8 @@ if [[ "$batch_via_safe" == "--batch-via-safe" ]]; then
     if env broadcast=$broadcast batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
         forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "create(address,address,uint256,bytes memory,uint256)" $SAFE_ADDRESS $evc 0 $calldata $nonce --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow $@; then
         
-        deployment_dir="script/deployments/$deployment_name"
+        chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+        deployment_dir="script/deployments/$deployment_name/$chainId"
         mkdir -p "$deployment_dir/output"
 
         for json_file in script/*.json; do
