@@ -1054,14 +1054,11 @@ while true; do
                     jsonName=12_GovernorAccessControl
                     
                     read -p "Enter the EVC address: " evc
-                    read -p "Enter the admin address: " admin
 
                     jq -n \
                         --arg evc "$evc" \
-                        --arg admin "$admin" \
                         '{
-                            evc: $evc,
-                            admin: $admin
+                            evc: $evc
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 2)
@@ -1071,14 +1068,11 @@ while true; do
                     jsonName=12_GovernorAccessControlEmergency
                     
                     read -p "Enter the EVC address: " evc
-                    read -p "Enter the admin address: " admin
 
                     jq -n \
                         --arg evc "$evc" \
-                        --arg admin "$admin" \
                         '{
-                            evc: $evc,
-                            admin: $admin
+                            evc: $evc
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
@@ -1164,13 +1158,16 @@ while true; do
 
             read -p "Enter the new Protocol Config Admin address: " protocol_config_admin
             read -p "Enter the new EVault Factory Governor Admin address: " evault_factory_governor_admin
+            read -p "Enter the new Euler Access Control Emergency Governor Admin address: " euler_access_control_emergency_governor_admin
 
             jq -n \
                 --arg protocolConfigAdmin "$protocol_config_admin" \
                 --arg eVaultFactoryGovernorAdmin "$evault_factory_governor_admin" \
+                --arg eulerAccessControlEmergencyGovernorAdmin "$euler_access_control_emergency_governor_admin" \
                 '{
                     protocolConfigAdmin: $protocolConfigAdmin,
-                    eVaultFactoryGovernorAdmin: $eVaultFactoryGovernorAdmin
+                    eVaultFactoryGovernorAdmin: $eVaultFactoryGovernorAdmin,
+                    eulerAccessControlEmergencyGovernorAdmin: $eulerAccessControlEmergencyGovernorAdmin
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         52)

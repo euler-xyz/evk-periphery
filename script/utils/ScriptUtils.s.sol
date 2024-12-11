@@ -30,6 +30,7 @@ abstract contract CoreAddressesLib is ScriptExtended {
         address eVaultImplementation;
         address eVaultFactory;
         address eVaultFactoryGovernor;
+        address eulerAccessControlEmergencyGovernor;
     }
 
     function serializeCoreAddresses(CoreAddresses memory Addresses) internal returns (string memory result) {
@@ -41,6 +42,9 @@ abstract contract CoreAddressesLib is ScriptExtended {
         result = vm.serializeAddress("coreAddresses", "eVaultImplementation", Addresses.eVaultImplementation);
         result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
         result = vm.serializeAddress("coreAddresses", "eVaultFactoryGovernor", Addresses.eVaultFactoryGovernor);
+        result = vm.serializeAddress(
+            "coreAddresses", "eulerAccessControlEmergencyGovernor", Addresses.eulerAccessControlEmergencyGovernor
+        );
     }
 
     function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory) {
@@ -52,7 +56,8 @@ abstract contract CoreAddressesLib is ScriptExtended {
             permit2: getAddressFromJson(json, ".permit2"),
             eVaultImplementation: getAddressFromJson(json, ".eVaultImplementation"),
             eVaultFactory: getAddressFromJson(json, ".eVaultFactory"),
-            eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor")
+            eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor"),
+            eulerAccessControlEmergencyGovernor: getAddressFromJson(json, ".eulerAccessControlEmergencyGovernor")
         });
     }
 }

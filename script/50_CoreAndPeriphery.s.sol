@@ -12,7 +12,7 @@ import {Lenses} from "./08_Lenses.s.sol";
 import {EVKPerspectives} from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
-import {EVaultFactoryGovernorDeployer} from "./12_Governor.s.sol";
+import {EVaultFactoryGovernorDeployer, GovernorAccessControlEmergencyDeployer} from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
@@ -92,6 +92,14 @@ contract CoreAndPeriphery is ScriptUtils {
             coreAddresses.eVaultFactoryGovernor = deployer.deploy();
         } else {
             console.log("EVault factory governor already deployed. Skipping...");
+        }
+        // deploy euler access control emergency governor
+        if (coreAddresses.eulerAccessControlEmergencyGovernor == address(0)) {
+            console.log("Deploying Euler Emergency Access Control Governor...");
+            GovernorAccessControlEmergencyDeployer deployer = new GovernorAccessControlEmergencyDeployer();
+            coreAddresses.eulerAccessControlEmergencyGovernor = deployer.deploy(coreAddresses.evc);
+        } else {
+            console.log("Euler Access Control Emergency Governor already deployed. Skipping...");
         }
 
         // deploy EUL
