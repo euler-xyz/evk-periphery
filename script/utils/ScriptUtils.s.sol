@@ -6,7 +6,9 @@ import {console} from "forge-std/console.sol";
 import {ScriptExtended, console} from "./ScriptExtended.s.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
+import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
+import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
@@ -160,15 +162,66 @@ abstract contract LensAddressesLib is ScriptExtended {
     }
 }
 
-abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib {
+abstract contract MultisigAddressesLib is ScriptExtended {
+    struct MultisigAddresses {
+        address eulerDAO;
+        address eulerLabs;
+        address securityCouncil;
+    }
+
+    function serializeMultisigAddresses(MultisigAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("multisigAddresses", "eulerDAO", Addresses.eulerDAO);
+        result = vm.serializeAddress("multisigAddresses", "eulerLabs", Addresses.eulerLabs);
+        result = vm.serializeAddress("multisigAddresses", "securityCouncil", Addresses.securityCouncil);
+    }
+
+    function deserializeMultisigAddresses(string memory json) internal pure returns (MultisigAddresses memory) {
+        return MultisigAddresses({
+            eulerDAO: getAddressFromJson(json, ".eulerDAO"),
+            eulerLabs: getAddressFromJson(json, ".eulerLabs"),
+            securityCouncil: getAddressFromJson(json, ".securityCouncil")
+        });
+    }
+}
+
+abstract contract NTTAddressesLib is ScriptExtended {
+    struct NTTAddresses {
+        address manager;
+        address transceiver;
+    }
+
+    function serializeNTTAddresses(NTTAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("nttAddresses", "manager", Addresses.manager);
+        result = vm.serializeAddress("nttAddresses", "transceiver", Addresses.transceiver);
+    }
+
+    function deserializeNTTAddresses(string memory json) internal pure returns (NTTAddresses memory) {
+        return NTTAddresses({
+            manager: getAddressFromJson(json, ".manager"),
+            transceiver: getAddressFromJson(json, ".transceiver")
+        });
+    }
+}
+
+abstract contract ScriptUtils is
+    CoreAddressesLib,
+    PeripheryAddressesLib,
+    LensAddressesLib,
+    MultisigAddressesLib,
+    NTTAddressesLib
+{
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
+    MultisigAddresses internal multisigAddresses;
+    NTTAddresses internal nttAddresses;
 
     constructor() {
         coreAddresses = deserializeCoreAddresses(getAddressesJson("CoreAddresses.json"));
         peripheryAddresses = deserializePeripheryAddresses(getAddressesJson("PeripheryAddresses.json"));
         lensAddresses = deserializeLensAddresses(getAddressesJson("LensAddresses.json"));
+        multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
+        nttAddresses = deserializeNTTAddresses(getAddressesJson("NTTAddresses.json"));
     }
 
     modifier broadcast() {
@@ -357,8 +410,6 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     function isGovernorAccessControlInstance(address governorAdmin) internal view returns (bool) {
-        if (governorAdmin == address(0)) return false;
-
         (bool success, bytes memory result) =
             governorAdmin.staticcall(abi.encodeCall(GovernorAccessControl.isGovernorAccessControl, ()));
 
@@ -537,6 +588,26 @@ abstract contract BatchBuilder is ScriptUtils {
         json = vm.serializeBytes(key, "data", getBatchCalldata());
 
         vm.writeJson(vm.serializeString("", key, json), path);
+    }
+
+    function setAdmin(address protocolConfig, address newAdmin) internal {
+        addBatchItem(protocolConfig, abi.encodeCall(ProtocolConfig.setAdmin, (newAdmin)));
+    }
+
+    function setUpgradeAdmin(address genericFactory, address newAdmin) internal {
+        addBatchItem(genericFactory, abi.encodeCall(GenericFactory.setUpgradeAdmin, (newAdmin)));
+    }
+
+    function grantRole(address accessController, bytes32 role, address account) internal {
+        addBatchItem(accessController, abi.encodeCall(AccessControl.grantRole, (role, account)));
+    }
+
+    function renounceRole(address accessController, bytes32 role, address account) internal {
+        addBatchItem(accessController, abi.encodeCall(AccessControl.renounceRole, (role, account)));
+    }
+
+    function transferOwnership(address ownable, address newOwner) internal {
+        addBatchItem(ownable, abi.encodeCall(Ownable.transferOwnership, (newOwner)));
     }
 
     function perspectiveVerify(address perspective, address vault) internal {

@@ -30,7 +30,16 @@ contract CoreAndPeriphery is ScriptUtils {
         uint256 feeFlowMinInitPrice;
     }
 
-    function run() public returns (CoreAddresses memory, PeripheryAddresses memory, LensAddresses memory) {
+    function run()
+        public
+        returns (
+            CoreAddresses memory,
+            PeripheryAddresses memory,
+            LensAddresses memory,
+            MultisigAddresses memory,
+            NTTAddresses memory
+        )
+    {
         string memory json = getInputConfig("50_CoreAndPeriphery_input.json");
         Input memory input = Input({
             permit2: vm.parseJsonAddress(json, ".permit2"),
@@ -245,7 +254,11 @@ contract CoreAndPeriphery is ScriptUtils {
             serializePeripheryAddresses(peripheryAddresses), getInputConfigFilePath("PeripheryAddresses_output.json")
         );
         vm.writeJson(serializeLensAddresses(lensAddresses), getInputConfigFilePath("LensAddresses_output.json"));
+        vm.writeJson(
+            serializeMultisigAddresses(multisigAddresses), getInputConfigFilePath("MultisigAddresses_output.json")
+        );
+        vm.writeJson(serializeNTTAddresses(nttAddresses), getInputConfigFilePath("NTTAddresses_output.json"));
 
-        return (coreAddresses, peripheryAddresses, lensAddresses);
+        return (coreAddresses, peripheryAddresses, lensAddresses, multisigAddresses, nttAddresses);
     }
 }

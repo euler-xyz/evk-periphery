@@ -2,11 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils, console} from "./utils/ScriptUtils.s.sol";
-import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
-import {GovernedPerspective} from "./../src/Perspectives/deployed/GovernedPerspective.sol";
+import {BatchBuilder, console} from "./utils/ScriptUtils.s.sol";
+import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 
-contract OwnershipTransferPeriphery is ScriptUtils {
+contract OwnershipTransferPeriphery is BatchBuilder {
     function run() public {
         string memory json = getInputConfig("52_OwnershipTransferPeriphery_input.json");
         address oracleAdapterRegistryOwner = vm.parseJsonAddress(json, ".oracleAdapterRegistryOwner");
@@ -14,36 +13,34 @@ contract OwnershipTransferPeriphery is ScriptUtils {
         address irmRegistryOwner = vm.parseJsonAddress(json, ".irmRegistryOwner");
         address governedPerspectiveOwner = vm.parseJsonAddress(json, ".governedPerspectiveOwner");
 
-        startBroadcast();
-
-        if (SnapshotRegistry(peripheryAddresses.oracleAdapterRegistry).owner() != oracleAdapterRegistryOwner) {
+        if (Ownable(peripheryAddresses.oracleAdapterRegistry).owner() != oracleAdapterRegistryOwner) {
             console.log("Transferring ownership of OracleAdapterRegistry to %s", oracleAdapterRegistryOwner);
-            SnapshotRegistry(peripheryAddresses.oracleAdapterRegistry).transferOwnership(oracleAdapterRegistryOwner);
+            transferOwnership(peripheryAddresses.oracleAdapterRegistry, oracleAdapterRegistryOwner);
         } else {
             console.log("OracleAdapterRegistry owner is already set to the desired address. Skipping...");
         }
 
-        if (SnapshotRegistry(peripheryAddresses.externalVaultRegistry).owner() != externalVaultRegistryOwner) {
+        if (Ownable(peripheryAddresses.externalVaultRegistry).owner() != externalVaultRegistryOwner) {
             console.log("Transferring ownership of ExternalVaultRegistry to %s", externalVaultRegistryOwner);
-            SnapshotRegistry(peripheryAddresses.externalVaultRegistry).transferOwnership(externalVaultRegistryOwner);
+            transferOwnership(peripheryAddresses.externalVaultRegistry, externalVaultRegistryOwner);
         } else {
             console.log("ExternalVaultRegistry owner is already set to the desired address. Skipping...");
         }
 
-        if (SnapshotRegistry(peripheryAddresses.irmRegistry).owner() != irmRegistryOwner) {
+        if (Ownable(peripheryAddresses.irmRegistry).owner() != irmRegistryOwner) {
             console.log("Transferring ownership of IRMRegistry to %s", irmRegistryOwner);
-            SnapshotRegistry(peripheryAddresses.irmRegistry).transferOwnership(irmRegistryOwner);
+            transferOwnership(peripheryAddresses.irmRegistry, irmRegistryOwner);
         } else {
             console.log("IRMRegistry owner is already set to the desired address. Skipping...");
         }
 
-        if (GovernedPerspective(peripheryAddresses.governedPerspective).owner() != governedPerspectiveOwner) {
+        if (Ownable(peripheryAddresses.governedPerspective).owner() != governedPerspectiveOwner) {
             console.log("Transferring ownership of GovernedPerspective to %s", governedPerspectiveOwner);
-            GovernedPerspective(peripheryAddresses.governedPerspective).transferOwnership(governedPerspectiveOwner);
+            transferOwnership(peripheryAddresses.governedPerspective, governedPerspectiveOwner);
         } else {
             console.log("GovernedPerspective owner is already set to the desired address. Skipping...");
         }
 
-        stopBroadcast();
+        executeBatch();
     }
 }
