@@ -22,33 +22,25 @@ fi
 if script/utils/executeForgeScript.sh "$scriptPath" "$@"; then
     chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
     deployment_dir="script/deployments/$deployment_name/$chainId"
+    broadcast_dir="broadcast/${scriptName}/$chainId"
     jsonName="${scriptName%.s.*}"
-    
+
     if [[ "$@" == *"--dry-run"* ]]; then
-        mkdir -p "$deployment_dir/dry-run/broadcast"
-
-        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/dry-run/broadcast/${jsonName}.json")
-        cp "broadcast/${scriptName}/$chainId/dry-run/run-latest.json" "$deployment_dir/dry-run/broadcast/${jsonName}_${counter}.json"
-
-        for json_file in script/*.json; do
-            jsonFileName=$(basename "$json_file")
-            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/dry-run/$jsonFileName")
-
-            mv "$json_file" "$deployment_dir/dry-run/${jsonFileName%.json}_$counter.json"
-        done
-    else
-        mkdir -p "$deployment_dir/broadcast" "$deployment_dir/output"
-
-        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
-        cp "broadcast/${scriptName}/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
-
-        for json_file in script/*.json; do
-            jsonFileName=$(basename "$json_file")
-            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
-
-            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
-        done
+        deployment_dir="$deployment_dir/dry-run"
+        broadcast_dir="$broadcast_dir/dry-run"
     fi
+
+    mkdir -p "$deployment_dir/broadcast" "$deployment_dir/output"
+
+    counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
+    cp "$broadcast_dir/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
+
+    for json_file in script/*.json; do
+        jsonFileName=$(basename "$json_file")
+        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
+
+        mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
+    done
 else
     for json_file in script/*.json; do
         rm "$json_file"

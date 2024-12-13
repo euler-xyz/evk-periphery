@@ -8,7 +8,6 @@ import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
-import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
@@ -32,7 +31,7 @@ abstract contract CoreAddressesLib is ScriptExtended {
         address eVaultImplementation;
         address eVaultFactory;
         address eVaultFactoryGovernor;
-        address eulerAccessControlEmergencyGovernor;
+        address accessControlEmergencyGovernor;
         address EUL;
         address rEUL;
     }
@@ -47,7 +46,7 @@ abstract contract CoreAddressesLib is ScriptExtended {
         result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
         result = vm.serializeAddress("coreAddresses", "eVaultFactoryGovernor", Addresses.eVaultFactoryGovernor);
         result = vm.serializeAddress(
-            "coreAddresses", "eulerAccessControlEmergencyGovernor", Addresses.eulerAccessControlEmergencyGovernor
+            "coreAddresses", "accessControlEmergencyGovernor", Addresses.accessControlEmergencyGovernor
         );
         result = vm.serializeAddress("coreAddresses", "EUL", Addresses.EUL);
         result = vm.serializeAddress("coreAddresses", "rEUL", Addresses.rEUL);
@@ -63,7 +62,7 @@ abstract contract CoreAddressesLib is ScriptExtended {
             eVaultImplementation: getAddressFromJson(json, ".eVaultImplementation"),
             eVaultFactory: getAddressFromJson(json, ".eVaultFactory"),
             eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor"),
-            eulerAccessControlEmergencyGovernor: getAddressFromJson(json, ".eulerAccessControlEmergencyGovernor"),
+            accessControlEmergencyGovernor: getAddressFromJson(json, ".accessControlEmergencyGovernor"),
             EUL: getAddressFromJson(json, ".EUL"),
             rEUL: getAddressFromJson(json, ".rEUL")
         });
@@ -164,23 +163,29 @@ abstract contract LensAddressesLib is ScriptExtended {
 
 abstract contract MultisigAddressesLib is ScriptExtended {
     struct MultisigAddresses {
-        address eulerDAO;
-        address eulerLabs;
+        address DAO;
+        address labs;
         address securityCouncil;
     }
 
     function serializeMultisigAddresses(MultisigAddresses memory Addresses) internal returns (string memory result) {
-        result = vm.serializeAddress("multisigAddresses", "eulerDAO", Addresses.eulerDAO);
-        result = vm.serializeAddress("multisigAddresses", "eulerLabs", Addresses.eulerLabs);
+        result = vm.serializeAddress("multisigAddresses", "DAO", Addresses.DAO);
+        result = vm.serializeAddress("multisigAddresses", "labs", Addresses.labs);
         result = vm.serializeAddress("multisigAddresses", "securityCouncil", Addresses.securityCouncil);
     }
 
     function deserializeMultisigAddresses(string memory json) internal pure returns (MultisigAddresses memory) {
         return MultisigAddresses({
-            eulerDAO: getAddressFromJson(json, ".eulerDAO"),
-            eulerLabs: getAddressFromJson(json, ".eulerLabs"),
+            DAO: getAddressFromJson(json, ".DAO"),
+            labs: getAddressFromJson(json, ".labs"),
             securityCouncil: getAddressFromJson(json, ".securityCouncil")
         });
+    }
+
+    function verifyMultisigAddresses(MultisigAddresses memory Addresses) internal pure {
+        require(Addresses.DAO != address(0), "DAO address is required");
+        require(Addresses.labs != address(0), "Labs address is required");
+        require(Addresses.securityCouncil != address(0), "Security Council address is required");
     }
 }
 
@@ -204,23 +209,23 @@ abstract contract NTTAddressesLib is ScriptExtended {
 }
 
 abstract contract ScriptUtils is
+    MultisigAddressesLib,
     CoreAddressesLib,
     PeripheryAddressesLib,
     LensAddressesLib,
-    MultisigAddressesLib,
     NTTAddressesLib
 {
+    MultisigAddresses internal multisigAddresses;
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
-    MultisigAddresses internal multisigAddresses;
     NTTAddresses internal nttAddresses;
 
     constructor() {
+        multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
         coreAddresses = deserializeCoreAddresses(getAddressesJson("CoreAddresses.json"));
         peripheryAddresses = deserializePeripheryAddresses(getAddressesJson("PeripheryAddresses.json"));
         lensAddresses = deserializeLensAddresses(getAddressesJson("LensAddresses.json"));
-        multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
         nttAddresses = deserializeNTTAddresses(getAddressesJson("NTTAddresses.json"));
     }
 
@@ -231,11 +236,11 @@ abstract contract ScriptUtils is
     }
 
     function startBroadcast() internal {
-        if (isBroadcast()) vm.startBroadcast(getDeployer());
+        vm.startBroadcast(getDeployer());
     }
 
     function stopBroadcast() internal {
-        if (isBroadcast()) vm.stopBroadcast();
+        vm.stopBroadcast();
     }
 
     function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {
@@ -588,14 +593,6 @@ abstract contract BatchBuilder is ScriptUtils {
         json = vm.serializeBytes(key, "data", getBatchCalldata());
 
         vm.writeJson(vm.serializeString("", key, json), path);
-    }
-
-    function setAdmin(address protocolConfig, address newAdmin) internal {
-        addBatchItem(protocolConfig, abi.encodeCall(ProtocolConfig.setAdmin, (newAdmin)));
-    }
-
-    function setUpgradeAdmin(address genericFactory, address newAdmin) internal {
-        addBatchItem(genericFactory, abi.encodeCall(GenericFactory.setUpgradeAdmin, (newAdmin)));
     }
 
     function grantRole(address accessController, bytes32 role, address account) internal {

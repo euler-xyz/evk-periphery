@@ -7,36 +7,32 @@ import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 
 contract OwnershipTransferPeriphery is BatchBuilder {
     function run() public {
-        string memory json = getInputConfig("52_OwnershipTransferPeriphery_input.json");
-        address oracleAdapterRegistryOwner = vm.parseJsonAddress(json, ".oracleAdapterRegistryOwner");
-        address externalVaultRegistryOwner = vm.parseJsonAddress(json, ".externalVaultRegistryOwner");
-        address irmRegistryOwner = vm.parseJsonAddress(json, ".irmRegistryOwner");
-        address governedPerspectiveOwner = vm.parseJsonAddress(json, ".governedPerspectiveOwner");
+        verifyMultisigAddresses(multisigAddresses);
 
-        if (Ownable(peripheryAddresses.oracleAdapterRegistry).owner() != oracleAdapterRegistryOwner) {
-            console.log("Transferring ownership of OracleAdapterRegistry to %s", oracleAdapterRegistryOwner);
-            transferOwnership(peripheryAddresses.oracleAdapterRegistry, oracleAdapterRegistryOwner);
+        if (Ownable(peripheryAddresses.oracleAdapterRegistry).owner() != multisigAddresses.labs) {
+            console.log("Transferring ownership of OracleAdapterRegistry to %s", multisigAddresses.labs);
+            transferOwnership(peripheryAddresses.oracleAdapterRegistry, multisigAddresses.labs);
         } else {
             console.log("OracleAdapterRegistry owner is already set to the desired address. Skipping...");
         }
 
-        if (Ownable(peripheryAddresses.externalVaultRegistry).owner() != externalVaultRegistryOwner) {
-            console.log("Transferring ownership of ExternalVaultRegistry to %s", externalVaultRegistryOwner);
-            transferOwnership(peripheryAddresses.externalVaultRegistry, externalVaultRegistryOwner);
+        if (Ownable(peripheryAddresses.externalVaultRegistry).owner() != multisigAddresses.labs) {
+            console.log("Transferring ownership of ExternalVaultRegistry to %s", multisigAddresses.labs);
+            transferOwnership(peripheryAddresses.externalVaultRegistry, multisigAddresses.labs);
         } else {
             console.log("ExternalVaultRegistry owner is already set to the desired address. Skipping...");
         }
 
-        if (Ownable(peripheryAddresses.irmRegistry).owner() != irmRegistryOwner) {
-            console.log("Transferring ownership of IRMRegistry to %s", irmRegistryOwner);
-            transferOwnership(peripheryAddresses.irmRegistry, irmRegistryOwner);
+        if (Ownable(peripheryAddresses.irmRegistry).owner() != multisigAddresses.labs) {
+            console.log("Transferring ownership of IRMRegistry to %s", multisigAddresses.labs);
+            transferOwnership(peripheryAddresses.irmRegistry, multisigAddresses.labs);
         } else {
             console.log("IRMRegistry owner is already set to the desired address. Skipping...");
         }
 
-        if (Ownable(peripheryAddresses.governedPerspective).owner() != governedPerspectiveOwner) {
-            console.log("Transferring ownership of GovernedPerspective to %s", governedPerspectiveOwner);
-            transferOwnership(peripheryAddresses.governedPerspective, governedPerspectiveOwner);
+        if (Ownable(peripheryAddresses.governedPerspective).owner() != multisigAddresses.labs) {
+            console.log("Transferring ownership of GovernedPerspective to %s", multisigAddresses.labs);
+            transferOwnership(peripheryAddresses.governedPerspective, multisigAddresses.labs);
         } else {
             console.log("GovernedPerspective owner is already set to the desired address. Skipping...");
         }

@@ -1103,6 +1103,12 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
+            echo "Provided parameters will only be used if necessary and might be ignored if contracts are already deployed!"
+            
+            read -p "Enter the DAO address: " multisig_dao
+            read -p "Enter the Labs address: " multisig_labs
+            read -p "Enter the Security Council address: " multisig_security_council
+
             read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
             permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
 
@@ -1112,41 +1118,25 @@ while true; do
             read -p "Enter the Uniswap Router V3 address (default: 0xE592427A0AEce92De3Edee1F18E0157C05861564): " uniswap_router_v3
             uniswap_router_v3=${uniswap_router_v3:-0xE592427A0AEce92De3Edee1F18E0157C05861564}
 
-            read -p "Enter the init price (default: 1e18): " init_price
+            read -p "Enter the EUL init price for Fee Flow (default: 1e18): " init_price
             init_price=${init_price:-1000000000000000000}
 
-            read -p "Enter the payment token address: " payment_token
-            read -p "Enter the payment receiver address: " payment_receiver
-            
-            read -p "Enter the epoch period (seconds) (default: 14 days): " epoch_period
-            epoch_period=${epoch_period:-1209600}
-
-            read -p "Enter the price multiplier (default: 2e18): " price_multiplier
-            price_multiplier=${price_multiplier:-2000000000000000000}
-
-            read -p "Enter the min init price (default: 1e6): " min_init_price
-            min_init_price=${min_init_price:-1000000}
-
             jq -n \
+                --arg multisigDAO "$multisig_dao" \
+                --arg multisigLabs "$multisig_labs" \
+                --arg multisigSecurityCouncil "$multisig_security_council" \
                 --arg permit2 "$permit2" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
                 --arg initPrice "$init_price" \
-                --arg paymentToken "$payment_token" \
-                --arg paymentReceiver "$payment_receiver" \
-                --arg epochPeriod "$epoch_period" \
-                --arg priceMultiplier "$price_multiplier" \
-                --arg minInitPrice "$min_init_price" \
                 '{
+                    multisigDAO: $multisigDAO,
+                    multisigLabs: $multisigLabs,
+                    multisigSecurityCouncil: $multisigSecurityCouncil,
                     permit2: $permit2,
                     uniswapV2Router: $uniswapRouterV2,
                     uniswapV3Router: $uniswapRouterV3,
-                    feeFlowInitPrice: $initPrice,
-                    feeFlowPaymentToken: $paymentToken,
-                    feeFlowPaymentReceiver: $paymentReceiver,
-                    feeFlowEpochPeriod: $epochPeriod,
-                    feeFlowPriceMultiplier: $priceMultiplier,
-                    feeFlowMinInitPrice: $minInitPrice
+                    feeFlowInitPrice: $initPrice
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         51)
@@ -1155,32 +1145,6 @@ while true; do
             baseName=51_OwnershipTransferCore
             scriptName=${baseName}.s.sol
             jsonName=$baseName
-
-            chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-
-            read -p "Enter the new Protocol Config Admin address: " protocol_config_admin
-            read -p "Enter the new EVault Factory Governor Admin address: " evault_factory_governor_admin
-            read -p "Enter the new Euler Access Control Emergency Governor Admin address: " euler_access_control_emergency_governor_admin
-            
-            if [ "$chainId" != "1" ]; then
-                read -p "Enter the new EUL Admin address: " eul_admin
-            fi
-
-            read -p "Enter the new rEUL Owner address: " rEUL_owner
-
-            jq -n \
-                --arg protocolConfigAdmin "$protocol_config_admin" \
-                --arg eVaultFactoryGovernorAdmin "$evault_factory_governor_admin" \
-                --arg eulerAccessControlEmergencyGovernorAdmin "$euler_access_control_emergency_governor_admin" \
-                --arg eulAdmin "$eul_admin" \
-                --arg rEULOwner "$rEUL_owner" \
-                '{
-                    protocolConfigAdmin: $protocolConfigAdmin,
-                    eVaultFactoryGovernorAdmin: $eVaultFactoryGovernorAdmin,
-                    eulerAccessControlEmergencyGovernorAdmin: $eulerAccessControlEmergencyGovernorAdmin,
-                    eulAdmin: $eulAdmin,
-                    rEULOwner: $rEULOwner
-                }' --indent 4 > script/${jsonName}_input.json
             ;;
         52)
             echo "Periphery Ownership Transfer..."
@@ -1188,23 +1152,6 @@ while true; do
             baseName=52_OwnershipTransferPeriphery
             scriptName=${baseName}.s.sol
             jsonName=$baseName
-
-            read -p "Enter the new Oracle Adapter Registry Owner address: " oracle_adapter_registry_owner
-            read -p "Enter the new External Vault Registry Owner address: " external_vault_registry_owner
-            read -p "Enter the new IRM Registry Owner address: " irm_registry_owner
-            read -p "Enter the new Governed Perspective Owner address: " governed_perspective_owner
-
-            jq -n \
-                --arg oracleAdapterRegistryOwner "$oracle_adapter_registry_owner" \
-                --arg externalVaultRegistryOwner "$external_vault_registry_owner" \
-                --arg irmRegistryOwner "$irm_registry_owner" \
-                --arg governedPerspectiveOwner "$governed_perspective_owner" \
-                '{
-                    oracleAdapterRegistryOwner: $oracleAdapterRegistryOwner,
-                    externalVaultRegistryOwner: $externalVaultRegistryOwner,
-                    irmRegistryOwner: $irmRegistryOwner,
-                    governedPerspectiveOwner: $governedPerspectiveOwner
-                }' --indent 4 > script/${jsonName}_input.json
             ;;
         53)
             echo "Governor Roles Configuration..."
@@ -1288,10 +1235,17 @@ while true; do
         source .env
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
         deployment_dir="script/deployments/$deployment_name/$chainId"
+        broadcast_dir="broadcast/${scriptName}/$chainId"
+
+        if [[ "$@" == *"--dry-run"* ]]; then
+            deployment_dir="$deployment_dir/dry-run"
+            broadcast_dir="$broadcast_dir/dry-run"
+        fi
+
         mkdir -p "$deployment_dir/broadcast" "$deployment_dir/input" "$deployment_dir/output"
 
         counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
-        cp "broadcast/${baseName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
+        cp "$broadcast_dir/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
 
         for json_file in script/*_input.json; do
             jsonFileName=$(basename "${json_file/_input/}")
@@ -1302,6 +1256,13 @@ while true; do
 
         for json_file in script/*_output.json; do
             jsonFileName=$(basename "${json_file/_output/}")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
+        done
+
+        for json_file in script/*.json; do
+            jsonFileName=$(basename "${json_file}")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
 
             mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
