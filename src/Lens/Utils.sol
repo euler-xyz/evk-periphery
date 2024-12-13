@@ -53,29 +53,29 @@ abstract contract Utils {
         return success && data.length >= 32 ? abi.decode(data, (uint8)) : 18;
     }
 
-    function _computeSupplySPY(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
-        internal
-        pure
-        returns (uint256)
-    {
-        uint256 totalAssets = cash + borrows;
-        return totalAssets == 0 ? 0 : borrowSPY * borrows * (CONFIG_SCALE - interestFee) / totalAssets / CONFIG_SCALE;
-    }
-
-    function _computeAPYs(uint256 borrowSPY, uint256 supplySPY)
+    function _computeAPYs(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
         internal
         pure
         returns (uint256 borrowAPY, uint256 supplyAPY)
     {
-        bool overflowBorrow;
-        bool overflowSupply;
-        (borrowAPY, overflowBorrow) = RPow.rpow(borrowSPY + ONE, SECONDS_PER_YEAR, ONE);
-        (supplyAPY, overflowSupply) = RPow.rpow(supplySPY + ONE, SECONDS_PER_YEAR, ONE);
+        uint256 totalAssets = cash + borrows;
+        bool overflow;
 
-        if (overflowBorrow || overflowSupply) return (0, 0);
+        (borrowAPY, overflow) = RPow.rpow(borrowSPY + ONE, SECONDS_PER_YEAR, ONE);
+
+        if (overflow) return (0, 0);
 
         borrowAPY -= ONE;
-        supplyAPY -= ONE;
+        supplyAPY =
+            totalAssets == 0 ? 0 : borrowAPY * borrows * (CONFIG_SCALE - interestFee) / totalAssets / CONFIG_SCALE;
+    }
+
+    struct CollateralInfo {
+        uint256 borrowSPY;
+        uint256 borrows;
+        uint256 totalAssets;
+        uint256 interestFee;
+        uint256 borrowInterest;
     }
 
     function _calculateTimeToLiquidation(
@@ -99,7 +99,7 @@ abstract contract Utils {
         }
 
         // get individual collateral interest rates and total collateral value
-        uint256[] memory collateralSPYs = new uint256[](collaterals.length);
+        CollateralInfo[] memory collateralInfos = new CollateralInfo[](collaterals.length);
         uint256 collateralValue;
         for (uint256 i = 0; i < collaterals.length; ++i) {
             address collateral = collaterals[i];
@@ -107,19 +107,13 @@ abstract contract Utils {
             (bool success, bytes memory data) =
                 collateral.staticcall(abi.encodeCall(IEVault(collateral).interestRate, ()));
 
-            uint256 borrowSPY;
             if (success && data.length >= 32) {
-                borrowSPY = abi.decode(data, (uint256));
+                collateralInfos[i].borrowSPY = abi.decode(data, (uint256));
             }
 
-            if (borrowSPY > 0) {
-                collateralSPYs[i] = _computeSupplySPY(
-                    borrowSPY,
-                    IEVault(collateral).cash(),
-                    IEVault(collateral).totalBorrows(),
-                    IEVault(collateral).interestFee()
-                );
-            }
+            collateralInfos[i].borrows = IEVault(collateral).totalBorrows();
+            collateralInfos[i].totalAssets = IEVault(collateral).cash() + collateralInfos[i].borrows;
+            collateralInfos[i].interestFee = IEVault(collateral).interestFee();
 
             collateralValue += collateralValues[i];
         }
@@ -144,7 +138,7 @@ abstract contract Utils {
 
             // calculate the liability interest accrued
             uint256 liabilityInterest;
-            {
+            if (liabilitySPY > 0) {
                 (uint256 multiplier, bool overflow) = RPow.rpow(liabilitySPY + ONE, uint256(ttl), ONE);
 
                 if (overflow) return TTL_ERROR;
@@ -155,11 +149,16 @@ abstract contract Utils {
             // calculate the collaterals interest accrued
             uint256 collateralInterest;
             for (uint256 i = 0; i < collaterals.length; ++i) {
-                (uint256 multiplier, bool overflow) = RPow.rpow(collateralSPYs[i] + ONE, uint256(ttl), ONE);
+                if (collateralInfos[i].borrowSPY == 0 || collateralInfos[i].totalAssets == 0) continue;
+
+                (uint256 multiplier, bool overflow) = RPow.rpow(collateralInfos[i].borrowSPY + ONE, uint256(ttl), ONE);
 
                 if (overflow) return TTL_ERROR;
 
-                collateralInterest += collateralValues[i] * multiplier / ONE - collateralValues[i];
+                collateralInfos[i].borrowInterest = collateralValues[i] * multiplier / ONE - collateralValues[i];
+
+                collateralInterest += collateralInfos[i].borrowInterest * collateralInfos[i].borrows
+                    * (CONFIG_SCALE - collateralInfos[i].interestFee) / collateralInfos[i].totalAssets / CONFIG_SCALE;
             }
 
             // calculate the health factor
