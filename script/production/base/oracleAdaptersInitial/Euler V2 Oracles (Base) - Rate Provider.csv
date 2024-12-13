@@ -1,0 +1,2 @@
+Asset,Quote,Provider,Deploy,Whitelist,Class,base,quote,rateProvider
+rETH,ETH,Rate Provider,Yes,Yes,RateProviderOracle,0xb6fe221fe9eef5aba221c348ba20a1bf5e73624c,0x4200000000000000000000000000000000000006,0x039f7205C2cBa4535C2575123Ac3D657263892c4
