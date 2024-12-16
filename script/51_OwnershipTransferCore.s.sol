@@ -118,6 +118,20 @@ contract OwnershipTransferCore is BatchBuilder {
             console.log("rEUL owner is already set to the desired address. Skipping...");
         }
 
+        if (
+            Ownable(nttAddresses.manager).owner() != multisigAddresses.DAO
+                || Ownable(nttAddresses.transceiver).owner() != multisigAddresses.DAO
+        ) {
+            console.log("Transferring ownership of NttManager and WormholeTransceiver to %s", multisigAddresses.DAO);
+            startBroadcast();
+            Ownable(nttAddresses.manager).transferOwnership(multisigAddresses.DAO);
+            stopBroadcast();
+        } else {
+            console.log(
+                "NttManager owner and WormholeTransceiver owner are already set to the desired address. Skipping..."
+            );
+        }
+
         executeBatch();
     }
 }

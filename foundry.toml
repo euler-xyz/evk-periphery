@@ -12,7 +12,6 @@ fs_permissions = [{ access = "read-write", path = "./"}, { access = "read", path
 
 gas_reports = ["*"]
 
-
 [profile.default.fmt]
 line_length = 120
 tab_width = 4

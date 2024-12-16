@@ -27,12 +27,15 @@ import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
 import {EVaultFactoryGovernorDeployer, GovernorAccessControlEmergencyDeployer} from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
+import {NttManagerDeployer, WormholeTransceiverDeployer} from "./14_NTT.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {GovernorAccessControlEmergency} from "./../src/Governor/GovernorAccessControlEmergency.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
+import {NttManager} from "native-token-transfers/NttManager/NttManager.sol";
+import {WormholeTransceiver} from "native-token-transfers/Transceiver/WormholeTransceiver/WormholeTransceiver.sol";
 
 contract CoreAndPeriphery is BatchBuilder {
     struct Input {
@@ -42,6 +45,8 @@ contract CoreAndPeriphery is BatchBuilder {
         address permit2;
         address uniswapV2Router;
         address uniswapV3Router;
+        address wormholeCoreBridge;
+        address wormholeRelayer;
         uint256 feeFlowInitPrice;
     }
 
@@ -63,6 +68,8 @@ contract CoreAndPeriphery is BatchBuilder {
             permit2: vm.parseJsonAddress(json, ".permit2"),
             uniswapV2Router: vm.parseJsonAddress(json, ".uniswapV2Router"),
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
+            wormholeCoreBridge: vm.parseJsonAddress(json, ".wormholeCoreBridge"),
+            wormholeRelayer: vm.parseJsonAddress(json, ".wormholeRelayer"),
             feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice")
         });
 
@@ -173,25 +180,60 @@ contract CoreAndPeriphery is BatchBuilder {
             console.log("Euler Access Control Emergency Governor already deployed. Skipping...");
         }
 
-        if (coreAddresses.EUL == address(0)) {
-            if (block.chainid != 1) {
-                console.log("Deploying EUL...");
-                ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
-                coreAddresses.EUL = deployer.deploy(keccak256("EUL"), "Euler", "EUL", 18);
+        if (nttAddresses.manager == address(0) && nttAddresses.transceiver == address(0)) {
+            console.log("Deploying NttManager and WormholeTransceiver...");
+            uint16 chainId = NttManager(input.wormholeCoreBridge).chainId();
+            {
+                NttManagerDeployer deployer = new NttManagerDeployer();
+                nttAddresses.manager =
+                    deployer.deploy(coreAddresses.EUL, block.chainid == 1 ? true : false, chainId, 1 days, false);
+            }
+            {
+                WormholeTransceiverDeployer deployer = new WormholeTransceiverDeployer();
+                nttAddresses.transceiver = deployer.deploy(
+                    nttAddresses.manager, input.wormholeCoreBridge, input.wormholeRelayer, address(0), 202, 500000
+                );
             }
 
-            // TODO: deploy and configure the NTT contracts here
+            startBroadcast();
+            console.log("Setting NttManager transceiver");
+            NttManager(nttAddresses.manager).setTransceiver(nttAddresses.transceiver);
 
-            if (block.chainid != 1) {
-                bytes32 revokeMinterRole = ERC20BurnableMintable(coreAddresses.EUL).REVOKE_MINTER_ROLE();
-                bytes32 minterRole = ERC20BurnableMintable(coreAddresses.EUL).MINTER_ROLE();
+            console.log("Setting NttManager outbound limit");
+            NttManager(nttAddresses.manager).setOutboundLimit(uint256(type(uint64).max) * 10 ** 10);
 
-                console.log("Granting EUL revoke minter role to the desired address %s", multisigAddresses.labs);
-                grantRole(coreAddresses.EUL, revokeMinterRole, multisigAddresses.labs);
+            console.log("Setting NttManager threshold");
+            NttManager(nttAddresses.manager).setThreshold(1);
 
-                //console.log("Granting EUL minter role to the desired address %s", nttAddresses.manager);
-                //grantRole(coreAddresses.EUL, minterRole, nttAddresses.manager);
-            }
+            console.log("Transferring NttManager pauser capability to %s", multisigAddresses.labs);
+            NttManager(nttAddresses.manager).transferPauserCapability(multisigAddresses.labs);
+
+            console.log("Setting WormholeTransceiver isWormholeRelayingEnabled");
+            WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(chainId, true);
+
+            console.log("Setting WormholeTransceiver isWormholeEvmChain");
+            WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(chainId, true);
+
+            console.log("Transferring WormholeTransceiver pauser capability to %s", multisigAddresses.labs);
+            WormholeTransceiver(nttAddresses.transceiver).transferPauserCapability(multisigAddresses.labs);
+            stopBroadcast();
+        } else {
+            console.log("NttManager or WormholeTransceiver already deployed. Skipping...");
+        }
+
+        if (coreAddresses.EUL == address(0) && block.chainid != 1) {
+            console.log("Deploying EUL...");
+            ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
+            coreAddresses.EUL = deployer.deploy(keccak256("EUL"), "Euler", "EUL", 18);
+
+            bytes32 revokeMinterRole = ERC20BurnableMintable(coreAddresses.EUL).REVOKE_MINTER_ROLE();
+            bytes32 minterRole = ERC20BurnableMintable(coreAddresses.EUL).MINTER_ROLE();
+
+            console.log("Granting EUL revoke minter role to the desired address %s", multisigAddresses.labs);
+            grantRole(coreAddresses.EUL, revokeMinterRole, multisigAddresses.labs);
+
+            console.log("Granting EUL minter role to the desired address %s", nttAddresses.manager);
+            grantRole(coreAddresses.EUL, minterRole, nttAddresses.manager);
         } else {
             console.log("EUL already deployed. Skipping...");
         }
