@@ -11,6 +11,38 @@ import {console} from "forge-std/console.sol";
 abstract contract SafeUtil is ScriptExtended {
     using Surl for *;
 
+    enum Operation {
+        CALL,
+        DELEGATECALL
+    }
+
+    struct Transaction {
+        address safe;
+        address sender;
+        address to;
+        uint256 value;
+        bytes data;
+        Operation operation;
+        uint256 safeTxGas;
+        uint256 baseGas;
+        uint256 gasPrice;
+        address gasToken;
+        address refundReceiver;
+        uint256 nonce;
+        bytes32 hash;
+        bytes signature;
+    }
+
+    struct Delegate {
+        address safe;
+        address delegator;
+        address delegate;
+        string label;
+        uint256 totp;
+        bytes32 hash;
+        bytes signature;
+    }
+
     function isSafeOwnerOrDelegate(address safe, address account) public returns (bool) {
         address[] memory safes = getSafes(account);
         for (uint256 i = 0; i < safes.length; ++i) {
@@ -59,13 +91,45 @@ abstract contract SafeUtil is ScriptExtended {
             address[] memory delegates = new address[](count);
 
             for (uint256 i = 0; i < count; ++i) {
-                delegates[i] =
-                    vm.parseJsonAddress(string(response), string.concat(".results[", vm.toString(i), "].delegate"));
+                delegates[i] = vm.parseJsonAddress(string(response), resultsIndexKey(i, "delegate"));
             }
 
             return delegates;
         } else {
             revert("getDelegates: Failed to get delegates");
+        }
+    }
+
+    function getPendingTransactions(address safe) public returns (Transaction[] memory) {
+        string memory endpoint =
+            string.concat(getTransactionsAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false");
+        (uint256 status, bytes memory response) = endpoint.get();
+
+        if (status == 200) {
+            uint256 length = abi.decode(vm.parseJson(string(response), ".results"), (string[])).length;
+            Transaction[] memory transactions = new Transaction[](length);
+
+            for (uint256 i = 0; i < length; ++i) {
+                transactions[i] = Transaction({
+                    safe: vm.parseJsonAddress(string(response), resultsIndexKey(i, "safe")),
+                    sender: address(0),
+                    to: vm.parseJsonAddress(string(response), resultsIndexKey(i, "to")),
+                    value: vm.parseJsonUint(string(response), resultsIndexKey(i, "value")),
+                    data: vm.parseJsonBytes(string(response), resultsIndexKey(i, "data")),
+                    operation: Operation(vm.parseJsonUint(string(response), resultsIndexKey(i, "operation"))),
+                    safeTxGas: vm.parseJsonUint(string(response), resultsIndexKey(i, "safeTxGas")),
+                    baseGas: vm.parseJsonUint(string(response), resultsIndexKey(i, "baseGas")),
+                    gasPrice: vm.parseJsonUint(string(response), resultsIndexKey(i, "gasPrice")),
+                    gasToken: vm.parseJsonAddress(string(response), resultsIndexKey(i, "gasToken")),
+                    refundReceiver: vm.parseJsonAddress(string(response), resultsIndexKey(i, "refundReceiver")),
+                    nonce: vm.parseJsonUint(string(response), resultsIndexKey(i, "nonce")),
+                    hash: vm.parseJsonBytes32(string(response), resultsIndexKey(i, "safeTxHash")),
+                    signature: ""
+                });
+            }
+            return transactions;
+        } else {
+            revert("getPendingTransactions: Failed to get transactions list");
         }
     }
 
@@ -112,32 +176,14 @@ abstract contract SafeUtil is ScriptExtended {
         }
         return headersString;
     }
+
+    function resultsIndexKey(uint256 i, string memory key) private pure returns (string memory) {
+        return string.concat(".results[", vm.toString(i), "].", key);
+    }
 }
 
 contract SafeTransaction is SafeUtil {
     using Surl for *;
-
-    enum Operation {
-        CALL,
-        DELEGATECALL
-    }
-
-    struct Transaction {
-        address safe;
-        address sender;
-        address to;
-        uint256 value;
-        bytes data;
-        Operation operation;
-        uint256 safeTxGas;
-        uint256 baseGas;
-        uint256 gasPrice;
-        address gasToken;
-        address refundReceiver;
-        uint256 nonce;
-        bytes32 hash;
-        bytes signature;
-    }
 
     Transaction internal transaction;
 
@@ -166,6 +212,16 @@ contract SafeTransaction is SafeUtil {
         console.log("");
         console.log("and send the following POST request adding the sender address and the signature to the payload:");
         console.log(_getCreateCurlCommand());
+    }
+
+    function simulate(address safe, address target, uint256 value, bytes memory data) public {
+        transaction.safe = safe;
+        transaction.sender = address(0);
+        transaction.to = target;
+        transaction.value = value;
+        transaction.data = data;
+        transaction.operation = Operation.CALL;
+        _simulate();
     }
 
     function _initialize(address safe, address target, uint256 value, bytes memory data, uint256 nonce) private {
@@ -200,7 +256,14 @@ contract SafeTransaction is SafeUtil {
         }
 
         vm.prank(transaction.safe);
-        (bool success, bytes memory result) = transaction.to.call{value: transaction.value}(transaction.data);
+
+        bool success;
+        bytes memory result;
+        if (transaction.operation == Operation.CALL) {
+            (success, result) = transaction.to.call{value: transaction.value}(transaction.data);
+        } else if (transaction.operation == Operation.DELEGATECALL) {
+            (success, result) = transaction.to.delegatecall(transaction.data);
+        }
         require(success, string(result));
     }
 
@@ -300,16 +363,6 @@ contract SafeTransaction is SafeUtil {
 
 contract SafeDelegation is SafeUtil {
     using Surl for *;
-
-    struct Delegate {
-        address safe;
-        address delegator;
-        address delegate;
-        string label;
-        uint256 totp;
-        bytes32 hash;
-        bytes signature;
-    }
 
     Delegate internal data;
 

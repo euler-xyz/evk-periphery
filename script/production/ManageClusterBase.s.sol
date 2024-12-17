@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {CrossAdapter} from "euler-price-oracle/adapter/CrossAdapter.sol";
 import {BatchBuilder} from "../utils/ScriptUtils.s.sol";
+import {SafeTransaction} from "../utils/SafeUtils.s.sol";
 import {IRMLens} from "../../src/Lens/IRMLens.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {KinkIRM} from "../04_IRM.s.sol";
@@ -69,6 +70,7 @@ abstract contract ManageClusterBase is BatchBuilder {
 
         loadCluster();
         checkClusterDataSanity();
+        simulatePendingTransactions();
         preOperations();
 
         _;
@@ -298,6 +300,17 @@ abstract contract ManageClusterBase is BatchBuilder {
         }
 
         executeBatch();
+    }
+
+    function simulatePendingTransactions() internal virtual {
+        if (!isBatchViaSafe()) return;
+
+        SafeTransaction safeUtil = new SafeTransaction();
+        SafeTransaction.Transaction[] memory transactions = safeUtil.getPendingTransactions(getSafe());
+
+        for (uint256 i = 0; i < transactions.length; ++i) {
+            safeUtil.simulate(transactions[i].safe, transactions[i].to, transactions[i].value, transactions[i].data);
+        }
     }
 
     function configureCluster() internal virtual;
