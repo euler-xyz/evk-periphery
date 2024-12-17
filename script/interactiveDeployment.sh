@@ -1103,25 +1103,51 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            echo "Provided parameters will only be used if necessary and might be ignored if contracts are already deployed!"
+            addressZero=0x0000000000000000000000000000000000000000
+            addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
+
+            if [ -n "$addresses_dir_path" ]; then
+                multisig_dao=$(jq -r '.DAO' "$addresses_dir_path/MultisigAddresses.json")
+                multisig_labs=$(jq -r '.labs' "$addresses_dir_path/MultisigAddresses.json")
+                multisig_security_council=$(jq -r '.securityCouncil' "$addresses_dir_path/MultisigAddresses.json")
+                evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
+                swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json")
+                nttManager=$(jq -r '.manager' "$addresses_dir_path/NTTAddresses.json")
+                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json")
+            fi
+
+            if [ -z "$multisig_dao" ] || [ "$multisig_dao" = "$addressZero" ]; then
+                read -p "Enter the DAO multisig address: " multisig_dao
+                read -p "Enter the Labs multisig address: " multisig_labs
+                read -p "Enter the Security Council multisig address: " multisig_security_council
+            fi
+
+            if [ -z "$evc" ] || [ "$evc" = "$addressZero" ]; then
+                read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+            fi
             
-            read -p "Enter the DAO address: " multisig_dao
-            read -p "Enter the Labs address: " multisig_labs
-            read -p "Enter the Security Council address: " multisig_security_council
+            if [ -z "$swapper" ] || [ "$swapper" = "$addressZero" ]; then
+                read -p "Enter the Uniswap Router V2 address (default: 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D): " uniswap_router_v2
+                read -p "Enter the Uniswap Router V3 address (default: 0xE592427A0AEce92De3Edee1F18E0157C05861564): " uniswap_router_v3
+            fi
+            
+            if [ -z "$nttManager" ] || [ "$nttManager" = "$addressZero" ]; then
+                read -p "Enter the Wormhole Core Bridge address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/core.ts): " wormhole_core_bridge
+                read -p "Enter the Wormhole Relayer address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/relayer.ts): " wormhole_relayer
+            fi
+            
+            if [ -z "$feeFlowController" ] || [ "$feeFlowController" = "$addressZero" ]; then
+                read -p "Enter the EUL init price for Fee Flow (default: 1e18): " init_price
+            fi
 
-            read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+            multisig_dao=${multisig_dao:-$addressZero}
+            multisig_labs=${multisig_labs:-$addressZero}
+            multisig_security_council=${multisig_security_council:-$addressZero}
             permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
-
-            read -p "Enter the Uniswap Router V2 address (default: 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D): " uniswap_router_v2
             uniswap_router_v2=${uniswap_router_v2:-0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D}
-
-            read -p "Enter the Uniswap Router V3 address (default: 0xE592427A0AEce92De3Edee1F18E0157C05861564): " uniswap_router_v3
             uniswap_router_v3=${uniswap_router_v3:-0xE592427A0AEce92De3Edee1F18E0157C05861564}
-
-            read -p "Enter the Wormhole Core Bridge address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/core.ts): " wormhole_core_bridge
-            read -p "Enter the Wormhole Relayer address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/relayer.ts): " wormhole_relayer
-
-            read -p "Enter the EUL init price for Fee Flow (default: 1e18): " init_price
+            wormhole_core_bridge=${wormhole_core_bridge:-$addressZero}
+            wormhole_relayer=${wormhole_relayer:-$addressZero}
             init_price=${init_price:-1000000000000000000}
 
             jq -n \
@@ -1147,14 +1173,18 @@ while true; do
                 }' --indent 4 > script/${jsonName}_input.json     
 
             nttCompilerOptions="--optimize --optimizer-runs 200 --via-ir --use 0.8.19 --out out-ntt"
-            result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $nttCompilerOptions $@)
-            libraryAddress=$(jq -r '.deployedTo' <<< "$result")
+            
+            if [ -z "$addresses_dir_path" ] || [ -z "$nttManager" ]; then
+                echo "Deploying TransceiverStructs library..."
+                result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $nttCompilerOptions $@)
+                libraryAddress=$(jq -r '.deployedTo' <<< "$result")
 
-            if [ -z "$libraryAddress" ]; then
-                echo "Failed to deploy TransceiverStructs library. Exiting."
-                exit 1
-            elif [ "$libraryAddress" != "0x0000000000000000000000000000000000000000" ]; then
-                forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$libraryAddress $nttCompilerOptions
+                if [ -z "$libraryAddress" ]; then
+                    echo "Failed to deploy TransceiverStructs library. Exiting."
+                    exit 1
+                elif [ "$libraryAddress" != "$addressZero" ]; then
+                    forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$libraryAddress $nttCompilerOptions
+                fi
             fi
             ;;
         51)
