@@ -190,7 +190,7 @@ contract Cluster is ManageCluster {
         ];
     }
 
-    function verifyCluster() internal override {
+    function postOperations() internal override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             perspectiveVerify(peripheryAddresses.governedPerspective, cluster.vaults[i]);
         }
