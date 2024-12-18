@@ -295,9 +295,16 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     function isRedstoneClassicOracle(ChainlinkOracleInfo memory chainlinkOracleInfo) internal pure returns (bool) {
-        if (_strEq(chainlinkOracleInfo.feedDescription, "Redstone Price Feed")) {
-            return true;
+        string[] memory strings = new string[](2);
+        strings[0] = "Redstone Price Feed";
+        strings[1] = "RedStone Price Feed";
+
+        for (uint256 i = 0; i < strings.length; ++i) {
+            if (_strEq(_substring(chainlinkOracleInfo.feedDescription, 0, bytes(strings[i]).length), strings[i])) {
+                return true;
+            }
         }
+
         return false;
     }
 
