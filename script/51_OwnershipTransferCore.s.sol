@@ -64,28 +64,35 @@ contract OwnershipTransferCore is BatchBuilder {
         }
 
         {
-            bytes32 defaultAdminRole = AccessControl(coreAddresses.accessControlEmergencyGovernor).DEFAULT_ADMIN_ROLE();
+            bytes32 defaultAdminRole =
+                AccessControl(vaultGovernorAddresses.accessControlEmergencyGovernor).DEFAULT_ADMIN_ROLE();
 
             if (
-                !AccessControl(coreAddresses.accessControlEmergencyGovernor).hasRole(
+                !AccessControl(vaultGovernorAddresses.accessControlEmergencyGovernor).hasRole(
                     defaultAdminRole, multisigAddresses.DAO
                 )
             ) {
                 console.log(
                     "Granting GovernorAccessControlEmergency default admin role to address %s", multisigAddresses.DAO
                 );
-                grantRole(coreAddresses.accessControlEmergencyGovernor, defaultAdminRole, multisigAddresses.DAO);
+                grantRole(
+                    vaultGovernorAddresses.accessControlEmergencyGovernor, defaultAdminRole, multisigAddresses.DAO
+                );
             } else {
                 console.log(
                     "GovernorAccessControlEmergency default admin role is already set to the desired address. Skipping..."
                 );
             }
 
-            if (AccessControl(coreAddresses.accessControlEmergencyGovernor).hasRole(defaultAdminRole, getDeployer())) {
+            if (
+                AccessControl(vaultGovernorAddresses.accessControlEmergencyGovernor).hasRole(
+                    defaultAdminRole, getDeployer()
+                )
+            ) {
                 console.log(
                     "Renouncing GovernorAccessControlEmergency default admin role from the deployer %s", getDeployer()
                 );
-                renounceRole(coreAddresses.accessControlEmergencyGovernor, defaultAdminRole, getDeployer());
+                renounceRole(vaultGovernorAddresses.accessControlEmergencyGovernor, defaultAdminRole, getDeployer());
             } else {
                 console.log(
                     "The deployer is no longer the default admin of the GovernorAccessControlEmergency. Skipping..."
@@ -94,26 +101,26 @@ contract OwnershipTransferCore is BatchBuilder {
         }
 
         if (block.chainid != 1) {
-            bytes32 defaultAdminRole = AccessControl(coreAddresses.EUL).DEFAULT_ADMIN_ROLE();
+            bytes32 defaultAdminRole = AccessControl(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
 
-            if (!AccessControl(coreAddresses.EUL).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
+            if (!AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
                 console.log("Granting EUL default admin role to address %s", multisigAddresses.DAO);
-                grantRole(coreAddresses.EUL, defaultAdminRole, multisigAddresses.DAO);
+                grantRole(tokenAddresses.EUL, defaultAdminRole, multisigAddresses.DAO);
             } else {
                 console.log("EUL default admin role is already set to the desired address. Skipping...");
             }
 
-            if (AccessControl(coreAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
+            if (AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
                 console.log("Renouncing EUL default admin role from the deployer %s", getDeployer());
-                renounceRole(coreAddresses.EUL, defaultAdminRole, getDeployer());
+                renounceRole(tokenAddresses.EUL, defaultAdminRole, getDeployer());
             } else {
                 console.log("The deployer is no longer the default admin of EUL. Skipping...");
             }
         }
 
-        if (Ownable(coreAddresses.rEUL).owner() != multisigAddresses.DAO) {
+        if (Ownable(tokenAddresses.rEUL).owner() != multisigAddresses.DAO) {
             console.log("Transferring ownership of rEUL to %s", multisigAddresses.DAO);
-            transferOwnership(coreAddresses.rEUL, multisigAddresses.DAO);
+            transferOwnership(tokenAddresses.rEUL, multisigAddresses.DAO);
         } else {
             console.log("rEUL owner is already set to the desired address. Skipping...");
         }

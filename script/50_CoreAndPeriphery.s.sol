@@ -151,33 +151,62 @@ contract CoreAndPeriphery is BatchBuilder {
             console.log("EVault factory governor already deployed. Skipping...");
         }
 
-        if (coreAddresses.accessControlEmergencyGovernor == address(0)) {
+        if (vaultGovernorAddresses.accessControlEmergencyGovernor == address(0)) {
             console.log("Deploying Euler Emergency Access Control Governor...");
             GovernorAccessControlEmergencyDeployer deployer = new GovernorAccessControlEmergencyDeployer();
-            coreAddresses.accessControlEmergencyGovernor = deployer.deploy(coreAddresses.evc);
+            vaultGovernorAddresses.accessControlEmergencyGovernor = deployer.deploy(coreAddresses.evc);
 
             bytes32 wildCardRole =
-                GovernorAccessControlEmergency(coreAddresses.accessControlEmergencyGovernor).WILD_CARD();
-            bytes32 ltvEmergencyRole =
-                GovernorAccessControlEmergency(coreAddresses.accessControlEmergencyGovernor).LTV_EMERGENCY_ROLE();
-            bytes32 hookEmergencyRole =
-                GovernorAccessControlEmergency(coreAddresses.accessControlEmergencyGovernor).HOOK_EMERGENCY_ROLE();
-            bytes32 capsEmergencyRole =
-                GovernorAccessControlEmergency(coreAddresses.accessControlEmergencyGovernor).CAPS_EMERGENCY_ROLE();
+                GovernorAccessControlEmergency(vaultGovernorAddresses.accessControlEmergencyGovernor).WILD_CARD();
+            bytes32 ltvEmergencyRole = GovernorAccessControlEmergency(
+                vaultGovernorAddresses.accessControlEmergencyGovernor
+            ).LTV_EMERGENCY_ROLE();
+            bytes32 hookEmergencyRole = GovernorAccessControlEmergency(
+                vaultGovernorAddresses.accessControlEmergencyGovernor
+            ).HOOK_EMERGENCY_ROLE();
+            bytes32 capsEmergencyRole = GovernorAccessControlEmergency(
+                vaultGovernorAddresses.accessControlEmergencyGovernor
+            ).CAPS_EMERGENCY_ROLE();
 
             console.log("Granting wild card role to address %s", multisigAddresses.DAO);
-            grantRole(coreAddresses.accessControlEmergencyGovernor, wildCardRole, multisigAddresses.DAO);
+            grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, wildCardRole, multisigAddresses.DAO);
 
             console.log("Granting LTV emergency role to address %s", multisigAddresses.labs);
-            grantRole(coreAddresses.accessControlEmergencyGovernor, ltvEmergencyRole, multisigAddresses.labs);
+            grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, ltvEmergencyRole, multisigAddresses.labs);
 
             console.log("Granting hook emergency role to address %s", multisigAddresses.labs);
-            grantRole(coreAddresses.accessControlEmergencyGovernor, hookEmergencyRole, multisigAddresses.labs);
+            grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, hookEmergencyRole, multisigAddresses.labs);
 
             console.log("Granting caps emergency role to address %s", multisigAddresses.labs);
-            grantRole(coreAddresses.accessControlEmergencyGovernor, capsEmergencyRole, multisigAddresses.labs);
+            grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, capsEmergencyRole, multisigAddresses.labs);
         } else {
-            console.log("Euler Access Control Emergency Governor already deployed. Skipping...");
+            console.log("Vault Access Control Emergency Governor already deployed. Skipping...");
+        }
+
+        if (tokenAddresses.EUL == address(0) && block.chainid != 1) {
+            console.log("Deploying EUL...");
+            ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
+            tokenAddresses.EUL = deployer.deploy("Euler", "EUL", 18);
+
+            console.log("Granting EUL revoke minter role to the desired address %s", multisigAddresses.labs);
+            bytes32 revokeMinterRole = ERC20BurnableMintable(tokenAddresses.EUL).REVOKE_MINTER_ROLE();
+            grantRole(tokenAddresses.EUL, revokeMinterRole, multisigAddresses.labs);
+        } else {
+            console.log("EUL already deployed. Skipping...");
+        }
+
+        if (tokenAddresses.rEUL == address(0)) {
+            console.log("Deploying rEUL...");
+            RewardTokenDeployer deployer = new RewardTokenDeployer();
+            tokenAddresses.rEUL = deployer.deploy(
+                coreAddresses.evc,
+                address(0x000000000000000000000000000000000000dEaD),
+                tokenAddresses.EUL,
+                "Reward EUL",
+                "rEUL"
+            );
+        } else {
+            console.log("rEUL already deployed. Skipping...");
         }
 
         if (nttAddresses.manager == address(0) && nttAddresses.transceiver == address(0)) {
@@ -187,7 +216,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 {
                     NttManagerDeployer deployer = new NttManagerDeployer();
                     nttAddresses.manager =
-                        deployer.deploy(coreAddresses.EUL, block.chainid == 1 ? true : false, chainId, 1 days, false);
+                        deployer.deploy(tokenAddresses.EUL, block.chainid == 1 ? true : false, chainId, 1 days, false);
                 }
                 {
                     WormholeTransceiverDeployer deployer = new WormholeTransceiverDeployer();
@@ -234,6 +263,17 @@ contract CoreAndPeriphery is BatchBuilder {
                     WormholeTransceiver(nttAddresses.transceiver).setWormholePeer(
                         chainIdMainnet, bytes32(uint256(uint160(nttAddressesMainnet.transceiver)))
                     );
+
+                    bytes32 defaultAdminRole = ERC20BurnableMintable(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
+                    if (ERC20BurnableMintable(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
+                        console.log("Granting EUL minter role to the NttManager address %s", nttAddresses.manager);
+                        bytes32 minterRole = ERC20BurnableMintable(tokenAddresses.EUL).MINTER_ROLE();
+                        grantRole(tokenAddresses.EUL, minterRole, nttAddresses.manager);
+                    } else {
+                        console.log(
+                            "The deployer no longer has the EUL default admin role to grant the minter role to the NttManager. This must be done manually. Skipping..."
+                        );
+                    }
                 }
                 stopBroadcast();
             } else {
@@ -286,38 +326,6 @@ contract CoreAndPeriphery is BatchBuilder {
             }
         }
 
-        if (coreAddresses.EUL == address(0) && block.chainid != 1) {
-            console.log("Deploying EUL...");
-            ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
-            coreAddresses.EUL = deployer.deploy(keccak256("EUL"), "Euler", "EUL", 18);
-
-            bytes32 revokeMinterRole = ERC20BurnableMintable(coreAddresses.EUL).REVOKE_MINTER_ROLE();
-            bytes32 minterRole = ERC20BurnableMintable(coreAddresses.EUL).MINTER_ROLE();
-
-            console.log("Granting EUL revoke minter role to the desired address %s", multisigAddresses.labs);
-            grantRole(coreAddresses.EUL, revokeMinterRole, multisigAddresses.labs);
-
-            console.log("Granting EUL minter role to the desired address %s", nttAddresses.manager);
-            grantRole(coreAddresses.EUL, minterRole, nttAddresses.manager);
-        } else {
-            console.log("EUL already deployed. Skipping...");
-        }
-
-        if (coreAddresses.rEUL == address(0)) {
-            console.log("Deploying rEUL...");
-            RewardTokenDeployer deployer = new RewardTokenDeployer();
-            coreAddresses.rEUL = deployer.deploy(
-                keccak256("rEUL"),
-                coreAddresses.evc,
-                address(0x000000000000000000000000000000000000dEaD),
-                coreAddresses.EUL,
-                "Reward EUL",
-                "rEUL"
-            );
-        } else {
-            console.log("rEUL already deployed. Skipping...");
-        }
-
         if (
             peripheryAddresses.oracleRouterFactory == address(0)
                 && peripheryAddresses.oracleAdapterRegistry == address(0)
@@ -341,7 +349,13 @@ contract CoreAndPeriphery is BatchBuilder {
             console.log("Deploying FeeFlow...");
             FeeFlow deployer = new FeeFlow();
             peripheryAddresses.feeFlowController = deployer.deploy(
-                coreAddresses.evc, input.feeFlowInitPrice, coreAddresses.EUL, multisigAddresses.DAO, 14 days, 2e18, 1e18
+                coreAddresses.evc,
+                input.feeFlowInitPrice,
+                tokenAddresses.EUL,
+                multisigAddresses.DAO,
+                14 days,
+                2e18,
+                1e18
             );
 
             console.log(

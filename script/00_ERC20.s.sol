@@ -63,26 +63,11 @@ contract ERC20BurnableMintableDeployer is ScriptUtils {
         erc20BurnableMintable = execute(name, symbol, decimals);
     }
 
-    function deploy(bytes32 salt, string memory name, string memory symbol, uint8 decimals)
-        public
-        broadcast
-        returns (address erc20BurnableMintable)
-    {
-        erc20BurnableMintable = execute(salt, name, symbol, decimals);
-    }
-
     function execute(string memory name, string memory symbol, uint8 decimals)
         public
         returns (address erc20BurnableMintable)
     {
         erc20BurnableMintable = address(new ERC20BurnableMintable(getDeployer(), name, symbol, decimals));
-    }
-
-    function execute(bytes32 salt, string memory name, string memory symbol, uint8 decimals)
-        public
-        returns (address erc20BurnableMintable)
-    {
-        erc20BurnableMintable = address(new ERC20BurnableMintable{salt: salt}(getDeployer(), name, symbol, decimals));
     }
 }
 
@@ -112,32 +97,10 @@ contract RewardTokenDeployer is ScriptUtils {
         rewardToken = execute(evc, receiver, underlying, name, symbol);
     }
 
-    function deploy(
-        bytes32 salt,
-        address evc,
-        address receiver,
-        address underlying,
-        string memory name,
-        string memory symbol
-    ) public broadcast returns (address rewardToken) {
-        rewardToken = execute(salt, evc, receiver, underlying, name, symbol);
-    }
-
     function execute(address evc, address receiver, address underlying, string memory name, string memory symbol)
         public
         returns (address rewardToken)
     {
         rewardToken = address(new RewardToken(evc, getDeployer(), receiver, underlying, name, symbol));
-    }
-
-    function execute(
-        bytes32 salt,
-        address evc,
-        address receiver,
-        address underlying,
-        string memory name,
-        string memory symbol
-    ) public returns (address rewardToken) {
-        rewardToken = address(new RewardToken{salt: salt}(evc, getDeployer(), receiver, underlying, name, symbol));
     }
 }

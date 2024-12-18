@@ -32,9 +32,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         address eVaultImplementation;
         address eVaultFactory;
         address eVaultFactoryGovernor;
-        address accessControlEmergencyGovernor;
-        address EUL;
-        address rEUL;
     }
 
     function serializeCoreAddresses(CoreAddresses memory Addresses) internal returns (string memory result) {
@@ -46,11 +43,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         result = vm.serializeAddress("coreAddresses", "eVaultImplementation", Addresses.eVaultImplementation);
         result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
         result = vm.serializeAddress("coreAddresses", "eVaultFactoryGovernor", Addresses.eVaultFactoryGovernor);
-        result = vm.serializeAddress(
-            "coreAddresses", "accessControlEmergencyGovernor", Addresses.accessControlEmergencyGovernor
-        );
-        result = vm.serializeAddress("coreAddresses", "EUL", Addresses.EUL);
-        result = vm.serializeAddress("coreAddresses", "rEUL", Addresses.rEUL);
     }
 
     function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory) {
@@ -62,10 +54,7 @@ abstract contract CoreAddressesLib is ScriptExtended {
             permit2: getAddressFromJson(json, ".permit2"),
             eVaultImplementation: getAddressFromJson(json, ".eVaultImplementation"),
             eVaultFactory: getAddressFromJson(json, ".eVaultFactory"),
-            eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor"),
-            accessControlEmergencyGovernor: getAddressFromJson(json, ".accessControlEmergencyGovernor"),
-            EUL: getAddressFromJson(json, ".EUL"),
-            rEUL: getAddressFromJson(json, ".rEUL")
+            eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor")
         });
     }
 }
@@ -162,6 +151,47 @@ abstract contract LensAddressesLib is ScriptExtended {
     }
 }
 
+abstract contract VaultGovernorAddressesLib is ScriptExtended {
+    struct VaultGovernorAddresses {
+        address accessControlEmergencyGovernor;
+    }
+
+    function serializeVaultGovernorAddresses(VaultGovernorAddresses memory Addresses)
+        internal
+        returns (string memory result)
+    {
+        result = vm.serializeAddress(
+            "vaultGovernorAddresses", "accessControlEmergencyGovernor", Addresses.accessControlEmergencyGovernor
+        );
+    }
+
+    function deserializeVaultGovernorAddresses(string memory json)
+        internal
+        pure
+        returns (VaultGovernorAddresses memory)
+    {
+        return VaultGovernorAddresses({
+            accessControlEmergencyGovernor: getAddressFromJson(json, ".accessControlEmergencyGovernor")
+        });
+    }
+}
+
+abstract contract TokenAddressesLib is ScriptExtended {
+    struct TokenAddresses {
+        address EUL;
+        address rEUL;
+    }
+
+    function serializeTokenAddresses(TokenAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("tokenAddresses", "EUL", Addresses.EUL);
+        result = vm.serializeAddress("tokenAddresses", "rEUL", Addresses.rEUL);
+    }
+
+    function deserializeTokenAddresses(string memory json) internal pure returns (TokenAddresses memory) {
+        return TokenAddresses({EUL: getAddressFromJson(json, ".EUL"), rEUL: getAddressFromJson(json, ".rEUL")});
+    }
+}
+
 abstract contract MultisigAddressesLib is ScriptExtended {
     struct MultisigAddresses {
         address DAO;
@@ -224,13 +254,17 @@ abstract contract ScriptUtils is
     CoreAddressesLib,
     PeripheryAddressesLib,
     LensAddressesLib,
-    NTTAddressesLib
+    NTTAddressesLib,
+    TokenAddressesLib,
+    VaultGovernorAddressesLib
 {
     MultisigAddresses internal multisigAddresses;
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
     NTTAddresses internal nttAddresses;
+    TokenAddresses internal tokenAddresses;
+    VaultGovernorAddresses internal vaultGovernorAddresses;
 
     constructor() {
         multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
@@ -238,6 +272,8 @@ abstract contract ScriptUtils is
         peripheryAddresses = deserializePeripheryAddresses(getAddressesJson("PeripheryAddresses.json"));
         lensAddresses = deserializeLensAddresses(getAddressesJson("LensAddresses.json"));
         nttAddresses = deserializeNTTAddresses(getAddressesJson("NTTAddresses.json"));
+        tokenAddresses = deserializeTokenAddresses(getAddressesJson("TokenAddresses.json"));
+        vaultGovernorAddresses = deserializeVaultGovernorAddresses(getAddressesJson("VaultGovernorAddresses.json"));
     }
 
     modifier broadcast() {
