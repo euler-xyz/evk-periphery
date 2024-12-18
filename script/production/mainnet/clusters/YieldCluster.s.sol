@@ -21,7 +21,6 @@ contract Cluster is ManageCluster {
             FDUSD,
             PYUSD,
             rlUSD,
-            USDa,
             wUSDM,
             wUSDL,
             wM,
@@ -60,7 +59,6 @@ contract Cluster is ManageCluster {
         //cluster.interestFeeOverride[FDUSD       ] = 1;
         //cluster.interestFeeOverride[PYUSD       ] = 1;
         //cluster.interestFeeOverride[rlUSD       ] = 1;
-        //cluster.interestFeeOverride[USDa        ] = 1;
         //cluster.interestFeeOverride[wUSDM       ] = 1;
         //cluster.interestFeeOverride[wUSDL       ] = 1;
         //cluster.interestFeeOverride[wM          ] = 1;
@@ -103,7 +101,6 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[FDUSD                    ] = "PythOracle";
         cluster.oracleProviders[PYUSD                    ] = "PythOracle";
         cluster.oracleProviders[rlUSD                    ] = "FixedRateOracle";
-        cluster.oracleProviders[USDa                     ] = "FixedRateOracle";
         cluster.oracleProviders[wUSDM                    ] = "ExternalVault|FixedRateOracle";
         cluster.oracleProviders[wUSDL                    ] = "ExternalVault|FixedRateOracle";
         cluster.oracleProviders[wM                       ] = "FixedRateOracle";
@@ -126,25 +123,24 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[PT_USDe_27MAR2025        ] = "CrossAdapter=PendleOracle+PythOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[USDC                     ] = 20_000_000;
-        cluster.supplyCaps[USDT                     ] = 20_000_000;
-        cluster.supplyCaps[FDUSD                    ] = 20_000_000;
-        cluster.supplyCaps[PYUSD                    ] = 20_000_000;
-        cluster.supplyCaps[rlUSD                    ] = 20_000_000;
-        cluster.supplyCaps[USDa                     ] = 20_000_000;
-        cluster.supplyCaps[wUSDM                    ] = 20_000_000;
-        cluster.supplyCaps[wUSDL                    ] = 20_000_000;
-        cluster.supplyCaps[wM                       ] = 20_000_000;
-        cluster.supplyCaps[USDS                     ] = 20_000_000;
-        cluster.supplyCaps[sUSDS                    ] = 20_000_000;
-        cluster.supplyCaps[DAI                      ] = 20_000_000;
-        cluster.supplyCaps[sDAI                     ] = 20_000_000;
-        cluster.supplyCaps[USD0                     ] = 20_000_000;
-        cluster.supplyCaps[USD0PlusPlus             ] = 16_000_000;
-        cluster.supplyCaps[USDe                     ] = 20_000_000;
-        cluster.supplyCaps[sUSDe                    ] = 16_000_000;
-        cluster.supplyCaps[deUSD                    ] = 12_000_000;
-        cluster.supplyCaps[sdeUSD                   ] = 9_600_000;
+        cluster.supplyCaps[USDC                     ] = 50_000_000;
+        cluster.supplyCaps[USDT                     ] = 50_000_000;
+        cluster.supplyCaps[FDUSD                    ] = 10_000_000;
+        cluster.supplyCaps[PYUSD                    ] = 10_000_000;
+        cluster.supplyCaps[rlUSD                    ] = 10_000_000;
+        cluster.supplyCaps[wUSDM                    ] = 5_000_000;
+        cluster.supplyCaps[wUSDL                    ] = 5_000_000;
+        cluster.supplyCaps[wM                       ] = 5_000_000;
+        cluster.supplyCaps[USDS                     ] = 10_000_000;
+        cluster.supplyCaps[sUSDS                    ] = 8_000_000;
+        cluster.supplyCaps[DAI                      ] = 10_000_000;
+        cluster.supplyCaps[sDAI                     ] = 10_000_000;
+        cluster.supplyCaps[USD0                     ] = 10_000_000;
+        cluster.supplyCaps[USD0PlusPlus             ] = 8_000_000;
+        cluster.supplyCaps[USDe                     ] = 10_000_000;
+        cluster.supplyCaps[sUSDe                    ] = 8_000_000;
+        cluster.supplyCaps[deUSD                    ] = 6_000_000;
+        cluster.supplyCaps[sdeUSD                   ] = 4_800_000;
         cluster.supplyCaps[mBASIS                   ] = 6_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_30JAN2025] = 4_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_27MAR2025] = 4_000_000;
@@ -154,25 +150,24 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_USDe_27MAR2025        ] = 4_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[USDC                     ] = 18_000_000;
-        cluster.borrowCaps[USDT                     ] = 18_000_000;
-        cluster.borrowCaps[FDUSD                    ] = 18_000_000;
-        cluster.borrowCaps[PYUSD                    ] = 18_000_000;
-        cluster.borrowCaps[rlUSD                    ] = 18_000_000;
-        cluster.borrowCaps[USDa                     ] = 18_000_000;
-        cluster.borrowCaps[wUSDM                    ] = 18_000_000;
-        cluster.borrowCaps[wUSDL                    ] = 18_000_000;
-        cluster.borrowCaps[wM                       ] = 18_000_000;
-        cluster.borrowCaps[USDS                     ] = 18_000_000;
-        cluster.borrowCaps[sUSDS                    ] = 6_000_000;
-        cluster.borrowCaps[DAI                      ] = 18_000_000;
-        cluster.borrowCaps[sDAI                     ] = 6_000_000;
-        cluster.borrowCaps[USD0                     ] = 18_000_000;
-        cluster.borrowCaps[USD0PlusPlus             ] = 4_800_000;
-        cluster.borrowCaps[USDe                     ] = 6_000_000;
-        cluster.borrowCaps[sUSDe                    ] = 4_800_000;
-        cluster.borrowCaps[deUSD                    ] = 3_600_000;
-        cluster.borrowCaps[sdeUSD                   ] = 2_880_000;
+        cluster.borrowCaps[USDC                     ] = 45_000_000;
+        cluster.borrowCaps[USDT                     ] = 45_000_000;
+        cluster.borrowCaps[FDUSD                    ] = 9_000_000;
+        cluster.borrowCaps[PYUSD                    ] = 9_000_000;
+        cluster.borrowCaps[rlUSD                    ] = 9_000_000;
+        cluster.borrowCaps[wUSDM                    ] = 4_500_000;
+        cluster.borrowCaps[wUSDL                    ] = 4_500_000;
+        cluster.borrowCaps[wM                       ] = 4_500_000;
+        cluster.borrowCaps[USDS                     ] = 9_000_000;
+        cluster.borrowCaps[sUSDS                    ] = 2_400_000;
+        cluster.borrowCaps[DAI                      ] = 9_000_000;
+        cluster.borrowCaps[sDAI                     ] = 3_000_000;
+        cluster.borrowCaps[USD0                     ] = 9_000_000;
+        cluster.borrowCaps[USD0PlusPlus             ] = 2_400_000;
+        cluster.borrowCaps[USDe                     ] = 3_000_000;
+        cluster.borrowCaps[sUSDe                    ] = 2_400_000;
+        cluster.borrowCaps[deUSD                    ] = 1_800_000;
+        cluster.borrowCaps[sdeUSD                   ] = 1_440_000;
         cluster.borrowCaps[mBASIS                   ] = 1_800_000;
         cluster.borrowCaps[PT_USD0PlusPlus_30JAN2025] = type(uint256).max;
         cluster.borrowCaps[PT_USD0PlusPlus_27MAR2025] = type(uint256).max;
@@ -194,7 +189,6 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[FDUSD       ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[PYUSD       ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[rlUSD       ] = irm_USD_1_MEGA_YIELD;
-            cluster.kinkIRMParams[USDa        ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[wUSDM       ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[wUSDL       ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[wM          ] = irm_USD_1_MEGA_YIELD;
@@ -219,43 +213,42 @@ contract Cluster is ManageCluster {
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                                 0                1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22      23      24      25
-        //                                 USDC             USDT    FDUSD   PYUSD   rlUSD   USDA    wUSDM   wUSDL   wM      USDS    sUSDS   DAI     sDAI    USD0    USD0++  USDe    sUSDe   deUSD   sdeUSD  mBASIS  PT_USD0PlusPlus_30JAN2025 PT_USD0PlusPlus_27MAR2025 PT_USD0PlusPlus_26JUN2025 PT_sUSDe_27MAR2025 PT_sUSDe_29MAY2025 PT_USDe_27MAR2025
-        /* 0  USDC                      */ [uint16(0.00e4), 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 1  USDT                      */ [uint16(0.95e4), 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 2  FDUSD                     */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 3  PYUSD                     */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 4  rlUSD                     */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 5  USDa                      */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 6  wUSDM                     */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 7  wUSDL                     */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 8  wM                        */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 9  USDS                      */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 10 sUSDS                     */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 11 DAI                       */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 12 sDAI                      */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 13 USD0                      */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 14 USD0PlusPlus              */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 15 USDe                      */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 16 sUSDe                     */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 17 deUSD                     */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 18 sdeUSD                    */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 19 mBASIS                    */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 20 PT_USD0PlusPlus_30JAN2025 */ [uint16(0.84e4), 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.90e4, 0.90e4, 0.84e4, 0.00e4, 0.84e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 21 PT_USD0PlusPlus_27MAR2025 */ [uint16(0.84e4), 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.90e4, 0.90e4, 0.84e4, 0.00e4, 0.84e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 22 PT_USD0PlusPlus_26JUN2025 */ [uint16(0.84e4), 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.90e4, 0.90e4, 0.84e4, 0.00e4, 0.84e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 23 PT_sUSDe_27MAR2025        */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.90e4, 0.90e4, 0.81e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 24 PT_sUSDe_29MAY2025        */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.90e4, 0.90e4, 0.81e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 25 PT_USDe_27MAR2025         */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.90e4, 0.90e4, 0.81e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
+        //                                 0                1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22      23      24
+        //                                 USDC             USDT    FDUSD   PYUSD   rlUSD   wUSDM   wUSDL   wM      USDS    sUSDS   DAI     sDAI    USD0    USD0++  USDe    sUSDe   deUSD   sdeUSD  mBASIS  PT_USD0PlusPlus_30JAN2025 PT_USD0PlusPlus_27MAR2025 PT_USD0PlusPlus_26JUN2025 PT_sUSDe_27MAR2025 PT_sUSDe_29MAY2025 PT_USDe_27MAR2025
+        /* 0  USDC                      */ [uint16(0.00e4), 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 1  USDT                      */ [uint16(0.95e4), 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 2  FDUSD                     */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 3  PYUSD                     */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 4  rlUSD                     */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 6  wUSDM                     */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 7  wUSDL                     */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 8  wM                        */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 9  USDS                      */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 10 sUSDS                     */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 11 DAI                       */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 12 sDAI                      */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 13 USD0                      */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 14 USD0PlusPlus              */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 15 USDe                      */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 16 sUSDe                     */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 17 deUSD                     */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 18 sdeUSD                    */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 19 mBASIS                    */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 20 PT_USD0PlusPlus_30JAN2025 */ [uint16(0.84e4), 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.90e4, 0.90e4, 0.84e4, 0.00e4, 0.84e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 21 PT_USD0PlusPlus_27MAR2025 */ [uint16(0.84e4), 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.90e4, 0.90e4, 0.84e4, 0.00e4, 0.84e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 22 PT_USD0PlusPlus_26JUN2025 */ [uint16(0.84e4), 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.90e4, 0.90e4, 0.84e4, 0.00e4, 0.84e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 23 PT_sUSDe_27MAR2025        */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.90e4, 0.90e4, 0.81e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 24 PT_sUSDe_29MAY2025        */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.90e4, 0.90e4, 0.81e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 25 PT_USDe_27MAR2025         */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.90e4, 0.90e4, 0.81e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
         cluster.externalLTVs = [
-        //                                 0                1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22      23      24      25
-        //                                 USDC             USDT    FDUSD   PYUSD   rlUSD   USDA    wUSDM   wUSDL   wM      USDS    sUSDS   DAI     sDAI    USD0    USD0++  USDe    sUSDe   deUSD   sdeUSD  mBASIS  PT_USD0PlusPlus_30JAN2025 PT_USD0PlusPlus_27MAR2025 PT_USD0PlusPlus_26JUN2025 PT_sUSDe_27MAR2025 PT_sUSDe_29MAY2025 PT_USDe_27MAR2025
-        /* 0  Prime USDC                */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 1  Prime USDT                */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
+        //                                 0                1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22      23      24
+        //                                 USDC             USDT    FDUSD   PYUSD   rlUSD   wUSDM   wUSDL   wM      USDS    sUSDS   DAI     sDAI    USD0    USD0++  USDe    sUSDe   deUSD   sdeUSD  mBASIS  PT_USD0PlusPlus_30JAN2025 PT_USD0PlusPlus_27MAR2025 PT_USD0PlusPlus_26JUN2025 PT_sUSDe_27MAR2025 PT_sUSDe_29MAY2025 PT_USDe_27MAR2025
+        /* 0  Prime USDC                */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 1  Prime USDT                */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
     }
 
@@ -268,7 +261,7 @@ contract Cluster is ManageCluster {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i]);
 
-            if (i < 20) {
+            if (i < 19) {
                 PerspectiveVerifier.verifyPerspective(
                     peripheryAddresses.eulerUngovernedNzxPerspective,
                     cluster.vaults[i],
