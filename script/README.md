@@ -15,7 +15,7 @@ It should contain the following environment variables:
 - `SAFE_NONCE` (the current Safe nonce which will be incremented and used to send transactions via Safe; this is optional and if not provided, the script will try to retrieve it from the Safe)
 - `VERIFIER_URL` (url of the contract verifier, i.e. https://api.polygonscan.com/api)
 - `VERIFIER_API_KEY` (verifier api key)
-- `ADDRESSES_DIR_PATH` (path to the directory containing the addresses of the deployed contracts, i.e. `../euler-interfaces/addresses/1`)
+- `ADDRESSES_DIR_PATH` (path to the `euler-interfaces/addresses` directory containing the directories with the addresses of the deployed contracts per chain, i.e. `../euler-interfaces/addresses`)
 
 ## Anvil fork
 

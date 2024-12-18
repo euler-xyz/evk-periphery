@@ -18,6 +18,12 @@ if [[ "$@" == *"--account"* && -z "$DEPLOYER_KEY" ]]; then
     echo ""
 fi
 
+broadcast="--broadcast"
+if [[ "$@" == *"--dry-run"* ]]; then
+    set -- "${@/--dry-run/}"
+    broadcast=""
+fi
+
 if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
@@ -1103,17 +1109,18 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
+            chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
             addressZero=0x0000000000000000000000000000000000000000
             addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
 
             if [ -n "$addresses_dir_path" ]; then
-                multisig_dao=$(jq -r '.DAO' "$addresses_dir_path/MultisigAddresses.json")
-                multisig_labs=$(jq -r '.labs' "$addresses_dir_path/MultisigAddresses.json")
-                multisig_security_council=$(jq -r '.securityCouncil' "$addresses_dir_path/MultisigAddresses.json")
-                evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
-                swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json")
-                nttManager=$(jq -r '.manager' "$addresses_dir_path/NTTAddresses.json")
-                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json")
+                multisig_dao=$(jq -r '.DAO' "$addresses_dir_path/$chainId/MultisigAddresses.json")
+                multisig_labs=$(jq -r '.labs' "$addresses_dir_path/$chainId/MultisigAddresses.json")
+                multisig_security_council=$(jq -r '.securityCouncil' "$addresses_dir_path/$chainId/MultisigAddresses.json")
+                evc=$(jq -r '.evc' "$addresses_dir_path/$chainId/CoreAddresses.json")
+                swapper=$(jq -r '.swapper' "$addresses_dir_path/$chainId/PeripheryAddresses.json")
+                nttManager=$(jq -r '.manager' "$addresses_dir_path/$chainId/NTTAddresses.json")
+                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/$chainId/PeripheryAddresses.json")
             fi
 
             if [ -z "$multisig_dao" ] || [ "$multisig_dao" = "$addressZero" ]; then
@@ -1132,8 +1139,8 @@ while true; do
             fi
             
             if [ -z "$nttManager" ] || [ "$nttManager" = "$addressZero" ]; then
-                read -p "Enter the Wormhole Core Bridge address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/core.ts): " wormhole_core_bridge
-                read -p "Enter the Wormhole Relayer address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/relayer.ts): " wormhole_relayer
+                read -p "Enter the Wormhole Core Bridge address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/core.ts or press ENTER to skip): " wormhole_core_bridge
+                read -p "Enter the Wormhole Relayer address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/relayer.ts or press ENTER to skip): " wormhole_relayer
             fi
             
             if [ -z "$feeFlowController" ] || [ "$feeFlowController" = "$addressZero" ]; then
@@ -1174,16 +1181,19 @@ while true; do
 
             nttCompilerOptions="--optimize --optimizer-runs 200 --via-ir --use 0.8.19 --out out-ntt"
             
-            if [ -z "$addresses_dir_path" ] || [ -z "$nttManager" ]; then
+            if [ -z "$addresses_dir_path" ] || [ -z "$nttManager" ] || [ "$nttManager" = "$addressZero" ]; then
                 echo "Deploying TransceiverStructs library..."
-                result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $nttCompilerOptions $@)
-                libraryAddress=$(jq -r '.deployedTo' <<< "$result")
+                result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $broadcast $nttCompilerOptions $@)
+                
+                if [ "$broadcast" = "--broadcast" ]; then
+                    libraryAddress=$(jq -r '.deployedTo' <<< "$result")
 
-                if [ -z "$libraryAddress" ]; then
-                    echo "Failed to deploy TransceiverStructs library. Exiting."
-                    exit 1
-                elif [ "$libraryAddress" != "$addressZero" ]; then
-                    forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$libraryAddress $nttCompilerOptions
+                    if [ -z "$libraryAddress" ]; then
+                        echo "Failed to deploy TransceiverStructs library. Exiting."
+                        exit 1
+                    elif [ "$libraryAddress" != "$addressZero" ]; then
+                        forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$libraryAddress $nttCompilerOptions
+                    fi
                 fi
             fi
             ;;
@@ -1259,7 +1269,7 @@ while true; do
                     ;;
             esac
 
-            cast send $governor_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $@
+            cast send $governor_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $broadcast $@
             ;;
         *)
             echo "Invalid choice. Exiting."

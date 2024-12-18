@@ -11,7 +11,7 @@ source .env
 csv_file="$1"
 shift
 
-addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
+addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
 governed_perspective=$(jq -r '.governedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
 

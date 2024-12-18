@@ -78,6 +78,12 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("use_safe_api", string("")), "--use-safe-api");
     }
 
+    function getAddressesDirPath() internal view returns (string memory) {
+        string memory path = vm.envOr("ADDRESSES_DIR_PATH", string(""));
+        return
+            bytes(path).length == 0 ? "" : bytes(path)[bytes(path).length - 1] == "/" ? path : string.concat(path, "/");
+    }
+
     function getAddressFromJson(string memory json, string memory key) internal pure returns (address) {
         try vm.parseJson(json, key) returns (bytes memory data) {
             if (data.length < 32) return address(0);

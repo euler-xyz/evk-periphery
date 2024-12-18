@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import {Vm} from "forge-std/Vm.sol";
 import {console} from "forge-std/console.sol";
 import {ScriptExtended, console} from "./ScriptExtended.s.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
@@ -209,6 +210,13 @@ abstract contract NTTAddressesLib is ScriptExtended {
             transceiver: getAddressFromJson(json, ".transceiver")
         });
     }
+
+    function verifyNTTAddresses(NTTAddresses memory Addresses) internal view {
+        require(Addresses.manager != address(0) && Addresses.manager.code.length != 0, "NTT manager is required");
+        require(
+            Addresses.transceiver != address(0) && Addresses.transceiver.code.length != 0, "NTT transceiver is required"
+        );
+    }
 }
 
 abstract contract ScriptUtils is
@@ -255,18 +263,24 @@ abstract contract ScriptUtils is
         return vm.readFile(getInputConfigFilePath(jsonFile));
     }
 
-    function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
-        string memory addressesDirPath = vm.envOr("ADDRESSES_DIR_PATH", string(""));
+    function getAddressesJson(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
+        string memory addressesDirPath = getAddressesDirPath();
 
         if (bytes(addressesDirPath).length == 0 && !isForceNoAddressesDirPath()) {
             revert("getAddressesJson: ADDRESSES_DIR_PATH environment variable is not set");
         }
 
-        try vm.readFile(string.concat(addressesDirPath, "/", jsonFile)) returns (string memory result) {
+        try vm.readFile(string.concat(addressesDirPath, vm.toString(chainId), "/", jsonFile)) returns (
+            string memory result
+        ) {
             return result;
         } catch {
             return "";
         }
+    }
+
+    function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
+        return getAddressesJson(jsonFile, block.chainid);
     }
 
     function getWETHAddress() internal view returns (address) {

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {BatchBuilder, console} from "./utils/ScriptUtils.s.sol";
+import {BatchBuilder, Vm, console} from "./utils/ScriptUtils.s.sol";
 import {ERC20BurnableMintableDeployer, RewardTokenDeployer} from "./00_ERC20.s.sol";
 import {Integrations} from "./01_Integrations.s.sol";
 import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
@@ -181,44 +181,109 @@ contract CoreAndPeriphery is BatchBuilder {
         }
 
         if (nttAddresses.manager == address(0) && nttAddresses.transceiver == address(0)) {
-            console.log("Deploying NttManager and WormholeTransceiver...");
-            uint16 chainId = NttManager(input.wormholeCoreBridge).chainId();
-            {
-                NttManagerDeployer deployer = new NttManagerDeployer();
-                nttAddresses.manager =
-                    deployer.deploy(coreAddresses.EUL, block.chainid == 1 ? true : false, chainId, 1 days, false);
+            if (input.wormholeCoreBridge != address(0) && input.wormholeRelayer != address(0)) {
+                console.log("Deploying NttManager and WormholeTransceiver...");
+                uint16 chainId = NttManager(input.wormholeCoreBridge).chainId();
+                {
+                    NttManagerDeployer deployer = new NttManagerDeployer();
+                    nttAddresses.manager =
+                        deployer.deploy(coreAddresses.EUL, block.chainid == 1 ? true : false, chainId, 1 days, false);
+                }
+                {
+                    WormholeTransceiverDeployer deployer = new WormholeTransceiverDeployer();
+                    nttAddresses.transceiver = deployer.deploy(
+                        nttAddresses.manager, input.wormholeCoreBridge, input.wormholeRelayer, address(0), 202, 500000
+                    );
+                }
+
+                startBroadcast();
+                console.log("Setting NttManager transceiver");
+                NttManager(nttAddresses.manager).setTransceiver(nttAddresses.transceiver);
+
+                console.log("Setting NttManager outbound limit");
+                NttManager(nttAddresses.manager).setOutboundLimit(1e6 * 1e18);
+
+                console.log("Setting NttManager threshold");
+                NttManager(nttAddresses.manager).setThreshold(1);
+
+                console.log("Transferring NttManager pauser capability to %s", multisigAddresses.labs);
+                NttManager(nttAddresses.manager).transferPauserCapability(multisigAddresses.labs);
+
+                console.log("Setting WormholeTransceiver isWormholeRelayingEnabled");
+                WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(chainId, true);
+
+                console.log("Setting WormholeTransceiver isWormholeEvmChain");
+                WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(chainId, true);
+
+                console.log("Transferring WormholeTransceiver pauser capability to %s", multisigAddresses.labs);
+                WormholeTransceiver(nttAddresses.transceiver).transferPauserCapability(multisigAddresses.labs);
+
+                if (block.chainid != 1) {
+                    NTTAddresses memory nttAddressesMainnet =
+                        deserializeNTTAddresses(getAddressesJson("NTTAddresses.json", 1));
+
+                    verifyNTTAddresses(nttAddressesMainnet);
+                    uint16 chainIdMainnet = NttManager(nttAddressesMainnet.manager).chainId();
+
+                    console.log("Setting NttManager peer to %s", nttAddressesMainnet.manager);
+                    NttManager(nttAddresses.manager).setPeer(
+                        chainIdMainnet, bytes32(uint256(uint160(nttAddressesMainnet.manager))), 18, 1e5 * 1e18
+                    );
+
+                    console.log("Setting WormholeTransceiver peer to %s", nttAddressesMainnet.transceiver);
+                    WormholeTransceiver(nttAddresses.transceiver).setWormholePeer(
+                        chainIdMainnet, bytes32(uint256(uint160(nttAddressesMainnet.transceiver)))
+                    );
+                }
+                stopBroadcast();
+            } else {
+                console.log("WormholeCoreBridge or WormholeRelayer not set. Skipping...");
             }
-            {
-                WormholeTransceiverDeployer deployer = new WormholeTransceiverDeployer();
-                nttAddresses.transceiver = deployer.deploy(
-                    nttAddresses.manager, input.wormholeCoreBridge, input.wormholeRelayer, address(0), 202, 500000
-                );
-            }
-
-            startBroadcast();
-            console.log("Setting NttManager transceiver");
-            NttManager(nttAddresses.manager).setTransceiver(nttAddresses.transceiver);
-
-            console.log("Setting NttManager outbound limit");
-            NttManager(nttAddresses.manager).setOutboundLimit(uint256(type(uint64).max) * 10 ** 10);
-
-            console.log("Setting NttManager threshold");
-            NttManager(nttAddresses.manager).setThreshold(1);
-
-            console.log("Transferring NttManager pauser capability to %s", multisigAddresses.labs);
-            NttManager(nttAddresses.manager).transferPauserCapability(multisigAddresses.labs);
-
-            console.log("Setting WormholeTransceiver isWormholeRelayingEnabled");
-            WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(chainId, true);
-
-            console.log("Setting WormholeTransceiver isWormholeEvmChain");
-            WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(chainId, true);
-
-            console.log("Transferring WormholeTransceiver pauser capability to %s", multisigAddresses.labs);
-            WormholeTransceiver(nttAddresses.transceiver).transferPauserCapability(multisigAddresses.labs);
-            stopBroadcast();
         } else {
             console.log("NttManager or WormholeTransceiver already deployed. Skipping...");
+        }
+
+        if (block.chainid == 1 && nttAddresses.manager != address(0) && nttAddresses.transceiver != address(0)) {
+            address deployer = getDeployer();
+            if (
+                NttManager(nttAddresses.manager).owner() == deployer
+                    && NttManager(nttAddresses.transceiver).owner() == deployer
+            ) {
+                string memory addressesDirPath = getAddressesDirPath();
+                Vm.DirEntry[] memory entries = vm.readDir(addressesDirPath, 1);
+
+                for (uint256 i = 0; i < entries.length; ++i) {
+                    if (
+                        !entries[i].isDir || _strEq(entries[i].path, string.concat(addressesDirPath, "1"))
+                            || _strEq(entries[i].path, string.concat(addressesDirPath, "test"))
+                    ) continue;
+
+                    NTTAddresses memory nttAddressesOther;
+                    try vm.readFile(string.concat(entries[i].path, "/NTTAddresses.json")) returns (string memory result)
+                    {
+                        nttAddressesOther = deserializeNTTAddresses(result);
+
+                        if (nttAddressesOther.manager == address(0) || nttAddressesOther.transceiver == address(0)) {
+                            continue;
+                        }
+                    } catch {
+                        continue;
+                    }
+
+                    verifyNTTAddresses(nttAddressesOther);
+                    uint16 chainIdOther = NttManager(nttAddressesOther.manager).chainId();
+
+                    console.log("Setting NttManager peer to %s", nttAddressesOther.manager);
+                    NttManager(nttAddresses.manager).setPeer(
+                        chainIdOther, bytes32(uint256(uint160(nttAddressesOther.manager))), 18, 1e5 * 1e18
+                    );
+
+                    console.log("Setting WormholeTransceiver peer to %s", nttAddressesOther.transceiver);
+                    WormholeTransceiver(nttAddresses.transceiver).setWormholePeer(
+                        chainIdOther, bytes32(uint256(uint160(nttAddressesOther.transceiver)))
+                    );
+                }
+            }
         }
 
         if (coreAddresses.EUL == address(0) && block.chainid != 1) {

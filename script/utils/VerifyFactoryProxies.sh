@@ -7,7 +7,7 @@ fi
 
 source .env
 
-addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
+addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 factory_perspective=$(jq -r '.evkFactoryPerspective' "$addresses_dir_path/PeripheryAddresses.json")
 
 factoryVaults=$(cast call $factory_perspective "verifiedArray()(address[])" --rpc-url $DEPLOYMENT_RPC_URL)
