@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {CrossAdapter} from "euler-price-oracle/adapter/CrossAdapter.sol";
 import {BatchBuilder} from "../utils/ScriptUtils.s.sol";
-import {SafeTransaction} from "../utils/SafeUtils.s.sol";
+import {SafeTransaction, SafeUtil} from "../utils/SafeUtils.s.sol";
 import {IRMLens} from "../../src/Lens/IRMLens.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {KinkIRM} from "../04_IRM.s.sol";
@@ -199,7 +199,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             {
                 address feeReceiver = IEVault(vault).feeReceiver();
                 if (
-                    cluster.feeReceiverOverride[asset] != address(0)
+                    cluster.feeReceiverOverride[asset] != address(uint160(type(uint160).max))
                         && feeReceiver != cluster.feeReceiverOverride[asset]
                 ) {
                     setFeeReceiver(vault, cluster.feeReceiverOverride[asset]);
@@ -210,7 +210,10 @@ abstract contract ManageClusterBase is BatchBuilder {
 
             {
                 uint16 interestFee = IEVault(vault).interestFee();
-                if (cluster.interestFeeOverride[asset] != 0 && interestFee != cluster.interestFeeOverride[asset]) {
+                if (
+                    cluster.interestFeeOverride[asset] != type(uint16).max
+                        && interestFee != cluster.interestFeeOverride[asset]
+                ) {
                     setInterestFee(vault, cluster.interestFeeOverride[asset]);
                 } else if (interestFee != cluster.interestFee) {
                     setInterestFee(vault, cluster.interestFee);
@@ -220,7 +223,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             {
                 uint16 maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
                 if (
-                    cluster.maxLiquidationDiscountOverride[asset] != 0
+                    cluster.maxLiquidationDiscountOverride[asset] != type(uint16).max
                         && maxLiquidationDiscount != cluster.maxLiquidationDiscountOverride[asset]
                 ) {
                     setMaxLiquidationDiscount(vault, cluster.maxLiquidationDiscountOverride[asset]);
@@ -232,7 +235,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             {
                 uint16 liquidationCoolOffTime = IEVault(vault).liquidationCoolOffTime();
                 if (
-                    cluster.liquidationCoolOffTimeOverride[asset] != 0
+                    cluster.liquidationCoolOffTimeOverride[asset] != type(uint16).max
                         && liquidationCoolOffTime != cluster.liquidationCoolOffTimeOverride[asset]
                 ) {
                     setLiquidationCoolOffTime(vault, cluster.liquidationCoolOffTimeOverride[asset]);
@@ -243,7 +246,10 @@ abstract contract ManageClusterBase is BatchBuilder {
 
             {
                 uint32 configFlags = IEVault(vault).configFlags();
-                if (cluster.configFlagsOverride[asset] != 0 && configFlags != cluster.configFlagsOverride[asset]) {
+                if (
+                    cluster.configFlagsOverride[asset] != type(uint32).max
+                        && configFlags != cluster.configFlagsOverride[asset]
+                ) {
                     setConfigFlags(vault, cluster.configFlagsOverride[asset]);
                 } else if (configFlags != cluster.configFlags) {
                     setConfigFlags(vault, cluster.configFlags);
@@ -266,17 +272,21 @@ abstract contract ManageClusterBase is BatchBuilder {
 
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
             if (
-                (cluster.hookTargetOverride[asset] != address(0) && hookTarget != cluster.hookTargetOverride[asset])
-                    || (cluster.hookedOpsOverride[asset] != 0 && hookedOps != cluster.hookedOpsOverride[asset])
+                (
+                    cluster.hookTargetOverride[asset] != address(uint160(type(uint160).max))
+                        && hookTarget != cluster.hookTargetOverride[asset]
+                )
+                    || (
+                        cluster.hookedOpsOverride[asset] != type(uint32).max
+                            && hookedOps != cluster.hookedOpsOverride[asset]
+                    )
             ) {
                 setHookConfig(
                     vault,
-                    cluster.hookTargetOverride[asset] != address(0) && hookTarget != cluster.hookTargetOverride[asset]
-                        ? cluster.hookTargetOverride[asset]
-                        : hookTarget,
-                    cluster.hookedOpsOverride[asset] != 0 && hookedOps != cluster.hookedOpsOverride[asset]
-                        ? cluster.hookedOpsOverride[asset]
-                        : hookedOps
+                    cluster.hookTargetOverride[asset] != address(uint160(type(uint160).max))
+                        && hookTarget != cluster.hookTargetOverride[asset] ? cluster.hookTargetOverride[asset] : hookTarget,
+                    cluster.hookedOpsOverride[asset] != type(uint32).max
+                        && hookedOps != cluster.hookedOpsOverride[asset] ? cluster.hookedOpsOverride[asset] : hookedOps
                 );
             } else if (hookTarget != cluster.hookTarget || hookedOps != cluster.hookedOps) {
                 setHookConfig(vault, cluster.hookTarget, cluster.hookedOps);
@@ -309,7 +319,13 @@ abstract contract ManageClusterBase is BatchBuilder {
         SafeTransaction.Transaction[] memory transactions = safeUtil.getPendingTransactions(getSafe());
 
         for (uint256 i = 0; i < transactions.length; ++i) {
-            safeUtil.simulate(transactions[i].safe, transactions[i].to, transactions[i].value, transactions[i].data);
+            safeUtil.simulate(
+                transactions[i].operation == SafeUtil.Operation.CALL,
+                transactions[i].safe,
+                transactions[i].to,
+                transactions[i].value,
+                transactions[i].data
+            );
         }
     }
 
@@ -486,6 +502,17 @@ abstract contract ManageClusterBase is BatchBuilder {
 
         if (cluster.irms.length == 0) {
             cluster.irms = new address[](cluster.assets.length);
+        }
+
+        for (uint256 i = 0; i < cluster.assets.length; ++i) {
+            address asset = cluster.assets[i];
+            cluster.feeReceiverOverride[asset] = address(uint160(type(uint160).max));
+            cluster.interestFeeOverride[asset] = type(uint16).max;
+            cluster.maxLiquidationDiscountOverride[asset] = type(uint16).max;
+            cluster.liquidationCoolOffTimeOverride[asset] = type(uint16).max;
+            cluster.hookTargetOverride[asset] = address(uint160(type(uint160).max));
+            cluster.hookedOpsOverride[asset] = type(uint32).max;
+            cluster.configFlagsOverride[asset] = type(uint32).max;
         }
     }
 

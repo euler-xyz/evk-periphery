@@ -16,6 +16,18 @@ abstract contract SafeUtil is ScriptExtended {
         DELEGATECALL
     }
 
+    struct Status {
+        address safe;
+        uint256 nonce;
+        uint256 threshold;
+        address[] owners;
+        address masterCopy;
+        address[] modules;
+        address fallbackHandler;
+        address guard;
+        string version;
+    }
+
     struct Transaction {
         address safe;
         address sender;
@@ -44,9 +56,9 @@ abstract contract SafeUtil is ScriptExtended {
     }
 
     function isSafeOwnerOrDelegate(address safe, address account) public returns (bool) {
-        address[] memory safes = getSafes(account);
-        for (uint256 i = 0; i < safes.length; ++i) {
-            if (safes[i] == safe) return true;
+        Status memory status = getStatus(safe);
+        for (uint256 i = 0; i < status.owners.length; ++i) {
+            if (status.owners[i] == account) return true;
         }
 
         address[] memory delegates = getDelegates(safe);
@@ -57,17 +69,38 @@ abstract contract SafeUtil is ScriptExtended {
         return false;
     }
 
-    function getNonce(address safe) public returns (uint256) {
+    function getStatus(address safe) public returns (Status memory) {
+        string memory endpoint = string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/");
+        (uint256 status, bytes memory response) = endpoint.get();
+
+        if (status == 200) {
+            return Status({
+                safe: vm.parseJsonAddress(string(response), ".address"),
+                nonce: vm.parseJsonUint(string(response), ".nonce"),
+                threshold: vm.parseJsonUint(string(response), ".threshold"),
+                owners: vm.parseJsonAddressArray(string(response), ".owners"),
+                masterCopy: vm.parseJsonAddress(string(response), ".masterCopy"),
+                modules: vm.parseJsonAddressArray(string(response), ".modules"),
+                fallbackHandler: vm.parseJsonAddress(string(response), ".fallbackHandler"),
+                guard: vm.parseJsonAddress(string(response), ".guard"),
+                version: vm.parseJsonString(string(response), ".version")
+            });
+        } else {
+            revert("getSafes: Failed to get safes");
+        }
+    }
+
+    function getNextNonce(address safe) public returns (uint256) {
         string memory endpoint =
-            string.concat(getTransactionsAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?limit=1");
+            string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?limit=1");
         (uint256 status, bytes memory response) = endpoint.get();
 
         if (status == 200) {
             return abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0
-                ? 0
-                : vm.parseJsonUint(string(response), ".results[0].nonce");
+                ? 1
+                : vm.parseJsonUint(string(response), ".results[0].nonce") + 1;
         } else {
-            revert("getNonce: Failed to get nonce");
+            revert("getNextNonce: Failed to get nonce");
         }
     }
 
@@ -102,38 +135,59 @@ abstract contract SafeUtil is ScriptExtended {
 
     function getPendingTransactions(address safe) public returns (Transaction[] memory) {
         string memory endpoint =
-            string.concat(getTransactionsAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false");
+            string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false&limit=10");
         (uint256 status, bytes memory response) = endpoint.get();
 
         if (status == 200) {
+            uint256 nonce = getStatus(safe).nonce;
             uint256 length = abi.decode(vm.parseJson(string(response), ".results"), (string[])).length;
-            Transaction[] memory transactions = new Transaction[](length);
+            uint256 counter = 0;
 
             for (uint256 i = 0; i < length; ++i) {
-                transactions[i] = Transaction({
+                if (vm.parseJsonUint(string(response), resultsIndexKey(i, "nonce")) >= nonce) {
+                    ++counter;
+                }
+            }
+
+            Transaction[] memory transactions = new Transaction[](counter);
+            counter = 0;
+            for (int256 index = int256(length - 1); index >= 0; --index) {
+                uint256 i = uint256(index);
+                uint256 txNonce = vm.parseJsonUint(string(response), resultsIndexKey(i, "nonce"));
+
+                if (txNonce < nonce) continue;
+
+                transactions[counter] = Transaction({
                     safe: vm.parseJsonAddress(string(response), resultsIndexKey(i, "safe")),
                     sender: address(0),
                     to: vm.parseJsonAddress(string(response), resultsIndexKey(i, "to")),
                     value: vm.parseJsonUint(string(response), resultsIndexKey(i, "value")),
-                    data: vm.parseJsonBytes(string(response), resultsIndexKey(i, "data")),
+                    data: "",
                     operation: Operation(vm.parseJsonUint(string(response), resultsIndexKey(i, "operation"))),
                     safeTxGas: vm.parseJsonUint(string(response), resultsIndexKey(i, "safeTxGas")),
                     baseGas: vm.parseJsonUint(string(response), resultsIndexKey(i, "baseGas")),
                     gasPrice: vm.parseJsonUint(string(response), resultsIndexKey(i, "gasPrice")),
                     gasToken: vm.parseJsonAddress(string(response), resultsIndexKey(i, "gasToken")),
                     refundReceiver: vm.parseJsonAddress(string(response), resultsIndexKey(i, "refundReceiver")),
-                    nonce: vm.parseJsonUint(string(response), resultsIndexKey(i, "nonce")),
+                    nonce: txNonce,
                     hash: vm.parseJsonBytes32(string(response), resultsIndexKey(i, "safeTxHash")),
                     signature: ""
                 });
+
+                try vm.parseJsonBytes(string(response), resultsIndexKey(i, "data")) returns (bytes memory data) {
+                    transactions[counter].data = data;
+                } catch {}
+
+                ++counter;
             }
+
             return transactions;
         } else {
-            revert("getPendingTransactions: Failed to get transactions list");
+            revert("getPendingTransactions: Failed to get pending transactions list");
         }
     }
 
-    function getTransactionsAPIBaseURL() public view returns (string memory) {
+    function getSafesAPIBaseURL() public view returns (string memory) {
         return string.concat(getSafeBaseURL(), "api/v1/safes/");
     }
 
@@ -187,14 +241,23 @@ contract SafeTransaction is SafeUtil {
 
     Transaction internal transaction;
 
-    function create(address safe, address target, uint256 value, bytes memory data, uint256 nonce) public {
-        _initialize(safe, target, value, data, nonce);
+    function create(bool isCallOperation, address safe, address target, uint256 value, bytes memory data, uint256 nonce)
+        public
+    {
+        _initialize(isCallOperation, safe, target, value, data, nonce);
         _simulate();
         _create();
     }
 
-    function createManually(address safe, address target, uint256 value, bytes memory data, uint256 nonce) public {
-        _initialize(safe, target, value, data, nonce);
+    function createManually(
+        bool isCallOperation,
+        address safe,
+        address target,
+        uint256 value,
+        bytes memory data,
+        uint256 nonce
+    ) public {
+        _initialize(isCallOperation, safe, target, value, data, nonce);
 
         transaction.sender = address(0);
         transaction.signature = "";
@@ -214,23 +277,30 @@ contract SafeTransaction is SafeUtil {
         console.log(_getCreateCurlCommand());
     }
 
-    function simulate(address safe, address target, uint256 value, bytes memory data) public {
+    function simulate(bool isCallOperation, address safe, address target, uint256 value, bytes memory data) public {
         transaction.safe = safe;
         transaction.sender = address(0);
         transaction.to = target;
         transaction.value = value;
         transaction.data = data;
-        transaction.operation = Operation.CALL;
+        transaction.operation = isCallOperation ? Operation.CALL : Operation.DELEGATECALL;
         _simulate();
     }
 
-    function _initialize(address safe, address target, uint256 value, bytes memory data, uint256 nonce) private {
+    function _initialize(
+        bool isCallOperation,
+        address safe,
+        address target,
+        uint256 value,
+        bytes memory data,
+        uint256 nonce
+    ) private {
         transaction.safe = safe;
         transaction.sender = getSafeSigner();
         transaction.to = target;
         transaction.value = value;
         transaction.data = data;
-        transaction.operation = Operation.CALL;
+        transaction.operation = isCallOperation ? Operation.CALL : Operation.DELEGATECALL;
         transaction.safeTxGas = 0;
         transaction.baseGas = 0;
         transaction.gasPrice = 0;
@@ -255,15 +325,10 @@ contract SafeTransaction is SafeUtil {
             revert("Not authorized");
         }
 
-        vm.prank(transaction.safe);
-
-        bool success;
-        bytes memory result;
-        if (transaction.operation == Operation.CALL) {
-            (success, result) = transaction.to.call{value: transaction.value}(transaction.data);
-        } else if (transaction.operation == Operation.DELEGATECALL) {
-            (success, result) = transaction.to.delegatecall(transaction.data);
-        }
+        vm.prank(transaction.safe, transaction.operation == Operation.CALL ? false : true);
+        (bool success, bytes memory result) = transaction.operation == Operation.CALL
+            ? transaction.to.call{value: transaction.value}(transaction.data)
+            : transaction.to.delegatecall(transaction.data);
         require(success, string(result));
     }
 
@@ -282,7 +347,7 @@ contract SafeTransaction is SafeUtil {
         }
 
         string memory endpoint =
-            string.concat(getTransactionsAPIBaseURL(), vm.toString(transaction.safe), "/multisig-transactions/");
+            string.concat(getSafesAPIBaseURL(), vm.toString(transaction.safe), "/multisig-transactions/");
         (uint256 status, bytes memory response) = endpoint.post(getHeaders(), _getPayload());
 
         if (status == 201) {
@@ -352,7 +417,7 @@ contract SafeTransaction is SafeUtil {
     function _getCreateCurlCommand() internal view returns (string memory) {
         return string.concat(
             "curl -X POST ",
-            getTransactionsAPIBaseURL(),
+            getSafesAPIBaseURL(),
             vm.toString(transaction.safe),
             "/multisig-transactions/ ",
             getHeadersString(),

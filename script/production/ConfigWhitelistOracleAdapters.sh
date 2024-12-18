@@ -133,15 +133,13 @@ if [[ "$batch_via_safe" == "--batch-via-safe" ]]; then
     calldata=$(cast calldata "batch((address,address,uint256,bytes)[])" $items)
     
     if [ -z "$SAFE_NONCE" ]; then
-        nonce=$(forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "getNonce(address)" $SAFE_ADDRESS --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $@ | grep -oE '[0-9]+$')
+        nonce=$(forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "getNextNonce(address)" $SAFE_ADDRESS --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $@ | grep -oE '[0-9]+$')
     else
         nonce=$SAFE_NONCE
     fi
 
-    nonce=$((nonce + 1))
-
     if env broadcast=$broadcast batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
-        forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "create(address,address,uint256,bytes memory,uint256)" $SAFE_ADDRESS $evc 0 $calldata $nonce --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow $@; then
+        forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "create(bool,address,address,uint256,bytes memory,uint256)" true $SAFE_ADDRESS $evc 0 $calldata $nonce --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow $@; then
         
         deployment_dir="script/deployments/$deployment_name"
         mkdir -p "$deployment_dir/output"
