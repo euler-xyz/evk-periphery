@@ -266,8 +266,9 @@ contract Cluster is ManageCluster {
                     peripheryAddresses.eulerUngovernedNzxPerspective,
                     cluster.vaults[i],
                     PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR,
+                    PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_BORROW | PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_LIQUIDATION | 
                     PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING | PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_LENGTH | 
-                    PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER
+                    PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_SEPARATION | PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER
                 );
             } else {
                 PerspectiveVerifier.verifyPerspective(

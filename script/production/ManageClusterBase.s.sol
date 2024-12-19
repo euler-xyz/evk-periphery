@@ -552,6 +552,32 @@ abstract contract ManageClusterBase is BatchBuilder {
             require(cluster.externalLTVs[i].length == cluster.assets.length, "External LTVs and assets length mismatch");
         }
 
+        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            address[] memory collaterals = IEVault(cluster.vaults[i]).LTVList();
+
+            for (uint256 j = 0; j < collaterals.length; ++j) {
+                if (IEVault(cluster.vaults[i]).LTVBorrow(collaterals[j]) == 0) continue;
+
+                bool found = false;
+                for (uint256 k = 0; k < cluster.vaults.length; ++k) {
+                    if (collaterals[j] == cluster.vaults[k]) {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    for (uint256 k = 0; k < cluster.externalVaults.length; ++k) {
+                        if (collaterals[j] == cluster.externalVaults[k]) {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                require(found, "Borrow LTV found for non-existent collateral");
+            }
+        }
+
         require(bytes(cluster.clusterAddressesPath).length != 0, "Invalid cluster addresses path");
         require(
             cluster.forceZeroGovernors
