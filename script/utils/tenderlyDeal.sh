@@ -1,6 +1,7 @@
 #!/bin/bash
     
 source .env
+eval "$(./script/utils/getDeploymentRpcUrl.sh)"
 
 account=$1
 asset=$2

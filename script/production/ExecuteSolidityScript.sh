@@ -6,6 +6,7 @@ if [ -z "$1" ]; then
 fi
 
 source .env
+eval "$(./script/utils/getDeploymentRpcUrl.sh)"
 scriptPath="${1#./}"
 scriptPath="${scriptPath#script/}"
 scriptName=$(basename "$1")

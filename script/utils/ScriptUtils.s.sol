@@ -359,7 +359,7 @@ abstract contract ScriptUtils is
         }
 
         if (adapter == address(0) || counter > 1) {
-            if (bytes(provider).length == 42) return _stringToAddress(provider);
+            if (bytes(provider).length == 42) return _toAddress(provider);
 
             console.log("base: %s, quote: %s, provider: %s", base, quote, provider);
 

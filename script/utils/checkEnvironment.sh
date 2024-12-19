@@ -1,6 +1,8 @@
 #!/bin/bash
 
 source .env
+eval "$(./script/utils/getDeploymentRpcUrl.sh)"
+
 if ! command -v jq &> /dev/null; then
     echo "jq could not be found. Please install jq first."
     echo "You can install jq by running: sudo apt-get install jq"
@@ -43,8 +45,8 @@ if [[ "$@" == *"--verify"* ]]; then
 fi
 
 if [[ "$@" == *"--batch-via-safe"* ]]; then
-    if [ -z "$SAFE_ADDRESS" ]; then
-        echo "Error: SAFE_ADDRESS environment variable is not set. Please set it and try again."
+    if [ -z "$SAFE_ADDRESS" ] && [[ "$@" != *"--safe-address"* ]]; then
+        echo "Error: Neither SAFE_ADDRESS nor --safe-address option is set. Please set it and try again."
         exit 1
     fi
 fi

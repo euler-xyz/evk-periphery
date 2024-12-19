@@ -6,6 +6,7 @@ if ! script/utils/checkEnvironment.sh; then
 fi
 
 source .env
+eval "$(./script/utils/getDeploymentRpcUrl.sh)"
 
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 factory_perspective=$(jq -r '.evkFactoryPerspective' "$addresses_dir_path/PeripheryAddresses.json")

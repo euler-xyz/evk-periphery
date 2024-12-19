@@ -6,6 +6,7 @@ if [ -z "$1" ] || [ -z "$2" ]; then
 fi
 
 source .env
+eval "$(./script/utils/getDeploymentRpcUrl.sh)"
 
 old_perspective="$1"
 new_perspective="$2"

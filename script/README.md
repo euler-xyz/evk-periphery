@@ -11,7 +11,7 @@ It should contain the following environment variables:
 - `DEPLOYMENT_RPC_URL` (destination RPC endpoint; use http://127.0.0.1:8545 in case of a local anvil deployment)
 - `DEPLOYER_KEY` (the private key which will be used for all the contracts deployments; this will also become an owner/admin/governor for all the  deployed contracts; this is optional if you provide a different option to derive the deployer key, i.e. `--ledger` or `--account ACC_NAME`)
 - `SAFE_KEY` (the private key which will be used to sign Safe transactions; this is optional if you don't send transactions via Safe or provide a different option to derive the Safe signer key, i.e. `--ledger` or `--account ACC_NAME`)
-- `SAFE_ADDRESS` (the Safe address which will be used to send transactions via Safe; this is optional if you don't send transactions via Safe)
+- `SAFE_ADDRESS` (the Safe address which will be used to send transactions via Safe; this is optional if you don't send transactions via Safe. you can use the `--safe-address` option in the command instead. you may also provide the key from the `MultisigAddresses.json` file instead of providing the address)
 - `SAFE_NONCE` (the Safe nonce which will be used to send transactions via Safe; this is optional and if not provided, the script will try to retrieve it from the Safe)
 - `VERIFIER_URL` (url of the contract verifier, i.e. https://api.polygonscan.com/api)
 - `VERIFIER_API_KEY` (verifier api key)
@@ -111,7 +111,7 @@ You can pass `--dry-run` option to the deployment script in order to simulate th
 
 ### Batch via Safe
 
-You can pass `--batch-via-safe` option to the deployment script in order to create the a batch transaction in the Safe UI. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file or provide a different option to derive the Safe signer key instead, i.e. `--ledger` or `--account ACC_NAME`. The address associated must either be a signer or a delegate of the Safe in order to be able to send the transactions.
+You can pass `--batch-via-safe` option to the deployment script in order to create the a batch transaction in the Safe UI. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file or provide a different option to derive the Safe signer key instead, i.e. `--ledger` or `--account ACC_NAME`. The address associated must either be a signer or a delegate of the Safe in order to be able to send the transactions. You can also provide the `--safe-address` option to the command instead of `SAFE_ADDRESS`.
 
 ### Use Safe API
 

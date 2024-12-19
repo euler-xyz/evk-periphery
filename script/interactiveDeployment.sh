@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source .env
+eval "$(./script/utils/getDeploymentRpcUrl.sh)"
 
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
@@ -1291,6 +1292,7 @@ while true; do
 
     if script/utils/executeForgeScript.sh $scriptName "$@"; then
         source .env
+        eval "$(./script/utils/getDeploymentRpcUrl.sh)"
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
         deployment_dir="script/deployments/$deployment_name/$chainId"
         broadcast_dir="broadcast/${scriptName%:*}/$chainId"

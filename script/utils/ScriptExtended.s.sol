@@ -51,7 +51,21 @@ abstract contract ScriptExtended is Script {
     }
 
     function getSafe() internal view returns (address) {
-        return vm.envAddress("SAFE_ADDRESS");
+        string memory safeAddress = vm.envOr("SAFE_ADDRESS", string(""));
+        address safe;
+
+        if (_strEq(safeAddress, string(""))) {
+            safeAddress = vm.envOr("safe_address", string(""));
+
+            if (safeAddress.length > 0) {
+                safe = getAddressFromJson(getAddressesJson("MultisigAddresses.json"), safeAddress);
+            }
+        }
+
+        if (safe == address(0)) safe = _toAddress(safeAddress);
+
+        require(safe != address(0), "getSafe: Cannot retrieve the Safe address");
+        return safe;
     }
 
     function getSafeNonce() internal view returns (uint256) {
@@ -112,6 +126,7 @@ abstract contract ScriptExtended is Script {
         returns (string memory)
     {
         bytes memory strBytes = bytes(str);
+        endIndex == type(uint256).max ? endIndex = strBytes.length : endIndex;
 
         if (startIndex >= strBytes.length || endIndex > strBytes.length || endIndex <= startIndex) return "";
 
@@ -122,8 +137,10 @@ abstract contract ScriptExtended is Script {
         return string(result);
     }
 
-    function _stringToAddress(string memory _address) internal pure returns (address) {
+    function _toAddress(string memory _address) internal pure returns (address) {
         bytes memory tmp = bytes(_address);
+        require(tmp.length == 42, "Invalid address length");
+
         uint160 result = 0;
         uint160 b1;
 
