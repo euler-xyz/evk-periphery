@@ -96,11 +96,30 @@ abstract contract SafeUtil is ScriptExtended {
         (uint256 status, bytes memory response) = endpoint.get();
 
         if (status == 200) {
-            return abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0
+            uint256 stateNextNonce = getStatus(safe).nonce;
+            uint256 pendingNextNonce = abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0
                 ? 1
                 : vm.parseJsonUint(string(response), ".results[0].nonce") + 1;
+
+            require(pendingNextNonce >= stateNextNonce, "getNextNonce: Pending nonce is less than state nonce");
+
+            if (pendingNextNonce == stateNextNonce) return pendingNextNonce;
+
+            endpoint = string.concat(
+                getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false&ordering=nonce&limit=1"
+            );
+            (status, response) = endpoint.get();
+
+            if (status == 200) {
+                uint256 firstPendingNonce = vm.parseJsonUint(string(response), ".results[0].nonce");
+
+                if (firstPendingNonce == stateNextNonce) return pendingNextNonce;
+                else return stateNextNonce;
+            } else {
+                revert("getNextNonce: Failed to get first pending transaction");
+            }
         } else {
-            revert("getNextNonce: Failed to get nonce");
+            revert("getNextNonce: Failed to get next pending nonce");
         }
     }
 
