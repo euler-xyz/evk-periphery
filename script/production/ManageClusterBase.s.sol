@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {CrossAdapter} from "euler-price-oracle/adapter/CrossAdapter.sol";
 import {BatchBuilder} from "../utils/ScriptUtils.s.sol";
+import {SafeTransaction, SafeUtil} from "../utils/SafeUtils.s.sol";
 import {IRMLens} from "../../src/Lens/IRMLens.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {KinkIRM} from "../04_IRM.s.sol";
@@ -69,13 +70,13 @@ abstract contract ManageClusterBase is BatchBuilder {
 
         loadCluster();
         checkClusterDataSanity();
+        simulatePendingTransactions();
+        preOperations();
 
         _;
 
-        additionalOperations();
-
         dumpCluster();
-        verifyCluster();
+        postOperations();
     }
 
     function run() public initialize {
@@ -197,57 +198,61 @@ abstract contract ManageClusterBase is BatchBuilder {
             // recognize potential overrides applicable per asset
             {
                 address feeReceiver = IEVault(vault).feeReceiver();
-                if (feeReceiver != cluster.feeReceiver) {
-                    setFeeReceiver(vault, cluster.feeReceiver);
-                } else if (
-                    cluster.feeReceiverOverride[asset] != address(0)
+                if (
+                    cluster.feeReceiverOverride[asset] != address(uint160(type(uint160).max))
                         && feeReceiver != cluster.feeReceiverOverride[asset]
                 ) {
                     setFeeReceiver(vault, cluster.feeReceiverOverride[asset]);
+                } else if (feeReceiver != cluster.feeReceiver) {
+                    setFeeReceiver(vault, cluster.feeReceiver);
                 }
             }
 
             {
                 uint16 interestFee = IEVault(vault).interestFee();
-                if (interestFee != cluster.interestFee) {
-                    setInterestFee(vault, cluster.interestFee);
-                } else if (cluster.interestFeeOverride[asset] != 0 && interestFee != cluster.interestFeeOverride[asset])
-                {
+                if (
+                    cluster.interestFeeOverride[asset] != type(uint16).max
+                        && interestFee != cluster.interestFeeOverride[asset]
+                ) {
                     setInterestFee(vault, cluster.interestFeeOverride[asset]);
+                } else if (interestFee != cluster.interestFee) {
+                    setInterestFee(vault, cluster.interestFee);
                 }
             }
 
             {
                 uint16 maxLiquidationDiscount = IEVault(vault).maxLiquidationDiscount();
-                if (maxLiquidationDiscount != cluster.maxLiquidationDiscount) {
-                    setMaxLiquidationDiscount(vault, cluster.maxLiquidationDiscount);
-                } else if (
-                    cluster.maxLiquidationDiscountOverride[asset] != 0
+                if (
+                    cluster.maxLiquidationDiscountOverride[asset] != type(uint16).max
                         && maxLiquidationDiscount != cluster.maxLiquidationDiscountOverride[asset]
                 ) {
                     setMaxLiquidationDiscount(vault, cluster.maxLiquidationDiscountOverride[asset]);
+                } else if (maxLiquidationDiscount != cluster.maxLiquidationDiscount) {
+                    setMaxLiquidationDiscount(vault, cluster.maxLiquidationDiscount);
                 }
             }
 
             {
                 uint16 liquidationCoolOffTime = IEVault(vault).liquidationCoolOffTime();
-                if (liquidationCoolOffTime != cluster.liquidationCoolOffTime) {
-                    setLiquidationCoolOffTime(vault, cluster.liquidationCoolOffTime);
-                } else if (
-                    cluster.liquidationCoolOffTimeOverride[asset] != 0
+                if (
+                    cluster.liquidationCoolOffTimeOverride[asset] != type(uint16).max
                         && liquidationCoolOffTime != cluster.liquidationCoolOffTimeOverride[asset]
                 ) {
                     setLiquidationCoolOffTime(vault, cluster.liquidationCoolOffTimeOverride[asset]);
+                } else if (liquidationCoolOffTime != cluster.liquidationCoolOffTime) {
+                    setLiquidationCoolOffTime(vault, cluster.liquidationCoolOffTime);
                 }
             }
 
             {
                 uint32 configFlags = IEVault(vault).configFlags();
-                if (configFlags != cluster.configFlags) {
-                    setConfigFlags(vault, cluster.configFlags);
-                } else if (cluster.configFlagsOverride[asset] != 0 && configFlags != cluster.configFlagsOverride[asset])
-                {
+                if (
+                    cluster.configFlagsOverride[asset] != type(uint32).max
+                        && configFlags != cluster.configFlagsOverride[asset]
+                ) {
                     setConfigFlags(vault, cluster.configFlagsOverride[asset]);
+                } else if (configFlags != cluster.configFlags) {
+                    setConfigFlags(vault, cluster.configFlags);
                 }
             }
 
@@ -266,21 +271,25 @@ abstract contract ManageClusterBase is BatchBuilder {
             setLTVs(vault, cluster.externalVaults, getLTVs(cluster.externalLTVs, i));
 
             (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
-            if (hookTarget != cluster.hookTarget || hookedOps != cluster.hookedOps) {
-                setHookConfig(vault, cluster.hookTarget, cluster.hookedOps);
-            } else if (
-                (cluster.hookTargetOverride[asset] != address(0) && hookTarget != cluster.hookTargetOverride[asset])
-                    || (cluster.hookedOpsOverride[asset] != 0 && hookedOps != cluster.hookedOpsOverride[asset])
+            if (
+                (
+                    cluster.hookTargetOverride[asset] != address(uint160(type(uint160).max))
+                        && hookTarget != cluster.hookTargetOverride[asset]
+                )
+                    || (
+                        cluster.hookedOpsOverride[asset] != type(uint32).max
+                            && hookedOps != cluster.hookedOpsOverride[asset]
+                    )
             ) {
                 setHookConfig(
                     vault,
-                    cluster.hookTargetOverride[asset] != address(0) && hookTarget != cluster.hookTargetOverride[asset]
-                        ? cluster.hookTargetOverride[asset]
-                        : hookTarget,
-                    cluster.hookedOpsOverride[asset] != 0 && hookedOps != cluster.hookedOpsOverride[asset]
-                        ? cluster.hookedOpsOverride[asset]
-                        : hookedOps
+                    cluster.hookTargetOverride[asset] != address(uint160(type(uint160).max))
+                        && hookTarget != cluster.hookTargetOverride[asset] ? cluster.hookTargetOverride[asset] : hookTarget,
+                    cluster.hookedOpsOverride[asset] != type(uint32).max
+                        && hookedOps != cluster.hookedOpsOverride[asset] ? cluster.hookedOpsOverride[asset] : hookedOps
                 );
+            } else if (hookTarget != cluster.hookTarget || hookedOps != cluster.hookedOps) {
+                setHookConfig(vault, cluster.hookTarget, cluster.hookedOps);
             }
 
             if (IEVault(vault).governorAdmin() != cluster.vaultsGovernor) {
@@ -303,9 +312,26 @@ abstract contract ManageClusterBase is BatchBuilder {
         executeBatch();
     }
 
+    function simulatePendingTransactions() internal virtual {
+        if (!isBatchViaSafe()) return;
+
+        SafeTransaction safeUtil = new SafeTransaction();
+        SafeTransaction.Transaction[] memory transactions = safeUtil.getPendingTransactions(getSafe());
+
+        for (uint256 i = 0; i < transactions.length; ++i) {
+            safeUtil.simulate(
+                transactions[i].operation == SafeUtil.Operation.CALL,
+                transactions[i].safe,
+                transactions[i].to,
+                transactions[i].value,
+                transactions[i].data
+            );
+        }
+    }
+
     function configureCluster() internal virtual;
-    function additionalOperations() internal virtual {}
-    function verifyCluster() internal virtual {}
+    function preOperations() internal virtual {}
+    function postOperations() internal virtual {}
 
     function computeRouterConfiguration(address base, address quote, string memory provider)
         private
@@ -476,6 +502,17 @@ abstract contract ManageClusterBase is BatchBuilder {
 
         if (cluster.irms.length == 0) {
             cluster.irms = new address[](cluster.assets.length);
+        }
+
+        for (uint256 i = 0; i < cluster.assets.length; ++i) {
+            address asset = cluster.assets[i];
+            cluster.feeReceiverOverride[asset] = address(uint160(type(uint160).max));
+            cluster.interestFeeOverride[asset] = type(uint16).max;
+            cluster.maxLiquidationDiscountOverride[asset] = type(uint16).max;
+            cluster.liquidationCoolOffTimeOverride[asset] = type(uint16).max;
+            cluster.hookTargetOverride[asset] = address(uint160(type(uint160).max));
+            cluster.hookedOpsOverride[asset] = type(uint32).max;
+            cluster.configFlagsOverride[asset] = type(uint32).max;
         }
     }
 

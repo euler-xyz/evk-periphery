@@ -54,7 +54,7 @@ abstract contract ScriptExtended is Script {
         return vm.envAddress("SAFE_ADDRESS");
     }
 
-    function getSafeCurrentNonce() internal view returns (uint256) {
+    function getSafeNonce() internal view returns (uint256) {
         return vm.envOr("SAFE_NONCE", uint256(0));
     }
 

@@ -417,9 +417,16 @@ abstract contract ScriptUtils is
     }
 
     function isRedstoneClassicOracle(ChainlinkOracleInfo memory chainlinkOracleInfo) internal pure returns (bool) {
-        if (_strEq(chainlinkOracleInfo.feedDescription, "Redstone Price Feed")) {
-            return true;
+        string[] memory strings = new string[](2);
+        strings[0] = "Redstone Price Feed";
+        strings[1] = "RedStone Price Feed";
+
+        for (uint256 i = 0; i < strings.length; ++i) {
+            if (_strEq(_substring(chainlinkOracleInfo.feedDescription, 0, bytes(strings[i]).length), strings[i])) {
+                return true;
+            }
         }
+
         return false;
     }
 
@@ -486,7 +493,7 @@ abstract contract BatchBuilder is ScriptUtils {
     IEVC.BatchItem[] internal batchItems;
     IEVC.BatchItem[] internal criticalItems;
     uint256 internal batchCounter;
-    uint256 internal currentSafeNonce = getSafeCurrentNonce();
+    uint256 internal safeNonce = getSafeNonce();
 
     function addBatchItem(address targetContract, bytes memory data) internal {
         address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
@@ -628,9 +635,14 @@ abstract contract BatchBuilder is ScriptUtils {
 
         SafeTransaction transaction = new SafeTransaction();
 
-        if (currentSafeNonce == 0) currentSafeNonce = transaction.getNonce(safe);
-
-        transaction.create(safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), ++currentSafeNonce);
+        transaction.create(
+            true,
+            safe,
+            coreAddresses.evc,
+            getBatchValue(),
+            getBatchCalldata(),
+            safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce
+        );
 
         clearBatchItems();
     }
