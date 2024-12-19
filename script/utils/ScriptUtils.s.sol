@@ -290,35 +290,6 @@ abstract contract ScriptUtils is
         vm.stopBroadcast();
     }
 
-    function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {
-        string memory root = vm.projectRoot();
-        return string.concat(root, "/script/", jsonFile);
-    }
-
-    function getInputConfig(string memory jsonFile) internal view returns (string memory) {
-        return vm.readFile(getInputConfigFilePath(jsonFile));
-    }
-
-    function getAddressesJson(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
-        string memory addressesDirPath = getAddressesDirPath();
-
-        if (bytes(addressesDirPath).length == 0 && !isForceNoAddressesDirPath()) {
-            revert("getAddressesJson: ADDRESSES_DIR_PATH environment variable is not set");
-        }
-
-        try vm.readFile(string.concat(addressesDirPath, vm.toString(chainId), "/", jsonFile)) returns (
-            string memory result
-        ) {
-            return result;
-        } catch {
-            return "";
-        }
-    }
-
-    function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
-        return getAddressesJson(jsonFile, block.chainid);
-    }
-
     function getWETHAddress() internal view returns (address) {
         if (block.chainid == 1) {
             return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;

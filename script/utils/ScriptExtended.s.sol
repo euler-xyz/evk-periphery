@@ -57,7 +57,7 @@ abstract contract ScriptExtended is Script {
         if (_strEq(safeAddress, string(""))) {
             safeAddress = vm.envOr("safe_address", string(""));
 
-            if (safeAddress.length > 0) {
+            if (bytes(safeAddress).length > 0) {
                 safe = getAddressFromJson(getAddressesJson("MultisigAddresses.json"), safeAddress);
             }
         }
@@ -114,6 +114,35 @@ abstract contract ScriptExtended is Script {
         } catch {
             return new address[](0);
         }
+    }
+
+    function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {
+        string memory root = vm.projectRoot();
+        return string.concat(root, "/script/", jsonFile);
+    }
+
+    function getInputConfig(string memory jsonFile) internal view returns (string memory) {
+        return vm.readFile(getInputConfigFilePath(jsonFile));
+    }
+
+    function getAddressesJson(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
+        string memory addressesDirPath = getAddressesDirPath();
+
+        if (bytes(addressesDirPath).length == 0 && !isForceNoAddressesDirPath()) {
+            revert("getAddressesJson: ADDRESSES_DIR_PATH environment variable is not set");
+        }
+
+        try vm.readFile(string.concat(addressesDirPath, vm.toString(chainId), "/", jsonFile)) returns (
+            string memory result
+        ) {
+            return result;
+        } catch {
+            return "";
+        }
+    }
+
+    function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
+        return getAddressesJson(jsonFile, block.chainid);
     }
 
     function _strEq(string memory a, string memory b) internal pure returns (bool) {
