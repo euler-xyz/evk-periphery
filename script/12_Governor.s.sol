@@ -33,21 +33,20 @@ contract GovernorAccessControlDeployer is ScriptUtils {
         string memory outputScriptFileName = "12_GovernorAccessControl_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address evc = vm.parseJsonAddress(json, ".evc");
-        address admin = vm.parseJsonAddress(json, ".admin");
 
-        governorAccessControl = execute(evc, admin);
+        governorAccessControl = execute(evc);
 
         string memory object;
         object = vm.serializeAddress("governorAccessControl", "governorAccessControl", governorAccessControl);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address evc, address admin) public broadcast returns (address governorAccessControl) {
-        governorAccessControl = execute(evc, admin);
+    function deploy(address evc) public broadcast returns (address governorAccessControl) {
+        governorAccessControl = execute(evc);
     }
 
-    function execute(address evc, address admin) public returns (address governorAccessControl) {
-        governorAccessControl = address(new GovernorAccessControl(evc, admin));
+    function execute(address evc) public returns (address governorAccessControl) {
+        governorAccessControl = address(new GovernorAccessControl(evc, getDeployer()));
     }
 }
 
@@ -57,9 +56,8 @@ contract GovernorAccessControlEmergencyDeployer is ScriptUtils {
         string memory outputScriptFileName = "12_GovernorAccessControlEmergency_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address evc = vm.parseJsonAddress(json, ".evc");
-        address admin = vm.parseJsonAddress(json, ".admin");
 
-        governorAccessControlEmergency = execute(evc, admin);
+        governorAccessControlEmergency = execute(evc);
 
         string memory object;
         object = vm.serializeAddress(
@@ -68,11 +66,11 @@ contract GovernorAccessControlEmergencyDeployer is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address evc, address admin) public broadcast returns (address governorAccessControlEmergency) {
-        governorAccessControlEmergency = execute(evc, admin);
+    function deploy(address evc) public broadcast returns (address governorAccessControlEmergency) {
+        governorAccessControlEmergency = execute(evc);
     }
 
-    function execute(address evc, address admin) public returns (address governorAccessControlEmergency) {
-        governorAccessControlEmergency = address(new GovernorAccessControlEmergency(evc, admin));
+    function execute(address evc) public returns (address governorAccessControlEmergency) {
+        governorAccessControlEmergency = address(new GovernorAccessControlEmergency(evc, getDeployer()));
     }
 }

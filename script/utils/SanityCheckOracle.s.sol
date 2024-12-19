@@ -87,7 +87,8 @@ library OracleVerifier {
             require(result.length == 32, "result length is not 32");
             price = abi.decode(result, (uint256));
             require(price > 0, "price is zero");
-        } else {
+        } else if (bytes4(result) != 0x14aebe68) {
+            // selector above excludes the situation when pyth oracle has never been used yet
             require(OracleLens(oracleLens).isStalePullOracle(finalOracle, result), "oracle is not stale");
         }
 

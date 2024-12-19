@@ -135,6 +135,29 @@ contract EVKPerspectives is ScriptUtils {
     }
 }
 
+contract EVKFactoryPerspectiveDeployer is ScriptUtils {
+    function run() public broadcast returns (address evkFactoryPerspective) {
+        string memory inputScriptFileName = "09_EVKFactoryPerspective_input.json";
+        string memory outputScriptFileName = "09_EVKFactoryPerspective_output.json";
+        string memory json = getInputConfig(inputScriptFileName);
+        address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
+
+        evkFactoryPerspective = execute(eVaultFactory);
+
+        string memory object;
+        object = vm.serializeAddress("evkFactoryPerspective", "evkFactoryPerspective", evkFactoryPerspective);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address eVaultFactory) public broadcast returns (address evkFactoryPerspective) {
+        evkFactoryPerspective = execute(eVaultFactory);
+    }
+
+    function execute(address eVaultFactory) public returns (address evkFactoryPerspective) {
+        evkFactoryPerspective = address(new EVKFactoryPerspective(eVaultFactory));
+    }
+}
+
 contract PerspectiveGovernedDeployer is ScriptUtils {
     function run() public broadcast returns (address governedPerspective) {
         string memory inputScriptFileName = "09_PerspectiveGoverned_input.json";

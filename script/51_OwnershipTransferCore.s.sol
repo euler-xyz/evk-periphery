@@ -2,39 +2,143 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
+import {BatchBuilder, console} from "./utils/ScriptUtils.s.sol";
+import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
+import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
-import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 
-contract OwnershipTransferCore is ScriptUtils {
+contract OwnershipTransferCore is BatchBuilder {
     function run() public {
-        string memory json = getInputConfig("51_OwnershipTransferCore_input.json");
-        address protocolConfigAdmin = vm.parseJsonAddress(json, ".protocolConfigAdmin");
-        address eVaultFactoryGovernorAdmin = vm.parseJsonAddress(json, ".eVaultFactoryGovernorAdmin");
+        verifyMultisigAddresses(multisigAddresses);
 
-        startBroadcast();
-        transferOwnership(protocolConfigAdmin, eVaultFactoryGovernorAdmin);
-        stopBroadcast();
-    }
+        if (ProtocolConfig(coreAddresses.protocolConfig).admin() != multisigAddresses.DAO) {
+            console.log("Setting ProtocolConfig admin to address %s", multisigAddresses.DAO);
+            startBroadcast();
+            ProtocolConfig(coreAddresses.protocolConfig).setAdmin(multisigAddresses.DAO);
+            stopBroadcast();
+        } else {
+            console.log("ProtocolConfig admin is already set to the desired address. Skipping...");
+        }
 
-    function transferOwnership(address protocolConfigAdmin, address eVaultFactoryGovernorAdmin) internal {
-        // if called by admin, the script will remove itself from default admin role in factory governor
-        require(getDeployer() != eVaultFactoryGovernorAdmin, "OwnershipTransferCore: cannot be called by current admin");
+        {
+            bytes32 defaultAdminRole = AccessControl(coreAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE();
 
-        ProtocolConfig(coreAddresses.protocolConfig).setAdmin(protocolConfigAdmin);
-        FactoryGovernor(coreAddresses.eVaultFactoryGovernor).grantRole(
-            FactoryGovernor(coreAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE(), eVaultFactoryGovernorAdmin
-        );
-        FactoryGovernor(coreAddresses.eVaultFactoryGovernor).grantRole(
-            FactoryGovernor(coreAddresses.eVaultFactoryGovernor).PAUSE_GUARDIAN_ROLE(), eVaultFactoryGovernorAdmin
-        );
-        FactoryGovernor(coreAddresses.eVaultFactoryGovernor).grantRole(
-            FactoryGovernor(coreAddresses.eVaultFactoryGovernor).UNPAUSE_ADMIN_ROLE(), eVaultFactoryGovernorAdmin
-        );
-        FactoryGovernor(coreAddresses.eVaultFactoryGovernor).renounceRole(
-            FactoryGovernor(coreAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE(), getDeployer()
-        );
-        GenericFactory(coreAddresses.eVaultFactory).setUpgradeAdmin(coreAddresses.eVaultFactoryGovernor);
+            if (
+                !AccessControl(coreAddresses.eVaultFactoryGovernor).hasRole(
+                    defaultAdminRole, multisigAddresses.securityCouncil
+                )
+            ) {
+                console.log(
+                    "Granting FactoryGovernor default admin role to address %s", multisigAddresses.securityCouncil
+                );
+                startBroadcast();
+                AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(
+                    defaultAdminRole, multisigAddresses.securityCouncil
+                );
+                stopBroadcast();
+            } else {
+                console.log("FactoryGovernor default admin role is already set to the desired address. Skipping...");
+            }
+
+            if (AccessControl(coreAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, getDeployer())) {
+                console.log("Renouncing FactoryGovernor default admin role from the deployer %s", getDeployer());
+                startBroadcast();
+                AccessControl(coreAddresses.eVaultFactoryGovernor).renounceRole(defaultAdminRole, getDeployer());
+                stopBroadcast();
+            } else {
+                console.log("The deployer is no longer the default admin of the FactoryGovernor. Skipping...");
+            }
+        }
+
+        if (GenericFactory(coreAddresses.eVaultFactory).upgradeAdmin() != coreAddresses.eVaultFactoryGovernor) {
+            console.log(
+                "Setting GenericFactory upgrade admin to the eVaultFactoryGovernor address %s",
+                coreAddresses.eVaultFactoryGovernor
+            );
+            startBroadcast();
+            GenericFactory(coreAddresses.eVaultFactory).setUpgradeAdmin(coreAddresses.eVaultFactoryGovernor);
+            stopBroadcast();
+        } else {
+            console.log("GenericFactory upgrade admin is already set to the desired address. Skipping...");
+        }
+
+        {
+            bytes32 defaultAdminRole =
+                AccessControl(vaultGovernorAddresses.accessControlEmergencyGovernor).DEFAULT_ADMIN_ROLE();
+
+            if (
+                !AccessControl(vaultGovernorAddresses.accessControlEmergencyGovernor).hasRole(
+                    defaultAdminRole, multisigAddresses.DAO
+                )
+            ) {
+                console.log(
+                    "Granting GovernorAccessControlEmergency default admin role to address %s", multisigAddresses.DAO
+                );
+                grantRole(
+                    vaultGovernorAddresses.accessControlEmergencyGovernor, defaultAdminRole, multisigAddresses.DAO
+                );
+            } else {
+                console.log(
+                    "GovernorAccessControlEmergency default admin role is already set to the desired address. Skipping..."
+                );
+            }
+
+            if (
+                AccessControl(vaultGovernorAddresses.accessControlEmergencyGovernor).hasRole(
+                    defaultAdminRole, getDeployer()
+                )
+            ) {
+                console.log(
+                    "Renouncing GovernorAccessControlEmergency default admin role from the deployer %s", getDeployer()
+                );
+                renounceRole(vaultGovernorAddresses.accessControlEmergencyGovernor, defaultAdminRole, getDeployer());
+            } else {
+                console.log(
+                    "The deployer is no longer the default admin of the GovernorAccessControlEmergency. Skipping..."
+                );
+            }
+        }
+
+        if (block.chainid != 1) {
+            bytes32 defaultAdminRole = AccessControl(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
+
+            if (!AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
+                console.log("Granting EUL default admin role to address %s", multisigAddresses.DAO);
+                grantRole(tokenAddresses.EUL, defaultAdminRole, multisigAddresses.DAO);
+            } else {
+                console.log("EUL default admin role is already set to the desired address. Skipping...");
+            }
+
+            if (AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
+                console.log("Renouncing EUL default admin role from the deployer %s", getDeployer());
+                renounceRole(tokenAddresses.EUL, defaultAdminRole, getDeployer());
+            } else {
+                console.log("The deployer is no longer the default admin of EUL. Skipping...");
+            }
+        }
+
+        if (Ownable(tokenAddresses.rEUL).owner() != multisigAddresses.DAO) {
+            console.log("Transferring ownership of rEUL to %s", multisigAddresses.DAO);
+            transferOwnership(tokenAddresses.rEUL, multisigAddresses.DAO);
+        } else {
+            console.log("rEUL owner is already set to the desired address. Skipping...");
+        }
+
+        if (
+            Ownable(nttAddresses.manager).owner() != multisigAddresses.DAO
+                || Ownable(nttAddresses.transceiver).owner() != multisigAddresses.DAO
+        ) {
+            console.log("Transferring ownership of NttManager and WormholeTransceiver to %s", multisigAddresses.DAO);
+            startBroadcast();
+            Ownable(nttAddresses.manager).transferOwnership(multisigAddresses.DAO);
+            stopBroadcast();
+        } else {
+            console.log(
+                "NttManager owner and WormholeTransceiver owner are already set to the desired address. Skipping..."
+            );
+        }
+
+        executeBatch();
     }
 }

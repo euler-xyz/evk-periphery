@@ -12,7 +12,6 @@ fs_permissions = [{ access = "read-write", path = "./"}, { access = "read", path
 
 gas_reports = ["*"]
 
-
 [profile.default.fmt]
 line_length = 120
 tab_width = 4
@@ -23,9 +22,9 @@ number_underscore = "preserve"
 override_spacing = true
 wrap_comments = true
 ignore = [
-    "script/production/mainnet/clusters/MEGACluster.s.sol",
     "script/production/mainnet/clusters/PrimeCluster.s.sol",
     "script/production/mainnet/clusters/PendeulCluster.s.sol",
+    "script/production/mainnet/clusters/YieldCluster.s.sol",
     "script/production/base/clusters/BaseCluster.s.sol"
 ]
 

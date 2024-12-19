@@ -1,6 +1,7 @@
 # Compiler files
 cache/
 out/
+out-ntt/
 
 # Ignores the broadcast logs
 broadcast/

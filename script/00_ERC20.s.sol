@@ -77,38 +77,30 @@ contract RewardTokenDeployer is ScriptUtils {
         string memory outputScriptFileName = "00_RewardToken_output.json";
         string memory json = getInputConfig(inputScriptFileName);
         address evc = vm.parseJsonAddress(json, ".evc");
-        address owner = vm.parseJsonAddress(json, ".owner");
         address receiver = vm.parseJsonAddress(json, ".receiver");
         address underlying = vm.parseJsonAddress(json, ".underlying");
         string memory name = vm.parseJsonString(json, ".name");
         string memory symbol = vm.parseJsonString(json, ".symbol");
 
-        rewardToken = execute(evc, owner, receiver, underlying, name, symbol);
+        rewardToken = execute(evc, receiver, underlying, name, symbol);
 
         string memory object;
         object = vm.serializeAddress("rewardToken", "rewardToken", rewardToken);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(
-        address evc,
-        address owner,
-        address receiver,
-        address underlying,
-        string memory name,
-        string memory symbol
-    ) public broadcast returns (address rewardToken) {
-        rewardToken = execute(evc, owner, receiver, underlying, name, symbol);
+    function deploy(address evc, address receiver, address underlying, string memory name, string memory symbol)
+        public
+        broadcast
+        returns (address rewardToken)
+    {
+        rewardToken = execute(evc, receiver, underlying, name, symbol);
     }
 
-    function execute(
-        address evc,
-        address owner,
-        address receiver,
-        address underlying,
-        string memory name,
-        string memory symbol
-    ) public returns (address rewardToken) {
-        rewardToken = address(new RewardToken(evc, owner, receiver, underlying, name, symbol));
+    function execute(address evc, address receiver, address underlying, string memory name, string memory symbol)
+        public
+        returns (address rewardToken)
+    {
+        rewardToken = address(new RewardToken(evc, getDeployer(), receiver, underlying, name, symbol));
     }
 }
