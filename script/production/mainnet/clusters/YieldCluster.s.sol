@@ -44,8 +44,8 @@ contract Cluster is ManageCluster {
         ];
 
         // define the governors here
-        cluster.oracleRoutersGovernor = getDeployer();
-        cluster.vaultsGovernor = getDeployer();
+        cluster.oracleRoutersGovernor = multisigAddresses.DAO;
+        cluster.vaultsGovernor = multisigAddresses.DAO;
 
         // define unit of account here
         cluster.unitOfAccount = USD;

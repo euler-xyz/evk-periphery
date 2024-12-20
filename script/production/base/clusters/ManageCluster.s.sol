@@ -5,9 +5,6 @@ pragma solidity ^0.8.0;
 import {ManageClusterBase} from "../../ManageClusterBase.s.sol";
 
 abstract contract Addresses {
-    address internal constant EULER_DAO_MULTISIG = 0x1e13B0847808045854Ddd908F2d770Dc902Dcfb8;
-    address internal constant GOVERNOR_ACCESS_CONTROL = 0x223c87de4e41448adfDe6F4F93D9bD4DEA9d88d1;
-
     address internal constant USD = address(840);
     address internal constant BTC = 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB;
     address internal constant WETH = 0x4200000000000000000000000000000000000006;

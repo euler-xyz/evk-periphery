@@ -30,8 +30,8 @@ contract Cluster is ManageCluster {
         ];
 
         // define the governors here
-        cluster.oracleRoutersGovernor = GOVERNOR_ACCESS_CONTROL;
-        cluster.vaultsGovernor = GOVERNOR_ACCESS_CONTROL;
+        cluster.oracleRoutersGovernor = vaultGovernorAddresses.accessControlEmergencyGovernor;
+        cluster.vaultsGovernor = vaultGovernorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;

@@ -38,8 +38,8 @@ contract Cluster is ManageCluster {
         ];
 
         // define the governors here
-        cluster.oracleRoutersGovernor = EULER_DAO_MULTISIG;
-        cluster.vaultsGovernor = EULER_DAO_MULTISIG;
+        cluster.oracleRoutersGovernor = multisigAddresses.DAO;
+        cluster.vaultsGovernor = multisigAddresses.DAO;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
