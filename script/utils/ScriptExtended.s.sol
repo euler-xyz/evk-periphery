@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {Script} from "forge-std/Script.sol";
+import {console} from "forge-std/console.sol";
 
 abstract contract ScriptExtended is Script {
     address private deployerAddress;
@@ -50,10 +51,24 @@ abstract contract ScriptExtended is Script {
     }
 
     function getSafe() internal view returns (address) {
-        return vm.envAddress("SAFE_ADDRESS");
+        string memory safeAddress = vm.envOr("SAFE_ADDRESS", string(""));
+        address safe;
+
+        if (_strEq(safeAddress, string(""))) {
+            safeAddress = vm.envOr("safe_address", string(""));
+
+            if (bytes(safeAddress).length > 0) {
+                safe = getAddressFromJson(getAddressesJson("MultisigAddresses.json"), safeAddress);
+            }
+        }
+
+        if (safe == address(0)) safe = _toAddress(safeAddress);
+
+        require(safe != address(0), "getSafe: Cannot retrieve the Safe address");
+        return safe;
     }
 
-    function getSafeCurrentNonce() internal view returns (uint256) {
+    function getSafeNonce() internal view returns (uint256) {
         return vm.envOr("SAFE_NONCE", uint256(0));
     }
 
@@ -65,12 +80,22 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("broadcast", string("")), "--broadcast");
     }
 
+    function isForceNoAddressesDirPath() internal view returns (bool) {
+        return _strEq(vm.envOr("force_no_addresses_dir_path", string("")), "--force-no-addresses-dir-path");
+    }
+
     function isBatchViaSafe() internal view returns (bool) {
         return _strEq(vm.envOr("batch_via_safe", string("")), "--batch-via-safe");
     }
 
     function isUseSafeApi() internal view returns (bool) {
         return _strEq(vm.envOr("use_safe_api", string("")), "--use-safe-api");
+    }
+
+    function getAddressesDirPath() internal view returns (string memory) {
+        string memory path = vm.envOr("ADDRESSES_DIR_PATH", string(""));
+        return
+            bytes(path).length == 0 ? "" : bytes(path)[bytes(path).length - 1] == "/" ? path : string.concat(path, "/");
     }
 
     function getAddressFromJson(string memory json, string memory key) internal pure returns (address) {
@@ -91,6 +116,35 @@ abstract contract ScriptExtended is Script {
         }
     }
 
+    function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {
+        string memory root = vm.projectRoot();
+        return string.concat(root, "/script/", jsonFile);
+    }
+
+    function getInputConfig(string memory jsonFile) internal view returns (string memory) {
+        return vm.readFile(getInputConfigFilePath(jsonFile));
+    }
+
+    function getAddressesJson(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
+        string memory addressesDirPath = getAddressesDirPath();
+
+        if (bytes(addressesDirPath).length == 0 && !isForceNoAddressesDirPath()) {
+            revert("getAddressesJson: ADDRESSES_DIR_PATH environment variable is not set");
+        }
+
+        try vm.readFile(string.concat(addressesDirPath, vm.toString(chainId), "/", jsonFile)) returns (
+            string memory result
+        ) {
+            return result;
+        } catch {
+            return "";
+        }
+    }
+
+    function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
+        return getAddressesJson(jsonFile, block.chainid);
+    }
+
     function _strEq(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(bytes(a)) == keccak256(bytes(b));
     }
@@ -101,6 +155,7 @@ abstract contract ScriptExtended is Script {
         returns (string memory)
     {
         bytes memory strBytes = bytes(str);
+        endIndex == type(uint256).max ? endIndex = strBytes.length : endIndex;
 
         if (startIndex >= strBytes.length || endIndex > strBytes.length || endIndex <= startIndex) return "";
 
@@ -111,8 +166,10 @@ abstract contract ScriptExtended is Script {
         return string(result);
     }
 
-    function _stringToAddress(string memory _address) internal pure returns (address) {
+    function _toAddress(string memory _address) internal pure returns (address) {
         bytes memory tmp = bytes(_address);
+        require(tmp.length == 42, "Invalid address length");
+
         uint160 result = 0;
         uint160 b1;
 
