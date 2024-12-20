@@ -57,7 +57,6 @@ fi
 
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
-set -- "${@/--rpc-url/}"
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 deployment_dir="script/deployments/$deployment_name/$chainId"
 oracleAdaptersAddresses="$deployment_dir/output/OracleAdaptersAddresses.csv"

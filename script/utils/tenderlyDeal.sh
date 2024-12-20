@@ -2,7 +2,6 @@
     
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
-set -- "${@/--rpc-url/}"
 
 account=$1
 asset=$2

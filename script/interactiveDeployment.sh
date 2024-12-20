@@ -2,7 +2,6 @@
 
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
-set -- "${@/--rpc-url/}"
 
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
