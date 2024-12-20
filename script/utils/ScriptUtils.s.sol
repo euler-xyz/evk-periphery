@@ -216,10 +216,10 @@ abstract contract MultisigAddressesLib is ScriptExtended {
     function verifyMultisigAddresses(MultisigAddresses memory Addresses) internal view {
         require(Addresses.DAO != address(0) && Addresses.DAO.code.length != 0, "DAO multisig is required");
         require(Addresses.labs != address(0) && Addresses.labs.code.length != 0, "Labs multisig is required");
-        require(
-            Addresses.securityCouncil != address(0) && Addresses.securityCouncil.code.length != 0,
-            "Security Council multisig is required"
-        );
+        //require(
+        //    Addresses.securityCouncil != address(0) && Addresses.securityCouncil.code.length != 0,
+        //    "Security Council multisig is required"
+        //);
     }
 }
 

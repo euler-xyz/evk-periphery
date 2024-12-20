@@ -1127,7 +1127,7 @@ while true; do
             if [ -z "$multisig_dao" ] || [ "$multisig_dao" = "$addressZero" ]; then
                 read -p "Enter the DAO multisig address: " multisig_dao
                 read -p "Enter the Labs multisig address: " multisig_labs
-                read -p "Enter the Security Council multisig address: " multisig_security_council
+                #read -p "Enter the Security Council multisig address: " multisig_security_council
             fi
 
             if [ -z "$evc" ] || [ "$evc" = "$addressZero" ]; then

@@ -24,18 +24,10 @@ contract OwnershipTransferCore is BatchBuilder {
         {
             bytes32 defaultAdminRole = AccessControl(coreAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE();
 
-            if (
-                !AccessControl(coreAddresses.eVaultFactoryGovernor).hasRole(
-                    defaultAdminRole, multisigAddresses.securityCouncil
-                )
-            ) {
-                console.log(
-                    "Granting FactoryGovernor default admin role to address %s", multisigAddresses.securityCouncil
-                );
+            if (!AccessControl(coreAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
+                console.log("Granting FactoryGovernor default admin role to address %s", multisigAddresses.DAO);
                 startBroadcast();
-                AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(
-                    defaultAdminRole, multisigAddresses.securityCouncil
-                );
+                AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(defaultAdminRole, multisigAddresses.DAO);
                 stopBroadcast();
             } else {
                 console.log("FactoryGovernor default admin role is already set to the desired address. Skipping...");

@@ -141,11 +141,6 @@ contract CoreAndPeriphery is BatchBuilder {
             console.log("    Granting pause guardian role to address %s", multisigAddresses.DAO);
             AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(pauseGuardianRole, multisigAddresses.DAO);
 
-            console.log("    Granting pause guardian role to address %s", multisigAddresses.securityCouncil);
-            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(
-                pauseGuardianRole, multisigAddresses.securityCouncil
-            );
-
             console.log("    Granting unpause admin role to address %s", multisigAddresses.DAO);
             AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.DAO);
 
