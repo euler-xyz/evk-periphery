@@ -23,7 +23,7 @@ contract Cluster is ManageCluster {
             cbBTC,
             tBTC,
             pumpBTC,
-            SOLVBTC,
+            solvBTC,
             USD0,
             USD0PlusPlus,
             PT_LBTC_27MAR2025,
@@ -77,7 +77,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[cbBTC                    ] = "PythOracle";
         cluster.oracleProviders[tBTC                     ] = "PythOracle";
         cluster.oracleProviders[pumpBTC                  ] = "CrossAdapter=FixedRateOracle+PythOracle";
-        cluster.oracleProviders[SOLVBTC                  ] = "CrossAdapter=FixedRateOracle+PythOracle";
+        cluster.oracleProviders[solvBTC                  ] = "CrossAdapter=FixedRateOracle+PythOracle";
         cluster.oracleProviders[USD0                     ] = "PythOracle";
         cluster.oracleProviders[USD0PlusPlus             ] = "PythOracle";
         cluster.oracleProviders[PT_LBTC_27MAR2025        ] = "CrossAdapter=PendleOracle+PythOracle";
@@ -92,7 +92,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[WETH                     ] = "PythOracle";
         cluster.oracleProviders[wstETH                   ] = "PythOracle";
         cluster.oracleProviders[cbETH                    ] = "PythOracle";
-        cluster.oracleProviders[WEETH                    ] = "PythOracle";
+        cluster.oracleProviders[weETH                    ] = "PythOracle";
         cluster.oracleProviders[USDT                     ] = "PythOracle";
         cluster.oracleProviders[USDS                     ] = "ChronicleOracle";
         cluster.oracleProviders[sUSDS                    ] = "ExternalVault|ChronicleOracle";
@@ -108,7 +108,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[cbBTC                    ] = 150;
         cluster.supplyCaps[tBTC                     ] = 150;
         cluster.supplyCaps[pumpBTC                  ] = 150;
-        cluster.supplyCaps[SOLVBTC                  ] = 150;
+        cluster.supplyCaps[solvBTC                  ] = 150;
         cluster.supplyCaps[USD0                     ] = 12_000_000;
         cluster.supplyCaps[USD0PlusPlus             ] = 10_000_000;
         cluster.supplyCaps[PT_LBTC_27MAR2025        ] = 175;
@@ -129,7 +129,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[cbBTC                    ] = 127;
         cluster.borrowCaps[tBTC                     ] = 127;
         cluster.borrowCaps[pumpBTC                  ] = 127;
-        cluster.borrowCaps[SOLVBTC                  ] = 127;
+        cluster.borrowCaps[solvBTC                  ] = 127;
         cluster.borrowCaps[USD0                     ] = 9_840_000;
         cluster.borrowCaps[USD0PlusPlus             ] = 2_500_000;
         cluster.borrowCaps[PT_LBTC_27MAR2025        ] = type(uint256).max;
@@ -166,7 +166,7 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[cbBTC       ] = irmBTC;
             cluster.kinkIRMParams[tBTC        ] = irmBTC;
             cluster.kinkIRMParams[pumpBTC     ] = irmBTCPendeul;
-            cluster.kinkIRMParams[SOLVBTC     ] = irmBTCPendeul;
+            cluster.kinkIRMParams[solvBTC     ] = irmBTCPendeul;
             cluster.kinkIRMParams[USD0        ] = irmRWA_2;
             cluster.kinkIRMParams[USD0PlusPlus] = irmRWA_YLD_2;
         }
@@ -225,7 +225,7 @@ contract Cluster is ManageCluster {
         ];
     }
 
-    function verifyCluster() internal override {
+    function postOperations() internal override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             perspectiveVerify(peripheryAddresses.governedPerspective, cluster.vaults[i]);
         }
