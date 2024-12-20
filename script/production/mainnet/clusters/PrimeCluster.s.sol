@@ -120,7 +120,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[tBTC   ] = 100;
         cluster.supplyCaps[WBTC   ] = 500;
         cluster.supplyCaps[cbBTC  ] = 500;
-        cluster.supplyCaps[LBTC   ] = 100;
+        cluster.supplyCaps[LBTC   ] = 500;
         cluster.supplyCaps[eBTC   ] = 100;
         cluster.supplyCaps[solvBTC] = 100;
 
@@ -144,7 +144,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[tBTC   ] = 85;
         cluster.borrowCaps[WBTC   ] = 425;
         cluster.borrowCaps[cbBTC  ] = 425;
-        cluster.borrowCaps[LBTC   ] = 25;
+        cluster.borrowCaps[LBTC   ] = 125;
         cluster.borrowCaps[eBTC   ] = 25;
         cluster.borrowCaps[solvBTC] = 25;
 
