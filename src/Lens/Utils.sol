@@ -111,9 +111,23 @@ abstract contract Utils {
                 collateralInfos[i].borrowSPY = abi.decode(data, (uint256));
             }
 
-            collateralInfos[i].borrows = IEVault(collateral).totalBorrows();
-            collateralInfos[i].totalAssets = IEVault(collateral).cash() + collateralInfos[i].borrows;
-            collateralInfos[i].interestFee = IEVault(collateral).interestFee();
+            (success, data) = collateral.staticcall(abi.encodeCall(IEVault(collateral).totalBorrows, ()));
+
+            if (success && data.length >= 32) {
+                collateralInfos[i].borrows = abi.decode(data, (uint256));
+            }
+
+            (success, data) = collateral.staticcall(abi.encodeCall(IEVault(collateral).cash, ()));
+
+            if (success && data.length >= 32) {
+                collateralInfos[i].totalAssets = abi.decode(data, (uint256)) + collateralInfos[i].borrows;
+            }
+
+            (success, data) = collateral.staticcall(abi.encodeCall(IEVault(collateral).interestFee, ()));
+
+            if (success && data.length >= 32) {
+                collateralInfos[i].interestFee = abi.decode(data, (uint256));
+            }
 
             collateralValue += collateralValues[i];
         }
