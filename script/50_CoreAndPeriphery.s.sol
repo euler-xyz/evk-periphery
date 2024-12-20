@@ -31,6 +31,7 @@ import {NttManagerDeployer, WormholeTransceiverDeployer} from "./14_NTT.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {GovernorAccessControlEmergency} from "./../src/Governor/GovernorAccessControlEmergency.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
+import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
@@ -137,22 +138,26 @@ contract CoreAndPeriphery is BatchBuilder {
             bytes32 unpauseAdminRole = FactoryGovernor(coreAddresses.eVaultFactoryGovernor).UNPAUSE_ADMIN_ROLE();
 
             startBroadcast();
-            console.log("Granting pause guardian role to address %s", multisigAddresses.securityCouncil);
+            console.log("    Granting pause guardian role to address %s", multisigAddresses.DAO);
+            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(pauseGuardianRole, multisigAddresses.DAO);
+
+            console.log("    Granting pause guardian role to address %s", multisigAddresses.securityCouncil);
             AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(
                 pauseGuardianRole, multisigAddresses.securityCouncil
             );
 
-            console.log("Granting unpause admin role to address %s", multisigAddresses.securityCouncil);
-            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(
-                unpauseAdminRole, multisigAddresses.securityCouncil
-            );
+            console.log("    Granting unpause admin role to address %s", multisigAddresses.DAO);
+            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.DAO);
+
+            console.log("    Granting unpause admin role to address %s", multisigAddresses.labs);
+            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.labs);
             stopBroadcast();
         } else {
             console.log("EVault factory governor already deployed. Skipping...");
         }
 
         if (vaultGovernorAddresses.accessControlEmergencyGovernor == address(0)) {
-            console.log("Deploying Euler Emergency Access Control Governor...");
+            console.log("Deploying Emergency Access Control Governor...");
             GovernorAccessControlEmergencyDeployer deployer = new GovernorAccessControlEmergencyDeployer();
             vaultGovernorAddresses.accessControlEmergencyGovernor = deployer.deploy(coreAddresses.evc);
 
@@ -168,16 +173,16 @@ contract CoreAndPeriphery is BatchBuilder {
                 vaultGovernorAddresses.accessControlEmergencyGovernor
             ).CAPS_EMERGENCY_ROLE();
 
-            console.log("Granting wild card role to address %s", multisigAddresses.DAO);
+            console.log("    Granting wild card role to address %s", multisigAddresses.DAO);
             grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, wildCardRole, multisigAddresses.DAO);
 
-            console.log("Granting LTV emergency role to address %s", multisigAddresses.labs);
+            console.log("    Granting LTV emergency role to address %s", multisigAddresses.labs);
             grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, ltvEmergencyRole, multisigAddresses.labs);
 
-            console.log("Granting hook emergency role to address %s", multisigAddresses.labs);
+            console.log("    Granting hook emergency role to address %s", multisigAddresses.labs);
             grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, hookEmergencyRole, multisigAddresses.labs);
 
-            console.log("Granting caps emergency role to address %s", multisigAddresses.labs);
+            console.log("    Granting caps emergency role to address %s", multisigAddresses.labs);
             grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, capsEmergencyRole, multisigAddresses.labs);
         } else {
             console.log("Vault Access Control Emergency Governor already deployed. Skipping...");
@@ -188,9 +193,11 @@ contract CoreAndPeriphery is BatchBuilder {
             ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
             tokenAddresses.EUL = deployer.deploy("Euler", "EUL", 18);
 
-            console.log("Granting EUL revoke minter role to the desired address %s", multisigAddresses.labs);
+            startBroadcast();
+            console.log("    Granting EUL revoke minter role to the desired address %s", multisigAddresses.labs);
             bytes32 revokeMinterRole = ERC20BurnableMintable(tokenAddresses.EUL).REVOKE_MINTER_ROLE();
-            grantRole(tokenAddresses.EUL, revokeMinterRole, multisigAddresses.labs);
+            AccessControl(tokenAddresses.EUL).grantRole(revokeMinterRole, multisigAddresses.labs);
+            stopBroadcast();
         } else {
             console.log("EUL already deployed. Skipping...");
         }
@@ -205,6 +212,10 @@ contract CoreAndPeriphery is BatchBuilder {
                 "Reward EUL",
                 "rEUL"
             );
+
+            console.log("    Setting whitelist status to admin for address %s", multisigAddresses.labs);
+            uint256 whitelistStatusAdmin = RewardToken(tokenAddresses.rEUL).WHITELIST_STATUS_ADMIN();
+            setWhitelistStatus(tokenAddresses.rEUL, multisigAddresses.labs, whitelistStatusAdmin);
         } else {
             console.log("rEUL already deployed. Skipping...");
         }
@@ -226,25 +237,25 @@ contract CoreAndPeriphery is BatchBuilder {
                 }
 
                 startBroadcast();
-                console.log("Setting NttManager transceiver");
+                console.log("    Setting NttManager transceiver");
                 NttManager(nttAddresses.manager).setTransceiver(nttAddresses.transceiver);
 
-                console.log("Setting NttManager outbound limit");
+                console.log("    Setting NttManager outbound limit");
                 NttManager(nttAddresses.manager).setOutboundLimit(1e6 * 1e18);
 
-                console.log("Setting NttManager threshold");
+                console.log("    Setting NttManager threshold");
                 NttManager(nttAddresses.manager).setThreshold(1);
 
-                console.log("Transferring NttManager pauser capability to %s", multisigAddresses.labs);
+                console.log("    Transferring NttManager pauser capability to %s", multisigAddresses.labs);
                 NttManager(nttAddresses.manager).transferPauserCapability(multisigAddresses.labs);
 
-                console.log("Setting WormholeTransceiver isWormholeRelayingEnabled");
+                console.log("    Setting WormholeTransceiver isWormholeRelayingEnabled");
                 WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(chainId, true);
 
-                console.log("Setting WormholeTransceiver isWormholeEvmChain");
+                console.log("    Setting WormholeTransceiver isWormholeEvmChain");
                 WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(chainId, true);
 
-                console.log("Transferring WormholeTransceiver pauser capability to %s", multisigAddresses.labs);
+                console.log("    Transferring WormholeTransceiver pauser capability to %s", multisigAddresses.labs);
                 WormholeTransceiver(nttAddresses.transceiver).transferPauserCapability(multisigAddresses.labs);
 
                 if (block.chainid != 1) {
@@ -254,30 +265,32 @@ contract CoreAndPeriphery is BatchBuilder {
                     verifyNTTAddresses(nttAddressesMainnet);
                     uint16 chainIdMainnet = NttManager(nttAddressesMainnet.manager).chainId();
 
-                    console.log("Setting NttManager peer to %s", nttAddressesMainnet.manager);
+                    console.log("    Setting NttManager peer to %s", nttAddressesMainnet.manager);
                     NttManager(nttAddresses.manager).setPeer(
                         chainIdMainnet, bytes32(uint256(uint160(nttAddressesMainnet.manager))), 18, 1e5 * 1e18
                     );
 
-                    console.log("Setting WormholeTransceiver peer to %s", nttAddressesMainnet.transceiver);
+                    console.log("    Setting WormholeTransceiver peer to %s", nttAddressesMainnet.transceiver);
                     WormholeTransceiver(nttAddresses.transceiver).setWormholePeer(
                         chainIdMainnet, bytes32(uint256(uint160(nttAddressesMainnet.transceiver)))
                     );
 
                     bytes32 defaultAdminRole = ERC20BurnableMintable(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
                     if (ERC20BurnableMintable(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
-                        console.log("Granting EUL minter role to the NttManager address %s", nttAddresses.manager);
+                        console.log("    Granting EUL minter role to the NttManager address %s", nttAddresses.manager);
                         bytes32 minterRole = ERC20BurnableMintable(tokenAddresses.EUL).MINTER_ROLE();
                         grantRole(tokenAddresses.EUL, minterRole, nttAddresses.manager);
                     } else {
                         console.log(
-                            "The deployer no longer has the EUL default admin role to grant the minter role to the NttManager. This must be done manually. Skipping..."
+                            "    The deployer no longer has the EUL default admin role to grant the minter role to the NttManager. This must be done manually. Skipping..."
                         );
                     }
                 }
                 stopBroadcast();
             } else {
-                console.log("WormholeCoreBridge or WormholeRelayer not set. Skipping...");
+                console.log(
+                    "WormholeCoreBridge or WormholeRelayer not set. Skipping NttManager and WormholeTransceiver deployment..."
+                );
             }
         } else {
             console.log("NttManager or WormholeTransceiver already deployed. Skipping...");
@@ -313,12 +326,12 @@ contract CoreAndPeriphery is BatchBuilder {
                     verifyNTTAddresses(nttAddressesOther);
                     uint16 chainIdOther = NttManager(nttAddressesOther.manager).chainId();
 
-                    console.log("Setting NttManager peer to %s", nttAddressesOther.manager);
+                    console.log("    Setting NttManager peer to %s", nttAddressesOther.manager);
                     NttManager(nttAddresses.manager).setPeer(
                         chainIdOther, bytes32(uint256(uint160(nttAddressesOther.manager))), 18, 1e5 * 1e18
                     );
 
-                    console.log("Setting WormholeTransceiver peer to %s", nttAddressesOther.transceiver);
+                    console.log("    Setting WormholeTransceiver peer to %s", nttAddressesOther.transceiver);
                     WormholeTransceiver(nttAddresses.transceiver).setWormholePeer(
                         chainIdOther, bytes32(uint256(uint160(nttAddressesOther.transceiver)))
                     );
@@ -358,12 +371,11 @@ contract CoreAndPeriphery is BatchBuilder {
                 1e18
             );
 
+            startBroadcast();
             console.log(
-                "Setting ProtocolConfig fee receiver to the feeFlowController address %s",
+                "    Setting ProtocolConfig fee receiver to the feeFlowController address %s",
                 peripheryAddresses.feeFlowController
             );
-
-            startBroadcast();
             ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(peripheryAddresses.feeFlowController);
             stopBroadcast();
         } else {

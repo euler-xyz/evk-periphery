@@ -103,19 +103,21 @@ contract OwnershipTransferCore is BatchBuilder {
         if (block.chainid != 1) {
             bytes32 defaultAdminRole = AccessControl(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
 
+            startBroadcast();
             if (!AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
                 console.log("Granting EUL default admin role to address %s", multisigAddresses.DAO);
-                grantRole(tokenAddresses.EUL, defaultAdminRole, multisigAddresses.DAO);
+                AccessControl(tokenAddresses.EUL).grantRole(defaultAdminRole, multisigAddresses.DAO);
             } else {
                 console.log("EUL default admin role is already set to the desired address. Skipping...");
             }
 
             if (AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
                 console.log("Renouncing EUL default admin role from the deployer %s", getDeployer());
-                renounceRole(tokenAddresses.EUL, defaultAdminRole, getDeployer());
+                AccessControl(tokenAddresses.EUL).renounceRole(defaultAdminRole, getDeployer());
             } else {
                 console.log("The deployer is no longer the default admin of EUL. Skipping...");
             }
+            stopBroadcast();
         }
 
         if (Ownable(tokenAddresses.rEUL).owner() != multisigAddresses.DAO) {
