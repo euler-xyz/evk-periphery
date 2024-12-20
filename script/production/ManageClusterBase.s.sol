@@ -319,13 +319,13 @@ abstract contract ManageClusterBase is BatchBuilder {
         SafeTransaction.Transaction[] memory transactions = safeUtil.getPendingTransactions(getSafe());
 
         for (uint256 i = 0; i < transactions.length; ++i) {
-            safeUtil.simulate(
+            try safeUtil.simulate(
                 transactions[i].operation == SafeUtil.Operation.CALL,
                 transactions[i].safe,
                 transactions[i].to,
                 transactions[i].value,
                 transactions[i].data
-            );
+            ) {} catch {}
         }
     }
 
@@ -553,6 +553,8 @@ abstract contract ManageClusterBase is BatchBuilder {
         }
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            if (cluster.vaults[i] == address(0)) continue;
+
             address[] memory collaterals = IEVault(cluster.vaults[i]).LTVList();
 
             for (uint256 j = 0; j < collaterals.length; ++j) {

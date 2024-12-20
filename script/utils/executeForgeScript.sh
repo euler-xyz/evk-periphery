@@ -31,7 +31,7 @@ fi
 
 if [[ "$@" == *"--safe-address"* ]]; then
     safe_address=$(echo "$@" | grep -o '\--safe-address [^ ]*' | cut -d ' ' -f 2)
-    set -- "${@/--safe-address $safe_address/}"
+    set -- $(echo "$@" | sed "s/--safe-address $safe_address//")
 fi
 
 if [[ "$@" == *"--batch-via-safe"* ]]; then
