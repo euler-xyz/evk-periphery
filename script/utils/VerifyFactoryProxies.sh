@@ -1,7 +1,8 @@
 #!/bin/bash
 
 source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh)"
+eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+set -- "${@/--rpc-url/}"
 
 if ! script/utils/checkEnvironment.sh; then
     echo "Environment check failed. Exiting."

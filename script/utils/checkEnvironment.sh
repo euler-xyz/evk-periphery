@@ -1,7 +1,7 @@
 #!/bin/bash
 
 source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh)"
+eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
 
 if ! command -v jq &> /dev/null; then
     echo "jq could not be found. Please install jq first."

@@ -1,7 +1,8 @@
 #!/bin/bash
 
 source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh)"
+eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+set -- "${@/--rpc-url/}"
 
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
@@ -1115,13 +1116,13 @@ while true; do
             addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
 
             if [ -n "$addresses_dir_path" ]; then
-                multisig_dao=$(jq -r '.DAO' "$addresses_dir_path/$chainId/MultisigAddresses.json")
-                multisig_labs=$(jq -r '.labs' "$addresses_dir_path/$chainId/MultisigAddresses.json")
-                multisig_security_council=$(jq -r '.securityCouncil' "$addresses_dir_path/$chainId/MultisigAddresses.json")
-                evc=$(jq -r '.evc' "$addresses_dir_path/$chainId/CoreAddresses.json")
-                swapper=$(jq -r '.swapper' "$addresses_dir_path/$chainId/PeripheryAddresses.json")
-                nttManager=$(jq -r '.manager' "$addresses_dir_path/$chainId/NTTAddresses.json")
-                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/$chainId/PeripheryAddresses.json")
+                multisig_dao=$(jq -r '.DAO' "$addresses_dir_path/$chainId/MultisigAddresses.json" 2>/dev/null)
+                multisig_labs=$(jq -r '.labs' "$addresses_dir_path/$chainId/MultisigAddresses.json" 2>/dev/null)
+                multisig_security_council=$(jq -r '.securityCouncil' "$addresses_dir_path/$chainId/MultisigAddresses.json" 2>/dev/null)
+                evc=$(jq -r '.evc' "$addresses_dir_path/$chainId/CoreAddresses.json" 2>/dev/null)
+                swapper=$(jq -r '.swapper' "$addresses_dir_path/$chainId/PeripheryAddresses.json" 2>/dev/null)
+                nttManager=$(jq -r '.manager' "$addresses_dir_path/$chainId/NTTAddresses.json" 2>/dev/null)
+                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/$chainId/PeripheryAddresses.json" 2>/dev/null)
             fi
 
             if [ -z "$multisig_dao" ] || [ "$multisig_dao" = "$addressZero" ]; then
@@ -1292,7 +1293,7 @@ while true; do
 
     if script/utils/executeForgeScript.sh $scriptName "$@"; then
         source .env
-        eval "$(./script/utils/getDeploymentRpcUrl.sh)"
+        eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
         deployment_dir="script/deployments/$deployment_name/$chainId"
         broadcast_dir="broadcast/${scriptName%:*}/$chainId"

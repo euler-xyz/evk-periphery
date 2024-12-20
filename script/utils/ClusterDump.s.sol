@@ -178,12 +178,35 @@ contract ClusterDump is ScriptUtils {
             VaultInterestRateModelInfo memory irmInfo =
                 VaultLens(lensAddresses.vaultLens).getVaultKinkInterestRateModelInfo(vaultInfo[i].vault);
             line = string.concat(vaultInfo[i].assetSymbol, ",");
-            line =
-                string.concat(line, ",", irmInfo.interestRateInfo.length > 0 ? formatPercentage(irmInfo.interestRateInfo[1].borrows * 1e4 / type(uint32).max) : "");
+            line = string.concat(
+                line,
+                ",",
+                irmInfo.interestRateInfo.length > 0
+                    ? formatPercentage(irmInfo.interestRateInfo[1].borrows * 1e4 / type(uint32).max)
+                    : ""
+            );
             line = string.concat(line, ",", formatPercentage(vaultInfo[i].interestFee));
-            line = string.concat(line, ",,,,", irmInfo.interestRateInfo.length > 0 ? formatPercentage(irmInfo.interestRateInfo[1].supplyAPY * 1e4 / 1e27) : "");
-            line = string.concat(line, ",", irmInfo.interestRateInfo.length > 0 ? formatPercentage(irmInfo.interestRateInfo[1].borrowAPY * 1e4 / 1e27) : "");
-            line = string.concat(line, ",", irmInfo.interestRateInfo.length > 0 ? formatPercentage(irmInfo.interestRateInfo[2].borrowAPY * 1e4 / 1e27) : "");
+            line = string.concat(
+                line,
+                ",,,,",
+                irmInfo.interestRateInfo.length > 0
+                    ? formatPercentage(irmInfo.interestRateInfo[1].supplyAPY * 1e4 / 1e27)
+                    : ""
+            );
+            line = string.concat(
+                line,
+                ",",
+                irmInfo.interestRateInfo.length > 0
+                    ? formatPercentage(irmInfo.interestRateInfo[1].borrowAPY * 1e4 / 1e27)
+                    : ""
+            );
+            line = string.concat(
+                line,
+                ",",
+                irmInfo.interestRateInfo.length > 0
+                    ? formatPercentage(irmInfo.interestRateInfo[2].borrowAPY * 1e4 / 1e27)
+                    : ""
+            );
             vm.writeLine(outputScriptFileName, line);
             line = "";
         }

@@ -7,7 +7,8 @@ if [ -z "$1" ]; then
 fi
 
 source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh)"
+eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+set -- "${@/--rpc-url/}"
 
 csv_file="$1"
 shift

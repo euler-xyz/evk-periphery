@@ -6,6 +6,10 @@ if [ -z "$DEPLOYMENT_RPC_URL" ] && [[ "$@" == *"--rpc-url"* ]]; then
     DEPLOYMENT_RPC_URL=$(echo "$@" | grep -o '\--rpc-url [^ ]*' | cut -d ' ' -f 2)
 fi
 
+if [ -z "$DEPLOYMENT_RPC_URL" ]; then
+    exit 1
+fi
+
 if [ "$DEPLOYMENT_RPC_URL" == "local" ]; then
     echo "export DEPLOYMENT_RPC_URL=http://127.0.0.1:8545"
     exit 0
