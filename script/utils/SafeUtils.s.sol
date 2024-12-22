@@ -94,33 +94,28 @@ abstract contract SafeUtil is ScriptExtended {
         string memory endpoint =
             string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?limit=1");
         (uint256 status, bytes memory response) = endpoint.get();
+        require(status == 200, "getNextNonce: Failed to get last pending transaction");
 
-        if (status == 200) {
-            uint256 stateNextNonce = getStatus(safe).nonce;
-            uint256 pendingNextNonce = abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0
-                ? 1
-                : vm.parseJsonUint(string(response), ".results[0].nonce") + 1;
+        uint256 lastPendingNonce = abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0
+            ? 0
+            : vm.parseJsonUint(string(response), resultsIndexKey(0, "nonce"));
 
-            require(pendingNextNonce >= stateNextNonce, "getNextNonce: Pending nonce is less than state nonce");
+        uint256 stateNextNonce = getStatus(safe).nonce;
+        require(lastPendingNonce >= stateNextNonce, "getNextNonce: Last pending nonce is less than state nonce");
 
-            if (pendingNextNonce == stateNextNonce) return pendingNextNonce;
+        if (lastPendingNonce == stateNextNonce) return ++lastPendingNonce;
 
+        for (uint256 nonce = stateNextNonce; nonce < lastPendingNonce; ++nonce) {
             endpoint = string.concat(
-                getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false&ordering=nonce&limit=1"
+                getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false&nonce=", vm.toString(nonce)
             );
             (status, response) = endpoint.get();
+            require(status == 200, "getNextNonce: Failed to get pending transaction");
 
-            if (status == 200) {
-                uint256 firstPendingNonce = vm.parseJsonUint(string(response), ".results[0].nonce");
-
-                if (firstPendingNonce == stateNextNonce) return pendingNextNonce;
-                else return stateNextNonce;
-            } else {
-                revert("getNextNonce: Failed to get first pending transaction");
-            }
-        } else {
-            revert("getNextNonce: Failed to get next pending nonce");
+            if (abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0) return nonce;
         }
+
+        return ++lastPendingNonce;
     }
 
     function getSafes(address owner) public returns (address[] memory) {
