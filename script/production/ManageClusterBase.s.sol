@@ -64,11 +64,12 @@ abstract contract ManageClusterBase is BatchBuilder {
     modifier initialize() {
         vm.pauseGasMetering();
 
+        defineCluster();
+        loadCluster();
         configureCluster();
         encodeAmountCaps(cluster.assets, cluster.supplyCaps);
         encodeAmountCaps(cluster.assets, cluster.borrowCaps);
 
-        loadCluster();
         checkClusterDataSanity();
         simulatePendingTransactions();
         preOperations();
@@ -329,6 +330,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         }
     }
 
+    function defineCluster() internal virtual;
     function configureCluster() internal virtual;
     function preOperations() internal virtual {}
     function postOperations() internal virtual {}
@@ -466,6 +468,8 @@ abstract contract ManageClusterBase is BatchBuilder {
             if (!_strEq(cluster.clusterAddressesPath, "")) vm.writeJson(result, cluster.clusterAddressesPath);
         }
     }
+
+    function loadDefaults() private {}
 
     function loadCluster() private {
         if (!_strEq(cluster.clusterAddressesPath, "")) {

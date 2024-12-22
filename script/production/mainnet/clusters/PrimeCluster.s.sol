@@ -8,7 +8,7 @@ import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 
 contract Cluster is ManageCluster {
-    function configureCluster() internal override {
+    function defineCluster() internal override {
         // define the path to the cluster addresses file here
         cluster.clusterAddressesPath = "/script/production/mainnet/clusters/PrimeCluster.json";
 
@@ -39,7 +39,9 @@ contract Cluster is ManageCluster {
             eBTC,
             solvBTC
         ];
+    }
 
+    function configureCluster() internal override {
         // define the governors here
         cluster.oracleRoutersGovernor = multisigAddresses.DAO;
         cluster.vaultsGovernor = multisigAddresses.DAO;
@@ -95,7 +97,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[sUSDS  ] = "ExternalVault|ChronicleOracle";
         cluster.oracleProviders[tBTC   ] = "ChainlinkOracle";
         cluster.oracleProviders[WBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
-        cluster.oracleProviders[cbBTC  ] = "CrossAdapter=ChronicleOracle+ChainlinkOracle";
+        cluster.oracleProviders[cbBTC  ] = "ChainlinkOracle";
         cluster.oracleProviders[LBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
         cluster.oracleProviders[eBTC   ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
         cluster.oracleProviders[solvBTC] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";

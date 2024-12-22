@@ -8,7 +8,7 @@ import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 
 contract Cluster is ManageCluster {
-    function configureCluster() internal override {
+    function defineCluster() internal override {
         // define the path to the cluster addresses file here
         cluster.clusterAddressesPath = "/script/production/base/clusters/BaseCluster.json";
 
@@ -28,6 +28,9 @@ contract Cluster is ManageCluster {
             LBTC,
             AERO
         ];
+    }
+
+    function configureCluster() internal override {
 
         // define the governors here
         cluster.oracleRoutersGovernor = vaultGovernorAddresses.accessControlEmergencyGovernor;

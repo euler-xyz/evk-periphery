@@ -610,14 +610,7 @@ abstract contract BatchBuilder is ScriptUtils {
         SafeTransaction transaction = new SafeTransaction();
         safeNonce = safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce;
 
-        transaction.create(
-            true,
-            safe,
-            coreAddresses.evc,
-            getBatchValue(),
-            getBatchCalldata(),
-            safeNonce++
-        );
+        transaction.create(true, safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), safeNonce++);
 
         clearBatchItems();
     }

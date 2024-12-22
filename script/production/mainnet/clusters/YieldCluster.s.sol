@@ -8,7 +8,7 @@ import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 
 contract Cluster is ManageCluster {
-    function configureCluster() internal override {
+    function defineCluster() internal override {
         // define the path to the cluster addresses file here
         cluster.clusterAddressesPath = "/script/production/mainnet/clusters/YieldCluster.json";
 
@@ -42,6 +42,9 @@ contract Cluster is ManageCluster {
             PT_sUSDe_29MAY2025,
             PT_USDe_27MAR2025
         ];
+    }
+
+    function configureCluster() internal override {
 
         // define the governors here
         cluster.oracleRoutersGovernor = multisigAddresses.DAO;
