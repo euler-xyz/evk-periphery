@@ -414,7 +414,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             if (currentBorrowLTV != borrowLTV || targetLiquidationLTV != liquidationLTV) {
                 // in case the stub oracle has to be used, append the following batch critical section:
                 // configure the stub oracle, set LTV, configure the desired oracle
-                if (useStub) {
+                if (useStub && currentBorrowLTV == 0) {
                     govSetConfig_critical(oracleRouter, base, unitOfAccount, cluster.stubOracle);
 
                     setLTV_critical(

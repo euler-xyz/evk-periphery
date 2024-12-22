@@ -608,6 +608,7 @@ abstract contract BatchBuilder is ScriptUtils {
         dumpBatch(safe);
 
         SafeTransaction transaction = new SafeTransaction();
+        safeNonce = safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce;
 
         transaction.create(
             true,
@@ -615,7 +616,7 @@ abstract contract BatchBuilder is ScriptUtils {
             coreAddresses.evc,
             getBatchValue(),
             getBatchCalldata(),
-            safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce
+            safeNonce++
         );
 
         clearBatchItems();

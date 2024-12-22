@@ -92,7 +92,7 @@ abstract contract SafeUtil is ScriptExtended {
 
     function getNextNonce(address safe) public returns (uint256) {
         string memory endpoint =
-            string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?limit=1");
+            string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false&limit=1");
         (uint256 status, bytes memory response) = endpoint.get();
         require(status == 200, "getNextNonce: Failed to get last pending transaction");
 
@@ -101,13 +101,16 @@ abstract contract SafeUtil is ScriptExtended {
             : vm.parseJsonUint(string(response), resultsIndexKey(0, "nonce"));
 
         uint256 stateNextNonce = getStatus(safe).nonce;
-        require(lastPendingNonce >= stateNextNonce, "getNextNonce: Last pending nonce is less than state nonce");
 
-        if (lastPendingNonce == stateNextNonce) return ++lastPendingNonce;
+        if (lastPendingNonce < stateNextNonce) return stateNextNonce;
+        else if (lastPendingNonce == stateNextNonce) return ++lastPendingNonce;
 
         for (uint256 nonce = stateNextNonce; nonce < lastPendingNonce; ++nonce) {
             endpoint = string.concat(
-                getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false&nonce=", vm.toString(nonce)
+                getSafesAPIBaseURL(),
+                vm.toString(safe),
+                "/multisig-transactions/?executed=false&nonce=",
+                vm.toString(nonce)
             );
             (status, response) = endpoint.get();
             require(status == 200, "getNextNonce: Failed to get pending transaction");
