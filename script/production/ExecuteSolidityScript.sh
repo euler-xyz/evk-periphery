@@ -7,6 +7,8 @@ fi
 
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
+
 scriptPath="${1#./}"
 scriptPath="${scriptPath#script/}"
 scriptName=$(basename "$1")

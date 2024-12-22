@@ -2,6 +2,7 @@
     
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 
 account=$1
 asset=$2

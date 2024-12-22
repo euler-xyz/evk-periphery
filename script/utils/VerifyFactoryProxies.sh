@@ -2,6 +2,7 @@
 
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 
 if ! script/utils/checkEnvironment.sh; then
     echo "Environment check failed. Exiting."

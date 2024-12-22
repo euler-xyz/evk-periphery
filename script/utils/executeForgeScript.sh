@@ -2,6 +2,7 @@
 
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 
 scriptPath=$1
 shift

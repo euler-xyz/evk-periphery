@@ -110,6 +110,7 @@ function verify_broadcast {
 
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 
 if [ -d "$1" ]; then
     for fileName in "$1"/*.json; do

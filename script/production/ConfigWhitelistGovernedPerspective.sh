@@ -8,6 +8,7 @@ fi
 
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 
 csv_file="$1"
 shift

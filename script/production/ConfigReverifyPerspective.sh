@@ -7,6 +7,7 @@ fi
 
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 
 old_perspective="$1"
 new_perspective="$2"

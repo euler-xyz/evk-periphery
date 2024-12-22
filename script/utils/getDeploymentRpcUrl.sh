@@ -2,12 +2,20 @@
 
 source .env
 
+rpc_url=$(echo "$@" | grep -o '\--rpc-url [^ ]*' | cut -d ' ' -f 2)
+SCRIPT_ARGS=$(echo "$@" | sed 's/--rpc-url [^ ]* *//')
+
+if [ -z "$DEPLOYMENT_RPC_URL" ] && [ -n "$rpc_url" ]; then
+    DEPLOYMENT_RPC_URL=$rpc_url
+fi
+
 if [ -z "$DEPLOYMENT_RPC_URL" ]; then
     exit 1
 fi
 
 if [ "$DEPLOYMENT_RPC_URL" == "local" ]; then
     echo "export DEPLOYMENT_RPC_URL=http://127.0.0.1:8545"
+    echo "export SCRIPT_ARGS='$SCRIPT_ARGS'"
     exit 0
 fi
 
@@ -16,6 +24,7 @@ if ! cast chain-id --rpc-url "$DEPLOYMENT_RPC_URL" &>/dev/null; then
 
     if [ -n "${!env_var}" ]; then
         echo "export DEPLOYMENT_RPC_URL=${!env_var}"
+        echo "export SCRIPT_ARGS='$SCRIPT_ARGS'"
         exit 0
     else
         chains_data=$(curl -s https://chainid.network/chains_mini.json)
@@ -50,22 +59,11 @@ if ! cast chain-id --rpc-url "$DEPLOYMENT_RPC_URL" &>/dev/null; then
 
         if [ -n "${!env_var}" ]; then
             echo "export DEPLOYMENT_RPC_URL=${!env_var}"
+            echo "export SCRIPT_ARGS='$SCRIPT_ARGS'"
             exit 0
         fi
-
-        #matching_rpc=$(echo "$chains_data" | jq -r '
-        #    def words(str): str | ascii_downcase | split(" ");
-        #    def matches(network; search): 
-        #        (words(search) - words(network)) | length == 0;
-        #    .[] | select(matches(.name; $search)) | .rpc[] | select(contains("{") | not)
-        #' --arg search "$network_name" | head -n1)
-        #
-        #if [ -n "$matching_rpc" ] && [ "$matching_rpc" != "null" ]; then
-        #    echo "Warning: No user-defined RPC URL found for $DEPLOYMENT_RPC_URL. Using default RPC URL: $matching_rpc"
-        #    echo "export DEPLOYMENT_RPC_URL=$matching_rpc"
-        #    exit 0
-        #fi
     fi
 fi
 
 echo "export DEPLOYMENT_RPC_URL=$DEPLOYMENT_RPC_URL"
+echo "export SCRIPT_ARGS='$SCRIPT_ARGS'"
