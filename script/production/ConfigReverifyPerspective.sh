@@ -5,14 +5,14 @@ if [ -z "$1" ] || [ -z "$2" ]; then
   exit 1
 fi
 
-source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
-eval "set -- $SCRIPT_ARGS"
-
 old_perspective="$1"
 new_perspective="$2"
 shift
 shift
+
+source .env
+eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")

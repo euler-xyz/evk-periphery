@@ -1,11 +1,11 @@
 #!/bin/bash
 
+scriptPath=$1
+shift
+
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
 eval "set -- $SCRIPT_ARGS"
-
-scriptPath=$1
-shift
 
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 gasPrice=$(echo "($(cast gas-price --rpc-url "$DEPLOYMENT_RPC_URL") * 1.25)/1" | bc)

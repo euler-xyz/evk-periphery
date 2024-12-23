@@ -1,12 +1,12 @@
 #!/bin/bash
-    
-source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
-eval "set -- $SCRIPT_ARGS"
 
 account=$1
 asset=$2
 dealAmount=$3
+
+source .env
+eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 
 if [[ $asset == "ETH" ]]; then
     decimals=18

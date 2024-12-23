@@ -24,24 +24,24 @@ contract SanityCheckOracle is Script {
             }
 
             for (uint256 i = 0; i < vaults.length; ++i) {
-                OracleVerifier.verifyOracleConfig(oracleLens, vaults[i]);
+                OracleVerifier.verifyOracleConfig(oracleLens, vaults[i], true);
             }
         } else {
-            OracleVerifier.verifyOracleConfig(oracleLens, vault);
+            OracleVerifier.verifyOracleConfig(oracleLens, vault, true);
         }
     }
 }
 
 library OracleVerifier {
-    function verifyOracleConfig(address oracleLens, address vault) internal view {
+    function verifyOracleConfig(address oracleLens, address vault, bool verbose) internal view {
         address asset = IEVault(vault).asset();
         address unitOfAccount = IEVault(vault).unitOfAccount();
         address oracle = IEVault(vault).oracle();
         address[] memory collaterals = IEVault(vault).LTVList();
 
-        console.log("Checking oracle config for %s (%s)", IEVault(vault).symbol(), vault);
+        if (verbose) console.log("Checking oracle config for %s (%s)", IEVault(vault).symbol(), vault);
         if (collaterals.length == 0) {
-            console.log("No collaterals configured. Oracle config irrelevant");
+            if (verbose) console.log("No collaterals configured. Oracle config irrelevant");
         } else {
             address unwrappedAsset = EulerRouter(oracle).resolvedVaults(asset);
             if (unwrappedAsset != address(0)) {
@@ -55,7 +55,7 @@ library OracleVerifier {
                 );
             }
 
-            OracleVerifier.verifyOracleCall(oracleLens, oracle, asset, unitOfAccount);
+            OracleVerifier.verifyOracleCall(oracleLens, oracle, asset, unitOfAccount, verbose);
 
             for (uint256 i = 0; i < collaterals.length; ++i) {
                 require(
@@ -66,13 +66,16 @@ library OracleVerifier {
                     EulerRouter(oracle).getConfiguredOracle(collaterals[i], unitOfAccount) == address(0),
                     "collateral short-circuiting adapter"
                 );
-                OracleVerifier.verifyOracleCall(oracleLens, oracle, collaterals[i], unitOfAccount);
+                OracleVerifier.verifyOracleCall(oracleLens, oracle, collaterals[i], unitOfAccount, verbose);
             }
-            console.log("Oracle config is valid\n");
+            if (verbose) console.log("Oracle config is valid\n");
         }
     }
 
-    function verifyOracleCall(address oracleLens, address oracle, address base, address quote) internal view {
+    function verifyOracleCall(address oracleLens, address oracle, address base, address quote, bool verbose)
+        internal
+        view
+    {
         (, address finalBase,, address finalOracle) = EulerRouter(oracle).resolveOracle(0, base, quote);
         string memory oracleName =
             finalOracle == address(0) ? base == quote ? "Direct" : "Unknown" : IPriceOracle(finalOracle).name();
@@ -92,9 +95,9 @@ library OracleVerifier {
             require(OracleLens(oracleLens).isStalePullOracle(finalOracle, result), "oracle is not stale");
         }
 
-        console.log("%s price for %s/%s:", oracleName, baseSymbol, quoteSymbol);
+        if (verbose) console.log("%s price for %s/%s:", oracleName, baseSymbol, quoteSymbol);
         if (price == 0) {
-            console.log("  needs an update");
+            if (verbose) console.log("  needs an update");
         } else {
             uint256 scaledPrice = price * 1e6 / (quote == address(840) ? 1e18 : 10 ** IEVault(quote).decimals());
             uint256 integerPart = scaledPrice / 1e6;
@@ -108,7 +111,7 @@ library OracleVerifier {
                     fractionalPart < 10 ? "0" : ""
                 )
             );
-            console.log("  %s.%s%s", integerPart, zeros, fractionalPart);
+            if (verbose) console.log("  %s.%s%s", integerPart, zeros, fractionalPart);
         }
     }
 

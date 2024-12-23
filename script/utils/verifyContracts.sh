@@ -108,16 +108,19 @@ function verify_broadcast {
     done
 }
 
+input=$1
+shift
+
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
 eval "set -- $SCRIPT_ARGS"
 
-if [ -d "$1" ]; then
-    for fileName in "$1"/*.json; do
+if [ -d "$input" ]; then
+    for fileName in "$input"/*.json; do
         if [ -f "$fileName" ]; then
             verify_broadcast $fileName
         fi
     done
 else
-    verify_broadcast $1
+    verify_broadcast $input
 fi

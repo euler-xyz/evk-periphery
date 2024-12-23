@@ -5,14 +5,14 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
-source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
-eval "set -- $SCRIPT_ARGS"
-
 scriptPath="${1#./}"
 scriptPath="${scriptPath#script/}"
 scriptName=$(basename "$1")
 shift
+
+source .env
+eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
@@ -43,6 +43,13 @@ if script/utils/executeForgeScript.sh "$scriptPath" "$@"; then
         counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
 
         mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
+    done
+
+    for csv_file in script/*.csv; do
+        csvFileName=$(basename "$csv_file")
+        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$csvFileName")
+
+        mv "$csv_file" "$deployment_dir/output/${csvFileName%.csv}_$counter.csv"
     done
 else
     for json_file in script/*.json; do

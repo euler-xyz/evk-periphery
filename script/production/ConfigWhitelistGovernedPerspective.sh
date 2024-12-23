@@ -6,12 +6,12 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
+csv_file="$1"
+shift
+
 source .env
 eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
 eval "set -- $SCRIPT_ARGS"
-
-csv_file="$1"
-shift
 
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
