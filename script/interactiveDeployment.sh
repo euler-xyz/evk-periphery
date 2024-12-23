@@ -1295,7 +1295,7 @@ while true; do
         deployment_dir="script/deployments/$deployment_name/$chainId"
         broadcast_dir="broadcast/${scriptName%:*}/$chainId"
 
-        if [ "$broadcast" = "--broadcast" ]; then
+        if [ "$dry_run" = "--dry-run" ]; then
             deployment_dir="$deployment_dir/dry-run"
             broadcast_dir="$broadcast_dir/dry-run"
         fi
