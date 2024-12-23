@@ -12,11 +12,16 @@ contract OwnershipTransferCore is BatchBuilder {
     function run() public {
         verifyMultisigAddresses(multisigAddresses);
 
-        if (ProtocolConfig(coreAddresses.protocolConfig).admin() != multisigAddresses.DAO) {
-            console.log("+ Setting ProtocolConfig admin to address %s", multisigAddresses.DAO);
-            startBroadcast();
-            ProtocolConfig(coreAddresses.protocolConfig).setAdmin(multisigAddresses.DAO);
-            stopBroadcast();
+        address privilegedAddress = ProtocolConfig(coreAddresses.protocolConfig).admin();
+        if (privilegedAddress != multisigAddresses.DAO) {
+            if (privilegedAddress != getDeployer()) {
+                console.log("+ Setting ProtocolConfig admin to address %s", multisigAddresses.DAO);
+                startBroadcast();
+                ProtocolConfig(coreAddresses.protocolConfig).setAdmin(multisigAddresses.DAO);
+                stopBroadcast();
+            } else {
+                console.log("! ProtocolConfig admin is not the caller of this script. Skipping...");
+            }
         } else {
             console.log("- ProtocolConfig admin is already set to the desired address. Skipping...");
         }
@@ -25,10 +30,16 @@ contract OwnershipTransferCore is BatchBuilder {
             bytes32 defaultAdminRole = AccessControl(coreAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE();
 
             if (!AccessControl(coreAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
-                console.log("+ Granting FactoryGovernor default admin role to address %s", multisigAddresses.DAO);
-                startBroadcast();
-                AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(defaultAdminRole, multisigAddresses.DAO);
-                stopBroadcast();
+                if (AccessControl(coreAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, getDeployer())) {
+                    console.log("+ Granting FactoryGovernor default admin role to address %s", multisigAddresses.DAO);
+                    startBroadcast();
+                    AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(
+                        defaultAdminRole, multisigAddresses.DAO
+                    );
+                    stopBroadcast();
+                } else {
+                    console.log("! FactoryGovernor default admin role is not the caller of this script. Skipping...");
+                }
             } else {
                 console.log("- FactoryGovernor default admin role is already set to the desired address. Skipping...");
             }
@@ -43,14 +54,19 @@ contract OwnershipTransferCore is BatchBuilder {
             }
         }
 
-        if (GenericFactory(coreAddresses.eVaultFactory).upgradeAdmin() != coreAddresses.eVaultFactoryGovernor) {
-            console.log(
-                "+ Setting GenericFactory upgrade admin to the eVaultFactoryGovernor address %s",
-                coreAddresses.eVaultFactoryGovernor
-            );
-            startBroadcast();
-            GenericFactory(coreAddresses.eVaultFactory).setUpgradeAdmin(coreAddresses.eVaultFactoryGovernor);
-            stopBroadcast();
+        privilegedAddress = GenericFactory(coreAddresses.eVaultFactory).upgradeAdmin();
+        if (privilegedAddress != coreAddresses.eVaultFactoryGovernor) {
+            if (privilegedAddress != getDeployer()) {
+                console.log(
+                    "+ Setting GenericFactory upgrade admin to the eVaultFactoryGovernor address %s",
+                    coreAddresses.eVaultFactoryGovernor
+                );
+                startBroadcast();
+                GenericFactory(coreAddresses.eVaultFactory).setUpgradeAdmin(coreAddresses.eVaultFactoryGovernor);
+                stopBroadcast();
+            } else {
+                console.log("! GenericFactory upgrade admin is not the caller of this script. Skipping...");
+            }
         } else {
             console.log("- GenericFactory upgrade admin is already set to the desired address. Skipping...");
         }
@@ -64,12 +80,23 @@ contract OwnershipTransferCore is BatchBuilder {
                     defaultAdminRole, multisigAddresses.DAO
                 )
             ) {
-                console.log(
-                    "+ Granting GovernorAccessControlEmergency default admin role to address %s", multisigAddresses.DAO
-                );
-                grantRole(
-                    vaultGovernorAddresses.accessControlEmergencyGovernor, defaultAdminRole, multisigAddresses.DAO
-                );
+                if (
+                    AccessControl(vaultGovernorAddresses.accessControlEmergencyGovernor).hasRole(
+                        defaultAdminRole, getDeployer()
+                    )
+                ) {
+                    console.log(
+                        "+ Granting GovernorAccessControlEmergency default admin role to address %s",
+                        multisigAddresses.DAO
+                    );
+                    grantRole(
+                        vaultGovernorAddresses.accessControlEmergencyGovernor, defaultAdminRole, multisigAddresses.DAO
+                    );
+                } else {
+                    console.log(
+                        "! GovernorAccessControlEmergency default admin role is not the caller of this script. Skipping..."
+                    );
+                }
             } else {
                 console.log(
                     "- GovernorAccessControlEmergency default admin role is already set to the desired address. Skipping..."
@@ -97,8 +124,12 @@ contract OwnershipTransferCore is BatchBuilder {
 
             startBroadcast();
             if (!AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
-                console.log("+ Granting EUL default admin role to address %s", multisigAddresses.DAO);
-                AccessControl(tokenAddresses.EUL).grantRole(defaultAdminRole, multisigAddresses.DAO);
+                if (AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
+                    console.log("+ Granting EUL default admin role to address %s", multisigAddresses.DAO);
+                    AccessControl(tokenAddresses.EUL).grantRole(defaultAdminRole, multisigAddresses.DAO);
+                } else {
+                    console.log("! EUL default admin role is not the caller of this script. Skipping...");
+                }
             } else {
                 console.log("- EUL default admin role is already set to the desired address. Skipping...");
             }
@@ -112,21 +143,33 @@ contract OwnershipTransferCore is BatchBuilder {
             stopBroadcast();
         }
 
-        if (Ownable(tokenAddresses.rEUL).owner() != multisigAddresses.DAO) {
-            console.log("+ Transferring ownership of rEUL to %s", multisigAddresses.DAO);
-            transferOwnership(tokenAddresses.rEUL, multisigAddresses.DAO);
+        privilegedAddress = Ownable(tokenAddresses.rEUL).owner();
+        if (privilegedAddress != multisigAddresses.DAO) {
+            if (privilegedAddress != getDeployer()) {
+                console.log("+ Transferring ownership of rEUL to %s", multisigAddresses.DAO);
+                transferOwnership(tokenAddresses.rEUL, multisigAddresses.DAO);
+            } else {
+                console.log("! rEUL owner is not the caller of this script. Skipping...");
+            }
         } else {
             console.log("- rEUL owner is already set to the desired address. Skipping...");
         }
 
+        privilegedAddress = Ownable(nttAddresses.manager).owner();
         if (
-            Ownable(nttAddresses.manager).owner() != multisigAddresses.DAO
+            privilegedAddress != multisigAddresses.DAO
                 || Ownable(nttAddresses.transceiver).owner() != multisigAddresses.DAO
         ) {
-            console.log("+ Transferring ownership of NttManager and WormholeTransceiver to %s", multisigAddresses.DAO);
-            startBroadcast();
-            Ownable(nttAddresses.manager).transferOwnership(multisigAddresses.DAO);
-            stopBroadcast();
+            if (privilegedAddress != getDeployer()) {
+                console.log(
+                    "+ Transferring ownership of NttManager and WormholeTransceiver to %s", multisigAddresses.DAO
+                );
+                startBroadcast();
+                Ownable(nttAddresses.manager).transferOwnership(multisigAddresses.DAO);
+                stopBroadcast();
+            } else {
+                console.log("! NttManager owner is not the caller of this script. Skipping...");
+            }
         } else {
             console.log(
                 "- NttManager owner and WormholeTransceiver owner are already set to the desired address. Skipping..."

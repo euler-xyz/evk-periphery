@@ -50,7 +50,7 @@ contract CoreAndPeriphery is BatchBuilder {
         uint256 feeFlowInitPrice;
     }
 
-    address internal constant EVAULT_FACTORY_GOVERNOR_PAUSER_0 = 0xff217004BdD3A6A592162380dc0E6BbF143291eB;
+    address internal constant EVAULT_FACTORY_GOVERNOR_PAUSER = 0xff217004BdD3A6A592162380dc0E6BbF143291eB;
 
     function run()
         public
@@ -134,19 +134,13 @@ contract CoreAndPeriphery is BatchBuilder {
             bytes32 unpauseAdminRole = FactoryGovernor(coreAddresses.eVaultFactoryGovernor).UNPAUSE_ADMIN_ROLE();
 
             startBroadcast();
-            console.log("    Granting pause guardian role to address %s", multisigAddresses.DAO);
-            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(pauseGuardianRole, multisigAddresses.DAO);
-
             console.log("    Granting pause guardian role to address %s", multisigAddresses.labs);
             AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(pauseGuardianRole, multisigAddresses.labs);
 
-            console.log("    Granting pause guardian role to address %s", EVAULT_FACTORY_GOVERNOR_PAUSER_0);
+            console.log("    Granting pause guardian role to address %s", EVAULT_FACTORY_GOVERNOR_PAUSER);
             AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(
-                pauseGuardianRole, EVAULT_FACTORY_GOVERNOR_PAUSER_0
+                pauseGuardianRole, EVAULT_FACTORY_GOVERNOR_PAUSER
             );
-
-            console.log("    Granting unpause admin role to address %s", multisigAddresses.DAO);
-            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.DAO);
 
             console.log("    Granting unpause admin role to address %s", multisigAddresses.labs);
             AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.labs);

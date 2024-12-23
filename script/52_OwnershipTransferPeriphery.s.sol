@@ -9,30 +9,50 @@ contract OwnershipTransferPeriphery is BatchBuilder {
     function run() public {
         verifyMultisigAddresses(multisigAddresses);
 
-        if (Ownable(peripheryAddresses.oracleAdapterRegistry).owner() != multisigAddresses.labs) {
-            console.log("+ Transferring ownership of OracleAdapterRegistry to %s", multisigAddresses.labs);
-            transferOwnership(peripheryAddresses.oracleAdapterRegistry, multisigAddresses.labs);
+        address owner = Ownable(peripheryAddresses.oracleAdapterRegistry).owner();
+        if (owner != multisigAddresses.labs) {
+            if (owner != getDeployer()) {
+                console.log("+ Transferring ownership of OracleAdapterRegistry to %s", multisigAddresses.labs);
+                transferOwnership(peripheryAddresses.oracleAdapterRegistry, multisigAddresses.labs);
+            } else {
+                console.log("! OracleAdapterRegistry owner is not the caller of this script. Skipping...");
+            }
         } else {
             console.log("- OracleAdapterRegistry owner is already set to the desired address. Skipping...");
         }
 
-        if (Ownable(peripheryAddresses.externalVaultRegistry).owner() != multisigAddresses.labs) {
-            console.log("+ Transferring ownership of ExternalVaultRegistry to %s", multisigAddresses.labs);
-            transferOwnership(peripheryAddresses.externalVaultRegistry, multisigAddresses.labs);
+        owner = Ownable(peripheryAddresses.externalVaultRegistry).owner();
+        if (owner != multisigAddresses.labs) {
+            if (owner != getDeployer()) {
+                console.log("+ Transferring ownership of ExternalVaultRegistry to %s", multisigAddresses.labs);
+                transferOwnership(peripheryAddresses.externalVaultRegistry, multisigAddresses.labs);
+            } else {
+                console.log("! ExternalVaultRegistry owner is not the caller of this script. Skipping...");
+            }
         } else {
             console.log("- ExternalVaultRegistry owner is already set to the desired address. Skipping...");
         }
 
-        if (Ownable(peripheryAddresses.irmRegistry).owner() != multisigAddresses.labs) {
-            console.log("+ Transferring ownership of IRMRegistry to %s", multisigAddresses.labs);
-            transferOwnership(peripheryAddresses.irmRegistry, multisigAddresses.labs);
+        owner = Ownable(peripheryAddresses.irmRegistry).owner();
+        if (owner != multisigAddresses.labs) {
+            if (owner != getDeployer()) {
+                console.log("+ Transferring ownership of IRMRegistry to %s", multisigAddresses.labs);
+                transferOwnership(peripheryAddresses.irmRegistry, multisigAddresses.labs);
+            } else {
+                console.log("! IRMRegistry owner is not the caller of this script. Skipping...");
+            }
         } else {
             console.log("- IRMRegistry owner is already set to the desired address. Skipping...");
         }
 
-        if (Ownable(peripheryAddresses.governedPerspective).owner() != multisigAddresses.labs) {
-            console.log("+ Transferring ownership of GovernedPerspective to %s", multisigAddresses.labs);
-            transferOwnership(peripheryAddresses.governedPerspective, multisigAddresses.labs);
+        owner = Ownable(peripheryAddresses.governedPerspective).owner();
+        if (owner != multisigAddresses.labs) {
+            if (owner != getDeployer()) {
+                console.log("+ Transferring ownership of GovernedPerspective to %s", multisigAddresses.labs);
+                transferOwnership(peripheryAddresses.governedPerspective, multisigAddresses.labs);
+            } else {
+                console.log("! GovernedPerspective owner is not the caller of this script. Skipping...");
+            }
         } else {
             console.log("- GovernedPerspective owner is already set to the desired address. Skipping...");
         }
