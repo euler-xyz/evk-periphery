@@ -6,6 +6,7 @@ import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
+import {ClusterDump} from "../../../utils/ClusterDump.s.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
@@ -235,14 +236,15 @@ contract Cluster is ManageCluster {
         executeBatchPrank(Ownable(peripheryAddresses.governedPerspective).owner());
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i]);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
 
             if (i < 10) {
                 PerspectiveVerifier.verifyPerspective(
                     peripheryAddresses.eulerUngovernedNzxPerspective,
                     cluster.vaults[i],
                     PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR,
-                    PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING | PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER
+                    PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING | PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER,
+                    false
                 );
             } else {
                 PerspectiveVerifier.verifyPerspective(
@@ -251,9 +253,13 @@ contract Cluster is ManageCluster {
                     PerspectiveVerifier.E__ORACLE_INVALID_ROUTER | PerspectiveVerifier.E__UNIT_OF_ACCOUNT | 
                     PerspectiveVerifier.E__GOVERNOR | PerspectiveVerifier.E__LIQUIDATION_DISCOUNT | 
                     PerspectiveVerifier.E__LIQUIDATION_COOL_OFF_TIME,
-                    PerspectiveVerifier.E__SINGLETON
+                    PerspectiveVerifier.E__SINGLETON,
+                    false
                 );
             }
         }
+
+        ClusterDump dumper = new ClusterDump();
+        dumper.dumpCluster(cluster.vaults, cluster.externalVaults);
     }
 }

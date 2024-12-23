@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {ScriptUtils, console} from "./ScriptUtils.s.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {EulerRouter, IPriceOracle} from "euler-price-oracle/EulerRouter.sol";
+import {Lenses} from "../08_Lenses.s.sol";
 import {VaultLens} from "../../src/Lens/VaultLens.sol";
 import "../../src/Lens/LensTypes.sol";
 
@@ -13,6 +14,16 @@ contract ClusterDump is ScriptUtils {
         string memory json = vm.readFile(vm.envString("CLUSTER_ADDRESSES_PATH"));
         address[] memory vaults = getAddressesFromJson(json, ".vaults");
         address[] memory externalVaults = getAddressesFromJson(json, ".externalVaults");
+
+        dumpCluster(vaults, externalVaults);
+    }
+
+    function dumpCluster(address[] memory vaults, address[] memory externalVaults) public {
+        Lenses deployer = new Lenses();
+        address[] memory lenses =
+            deployer.execute(peripheryAddresses.oracleAdapterRegistry, peripheryAddresses.kinkIRMFactory);
+        address vaultLens = lenses[4];
+
         VaultInfoFull[] memory vaultInfo;
 
         {
@@ -27,7 +38,7 @@ contract ClusterDump is ScriptUtils {
 
             for (uint256 i = 0; i < vaults.length; ++i) {
                 if (vaults[i] == address(0)) continue;
-                vaultInfo[counter] = VaultLens(lensAddresses.vaultLens).getVaultInfoFull(vaults[i]);
+                vaultInfo[counter] = VaultLens(vaultLens).getVaultInfoFull(vaults[i]);
                 ++counter;
             }
         }
@@ -176,7 +187,7 @@ contract ClusterDump is ScriptUtils {
 
         for (uint256 i = 0; i < vaultInfo.length; ++i) {
             VaultInterestRateModelInfo memory irmInfo =
-                VaultLens(lensAddresses.vaultLens).getVaultKinkInterestRateModelInfo(vaultInfo[i].vault);
+                VaultLens(vaultLens).getVaultKinkInterestRateModelInfo(vaultInfo[i].vault);
             line = string.concat(vaultInfo[i].assetSymbol, ",");
             line = string.concat(
                 line,
