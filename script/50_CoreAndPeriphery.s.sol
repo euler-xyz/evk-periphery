@@ -75,11 +75,11 @@ contract CoreAndPeriphery is BatchBuilder {
         });
 
         if (multisigAddresses.DAO == address(0) && multisigAddresses.labs == address(0)) {
-            console.log("Assigning multisig addresses...");
+            console.log("+ Assigning multisig addresses...");
             multisigAddresses.DAO = input.multisigDAO;
             multisigAddresses.labs = input.multisigLabs;
         } else {
-            console.log("At least one of the multisig addresses already assigned. Skipping...");
+            console.log("- At least one of the multisig addresses already assigned. Skipping...");
         }
 
         verifyMultisigAddresses(multisigAddresses);
@@ -89,7 +89,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 && coreAddresses.sequenceRegistry == address(0) && coreAddresses.balanceTracker == address(0)
                 && coreAddresses.permit2 == address(0)
         ) {
-            console.log("Deploying Integrations...");
+            console.log("+ Deploying Integrations...");
             Integrations deployer = new Integrations();
             (
                 coreAddresses.evc,
@@ -99,11 +99,11 @@ contract CoreAndPeriphery is BatchBuilder {
                 coreAddresses.permit2
             ) = deployer.deploy(input.permit2);
         } else {
-            console.log("At least one of the Integrations contracts already deployed. Skipping...");
+            console.log("- At least one of the Integrations contracts already deployed. Skipping...");
         }
 
         if (coreAddresses.eVaultImplementation == address(0)) {
-            console.log("Deploying EVault implementation...");
+            console.log("+ Deploying EVault implementation...");
             EVaultImplementation deployer = new EVaultImplementation();
             Base.Integrations memory integrations = Base.Integrations({
                 evc: coreAddresses.evc,
@@ -114,19 +114,19 @@ contract CoreAndPeriphery is BatchBuilder {
             });
             (, coreAddresses.eVaultImplementation) = deployer.deploy(integrations);
         } else {
-            console.log("EVault implementation already deployed. Skipping...");
+            console.log("- EVault implementation already deployed. Skipping...");
         }
 
         if (coreAddresses.eVaultFactory == address(0)) {
-            console.log("Deploying EVault factory...");
+            console.log("+ Deploying EVault factory...");
             EVaultFactory deployer = new EVaultFactory();
             coreAddresses.eVaultFactory = deployer.deploy(coreAddresses.eVaultImplementation);
         } else {
-            console.log("EVault factory already deployed. Skipping...");
+            console.log("- EVault factory already deployed. Skipping...");
         }
 
         if (coreAddresses.eVaultFactoryGovernor == address(0)) {
-            console.log("Deploying EVault factory governor...");
+            console.log("+ Deploying EVault factory governor...");
             EVaultFactoryGovernorDeployer deployer = new EVaultFactoryGovernorDeployer();
             coreAddresses.eVaultFactoryGovernor = deployer.deploy();
 
@@ -152,11 +152,11 @@ contract CoreAndPeriphery is BatchBuilder {
             AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.labs);
             stopBroadcast();
         } else {
-            console.log("EVault factory governor already deployed. Skipping...");
+            console.log("- EVault factory governor already deployed. Skipping...");
         }
 
         if (vaultGovernorAddresses.accessControlEmergencyGovernor == address(0)) {
-            console.log("Deploying Emergency Access Control Governor...");
+            console.log("+ Deploying Emergency Access Control Governor...");
             GovernorAccessControlEmergencyDeployer deployer = new GovernorAccessControlEmergencyDeployer();
             vaultGovernorAddresses.accessControlEmergencyGovernor = deployer.deploy(coreAddresses.evc);
 
@@ -184,11 +184,11 @@ contract CoreAndPeriphery is BatchBuilder {
             console.log("    Granting caps emergency role to address %s", multisigAddresses.labs);
             grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, capsEmergencyRole, multisigAddresses.labs);
         } else {
-            console.log("Vault Access Control Emergency Governor already deployed. Skipping...");
+            console.log("- Vault Access Control Emergency Governor already deployed. Skipping...");
         }
 
         if (tokenAddresses.EUL == address(0) && block.chainid != 1) {
-            console.log("Deploying EUL...");
+            console.log("+ Deploying EUL...");
             ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
             tokenAddresses.EUL = deployer.deploy("Euler", "EUL", 18);
 
@@ -198,11 +198,11 @@ contract CoreAndPeriphery is BatchBuilder {
             AccessControl(tokenAddresses.EUL).grantRole(revokeMinterRole, multisigAddresses.labs);
             stopBroadcast();
         } else {
-            console.log("EUL already deployed. Skipping...");
+            console.log("- EUL already deployed. Skipping...");
         }
 
         if (tokenAddresses.rEUL == address(0)) {
-            console.log("Deploying rEUL...");
+            console.log("+ Deploying rEUL...");
             RewardTokenDeployer deployer = new RewardTokenDeployer();
             tokenAddresses.rEUL = deployer.deploy(
                 coreAddresses.evc,
@@ -216,12 +216,12 @@ contract CoreAndPeriphery is BatchBuilder {
             uint256 whitelistStatusAdmin = RewardToken(tokenAddresses.rEUL).WHITELIST_STATUS_ADMIN();
             setWhitelistStatus(tokenAddresses.rEUL, multisigAddresses.labs, whitelistStatusAdmin);
         } else {
-            console.log("rEUL already deployed. Skipping...");
+            console.log("- rEUL already deployed. Skipping...");
         }
 
         if (nttAddresses.manager == address(0) && nttAddresses.transceiver == address(0)) {
             if (input.wormholeCoreBridge != address(0) && input.wormholeRelayer != address(0)) {
-                console.log("Deploying NttManager and WormholeTransceiver...");
+                console.log("+ Deploying NttManager and WormholeTransceiver...");
                 uint16 chainId = NttManager(input.wormholeCoreBridge).chainId();
                 {
                     NttManagerDeployer deployer = new NttManagerDeployer();
@@ -288,11 +288,11 @@ contract CoreAndPeriphery is BatchBuilder {
                 stopBroadcast();
             } else {
                 console.log(
-                    "WormholeCoreBridge or WormholeRelayer not set. Skipping NttManager and WormholeTransceiver deployment..."
+                    "- WormholeCoreBridge or WormholeRelayer not set for NttManager and WormholeTransceiver deployment. Skipping..."
                 );
             }
         } else {
-            console.log("NttManager or WormholeTransceiver already deployed. Skipping...");
+            console.log("- NttManager or WormholeTransceiver already deployed. Skipping...");
         }
 
         if (block.chainid == 1 && nttAddresses.manager != address(0) && nttAddresses.transceiver != address(0)) {
@@ -344,7 +344,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0)
                 && peripheryAddresses.irmRegistry == address(0)
         ) {
-            console.log("Deploying Periphery factories...");
+            console.log("+ Deploying Periphery factories...");
             PeripheryFactories deployer = new PeripheryFactories();
             (
                 peripheryAddresses.oracleRouterFactory,
@@ -354,11 +354,11 @@ contract CoreAndPeriphery is BatchBuilder {
                 peripheryAddresses.irmRegistry
             ) = deployer.deploy(coreAddresses.evc);
         } else {
-            console.log("At least one of the Periphery factories contracts already deployed. Skipping...");
+            console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
         }
 
         if (peripheryAddresses.feeFlowController == address(0)) {
-            console.log("Deploying FeeFlow...");
+            console.log("+ Deploying FeeFlow...");
             FeeFlow deployer = new FeeFlow();
             peripheryAddresses.feeFlowController = deployer.deploy(
                 coreAddresses.evc,
@@ -378,41 +378,41 @@ contract CoreAndPeriphery is BatchBuilder {
             ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(peripheryAddresses.feeFlowController);
             stopBroadcast();
         } else {
-            console.log("FeeFlow controller already deployed. Skipping...");
+            console.log("- FeeFlow controller already deployed. Skipping...");
         }
 
         if (peripheryAddresses.swapper == address(0) && peripheryAddresses.swapVerifier == address(0)) {
-            console.log("Deploying Swapper...");
+            console.log("+ Deploying Swapper...");
             Swap deployer = new Swap();
             (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) =
                 deployer.deploy(input.uniswapV2Router, input.uniswapV3Router);
         } else {
-            console.log("At least one of the Swapper contracts already deployed. Skipping...");
+            console.log("- At least one of the Swapper contracts already deployed. Skipping...");
         }
 
         if (peripheryAddresses.evkFactoryPerspective == address(0)) {
-            console.log("Deploying EVKFactoryPerspective...");
+            console.log("+ Deploying EVKFactoryPerspective...");
             EVKFactoryPerspectiveDeployer deployer = new EVKFactoryPerspectiveDeployer();
             peripheryAddresses.evkFactoryPerspective = deployer.deploy(coreAddresses.eVaultFactory);
         } else {
-            console.log("EVKFactoryPerspective already deployed. Skipping...");
+            console.log("- EVKFactoryPerspective already deployed. Skipping...");
         }
         if (peripheryAddresses.governedPerspective == address(0)) {
-            console.log("Deploying GovernedPerspective...");
+            console.log("+ Deploying GovernedPerspective...");
             PerspectiveGovernedDeployer deployer = new PerspectiveGovernedDeployer();
             peripheryAddresses.governedPerspective = deployer.deploy(coreAddresses.evc);
         } else {
-            console.log("GovernedPerspective already deployed. Skipping...");
+            console.log("- GovernedPerspective already deployed. Skipping...");
         }
         if (peripheryAddresses.escrowedCollateralPerspective == address(0)) {
-            console.log("Deploying EscrowedCollateralPerspective...");
+            console.log("+ Deploying EscrowedCollateralPerspective...");
             EVKPerspectiveEscrowedCollateralDeployer deployer = new EVKPerspectiveEscrowedCollateralDeployer();
             peripheryAddresses.escrowedCollateralPerspective = deployer.deploy(coreAddresses.eVaultFactory);
         } else {
-            console.log("EscrowedCollateralPerspective already deployed. Skipping...");
+            console.log("- EscrowedCollateralPerspective already deployed. Skipping...");
         }
         if (peripheryAddresses.eulerUngoverned0xPerspective == address(0)) {
-            console.log("Deploying EulerUngoverned0xPerspective...");
+            console.log("+ Deploying EulerUngoverned0xPerspective...");
             EVKPerspectiveEulerUngoverned0xDeployer deployer = new EVKPerspectiveEulerUngoverned0xDeployer();
             peripheryAddresses.eulerUngoverned0xPerspective = deployer.deploy(
                 coreAddresses.eVaultFactory,
@@ -424,10 +424,10 @@ contract CoreAndPeriphery is BatchBuilder {
                 peripheryAddresses.escrowedCollateralPerspective
             );
         } else {
-            console.log("EulerUngoverned0xPerspective already deployed. Skipping...");
+            console.log("- EulerUngoverned0xPerspective already deployed. Skipping...");
         }
         if (peripheryAddresses.eulerUngovernedNzxPerspective == address(0)) {
-            console.log("Deploying EulerUngovernedNzxPerspective...");
+            console.log("+ Deploying EulerUngovernedNzxPerspective...");
             EVKPerspectiveEulerUngovernedNzxDeployer deployer = new EVKPerspectiveEulerUngovernedNzxDeployer();
             peripheryAddresses.eulerUngovernedNzxPerspective = deployer.deploy(
                 coreAddresses.eVaultFactory,
@@ -440,59 +440,59 @@ contract CoreAndPeriphery is BatchBuilder {
                 peripheryAddresses.escrowedCollateralPerspective
             );
         } else {
-            console.log("EulerUngovernedNzxPerspective already deployed. Skipping...");
+            console.log("- EulerUngovernedNzxPerspective already deployed. Skipping...");
         }
 
         if (peripheryAddresses.termsOfUseSigner == address(0)) {
-            console.log("Deploying Terms of use signer...");
+            console.log("+ Deploying Terms of use signer...");
             TermsOfUseSignerDeployer deployer = new TermsOfUseSignerDeployer();
             peripheryAddresses.termsOfUseSigner = deployer.deploy(coreAddresses.evc);
         } else {
-            console.log("Terms of use signer already deployed. Skipping...");
+            console.log("- Terms of use signer already deployed. Skipping...");
         }
 
         if (lensAddresses.accountLens == address(0)) {
-            console.log("Deploying LensAccount...");
+            console.log("+ Deploying LensAccount...");
             LensAccountDeployer deployer = new LensAccountDeployer();
             lensAddresses.accountLens = deployer.deploy();
         } else {
-            console.log("LensAccount already deployed. Skipping...");
+            console.log("- LensAccount already deployed. Skipping...");
         }
         if (lensAddresses.oracleLens == address(0)) {
-            console.log("Deploying LensOracle...");
+            console.log("+ Deploying LensOracle...");
             LensOracleDeployer deployer = new LensOracleDeployer();
             lensAddresses.oracleLens = deployer.deploy(peripheryAddresses.oracleAdapterRegistry);
         } else {
-            console.log("LensOracle already deployed. Skipping...");
+            console.log("- LensOracle already deployed. Skipping...");
         }
         if (lensAddresses.irmLens == address(0)) {
-            console.log("Deploying LensIRM...");
+            console.log("+ Deploying LensIRM...");
             LensIRMDeployer deployer = new LensIRMDeployer();
             lensAddresses.irmLens = deployer.deploy(peripheryAddresses.kinkIRMFactory);
         } else {
-            console.log("LensIRM already deployed. Skipping...");
+            console.log("- LensIRM already deployed. Skipping...");
         }
         if (lensAddresses.utilsLens == address(0)) {
-            console.log("Deploying LensUtils...");
+            console.log("+ Deploying LensUtils...");
             LensUtilsDeployer deployer = new LensUtilsDeployer();
             lensAddresses.utilsLens = deployer.deploy(lensAddresses.oracleLens);
         } else {
-            console.log("LensUtils already deployed. Skipping...");
+            console.log("- LensUtils already deployed. Skipping...");
         }
         if (lensAddresses.vaultLens == address(0)) {
-            console.log("Deploying LensVault...");
+            console.log("+ Deploying LensVault...");
             LensVaultDeployer deployer = new LensVaultDeployer();
             lensAddresses.vaultLens =
                 deployer.deploy(lensAddresses.oracleLens, lensAddresses.utilsLens, lensAddresses.irmLens);
         } else {
-            console.log("LensVault already deployed. Skipping...");
+            console.log("- LensVault already deployed. Skipping...");
         }
         //if (lensAddresses.eulerEarnVaultLens == address(0)) {
-        //    console.log("Deploying EulerEarnVaultLens...");
+        //    console.log("+ Deploying EulerEarnVaultLens...");
         //    LensEulerEarnVaultDeployer deployer = new LensEulerEarnVaultDeployer();
         //    lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.oracleLens, lensAddresses.utilsLens);
         //} else {
-        //    console.log("EulerEarnVaultLens already deployed. Skipping...");
+        //    console.log("- EulerEarnVaultLens already deployed. Skipping...");
         //}
 
         executeBatch();

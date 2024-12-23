@@ -23,6 +23,7 @@ fi
 broadcast="--broadcast"
 if [[ "$@" == *"--dry-run"* ]]; then
     set -- "${@/--dry-run/}"
+    dry_run="--dry-run"
     broadcast=""
 fi
 
@@ -1286,7 +1287,7 @@ while true; do
         set -- "${@/--force-no-addresses-dir-path/}"
     fi
 
-    if script/utils/executeForgeScript.sh $scriptName "$@"; then
+    if script/utils/executeForgeScript.sh $scriptName "$@" $dry_run; then
         source .env
         eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
         eval "set -- $SCRIPT_ARGS"
@@ -1294,7 +1295,7 @@ while true; do
         deployment_dir="script/deployments/$deployment_name/$chainId"
         broadcast_dir="broadcast/${scriptName%:*}/$chainId"
 
-        if [[ "$@" == *"--dry-run"* ]]; then
+        if [ "$broadcast" = "--broadcast" ]; then
             deployment_dir="$deployment_dir/dry-run"
             broadcast_dir="$broadcast_dir/dry-run"
         fi
