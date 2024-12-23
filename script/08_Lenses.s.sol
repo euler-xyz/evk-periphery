@@ -45,7 +45,7 @@ contract Lenses is ScriptUtils {
         lenses[2] = address(new IRMLens(kinkIRMFactory));
         lenses[3] = address(new UtilsLens(address(lenses[1])));
         lenses[4] = address(new VaultLens(address(lenses[1]), address(lenses[3]), address(lenses[2])));
-        lenses[5] = address(new EulerEarnVaultLens(address(lenses[1]), address(lenses[3])));
+        lenses[5] = address(0); //address(new EulerEarnVaultLens(address(lenses[1]), address(lenses[3])));
     }
 }
 
