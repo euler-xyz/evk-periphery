@@ -42,7 +42,6 @@ contract CoreAndPeriphery is BatchBuilder {
     struct Input {
         address multisigDAO;
         address multisigLabs;
-        address multisigSecurityCouncil;
         address permit2;
         address uniswapV2Router;
         address uniswapV3Router;
@@ -50,6 +49,8 @@ contract CoreAndPeriphery is BatchBuilder {
         address wormholeRelayer;
         uint256 feeFlowInitPrice;
     }
+
+    address internal constant EVAULT_FACTORY_GOVERNOR_PAUSER_0 = 0xff217004BdD3A6A592162380dc0E6BbF143291eB;
 
     function run()
         public
@@ -65,7 +66,6 @@ contract CoreAndPeriphery is BatchBuilder {
         Input memory input = Input({
             multisigDAO: vm.parseJsonAddress(json, ".multisigDAO"),
             multisigLabs: vm.parseJsonAddress(json, ".multisigLabs"),
-            multisigSecurityCouncil: vm.parseJsonAddress(json, ".multisigSecurityCouncil"),
             permit2: vm.parseJsonAddress(json, ".permit2"),
             uniswapV2Router: vm.parseJsonAddress(json, ".uniswapV2Router"),
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
@@ -74,14 +74,10 @@ contract CoreAndPeriphery is BatchBuilder {
             feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice")
         });
 
-        if (
-            multisigAddresses.DAO == address(0) && multisigAddresses.labs == address(0)
-                && multisigAddresses.securityCouncil == address(0)
-        ) {
+        if (multisigAddresses.DAO == address(0) && multisigAddresses.labs == address(0)) {
             console.log("Assigning multisig addresses...");
             multisigAddresses.DAO = input.multisigDAO;
             multisigAddresses.labs = input.multisigLabs;
-            multisigAddresses.securityCouncil = input.multisigSecurityCouncil;
         } else {
             console.log("At least one of the multisig addresses already assigned. Skipping...");
         }
@@ -140,6 +136,14 @@ contract CoreAndPeriphery is BatchBuilder {
             startBroadcast();
             console.log("    Granting pause guardian role to address %s", multisigAddresses.DAO);
             AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(pauseGuardianRole, multisigAddresses.DAO);
+
+            console.log("    Granting pause guardian role to address %s", multisigAddresses.labs);
+            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(pauseGuardianRole, multisigAddresses.labs);
+
+            console.log("    Granting pause guardian role to address %s", EVAULT_FACTORY_GOVERNOR_PAUSER_0);
+            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(
+                pauseGuardianRole, EVAULT_FACTORY_GOVERNOR_PAUSER_0
+            );
 
             console.log("    Granting unpause admin role to address %s", multisigAddresses.DAO);
             AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.DAO);
@@ -360,7 +364,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 coreAddresses.evc,
                 input.feeFlowInitPrice,
                 tokenAddresses.EUL,
-                multisigAddresses.DAO,
+                address(0x000000000000000000000000000000000000dEaD),
                 14 days,
                 2e18,
                 1e18

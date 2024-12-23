@@ -196,30 +196,20 @@ abstract contract MultisigAddressesLib is ScriptExtended {
     struct MultisigAddresses {
         address DAO;
         address labs;
-        address securityCouncil;
     }
 
     function serializeMultisigAddresses(MultisigAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("multisigAddresses", "DAO", Addresses.DAO);
         result = vm.serializeAddress("multisigAddresses", "labs", Addresses.labs);
-        result = vm.serializeAddress("multisigAddresses", "securityCouncil", Addresses.securityCouncil);
     }
 
     function deserializeMultisigAddresses(string memory json) internal pure returns (MultisigAddresses memory) {
-        return MultisigAddresses({
-            DAO: getAddressFromJson(json, ".DAO"),
-            labs: getAddressFromJson(json, ".labs"),
-            securityCouncil: getAddressFromJson(json, ".securityCouncil")
-        });
+        return MultisigAddresses({DAO: getAddressFromJson(json, ".DAO"), labs: getAddressFromJson(json, ".labs")});
     }
 
     function verifyMultisigAddresses(MultisigAddresses memory Addresses) internal view {
         require(Addresses.DAO != address(0) && Addresses.DAO.code.length != 0, "DAO multisig is required");
         require(Addresses.labs != address(0) && Addresses.labs.code.length != 0, "Labs multisig is required");
-        //require(
-        //    Addresses.securityCouncil != address(0) && Addresses.securityCouncil.code.length != 0,
-        //    "Security Council multisig is required"
-        //);
     }
 }
 
