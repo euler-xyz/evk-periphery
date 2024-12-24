@@ -31,7 +31,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         address permit2;
         address eVaultImplementation;
         address eVaultFactory;
-        address eVaultFactoryGovernor;
     }
 
     function serializeCoreAddresses(CoreAddresses memory Addresses) internal returns (string memory result) {
@@ -42,7 +41,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         result = vm.serializeAddress("coreAddresses", "permit2", Addresses.permit2);
         result = vm.serializeAddress("coreAddresses", "eVaultImplementation", Addresses.eVaultImplementation);
         result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
-        result = vm.serializeAddress("coreAddresses", "eVaultFactoryGovernor", Addresses.eVaultFactoryGovernor);
     }
 
     function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory) {
@@ -53,8 +51,7 @@ abstract contract CoreAddressesLib is ScriptExtended {
             balanceTracker: getAddressFromJson(json, ".balanceTracker"),
             permit2: getAddressFromJson(json, ".permit2"),
             eVaultImplementation: getAddressFromJson(json, ".eVaultImplementation"),
-            eVaultFactory: getAddressFromJson(json, ".eVaultFactory"),
-            eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor")
+            eVaultFactory: getAddressFromJson(json, ".eVaultFactory")
         });
     }
 }
@@ -151,26 +148,22 @@ abstract contract LensAddressesLib is ScriptExtended {
     }
 }
 
-abstract contract VaultGovernorAddressesLib is ScriptExtended {
-    struct VaultGovernorAddresses {
+abstract contract GovernorAddressesLib is ScriptExtended {
+    struct GovernorAddresses {
+        address eVaultFactoryGovernor;
         address accessControlEmergencyGovernor;
     }
 
-    function serializeVaultGovernorAddresses(VaultGovernorAddresses memory Addresses)
-        internal
-        returns (string memory result)
-    {
+    function serializeGovernorAddresses(GovernorAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("governorAddresses", "eVaultFactoryGovernor", Addresses.eVaultFactoryGovernor);
         result = vm.serializeAddress(
-            "vaultGovernorAddresses", "accessControlEmergencyGovernor", Addresses.accessControlEmergencyGovernor
+            "governorAddresses", "accessControlEmergencyGovernor", Addresses.accessControlEmergencyGovernor
         );
     }
 
-    function deserializeVaultGovernorAddresses(string memory json)
-        internal
-        pure
-        returns (VaultGovernorAddresses memory)
-    {
-        return VaultGovernorAddresses({
+    function deserializeGovernorAddresses(string memory json) internal pure returns (GovernorAddresses memory) {
+        return GovernorAddresses({
+            eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor"),
             accessControlEmergencyGovernor: getAddressFromJson(json, ".accessControlEmergencyGovernor")
         });
     }
@@ -196,20 +189,30 @@ abstract contract MultisigAddressesLib is ScriptExtended {
     struct MultisigAddresses {
         address DAO;
         address labs;
+        address securityCouncil;
     }
 
     function serializeMultisigAddresses(MultisigAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("multisigAddresses", "DAO", Addresses.DAO);
         result = vm.serializeAddress("multisigAddresses", "labs", Addresses.labs);
+        result = vm.serializeAddress("multisigAddresses", "securityCouncil", Addresses.securityCouncil);
     }
 
     function deserializeMultisigAddresses(string memory json) internal pure returns (MultisigAddresses memory) {
-        return MultisigAddresses({DAO: getAddressFromJson(json, ".DAO"), labs: getAddressFromJson(json, ".labs")});
+        return MultisigAddresses({
+            DAO: getAddressFromJson(json, ".DAO"),
+            labs: getAddressFromJson(json, ".labs"),
+            securityCouncil: getAddressFromJson(json, ".securityCouncil")
+        });
     }
 
     function verifyMultisigAddresses(MultisigAddresses memory Addresses) internal view {
         require(Addresses.DAO != address(0) && Addresses.DAO.code.length != 0, "DAO multisig is required");
         require(Addresses.labs != address(0) && Addresses.labs.code.length != 0, "Labs multisig is required");
+        require(
+            Addresses.securityCouncil != address(0) && Addresses.securityCouncil.code.length != 0,
+            "Security Council multisig is required"
+        );
     }
 }
 
@@ -246,7 +249,7 @@ abstract contract ScriptUtils is
     LensAddressesLib,
     NTTAddressesLib,
     TokenAddressesLib,
-    VaultGovernorAddressesLib
+    GovernorAddressesLib
 {
     MultisigAddresses internal multisigAddresses;
     CoreAddresses internal coreAddresses;
@@ -254,7 +257,7 @@ abstract contract ScriptUtils is
     LensAddresses internal lensAddresses;
     NTTAddresses internal nttAddresses;
     TokenAddresses internal tokenAddresses;
-    VaultGovernorAddresses internal vaultGovernorAddresses;
+    GovernorAddresses internal governorAddresses;
 
     constructor() {
         multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
@@ -263,7 +266,7 @@ abstract contract ScriptUtils is
         lensAddresses = deserializeLensAddresses(getAddressesJson("LensAddresses.json"));
         nttAddresses = deserializeNTTAddresses(getAddressesJson("NTTAddresses.json"));
         tokenAddresses = deserializeTokenAddresses(getAddressesJson("TokenAddresses.json"));
-        vaultGovernorAddresses = deserializeVaultGovernorAddresses(getAddressesJson("VaultGovernorAddresses.json"));
+        governorAddresses = deserializeGovernorAddresses(getAddressesJson("GovernorAddresses.json"));
     }
 
     modifier broadcast() {

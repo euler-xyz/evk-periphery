@@ -27,13 +27,15 @@ contract OwnershipTransferCore is BatchBuilder {
         }
 
         {
-            bytes32 defaultAdminRole = AccessControl(coreAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE();
+            bytes32 defaultAdminRole = AccessControl(governorAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE();
 
-            if (!AccessControl(coreAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
-                if (AccessControl(coreAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, getDeployer())) {
+            if (
+                !AccessControl(governorAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, multisigAddresses.DAO)
+            ) {
+                if (AccessControl(governorAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, getDeployer())) {
                     console.log("+ Granting FactoryGovernor default admin role to address %s", multisigAddresses.DAO);
                     startBroadcast();
-                    AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(
+                    AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(
                         defaultAdminRole, multisigAddresses.DAO
                     );
                     stopBroadcast();
@@ -44,10 +46,10 @@ contract OwnershipTransferCore is BatchBuilder {
                 console.log("- FactoryGovernor default admin role is already set to the desired address. Skipping...");
             }
 
-            if (AccessControl(coreAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, getDeployer())) {
+            if (AccessControl(governorAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, getDeployer())) {
                 console.log("+ Renouncing FactoryGovernor default admin role from the deployer %s", getDeployer());
                 startBroadcast();
-                AccessControl(coreAddresses.eVaultFactoryGovernor).renounceRole(defaultAdminRole, getDeployer());
+                AccessControl(governorAddresses.eVaultFactoryGovernor).renounceRole(defaultAdminRole, getDeployer());
                 stopBroadcast();
             } else {
                 console.log("- The deployer is no longer the default admin of the FactoryGovernor. Skipping...");
@@ -55,33 +57,33 @@ contract OwnershipTransferCore is BatchBuilder {
         }
 
         privilegedAddress = GenericFactory(coreAddresses.eVaultFactory).upgradeAdmin();
-        if (privilegedAddress != coreAddresses.eVaultFactoryGovernor) {
+        if (privilegedAddress != governorAddresses.eVaultFactoryGovernor) {
             if (privilegedAddress != getDeployer()) {
                 console.log(
-                    "+ Setting GenericFactory upgrade admin to the eVaultFactoryGovernor address %s",
-                    coreAddresses.eVaultFactoryGovernor
+                    "+ Setting EVaultFactory upgrade admin to the EVaultFactoryGovernor address %s",
+                    governorAddresses.eVaultFactoryGovernor
                 );
                 startBroadcast();
-                GenericFactory(coreAddresses.eVaultFactory).setUpgradeAdmin(coreAddresses.eVaultFactoryGovernor);
+                GenericFactory(coreAddresses.eVaultFactory).setUpgradeAdmin(governorAddresses.eVaultFactoryGovernor);
                 stopBroadcast();
             } else {
-                console.log("! GenericFactory upgrade admin is not the caller of this script. Skipping...");
+                console.log("! EVaultFactory upgrade admin is not the caller of this script. Skipping...");
             }
         } else {
-            console.log("- GenericFactory upgrade admin is already set to the desired address. Skipping...");
+            console.log("- EVaultFactory upgrade admin is already set to the desired address. Skipping...");
         }
 
         {
             bytes32 defaultAdminRole =
-                AccessControl(vaultGovernorAddresses.accessControlEmergencyGovernor).DEFAULT_ADMIN_ROLE();
+                AccessControl(governorAddresses.accessControlEmergencyGovernor).DEFAULT_ADMIN_ROLE();
 
             if (
-                !AccessControl(vaultGovernorAddresses.accessControlEmergencyGovernor).hasRole(
+                !AccessControl(governorAddresses.accessControlEmergencyGovernor).hasRole(
                     defaultAdminRole, multisigAddresses.DAO
                 )
             ) {
                 if (
-                    AccessControl(vaultGovernorAddresses.accessControlEmergencyGovernor).hasRole(
+                    AccessControl(governorAddresses.accessControlEmergencyGovernor).hasRole(
                         defaultAdminRole, getDeployer()
                     )
                 ) {
@@ -89,9 +91,7 @@ contract OwnershipTransferCore is BatchBuilder {
                         "+ Granting GovernorAccessControlEmergency default admin role to address %s",
                         multisigAddresses.DAO
                     );
-                    grantRole(
-                        vaultGovernorAddresses.accessControlEmergencyGovernor, defaultAdminRole, multisigAddresses.DAO
-                    );
+                    grantRole(governorAddresses.accessControlEmergencyGovernor, defaultAdminRole, multisigAddresses.DAO);
                 } else {
                     console.log(
                         "! GovernorAccessControlEmergency default admin role is not the caller of this script. Skipping..."
@@ -104,14 +104,12 @@ contract OwnershipTransferCore is BatchBuilder {
             }
 
             if (
-                AccessControl(vaultGovernorAddresses.accessControlEmergencyGovernor).hasRole(
-                    defaultAdminRole, getDeployer()
-                )
+                AccessControl(governorAddresses.accessControlEmergencyGovernor).hasRole(defaultAdminRole, getDeployer())
             ) {
                 console.log(
                     "+ Renouncing GovernorAccessControlEmergency default admin role from the deployer %s", getDeployer()
                 );
-                renounceRole(vaultGovernorAddresses.accessControlEmergencyGovernor, defaultAdminRole, getDeployer());
+                renounceRole(governorAddresses.accessControlEmergencyGovernor, defaultAdminRole, getDeployer());
             } else {
                 console.log(
                     "- The deployer is no longer the default admin of the GovernorAccessControlEmergency. Skipping..."

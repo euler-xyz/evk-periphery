@@ -42,6 +42,7 @@ contract CoreAndPeriphery is BatchBuilder {
     struct Input {
         address multisigDAO;
         address multisigLabs;
+        address multisigSecurityCouncil;
         address permit2;
         address uniswapV2Router;
         address uniswapV3Router;
@@ -66,6 +67,7 @@ contract CoreAndPeriphery is BatchBuilder {
         Input memory input = Input({
             multisigDAO: vm.parseJsonAddress(json, ".multisigDAO"),
             multisigLabs: vm.parseJsonAddress(json, ".multisigLabs"),
+            multisigSecurityCouncil: vm.parseJsonAddress(json, ".multisigSecurityCouncil"),
             permit2: vm.parseJsonAddress(json, ".permit2"),
             uniswapV2Router: vm.parseJsonAddress(json, ".uniswapV2Router"),
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
@@ -74,10 +76,14 @@ contract CoreAndPeriphery is BatchBuilder {
             feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice")
         });
 
-        if (multisigAddresses.DAO == address(0) && multisigAddresses.labs == address(0)) {
+        if (
+            multisigAddresses.DAO == address(0) && multisigAddresses.labs == address(0)
+                && multisigAddresses.securityCouncil == address(0)
+        ) {
             console.log("+ Assigning multisig addresses...");
             multisigAddresses.DAO = input.multisigDAO;
             multisigAddresses.labs = input.multisigLabs;
+            multisigAddresses.securityCouncil = input.multisigSecurityCouncil;
         } else {
             console.log("- At least one of the multisig addresses already assigned. Skipping...");
         }
@@ -125,58 +131,55 @@ contract CoreAndPeriphery is BatchBuilder {
             console.log("- EVault factory already deployed. Skipping...");
         }
 
-        if (coreAddresses.eVaultFactoryGovernor == address(0)) {
+        if (governorAddresses.eVaultFactoryGovernor == address(0)) {
             console.log("+ Deploying EVault factory governor...");
             EVaultFactoryGovernorDeployer deployer = new EVaultFactoryGovernorDeployer();
-            coreAddresses.eVaultFactoryGovernor = deployer.deploy();
+            governorAddresses.eVaultFactoryGovernor = deployer.deploy();
 
-            bytes32 pauseGuardianRole = FactoryGovernor(coreAddresses.eVaultFactoryGovernor).PAUSE_GUARDIAN_ROLE();
-            bytes32 unpauseAdminRole = FactoryGovernor(coreAddresses.eVaultFactoryGovernor).UNPAUSE_ADMIN_ROLE();
+            bytes32 pauseGuardianRole = FactoryGovernor(governorAddresses.eVaultFactoryGovernor).PAUSE_GUARDIAN_ROLE();
+            bytes32 unpauseAdminRole = FactoryGovernor(governorAddresses.eVaultFactoryGovernor).UNPAUSE_ADMIN_ROLE();
 
             startBroadcast();
             console.log("    Granting pause guardian role to address %s", multisigAddresses.labs);
-            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(pauseGuardianRole, multisigAddresses.labs);
+            AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(pauseGuardianRole, multisigAddresses.labs);
 
             console.log("    Granting pause guardian role to address %s", EVAULT_FACTORY_GOVERNOR_PAUSER);
-            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(
+            AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(
                 pauseGuardianRole, EVAULT_FACTORY_GOVERNOR_PAUSER
             );
 
             console.log("    Granting unpause admin role to address %s", multisigAddresses.labs);
-            AccessControl(coreAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.labs);
+            AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.labs);
             stopBroadcast();
         } else {
             console.log("- EVault factory governor already deployed. Skipping...");
         }
 
-        if (vaultGovernorAddresses.accessControlEmergencyGovernor == address(0)) {
+        if (governorAddresses.accessControlEmergencyGovernor == address(0)) {
             console.log("+ Deploying Emergency Access Control Governor...");
             GovernorAccessControlEmergencyDeployer deployer = new GovernorAccessControlEmergencyDeployer();
-            vaultGovernorAddresses.accessControlEmergencyGovernor = deployer.deploy(coreAddresses.evc);
+            governorAddresses.accessControlEmergencyGovernor = deployer.deploy(coreAddresses.evc);
 
             bytes32 wildCardRole =
-                GovernorAccessControlEmergency(vaultGovernorAddresses.accessControlEmergencyGovernor).WILD_CARD();
-            bytes32 ltvEmergencyRole = GovernorAccessControlEmergency(
-                vaultGovernorAddresses.accessControlEmergencyGovernor
-            ).LTV_EMERGENCY_ROLE();
-            bytes32 hookEmergencyRole = GovernorAccessControlEmergency(
-                vaultGovernorAddresses.accessControlEmergencyGovernor
-            ).HOOK_EMERGENCY_ROLE();
-            bytes32 capsEmergencyRole = GovernorAccessControlEmergency(
-                vaultGovernorAddresses.accessControlEmergencyGovernor
-            ).CAPS_EMERGENCY_ROLE();
+                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).WILD_CARD();
+            bytes32 ltvEmergencyRole =
+                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).LTV_EMERGENCY_ROLE();
+            bytes32 hookEmergencyRole =
+                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).HOOK_EMERGENCY_ROLE();
+            bytes32 capsEmergencyRole =
+                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).CAPS_EMERGENCY_ROLE();
 
             console.log("    Granting wild card role to address %s", multisigAddresses.DAO);
-            grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, wildCardRole, multisigAddresses.DAO);
+            grantRole(governorAddresses.accessControlEmergencyGovernor, wildCardRole, multisigAddresses.DAO);
 
             console.log("    Granting LTV emergency role to address %s", multisigAddresses.labs);
-            grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, ltvEmergencyRole, multisigAddresses.labs);
+            grantRole(governorAddresses.accessControlEmergencyGovernor, ltvEmergencyRole, multisigAddresses.labs);
 
             console.log("    Granting hook emergency role to address %s", multisigAddresses.labs);
-            grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, hookEmergencyRole, multisigAddresses.labs);
+            grantRole(governorAddresses.accessControlEmergencyGovernor, hookEmergencyRole, multisigAddresses.labs);
 
             console.log("    Granting caps emergency role to address %s", multisigAddresses.labs);
-            grantRole(vaultGovernorAddresses.accessControlEmergencyGovernor, capsEmergencyRole, multisigAddresses.labs);
+            grantRole(governorAddresses.accessControlEmergencyGovernor, capsEmergencyRole, multisigAddresses.labs);
         } else {
             console.log("- Vault Access Control Emergency Governor already deployed. Skipping...");
         }

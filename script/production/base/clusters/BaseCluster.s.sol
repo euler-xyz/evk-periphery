@@ -34,8 +34,8 @@ contract Cluster is ManageCluster {
     function configureCluster() internal override {
 
         // define the governors here
-        cluster.oracleRoutersGovernor = vaultGovernorAddresses.accessControlEmergencyGovernor;
-        cluster.vaultsGovernor = vaultGovernorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = governorAddresses.accessControlEmergencyGovernor;
+        cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -44,9 +44,9 @@ contract Cluster is ManageCluster {
         cluster.feeReceiver = address(0);
         cluster.interestFee = 0.1e4;
 
-        //cluster.interestFeeOverride[WETH] = 0;
-        //cluster.interestFeeOverride[USDC] = 0;
-        //cluster.interestFeeOverride[EURC] = 0;
+        cluster.interestFeeOverride[WETH] = 0;
+        cluster.interestFeeOverride[USDC] = 0;
+        cluster.interestFeeOverride[EURC] = 0;
 
         // define max liquidation discount here. if needed to be defined per asset, populate the maxLiquidationDiscountOverride mapping
         cluster.maxLiquidationDiscount = 0.15e4;
