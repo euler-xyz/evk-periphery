@@ -239,7 +239,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 "rEUL"
             );
 
-            console.log("    Setting whitelist status to admin for address %s", multisigAddresses.labs);
+            console.log("    Setting whitelist admin status for address %s", multisigAddresses.labs);
             uint256 whitelistStatusAdmin = RewardToken(tokenAddresses.rEUL).WHITELIST_STATUS_ADMIN();
             setWhitelistStatus(tokenAddresses.rEUL, multisigAddresses.labs, whitelistStatusAdmin);
         } else {
@@ -315,7 +315,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 stopBroadcast();
             } else {
                 console.log(
-                    "- WormholeCoreBridge or WormholeRelayer not set for NttManager and WormholeTransceiver deployment. Skipping..."
+                    "! WormholeCoreBridge or WormholeRelayer not set for NttManager and WormholeTransceiver deployment. Skipping..."
                 );
             }
         } else {
@@ -533,16 +533,23 @@ contract CoreAndPeriphery is BatchBuilder {
         vm.writeJson(serializeLensAddresses(lensAddresses), getScriptFilePath("LensAddresses_output.json"));
         vm.writeJson(serializeNTTAddresses(nttAddresses), getScriptFilePath("NTTAddresses_output.json"));
 
-        vm.writeJson(
-            serializeMultisigAddresses(multisigAddresses), getAddressesFilePath("MultisigAddresses.json", block.chainid)
-        );
-        vm.writeJson(serializeCoreAddresses(coreAddresses), getAddressesFilePath("CoreAddresses.json", block.chainid));
-        vm.writeJson(
-            serializePeripheryAddresses(peripheryAddresses),
-            getAddressesFilePath("PeripheryAddresses.json", block.chainid)
-        );
-        vm.writeJson(serializeLensAddresses(lensAddresses), getAddressesFilePath("LensAddresses.json", block.chainid));
-        vm.writeJson(serializeNTTAddresses(nttAddresses), getAddressesFilePath("NTTAddresses.json", block.chainid));
+        if (isBroadcast()) {
+            vm.writeJson(
+                serializeMultisigAddresses(multisigAddresses),
+                getAddressesFilePath("MultisigAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeCoreAddresses(coreAddresses), getAddressesFilePath("CoreAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializePeripheryAddresses(peripheryAddresses),
+                getAddressesFilePath("PeripheryAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeLensAddresses(lensAddresses), getAddressesFilePath("LensAddresses.json", block.chainid)
+            );
+            vm.writeJson(serializeNTTAddresses(nttAddresses), getAddressesFilePath("NTTAddresses.json", block.chainid));
+        }
 
         return (multisigAddresses, coreAddresses, peripheryAddresses, lensAddresses, nttAddresses);
     }

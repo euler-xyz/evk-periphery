@@ -27,6 +27,11 @@ if [[ "$@" == *"--dry-run"* ]]; then
     broadcast=""
 fi
 
+if [[ "$@" == *"--verify"* ]]; then
+    set -- "${@/--verify/}"
+    verify="--verify"
+fi
+
 if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
@@ -1126,27 +1131,27 @@ while true; do
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/$chainId/PeripheryAddresses.json" 2>/dev/null)
             fi
 
-            if [ -z "$multisig_dao" ] || [ "$multisig_dao" = "$addressZero" ]; then
+            if [ -z "$multisig_dao" ] || [ "$multisig_dao" == "$addressZero" ]; then
                 read -p "Enter the DAO multisig address: " multisig_dao
                 read -p "Enter the Labs multisig address: " multisig_labs
                 read -p "Enter the Security Council multisig address: " multisig_security_council
             fi
 
-            if [ -z "$evc" ] || [ "$evc" = "$addressZero" ]; then
+            if [ -z "$evc" ] || [ "$evc" == "$addressZero" ]; then
                 read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
             fi
             
-            if [ -z "$swapper" ] || [ "$swapper" = "$addressZero" ]; then
+            if [ -z "$swapper" ] || [ "$swapper" == "$addressZero" ]; then
                 read -p "Enter the Uniswap Router V2 address (default: 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D): " uniswap_router_v2
                 read -p "Enter the Uniswap Router V3 address (default: 0xE592427A0AEce92De3Edee1F18E0157C05861564): " uniswap_router_v3
             fi
             
-            if [ -z "$nttManager" ] || [ "$nttManager" = "$addressZero" ]; then
+            if [ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]; then
                 read -p "Enter the Wormhole Core Bridge address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/core.ts or press ENTER to skip): " wormhole_core_bridge
                 read -p "Enter the Wormhole Relayer address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/relayer.ts or press ENTER to skip): " wormhole_relayer
             fi
             
-            if [ -z "$feeFlowController" ] || [ "$feeFlowController" = "$addressZero" ]; then
+            if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ]; then
                 read -p "Enter the EUL init price for Fee Flow (default: 1e18): " init_price
             fi
 
@@ -1159,6 +1164,24 @@ while true; do
             wormhole_core_bridge=${wormhole_core_bridge:-$addressZero}
             wormhole_relayer=${wormhole_relayer:-$addressZero}
             init_price=${init_price:-1000000000000000000}
+
+            nttCompilerOptions="--optimize --optimizer-runs 200 --via-ir --use 0.8.19 --out out-ntt"
+            
+            if ([ -z "$addresses_dir_path" ] || [ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]) && ([ "$wormhole_core_bridge" != "$addressZero" ]); then
+                echo "Deploying TransceiverStructs library..."
+                result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $broadcast $nttCompilerOptions $@)
+                
+                if [ "$broadcast" = "--broadcast" ]; then
+                    libraryAddress=$(jq -r '.deployedTo' <<< "$result")
+
+                    if [ -z "$libraryAddress" ]; then
+                        echo "Failed to deploy TransceiverStructs library. Exiting."
+                        exit 1
+                    elif [ "$libraryAddress" != "$addressZero" ]; then
+                        forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$libraryAddress $nttCompilerOptions
+                    fi
+                fi
+            fi
 
             jq -n \
                 --arg multisigDAO "$multisig_dao" \
@@ -1180,25 +1203,7 @@ while true; do
                     wormholeCoreBridge: $wormholeCoreBridge,
                     wormholeRelayer: $wormholeRelayer,
                     feeFlowInitPrice: $initPrice
-                }' --indent 4 > script/${jsonName}_input.json     
-
-            nttCompilerOptions="--optimize --optimizer-runs 200 --via-ir --use 0.8.19 --out out-ntt"
-            
-            if [ -z "$addresses_dir_path" ] || [ -z "$nttManager" ] || [ "$nttManager" = "$addressZero" ]; then
-                echo "Deploying TransceiverStructs library..."
-                result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $broadcast $nttCompilerOptions $@)
-                
-                if [ "$broadcast" = "--broadcast" ]; then
-                    libraryAddress=$(jq -r '.deployedTo' <<< "$result")
-
-                    if [ -z "$libraryAddress" ]; then
-                        echo "Failed to deploy TransceiverStructs library. Exiting."
-                        exit 1
-                    elif [ "$libraryAddress" != "$addressZero" ]; then
-                        forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$libraryAddress $nttCompilerOptions
-                    fi
-                fi
-            fi
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         51)
             echo "Core Ownership Transfer..."
@@ -1292,7 +1297,7 @@ while true; do
         set -- "${@/--force-no-addresses-dir-path/}"
     fi
 
-    if script/utils/executeForgeScript.sh $scriptName "$@" $dry_run; then
+    if script/utils/executeForgeScript.sh $scriptName "$@" $verify $dry_run; then
         source .env
         eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
         eval "set -- $SCRIPT_ARGS"
