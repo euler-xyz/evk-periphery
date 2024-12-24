@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
+import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {FactoryGovernor} from "../src/Governor/FactoryGovernor.sol";
 import {GovernorAccessControl} from "../src/Governor/GovernorAccessControl.sol";
 import {GovernorAccessControlEmergency} from "../src/Governor/GovernorAccessControlEmergency.sol";
@@ -72,5 +73,37 @@ contract GovernorAccessControlEmergencyDeployer is ScriptUtils {
 
     function execute(address evc) public returns (address governorAccessControlEmergency) {
         governorAccessControlEmergency = address(new GovernorAccessControlEmergency(evc, getDeployer()));
+    }
+}
+
+contract TimelockControllerDeployer is ScriptUtils {
+    function run() public broadcast returns (address timelockController) {
+        string memory inputScriptFileName = "12_TimelockController_input.json";
+        string memory outputScriptFileName = "12_TimelockController_output.json";
+        string memory json = getScriptFile(inputScriptFileName);
+        uint256 minDelay = vm.parseJsonUint(json, ".minDelay");
+        address[] memory proposers = vm.parseJsonAddressArray(json, ".proposers");
+        address[] memory executors = vm.parseJsonAddressArray(json, ".executors");
+
+        timelockController = execute(minDelay, proposers, executors);
+
+        string memory object;
+        object = vm.serializeAddress("timelockController", "timelockController", timelockController);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(uint256 minDelay, address[] memory proposers, address[] memory executors)
+        public
+        broadcast
+        returns (address timelockController)
+    {
+        timelockController = execute(minDelay, proposers, executors);
+    }
+
+    function execute(uint256 minDelay, address[] memory proposers, address[] memory executors)
+        public
+        returns (address timelockController)
+    {
+        timelockController = address(new TimelockController(minDelay, proposers, executors, getDeployer()));
     }
 }

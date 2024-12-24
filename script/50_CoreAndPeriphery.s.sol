@@ -25,7 +25,11 @@ import {
 } from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
-import {EVaultFactoryGovernorDeployer, GovernorAccessControlEmergencyDeployer} from "./12_Governor.s.sol";
+import {
+    EVaultFactoryGovernorDeployer,
+    TimelockControllerDeployer,
+    GovernorAccessControlEmergencyDeployer
+} from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {NttManagerDeployer, WormholeTransceiverDeployer} from "./14_NTT.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
@@ -35,6 +39,7 @@ import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
+import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {NttManager} from "native-token-transfers/NttManager/NttManager.sol";
 import {WormholeTransceiver} from "native-token-transfers/Transceiver/WormholeTransceiver/WormholeTransceiver.sol";
 
@@ -153,6 +158,31 @@ contract CoreAndPeriphery is BatchBuilder {
             stopBroadcast();
         } else {
             console.log("- EVault factory governor already deployed. Skipping...");
+        }
+
+        if (governorAddresses.eVaultFactoryTimelockController == address(0)) {
+            console.log("+ Deploying EVault factory timelock controller...");
+            TimelockControllerDeployer deployer = new TimelockControllerDeployer();
+            address[] memory proposers = new address[](1);
+            address[] memory executors = new address[](1);
+            proposers[0] = multisigAddresses.DAO;
+            executors[0] = address(0);
+            governorAddresses.eVaultFactoryTimelockController = deployer.deploy(4 days, proposers, executors);
+
+            console.log("    Granting proposer role to address %s", multisigAddresses.DAO);
+            console.log("    Granting canceller role to address %s", multisigAddresses.DAO);
+            console.log("    Granting executor role to anyone");
+            console.log("    Granting canceller role to address %s", multisigAddresses.securityCouncil);
+
+            startBroadcast();
+            bytes32 cancellerRole =
+                TimelockController(payable(governorAddresses.eVaultFactoryTimelockController)).CANCELLER_ROLE();
+            AccessControl(governorAddresses.eVaultFactoryTimelockController).grantRole(
+                cancellerRole, multisigAddresses.securityCouncil
+            );
+            stopBroadcast();
+        } else {
+            console.log("- EVault factory timelock controller already deployed. Skipping...");
         }
 
         if (governorAddresses.accessControlEmergencyGovernor == address(0)) {

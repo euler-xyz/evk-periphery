@@ -151,11 +151,15 @@ abstract contract LensAddressesLib is ScriptExtended {
 abstract contract GovernorAddressesLib is ScriptExtended {
     struct GovernorAddresses {
         address eVaultFactoryGovernor;
+        address eVaultFactoryTimelockController;
         address accessControlEmergencyGovernor;
     }
 
     function serializeGovernorAddresses(GovernorAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("governorAddresses", "eVaultFactoryGovernor", Addresses.eVaultFactoryGovernor);
+        result = vm.serializeAddress(
+            "governorAddresses", "eVaultFactoryTimelockController", Addresses.eVaultFactoryTimelockController
+        );
         result = vm.serializeAddress(
             "governorAddresses", "accessControlEmergencyGovernor", Addresses.accessControlEmergencyGovernor
         );
@@ -164,6 +168,7 @@ abstract contract GovernorAddressesLib is ScriptExtended {
     function deserializeGovernorAddresses(string memory json) internal pure returns (GovernorAddresses memory) {
         return GovernorAddresses({
             eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor"),
+            eVaultFactoryTimelockController: getAddressFromJson(json, ".eVaultFactoryTimelockController"),
             accessControlEmergencyGovernor: getAddressFromJson(json, ".accessControlEmergencyGovernor")
         });
     }

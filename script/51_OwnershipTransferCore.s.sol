@@ -27,16 +27,46 @@ contract OwnershipTransferCore is BatchBuilder {
         }
 
         {
+            bytes32 defaultAdminRole =
+                AccessControl(governorAddresses.eVaultFactoryTimelockController).DEFAULT_ADMIN_ROLE();
+
+            if (
+                AccessControl(governorAddresses.eVaultFactoryTimelockController).hasRole(
+                    defaultAdminRole, getDeployer()
+                )
+            ) {
+                console.log(
+                    "+ Renouncing TimelockController default admin role from the caller of this script %s",
+                    getDeployer()
+                );
+                startBroadcast();
+                AccessControl(governorAddresses.eVaultFactoryTimelockController).renounceRole(
+                    defaultAdminRole, getDeployer()
+                );
+                stopBroadcast();
+            } else {
+                console.log(
+                    "- The caller of this script is no longer the default admin of the TimelockController. Skipping..."
+                );
+            }
+        }
+
+        {
             bytes32 defaultAdminRole = AccessControl(governorAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE();
 
             if (
-                !AccessControl(governorAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, multisigAddresses.DAO)
+                !AccessControl(governorAddresses.eVaultFactoryGovernor).hasRole(
+                    defaultAdminRole, governorAddresses.eVaultFactoryTimelockController
+                )
             ) {
                 if (AccessControl(governorAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, getDeployer())) {
-                    console.log("+ Granting FactoryGovernor default admin role to address %s", multisigAddresses.DAO);
+                    console.log(
+                        "+ Granting FactoryGovernor default admin role to address %s",
+                        governorAddresses.eVaultFactoryTimelockController
+                    );
                     startBroadcast();
                     AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(
-                        defaultAdminRole, multisigAddresses.DAO
+                        defaultAdminRole, governorAddresses.eVaultFactoryTimelockController
                     );
                     stopBroadcast();
                 } else {
@@ -47,12 +77,16 @@ contract OwnershipTransferCore is BatchBuilder {
             }
 
             if (AccessControl(governorAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, getDeployer())) {
-                console.log("+ Renouncing FactoryGovernor default admin role from the deployer %s", getDeployer());
+                console.log(
+                    "+ Renouncing FactoryGovernor default admin role from the caller of this script %s", getDeployer()
+                );
                 startBroadcast();
                 AccessControl(governorAddresses.eVaultFactoryGovernor).renounceRole(defaultAdminRole, getDeployer());
                 stopBroadcast();
             } else {
-                console.log("- The deployer is no longer the default admin of the FactoryGovernor. Skipping...");
+                console.log(
+                    "- The caller of this script is no longer the default admin of the FactoryGovernor. Skipping..."
+                );
             }
         }
 
@@ -107,12 +141,13 @@ contract OwnershipTransferCore is BatchBuilder {
                 AccessControl(governorAddresses.accessControlEmergencyGovernor).hasRole(defaultAdminRole, getDeployer())
             ) {
                 console.log(
-                    "+ Renouncing GovernorAccessControlEmergency default admin role from the deployer %s", getDeployer()
+                    "+ Renouncing GovernorAccessControlEmergency default admin role from the caller of this script %s",
+                    getDeployer()
                 );
                 renounceRole(governorAddresses.accessControlEmergencyGovernor, defaultAdminRole, getDeployer());
             } else {
                 console.log(
-                    "- The deployer is no longer the default admin of the GovernorAccessControlEmergency. Skipping..."
+                    "- The caller of this script is no longer the default admin of the GovernorAccessControlEmergency. Skipping..."
                 );
             }
         }
@@ -133,10 +168,10 @@ contract OwnershipTransferCore is BatchBuilder {
             }
 
             if (AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
-                console.log("+ Renouncing EUL default admin role from the deployer %s", getDeployer());
+                console.log("+ Renouncing EUL default admin role from the caller of this script %s", getDeployer());
                 AccessControl(tokenAddresses.EUL).renounceRole(defaultAdminRole, getDeployer());
             } else {
-                console.log("- The deployer is no longer the default admin of EUL. Skipping...");
+                console.log("- The caller of this script is no longer the default admin of EUL. Skipping...");
             }
             stopBroadcast();
         }
