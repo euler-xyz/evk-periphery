@@ -536,6 +536,8 @@ contract CoreAndPeriphery is BatchBuilder {
         vm.writeJson(
             serializePeripheryAddresses(peripheryAddresses), getScriptFilePath("PeripheryAddresses_output.json")
         );
+        vm.writeJson(serializeGovernorAddresses(governorAddresses), getScriptFilePath("GovernorAddresses_output.json"));
+        vm.writeJson(serializeTokenAddresses(tokenAddresses), getScriptFilePath("TokenAddresses_output.json"));
         vm.writeJson(serializeLensAddresses(lensAddresses), getScriptFilePath("LensAddresses_output.json"));
         vm.writeJson(serializeNTTAddresses(nttAddresses), getScriptFilePath("NTTAddresses_output.json"));
 
@@ -550,6 +552,13 @@ contract CoreAndPeriphery is BatchBuilder {
             vm.writeJson(
                 serializePeripheryAddresses(peripheryAddresses),
                 getAddressesFilePath("PeripheryAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeGovernorAddresses(governorAddresses),
+                getAddressesFilePath("GovernorAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeTokenAddresses(tokenAddresses), getAddressesFilePath("TokenAddresses.json", block.chainid)
             );
             vm.writeJson(
                 serializeLensAddresses(lensAddresses), getAddressesFilePath("LensAddresses.json", block.chainid)

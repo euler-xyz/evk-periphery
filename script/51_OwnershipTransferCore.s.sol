@@ -14,7 +14,7 @@ contract OwnershipTransferCore is BatchBuilder {
 
         address privilegedAddress = ProtocolConfig(coreAddresses.protocolConfig).admin();
         if (privilegedAddress != multisigAddresses.DAO) {
-            if (privilegedAddress != getDeployer()) {
+            if (privilegedAddress == getDeployer()) {
                 console.log("+ Setting ProtocolConfig admin to address %s", multisigAddresses.DAO);
                 startBroadcast();
                 ProtocolConfig(coreAddresses.protocolConfig).setAdmin(multisigAddresses.DAO);
@@ -24,6 +24,10 @@ contract OwnershipTransferCore is BatchBuilder {
             }
         } else {
             console.log("- ProtocolConfig admin is already set to the desired address. Skipping...");
+        }
+
+        if (ProtocolConfig(coreAddresses.protocolConfig).feeReceiver() != peripheryAddresses.feeFlowController) {
+            console.log("! ProtocolConfig fee receiver is not the FeeFlowController address yet. Remember to set it!");
         }
 
         {
@@ -92,7 +96,7 @@ contract OwnershipTransferCore is BatchBuilder {
 
         privilegedAddress = GenericFactory(coreAddresses.eVaultFactory).upgradeAdmin();
         if (privilegedAddress != governorAddresses.eVaultFactoryGovernor) {
-            if (privilegedAddress != getDeployer()) {
+            if (privilegedAddress == getDeployer()) {
                 console.log(
                     "+ Setting EVaultFactory upgrade admin to the EVaultFactoryGovernor address %s",
                     governorAddresses.eVaultFactoryGovernor
@@ -178,7 +182,7 @@ contract OwnershipTransferCore is BatchBuilder {
 
         privilegedAddress = Ownable(tokenAddresses.rEUL).owner();
         if (privilegedAddress != multisigAddresses.DAO) {
-            if (privilegedAddress != getDeployer()) {
+            if (privilegedAddress == getDeployer()) {
                 console.log("+ Transferring ownership of rEUL to %s", multisigAddresses.DAO);
                 transferOwnership(tokenAddresses.rEUL, multisigAddresses.DAO);
             } else {
@@ -188,25 +192,29 @@ contract OwnershipTransferCore is BatchBuilder {
             console.log("- rEUL owner is already set to the desired address. Skipping...");
         }
 
-        privilegedAddress = Ownable(nttAddresses.manager).owner();
-        if (
-            privilegedAddress != multisigAddresses.DAO
-                || Ownable(nttAddresses.transceiver).owner() != multisigAddresses.DAO
-        ) {
-            if (privilegedAddress != getDeployer()) {
-                console.log(
-                    "+ Transferring ownership of NttManager and WormholeTransceiver to %s", multisigAddresses.DAO
-                );
-                startBroadcast();
-                Ownable(nttAddresses.manager).transferOwnership(multisigAddresses.DAO);
-                stopBroadcast();
+        if (nttAddresses.manager != address(0) && nttAddresses.transceiver != address(0)) {
+            privilegedAddress = Ownable(nttAddresses.manager).owner();
+            if (
+                privilegedAddress != multisigAddresses.DAO
+                    || Ownable(nttAddresses.transceiver).owner() != multisigAddresses.DAO
+            ) {
+                if (privilegedAddress == getDeployer()) {
+                    console.log(
+                        "+ Transferring ownership of NttManager and WormholeTransceiver to %s", multisigAddresses.DAO
+                    );
+                    startBroadcast();
+                    Ownable(nttAddresses.manager).transferOwnership(multisigAddresses.DAO);
+                    stopBroadcast();
+                } else {
+                    console.log("! NttManager owner is not the caller of this script. Skipping...");
+                }
             } else {
-                console.log("! NttManager owner is not the caller of this script. Skipping...");
+                console.log(
+                    "- NttManager owner and WormholeTransceiver owner are already set to the desired address. Skipping..."
+                );
             }
         } else {
-            console.log(
-                "- NttManager owner and WormholeTransceiver owner are already set to the desired address. Skipping..."
-            );
+            console.log("! NttManager and WormholeTransceiver are not deployed yet. Skipping...");
         }
 
         executeBatch();

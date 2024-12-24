@@ -11,7 +11,7 @@ contract OwnershipTransferPeriphery is BatchBuilder {
 
         address owner = Ownable(peripheryAddresses.oracleAdapterRegistry).owner();
         if (owner != multisigAddresses.labs) {
-            if (owner != getDeployer()) {
+            if (owner == getDeployer()) {
                 console.log("+ Transferring ownership of OracleAdapterRegistry to %s", multisigAddresses.labs);
                 transferOwnership(peripheryAddresses.oracleAdapterRegistry, multisigAddresses.labs);
             } else {
@@ -23,7 +23,7 @@ contract OwnershipTransferPeriphery is BatchBuilder {
 
         owner = Ownable(peripheryAddresses.externalVaultRegistry).owner();
         if (owner != multisigAddresses.labs) {
-            if (owner != getDeployer()) {
+            if (owner == getDeployer()) {
                 console.log("+ Transferring ownership of ExternalVaultRegistry to %s", multisigAddresses.labs);
                 transferOwnership(peripheryAddresses.externalVaultRegistry, multisigAddresses.labs);
             } else {
@@ -35,7 +35,7 @@ contract OwnershipTransferPeriphery is BatchBuilder {
 
         owner = Ownable(peripheryAddresses.irmRegistry).owner();
         if (owner != multisigAddresses.labs) {
-            if (owner != getDeployer()) {
+            if (owner == getDeployer()) {
                 console.log("+ Transferring ownership of IRMRegistry to %s", multisigAddresses.labs);
                 transferOwnership(peripheryAddresses.irmRegistry, multisigAddresses.labs);
             } else {
@@ -47,7 +47,7 @@ contract OwnershipTransferPeriphery is BatchBuilder {
 
         owner = Ownable(peripheryAddresses.governedPerspective).owner();
         if (owner != multisigAddresses.labs) {
-            if (owner != getDeployer()) {
+            if (owner == getDeployer()) {
                 console.log("+ Transferring ownership of GovernedPerspective to %s", multisigAddresses.labs);
                 transferOwnership(peripheryAddresses.governedPerspective, multisigAddresses.labs);
             } else {
