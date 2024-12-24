@@ -308,7 +308,7 @@ contract CoreAndPeriphery is BatchBuilder {
                         grantRole(tokenAddresses.EUL, minterRole, nttAddresses.manager);
                     } else {
                         console.log(
-                            "    The deployer no longer has the EUL default admin role to grant the minter role to the NttManager. This must be done manually. Skipping..."
+                            "    ! The deployer no longer has the EUL default admin role to grant the minter role to the NttManager. This must be done manually. Skipping..."
                         );
                     }
                 }
@@ -397,15 +397,21 @@ contract CoreAndPeriphery is BatchBuilder {
                 1e18
             );
 
-            startBroadcast();
-            console.log(
-                "    Setting ProtocolConfig fee receiver to the feeFlowController address %s",
-                peripheryAddresses.feeFlowController
-            );
-            ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(peripheryAddresses.feeFlowController);
-            stopBroadcast();
+            if (ProtocolConfig(coreAddresses.protocolConfig).admin() == getDeployer()) {
+                startBroadcast();
+                console.log(
+                    "    Setting ProtocolConfig fee receiver to the FeeFlowController address %s",
+                    peripheryAddresses.feeFlowController
+                );
+                ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(peripheryAddresses.feeFlowController);
+                stopBroadcast();
+            } else {
+                console.log(
+                    "    ! The deployer no longer has the ProtocolConfig admin role to set the FeeFlowController address. This must be done manually. Skipping..."
+                );
+            }
         } else {
-            console.log("- FeeFlow controller already deployed. Skipping...");
+            console.log("- FeeFlowController already deployed. Skipping...");
         }
 
         if (peripheryAddresses.swapper == address(0) && peripheryAddresses.swapVerifier == address(0)) {
