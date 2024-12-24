@@ -14,7 +14,7 @@ contract Lenses is ScriptUtils {
     function run() public broadcast returns (address[] memory lenses) {
         string memory inputScriptFileName = "08_Lenses_input.json";
         string memory outputScriptFileName = "08_Lenses_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address oracleAdapterRegistry = vm.parseJsonAddress(json, ".oracleAdapterRegistry");
         address kinkIRMFactory = vm.parseJsonAddress(json, ".kinkIRMFactory");
 
@@ -73,7 +73,7 @@ contract LensOracleDeployer is ScriptUtils {
     function run() public broadcast returns (address oracleLens) {
         string memory inputScriptFileName = "08_LensOracle_input.json";
         string memory outputScriptFileName = "08_LensOracle_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address oracleAdapterRegistry = vm.parseJsonAddress(json, ".oracleAdapterRegistry");
 
         oracleLens = execute(oracleAdapterRegistry);
@@ -96,7 +96,7 @@ contract LensIRMDeployer is ScriptUtils {
     function run() public broadcast returns (address irmLens) {
         string memory inputScriptFileName = "08_LensIRM_input.json";
         string memory outputScriptFileName = "08_LensIRM_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address kinkIRMFactory = vm.parseJsonAddress(json, ".kinkIRMFactory");
 
         irmLens = execute(kinkIRMFactory);
@@ -119,7 +119,7 @@ contract LensVaultDeployer is ScriptUtils {
     function run() public broadcast returns (address vaultLens) {
         string memory inputScriptFileName = "08_LensVault_input.json";
         string memory outputScriptFileName = "08_LensVault_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address oracleLens = vm.parseJsonAddress(json, ".oracleLens");
         address utilsLens = vm.parseJsonAddress(json, ".utilsLens");
         address irmLens = vm.parseJsonAddress(json, ".irmLens");
@@ -148,7 +148,7 @@ contract LensUtilsDeployer is ScriptUtils {
     function run() public broadcast returns (address utilsLens) {
         string memory inputScriptFileName = "08_LensUtils_input.json";
         string memory outputScriptFileName = "08_LensUtils_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address oracleLens = vm.parseJsonAddress(json, ".oracleLens");
 
         utilsLens = execute(oracleLens);
@@ -171,7 +171,7 @@ contract LensEulerEarnVaultDeployer is ScriptUtils {
     function run() public broadcast returns (address eulerEarnVaultLens) {
         string memory inputScriptFileName = "08_LensEulerEarnVault_input.json";
         string memory outputScriptFileName = "08_LensEulerEarnVault_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address oracleLens = vm.parseJsonAddress(json, ".oracleLens");
         address utilsLens = vm.parseJsonAddress(json, ".utilsLens");
 

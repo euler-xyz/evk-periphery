@@ -62,7 +62,7 @@ contract CoreAndPeriphery is BatchBuilder {
             NTTAddresses memory
         )
     {
-        string memory json = getInputConfig("50_CoreAndPeriphery_input.json");
+        string memory json = getScriptFile("50_CoreAndPeriphery_input.json");
         Input memory input = Input({
             multisigDAO: vm.parseJsonAddress(json, ".multisigDAO"),
             multisigLabs: vm.parseJsonAddress(json, ".multisigLabs"),
@@ -492,15 +492,24 @@ contract CoreAndPeriphery is BatchBuilder {
         executeBatch();
 
         // save results
+        vm.writeJson(serializeMultisigAddresses(multisigAddresses), getScriptFilePath("MultisigAddresses_output.json"));
+        vm.writeJson(serializeCoreAddresses(coreAddresses), getScriptFilePath("CoreAddresses_output.json"));
         vm.writeJson(
-            serializeMultisigAddresses(multisigAddresses), getInputConfigFilePath("MultisigAddresses_output.json")
+            serializePeripheryAddresses(peripheryAddresses), getScriptFilePath("PeripheryAddresses_output.json")
         );
-        vm.writeJson(serializeCoreAddresses(coreAddresses), getInputConfigFilePath("CoreAddresses_output.json"));
+        vm.writeJson(serializeLensAddresses(lensAddresses), getScriptFilePath("LensAddresses_output.json"));
+        vm.writeJson(serializeNTTAddresses(nttAddresses), getScriptFilePath("NTTAddresses_output.json"));
+
         vm.writeJson(
-            serializePeripheryAddresses(peripheryAddresses), getInputConfigFilePath("PeripheryAddresses_output.json")
+            serializeMultisigAddresses(multisigAddresses), getAddressesFilePath("MultisigAddresses.json", block.chainid)
         );
-        vm.writeJson(serializeLensAddresses(lensAddresses), getInputConfigFilePath("LensAddresses_output.json"));
-        vm.writeJson(serializeNTTAddresses(nttAddresses), getInputConfigFilePath("NTTAddresses_output.json"));
+        vm.writeJson(serializeCoreAddresses(coreAddresses), getAddressesFilePath("CoreAddresses.json", block.chainid));
+        vm.writeJson(
+            serializePeripheryAddresses(peripheryAddresses),
+            getAddressesFilePath("PeripheryAddresses.json", block.chainid)
+        );
+        vm.writeJson(serializeLensAddresses(lensAddresses), getAddressesFilePath("LensAddresses.json", block.chainid));
+        vm.writeJson(serializeNTTAddresses(nttAddresses), getAddressesFilePath("NTTAddresses.json", block.chainid));
 
         return (multisigAddresses, coreAddresses, peripheryAddresses, lensAddresses, nttAddresses);
     }

@@ -116,25 +116,25 @@ abstract contract ScriptExtended is Script {
         }
     }
 
-    function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {
+    function getScriptFilePath(string memory jsonFile) internal view returns (string memory) {
         string memory root = vm.projectRoot();
         return string.concat(root, "/script/", jsonFile);
     }
 
-    function getInputConfig(string memory jsonFile) internal view returns (string memory) {
-        return vm.readFile(getInputConfigFilePath(jsonFile));
+    function getScriptFile(string memory jsonFile) internal view returns (string memory) {
+        return vm.readFile(getScriptFilePath(jsonFile));
+    }
+
+    function getAddressesFilePath(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
+        return string.concat(getAddressesDirPath(), vm.toString(chainId), "/", jsonFile);
     }
 
     function getAddressesJson(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
-        string memory addressesDirPath = getAddressesDirPath();
-
-        if (bytes(addressesDirPath).length == 0 && !isForceNoAddressesDirPath()) {
+        if (!vm.isDir(getAddressesDirPath()) && !isForceNoAddressesDirPath()) {
             revert("getAddressesJson: ADDRESSES_DIR_PATH environment variable is not set");
         }
 
-        try vm.readFile(string.concat(addressesDirPath, vm.toString(chainId), "/", jsonFile)) returns (
-            string memory result
-        ) {
+        try vm.readFile(getAddressesFilePath(jsonFile, chainId)) returns (string memory result) {
             return result;
         } catch {
             return "";

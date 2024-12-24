@@ -11,7 +11,7 @@ contract MockERC20MintableDeployer is ScriptUtils {
     function run() public broadcast returns (address mockERC20Mintable) {
         string memory inputScriptFileName = "00_MockERC20Mintable_input.json";
         string memory outputScriptFileName = "00_MockERC20Mintable_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         string memory name = vm.parseJsonString(json, ".name");
         string memory symbol = vm.parseJsonString(json, ".symbol");
         uint8 decimals = uint8(vm.parseJsonUint(json, ".decimals"));
@@ -43,7 +43,7 @@ contract ERC20BurnableMintableDeployer is ScriptUtils {
     function run() public broadcast returns (address erc20BurnableMintable) {
         string memory inputScriptFileName = "00_ERC20BurnableMintable_input.json";
         string memory outputScriptFileName = "00_ERC20BurnableMintable_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         string memory name = vm.parseJsonString(json, ".name");
         string memory symbol = vm.parseJsonString(json, ".symbol");
         uint8 decimals = uint8(vm.parseJsonUint(json, ".decimals"));
@@ -75,7 +75,7 @@ contract RewardTokenDeployer is ScriptUtils {
     function run() public broadcast returns (address rewardToken) {
         string memory inputScriptFileName = "00_RewardToken_input.json";
         string memory outputScriptFileName = "00_RewardToken_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address evc = vm.parseJsonAddress(json, ".evc");
         address receiver = vm.parseJsonAddress(json, ".receiver");
         address underlying = vm.parseJsonAddress(json, ".underlying");

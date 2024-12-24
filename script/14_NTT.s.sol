@@ -13,7 +13,7 @@ contract NttManagerDeployer is ScriptUtils {
     function run() public broadcast returns (address manager) {
         string memory inputScriptFileName = "14_NttManager_input.json";
         string memory outputScriptFileName = "14_NttManager_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address token = vm.parseJsonAddress(json, ".token");
         bool isLockingMode = vm.parseJsonBool(json, ".isLockingMode");
         uint16 chainId = uint16(vm.parseJsonUint(json, ".chainId"));
@@ -61,7 +61,7 @@ contract WormholeTransceiverDeployer is ScriptUtils {
     function run() public broadcast returns (address transceiver) {
         string memory inputScriptFileName = "14_WormholeTransceiver_input.json";
         string memory outputScriptFileName = "14_WormholeTransceiver_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address nttManager = vm.parseJsonAddress(json, ".nttManager");
         address wormholeCoreBridge = vm.parseJsonAddress(json, ".wormholeCoreBridge");
         address wormholeRelayer = vm.parseJsonAddress(json, ".wormholeRelayer");

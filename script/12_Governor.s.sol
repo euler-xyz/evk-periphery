@@ -31,7 +31,7 @@ contract GovernorAccessControlDeployer is ScriptUtils {
     function run() public broadcast returns (address governorAccessControl) {
         string memory inputScriptFileName = "12_GovernorAccessControl_input.json";
         string memory outputScriptFileName = "12_GovernorAccessControl_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address evc = vm.parseJsonAddress(json, ".evc");
 
         governorAccessControl = execute(evc);
@@ -54,7 +54,7 @@ contract GovernorAccessControlEmergencyDeployer is ScriptUtils {
     function run() public broadcast returns (address governorAccessControlEmergency) {
         string memory inputScriptFileName = "12_GovernorAccessControlEmergency_input.json";
         string memory outputScriptFileName = "12_GovernorAccessControlEmergency_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address evc = vm.parseJsonAddress(json, ".evc");
 
         governorAccessControlEmergency = execute(evc);

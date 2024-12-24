@@ -14,7 +14,7 @@ contract EVaultDeployer is ScriptUtils {
     function run() public broadcast returns (address oracleRouter, address eVault) {
         string memory inputScriptFileName = "07_EVault_input.json";
         string memory outputScriptFileName = "07_EVault_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address oracleRouterFactory = vm.parseJsonAddress(json, ".oracleRouterFactory");
         bool deployRouterForOracle = vm.parseJsonBool(json, ".deployRouterForOracle");
         address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
@@ -88,7 +88,7 @@ contract EVaultSingletonEscrowDeployer is ScriptUtils {
     function run() public broadcast returns (address eVault) {
         string memory inputScriptFileName = "07_EVaultSingletonEscrow_input.json";
         string memory outputScriptFileName = "07_EVaultSingletonEscrow_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address evc = vm.parseJsonAddress(json, ".evc");
         address escrowedCollateralPerspective = vm.parseJsonAddress(json, ".escrowedCollateralPerspective");
         address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
@@ -153,7 +153,7 @@ contract OracleRouterDeployer is ScriptUtils {
     function run() public broadcast returns (address oracleRouter) {
         string memory inputScriptFileName = "07_OracleRouter_input.json";
         string memory outputScriptFileName = "07_OracleRouter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address oracleRouterFactory = vm.parseJsonAddress(json, ".oracleRouterFactory");
 
         oracleRouter = execute(oracleRouterFactory);

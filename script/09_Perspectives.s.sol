@@ -15,7 +15,7 @@ contract EVKPerspectives is ScriptUtils {
     function run() public broadcast returns (address[] memory perspectives) {
         string memory inputScriptFileName = "09_EVKPerspectives_input.json";
         string memory outputScriptFileName = "09_EVKPerspectives_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
         address oracleRouterFactory = vm.parseJsonAddress(json, ".oracleRouterFactory");
         address oracleAdapterRegistry = vm.parseJsonAddress(json, ".oracleAdapterRegistry");
@@ -139,7 +139,7 @@ contract EVKFactoryPerspectiveDeployer is ScriptUtils {
     function run() public broadcast returns (address evkFactoryPerspective) {
         string memory inputScriptFileName = "09_EVKFactoryPerspective_input.json";
         string memory outputScriptFileName = "09_EVKFactoryPerspective_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
 
         evkFactoryPerspective = execute(eVaultFactory);
@@ -162,7 +162,7 @@ contract PerspectiveGovernedDeployer is ScriptUtils {
     function run() public broadcast returns (address governedPerspective) {
         string memory inputScriptFileName = "09_PerspectiveGoverned_input.json";
         string memory outputScriptFileName = "09_PerspectiveGoverned_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address evc = vm.parseJsonAddress(json, ".evc");
 
         governedPerspective = execute(evc);
@@ -185,7 +185,7 @@ contract EVKPerspectiveEscrowedCollateralDeployer is ScriptUtils {
     function run() public broadcast returns (address escrowedCollateralPerspective) {
         string memory inputScriptFileName = "09_EVKPerspectiveEscrowedCollateral_input.json";
         string memory outputScriptFileName = "09_EVKPerspectiveEscrowedCollateral_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
 
         escrowedCollateralPerspective = execute(eVaultFactory);
@@ -210,7 +210,7 @@ contract EVKPerspectiveEulerUngoverned0xDeployer is ScriptUtils {
     function run() public broadcast returns (address eulerUngoverned0xPerspective) {
         string memory inputScriptFileName = "09_EVKPerspectiveEulerUngoverned0x_input.json";
         string memory outputScriptFileName = "09_EVKPerspectiveEulerUngoverned0x_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
         address oracleRouterFactory = vm.parseJsonAddress(json, ".oracleRouterFactory");
         address oracleAdapterRegistry = vm.parseJsonAddress(json, ".oracleAdapterRegistry");
@@ -311,7 +311,7 @@ contract EVKPerspectiveEulerUngovernedNzxDeployer is ScriptUtils {
     function run() public broadcast returns (address eulerUngovernedNzxPerspective) {
         string memory inputScriptFileName = "09_EVKPerspectiveEulerUngovernedNzx_input.json";
         string memory outputScriptFileName = "09_EVKPerspectiveEulerUngovernedNzx_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
         address oracleRouterFactory = vm.parseJsonAddress(json, ".oracleRouterFactory");
         address oracleAdapterRegistry = vm.parseJsonAddress(json, ".oracleAdapterRegistry");
@@ -418,7 +418,7 @@ contract EulerEarnPerspectives is ScriptUtils {
     function run() public broadcast returns (address[] memory perspectives) {
         string memory inputScriptFileName = "09_EulerEarnPerspectives_input.json";
         string memory outputScriptFileName = "09_EulerEarnPerspectives_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address eulerEarnFactory = vm.parseJsonAddress(json, ".eulerEarnFactory");
 
         perspectives = execute(eulerEarnFactory);

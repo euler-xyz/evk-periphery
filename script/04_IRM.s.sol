@@ -9,7 +9,7 @@ contract KinkIRM is ScriptUtils {
     function run() public broadcast returns (address irm) {
         string memory inputScriptFileName = "04_KinkIRM_input.json";
         string memory outputScriptFileName = "04_KinkIRM_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address kinkIRMFactory = vm.parseJsonAddress(json, ".kinkIRMFactory");
         uint256 baseRate = vm.parseJsonUint(json, ".baseRate");
         uint256 slope1 = vm.parseJsonUint(json, ".slope1");

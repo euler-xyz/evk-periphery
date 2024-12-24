@@ -23,7 +23,7 @@ contract ChainlinkAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_ChainlinkAdapter_input.json";
         string memory outputScriptFileName = "03_ChainlinkAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
         address base = vm.parseJsonAddress(json, ".base");
@@ -66,7 +66,7 @@ contract ChainlinkInfrequentAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_ChainlinkInfrequentAdapter_input.json";
         string memory outputScriptFileName = "03_ChainlinkInfrequentAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
         address base = vm.parseJsonAddress(json, ".base");
@@ -109,7 +109,7 @@ contract ChronicleAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_ChronicleAdapter_input.json";
         string memory outputScriptFileName = "03_ChronicleAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
         address base = vm.parseJsonAddress(json, ".base");
@@ -152,7 +152,7 @@ contract LidoAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_LidoAdapter_input.json";
         string memory outputScriptFileName = "03_LidoAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
 
@@ -184,7 +184,7 @@ contract LidoFundamentalAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_LidoFundamentalAdapter_input.json";
         string memory outputScriptFileName = "03_LidoFundamentalAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
 
@@ -218,7 +218,7 @@ contract PythAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_PythAdapter_input.json";
         string memory outputScriptFileName = "03_PythAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
         address pyth = vm.parseJsonAddress(json, ".pyth");
@@ -267,7 +267,7 @@ contract RedstoneAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_RedstoneAdapter_input.json";
         string memory outputScriptFileName = "03_RedstoneAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
         address base = vm.parseJsonAddress(json, ".base");
@@ -324,7 +324,7 @@ contract CrossAdapterDeployer is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_CrossAdapter_input.json";
         string memory outputScriptFileName = "03_CrossAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
         address base = vm.parseJsonAddress(json, ".base");
@@ -370,7 +370,7 @@ contract UniswapAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_UniswapAdapter_input.json";
         string memory outputScriptFileName = "03_UniswapAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
         address tokenA = vm.parseJsonAddress(json, ".tokenA");
@@ -416,7 +416,7 @@ contract FixedRateAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_FixedRateAdapter_input.json";
         string memory outputScriptFileName = "03_FixedRateAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
         address base = vm.parseJsonAddress(json, ".base");
@@ -451,7 +451,7 @@ contract RateProviderAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_RateProviderAdapter_input.json";
         string memory outputScriptFileName = "03_RateProviderAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
         address base = vm.parseJsonAddress(json, ".base");
@@ -491,7 +491,7 @@ contract PendleAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_PendleAdapter_input.json";
         string memory outputScriptFileName = "03_PendleAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
         address pendleOracle = vm.parseJsonAddress(json, ".pendleOracle");
@@ -537,7 +537,7 @@ contract IdleTranchesAdapter is ScriptUtils {
     function run() public broadcast returns (address adapter) {
         string memory inputScriptFileName = "03_IdleTranchesAdapter_input.json";
         string memory outputScriptFileName = "03_IdleTranchesAdapter_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
         bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
         address cdo = vm.parseJsonAddress(json, ".cdo");

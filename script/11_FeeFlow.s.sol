@@ -9,7 +9,7 @@ contract FeeFlow is ScriptUtils {
     function run() public broadcast returns (address feeFlowController) {
         string memory inputScriptFileName = "11_FeeFlow_input.json";
         string memory outputScriptFileName = "11_FeeFlow_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address evc = vm.parseJsonAddress(json, ".evc");
         uint256 initPrice = vm.parseJsonUint(json, ".initPrice");
         address paymentToken = vm.parseJsonAddress(json, ".paymentToken");

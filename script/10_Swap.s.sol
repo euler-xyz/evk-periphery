@@ -13,7 +13,7 @@ contract Swap is ScriptUtils {
     function run() public broadcast returns (address swapper, address swapVerifier) {
         string memory inputScriptFileName = "10_Swap_input.json";
         string memory outputScriptFileName = "10_Swap_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address uniswapRouterV2 = vm.parseJsonAddress(json, ".uniswapRouterV2");
         address uniswapRouterV3 = vm.parseJsonAddress(json, ".uniswapRouterV3");
 
