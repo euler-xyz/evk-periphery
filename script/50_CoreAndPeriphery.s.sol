@@ -158,7 +158,8 @@ contract CoreAndPeriphery is BatchBuilder {
             governorAddresses.eVaultFactoryGovernor = deployer.deploy();
 
             bytes32 pauseGuardianRole = FactoryGovernor(governorAddresses.eVaultFactoryGovernor).PAUSE_GUARDIAN_ROLE();
-            bytes32 unpauseAdminRole = FactoryGovernor(governorAddresses.eVaultFactoryGovernor).UNPAUSE_ADMIN_ROLE();
+            bytes32 unpauseGuardianRole =
+                FactoryGovernor(governorAddresses.eVaultFactoryGovernor).UNPAUSE_GUARDIAN_ROLE();
 
             startBroadcast();
             console.log("    Granting pause guardian role to address %s", multisigAddresses.labs);
@@ -169,8 +170,10 @@ contract CoreAndPeriphery is BatchBuilder {
                 pauseGuardianRole, EVAULT_FACTORY_GOVERNOR_PAUSER
             );
 
-            console.log("    Granting unpause admin role to address %s", multisigAddresses.labs);
-            AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.labs);
+            console.log("    Granting unpause guardian role to address %s", multisigAddresses.labs);
+            AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(
+                unpauseGuardianRole, multisigAddresses.labs
+            );
             stopBroadcast();
         } else {
             console.log("- EVault factory governor already deployed. Skipping...");

@@ -13,8 +13,8 @@ contract FactoryGovernorTests is EVaultTestBase {
     address depositor;
     address guardian;
     address guardian2;
-    address unpauseAdmin;
-    address unpauseAdmin2;
+    address unpauseGuardian;
+    address unpauseGuardian2;
 
     FactoryGovernor factoryGovernor;
 
@@ -24,8 +24,8 @@ contract FactoryGovernorTests is EVaultTestBase {
         depositor = makeAddr("depositor");
         guardian = makeAddr("guardian");
         guardian2 = makeAddr("guardian2");
-        unpauseAdmin = makeAddr("unpauseAdmin");
-        unpauseAdmin2 = makeAddr("unpauseAdmin2");
+        unpauseGuardian = makeAddr("unpauseGuardian");
+        unpauseGuardian2 = makeAddr("unpauseGuardian2");
 
         startHoax(depositor);
 
@@ -41,9 +41,9 @@ contract FactoryGovernorTests is EVaultTestBase {
         vm.prank(admin);
         factoryGovernor.grantRole(guardianRole, guardian);
 
-        bytes32 unpauseAdminRole = factoryGovernor.UNPAUSE_ADMIN_ROLE();
+        bytes32 unpauseGuardianRole = factoryGovernor.UNPAUSE_GUARDIAN_ROLE();
         vm.prank(admin);
-        factoryGovernor.grantRole(unpauseAdminRole, unpauseAdmin);
+        factoryGovernor.grantRole(unpauseGuardianRole, unpauseGuardian);
 
         vm.prank(admin);
         factory.setUpgradeAdmin(address(factoryGovernor));
@@ -100,14 +100,14 @@ contract FactoryGovernorTests is EVaultTestBase {
         vm.expectRevert();
         factoryGovernor.pause(address(factory));
 
-        vm.prank(unpauseAdmin);
+        vm.prank(unpauseGuardian);
         vm.expectRevert();
         factoryGovernor.pause(address(factory));
     }
 
-    function test_FactoryGovernor_unpauseAdminCanUnpause() external {
+    function test_FactoryGovernor_unpauseGuardianCanUnpause() external {
         // not paused yet
-        vm.prank(unpauseAdmin);
+        vm.prank(unpauseGuardian);
         vm.expectRevert("not paused");
         factoryGovernor.unpause(address(factory));
 
@@ -115,13 +115,13 @@ contract FactoryGovernorTests is EVaultTestBase {
         vm.prank(guardian);
         factoryGovernor.pause(address(factory));
 
-        vm.prank(unpauseAdmin);
+        vm.prank(unpauseGuardian);
         vm.expectEmit(true, false, false, false);
-        emit FactoryGovernor.Unpaused(unpauseAdmin, address(factory), oldImplementation);
+        emit FactoryGovernor.Unpaused(unpauseGuardian, address(factory), oldImplementation);
         factoryGovernor.unpause(address(factory));
 
         // not paused anymore
-        vm.prank(unpauseAdmin);
+        vm.prank(unpauseGuardian);
         vm.expectRevert("not paused");
         factoryGovernor.unpause(address(factory));
 
@@ -280,42 +280,42 @@ contract FactoryGovernorTests is EVaultTestBase {
         factoryGovernor.pause(address(factory));
     }
 
-    function test_FactoryGovernor_addUnpauseAdmins() external {
+    function test_FactoryGovernor_addunpauseGuardians() external {
         vm.prank(guardian);
         factoryGovernor.pause(address(factory));
 
-        bytes32 unpauseAdminRole = factoryGovernor.UNPAUSE_ADMIN_ROLE();
+        bytes32 unpauseGuardianRole = factoryGovernor.UNPAUSE_GUARDIAN_ROLE();
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, unpauseAdmin2, unpauseAdminRole
+                IAccessControl.AccessControlUnauthorizedAccount.selector, unpauseGuardian2, unpauseGuardianRole
             )
         );
-        vm.prank(unpauseAdmin2);
+        vm.prank(unpauseGuardian2);
         factoryGovernor.unpause(address(factory));
 
         vm.prank(admin);
-        factoryGovernor.grantRole(unpauseAdminRole, unpauseAdmin2);
+        factoryGovernor.grantRole(unpauseGuardianRole, unpauseGuardian2);
 
-        vm.prank(unpauseAdmin2);
+        vm.prank(unpauseGuardian2);
         factoryGovernor.unpause(address(factory));
     }
 
-    function test_FactoryGovernor_removeUnpauseAdmins() external {
+    function test_FactoryGovernor_removeunpauseGuardians() external {
         vm.prank(guardian);
         factoryGovernor.pause(address(factory));
 
-        bytes32 unpauseAdminRole = factoryGovernor.UNPAUSE_ADMIN_ROLE();
+        bytes32 unpauseGuardianRole = factoryGovernor.UNPAUSE_GUARDIAN_ROLE();
 
         vm.prank(admin);
-        factoryGovernor.revokeRole(unpauseAdminRole, unpauseAdmin);
+        factoryGovernor.revokeRole(unpauseGuardianRole, unpauseGuardian);
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, unpauseAdmin, unpauseAdminRole
+                IAccessControl.AccessControlUnauthorizedAccount.selector, unpauseGuardian, unpauseGuardianRole
             )
         );
-        vm.prank(unpauseAdmin);
+        vm.prank(unpauseGuardian);
         factoryGovernor.unpause(address(factory));
     }
 

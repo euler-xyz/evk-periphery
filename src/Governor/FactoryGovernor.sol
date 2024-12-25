@@ -16,8 +16,8 @@ import {ReadOnlyProxy} from "./ReadOnlyProxy.sol";
 contract FactoryGovernor is AccessControlEnumerable {
     /// @notice Role identifier for the pause guardian role.
     bytes32 public constant PAUSE_GUARDIAN_ROLE = keccak256("PAUSE_GUARDIAN_ROLE");
-    /// @notice Role identifier for admin allowed to unpause the factory.
-    bytes32 public constant UNPAUSE_ADMIN_ROLE = keccak256("UNPAUSE_ADMIN_ROLE");
+    /// @notice Role identifier for the unpause guardian role.
+    bytes32 public constant UNPAUSE_GUARDIAN_ROLE = keccak256("UNPAUSE_GUARDIAN_ROLE");
 
     /// @dev Address of the read only proxy deployed during the latest pause
     address internal latestReadOnlyProxy;
@@ -83,7 +83,7 @@ contract FactoryGovernor is AccessControlEnumerable {
     /// @notice Unpauses all upgradeable vaults by installing the previous implementation,
     /// stored in the read only proxy
     /// @param factory Address of the factory to unpause.
-    function unpause(address factory) external onlyRole(UNPAUSE_ADMIN_ROLE) {
+    function unpause(address factory) external onlyRole(UNPAUSE_GUARDIAN_ROLE) {
         address implementation = GenericFactory(factory).implementation();
 
         if (implementation == latestReadOnlyProxy) {
