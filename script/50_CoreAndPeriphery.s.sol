@@ -283,7 +283,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 NttManager(nttAddresses.manager).setTransceiver(nttAddresses.transceiver);
 
                 console.log("    Setting NttManager outbound limit");
-                NttManager(nttAddresses.manager).setOutboundLimit(1e6 * 1e18);
+                NttManager(nttAddresses.manager).setOutboundLimit(1e5 * 1e18);
 
                 console.log("    Setting NttManager threshold");
                 NttManager(nttAddresses.manager).setThreshold(1);
@@ -309,7 +309,7 @@ contract CoreAndPeriphery is BatchBuilder {
 
                     console.log("    Setting NttManager peer to %s", nttAddressesMainnet.manager);
                     NttManager(nttAddresses.manager).setPeer(
-                        chainIdMainnet, bytes32(uint256(uint160(nttAddressesMainnet.manager))), 18, 1e5 * 1e18
+                        chainIdMainnet, bytes32(uint256(uint160(nttAddressesMainnet.manager))), 18, 1e4 * 1e18
                     );
 
                     console.log("    Setting WormholeTransceiver peer to %s", nttAddressesMainnet.transceiver);
@@ -369,7 +369,7 @@ contract CoreAndPeriphery is BatchBuilder {
 
                     console.log("    Setting NttManager peer to %s", nttAddressesOther.manager);
                     NttManager(nttAddresses.manager).setPeer(
-                        chainIdOther, bytes32(uint256(uint160(nttAddressesOther.manager))), 18, 1e5 * 1e18
+                        chainIdOther, bytes32(uint256(uint160(nttAddressesOther.manager))), 18, 1e4 * 1e18
                     );
 
                     console.log("    Setting WormholeTransceiver peer to %s", nttAddressesOther.transceiver);
