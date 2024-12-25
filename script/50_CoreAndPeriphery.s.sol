@@ -53,6 +53,7 @@ contract CoreAndPeriphery is BatchBuilder {
         address uniswapV3Router;
         address wormholeCoreBridge;
         address wormholeRelayer;
+        address transceiverStructs;
         uint256 feeFlowInitPrice;
     }
 
@@ -78,8 +79,23 @@ contract CoreAndPeriphery is BatchBuilder {
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
             wormholeCoreBridge: vm.parseJsonAddress(json, ".wormholeCoreBridge"),
             wormholeRelayer: vm.parseJsonAddress(json, ".wormholeRelayer"),
+            transceiverStructs: vm.parseJsonAddress(json, ".transceiverStructs"),
             feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice")
         });
+
+        if (
+            !isBroadcast() && nttAddresses.manager == address(0) && nttAddresses.transceiver == address(0)
+                && input.wormholeCoreBridge != address(0) && input.wormholeRelayer != address(0)
+        ) {
+            startBroadcast();
+            bytes memory bytecode = vm.getCode("out-ntt/TransceiverStructs.sol/TransceiverStructs.json");
+            address lib;
+            assembly {
+                lib := create(0, add(bytecode, 0x20), mload(bytecode))
+            }
+            stopBroadcast();
+            require(input.transceiverStructs == lib, "TransceiverStructs address mismatch");
+        }
 
         if (
             multisigAddresses.DAO == address(0) && multisigAddresses.labs == address(0)
@@ -349,7 +365,6 @@ contract CoreAndPeriphery is BatchBuilder {
                         continue;
                     }
 
-                    verifyNTTAddresses(nttAddressesOther);
                     uint16 chainIdOther = NttManager(nttAddressesOther.manager).chainId();
 
                     console.log("    Setting NttManager peer to %s", nttAddressesOther.manager);
@@ -385,30 +400,34 @@ contract CoreAndPeriphery is BatchBuilder {
         }
 
         if (peripheryAddresses.feeFlowController == address(0)) {
-            console.log("+ Deploying FeeFlow...");
-            FeeFlow deployer = new FeeFlow();
-            peripheryAddresses.feeFlowController = deployer.deploy(
-                coreAddresses.evc,
-                input.feeFlowInitPrice,
-                tokenAddresses.EUL,
-                address(0x000000000000000000000000000000000000dEaD),
-                14 days,
-                2e18,
-                1e18
-            );
+            if (input.feeFlowInitPrice != 0) {
+                console.log("+ Deploying FeeFlow...");
+                FeeFlow deployer = new FeeFlow();
+                peripheryAddresses.feeFlowController = deployer.deploy(
+                    coreAddresses.evc,
+                    input.feeFlowInitPrice,
+                    tokenAddresses.EUL,
+                    address(0x000000000000000000000000000000000000dEaD),
+                    14 days,
+                    2e18,
+                    1e18
+                );
 
-            if (ProtocolConfig(coreAddresses.protocolConfig).admin() == getDeployer()) {
-                startBroadcast();
-                console.log(
-                    "    Setting ProtocolConfig fee receiver to the FeeFlowController address %s",
-                    peripheryAddresses.feeFlowController
-                );
-                ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(peripheryAddresses.feeFlowController);
-                stopBroadcast();
+                if (ProtocolConfig(coreAddresses.protocolConfig).admin() == getDeployer()) {
+                    startBroadcast();
+                    console.log(
+                        "    Setting ProtocolConfig fee receiver to the FeeFlowController address %s",
+                        peripheryAddresses.feeFlowController
+                    );
+                    ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(peripheryAddresses.feeFlowController);
+                    stopBroadcast();
+                } else {
+                    console.log(
+                        "    ! The deployer no longer has the ProtocolConfig admin role to set the FeeFlowController address. This must be done manually. Skipping..."
+                    );
+                }
             } else {
-                console.log(
-                    "    ! The deployer no longer has the ProtocolConfig admin role to set the FeeFlowController address. This must be done manually. Skipping..."
-                );
+                console.log("! feeFlowInitPrice is not set for FeeFlow deployment. Skipping...");
             }
         } else {
             console.log("- FeeFlowController already deployed. Skipping...");
@@ -541,7 +560,7 @@ contract CoreAndPeriphery is BatchBuilder {
         vm.writeJson(serializeLensAddresses(lensAddresses), getScriptFilePath("LensAddresses_output.json"));
         vm.writeJson(serializeNTTAddresses(nttAddresses), getScriptFilePath("NTTAddresses_output.json"));
 
-        if (isBroadcast()) {
+        if (isBroadcast() && !isLocalForkDeployment()) {
             vm.writeJson(
                 serializeMultisigAddresses(multisigAddresses),
                 getAddressesFilePath("MultisigAddresses.json", block.chainid)

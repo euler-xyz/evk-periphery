@@ -1,7 +1,7 @@
 #!/bin/bash
 
 source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "$(./script/utils/determineArgs.sh "$@")"
 eval "set -- $SCRIPT_ARGS"
 
 echo "Welcome to the deployment script!"
@@ -1117,18 +1117,19 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
             addressZero=0x0000000000000000000000000000000000000000
-            addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
 
-            if [ -n "$addresses_dir_path" ]; then
-                multisig_dao=$(jq -r '.DAO' "$addresses_dir_path/$chainId/MultisigAddresses.json" 2>/dev/null)
-                multisig_labs=$(jq -r '.labs' "$addresses_dir_path/$chainId/MultisigAddresses.json" 2>/dev/null)
-                multisig_security_council=$(jq -r '.securityCouncil' "$addresses_dir_path/$chainId/MultisigAddresses.json" 2>/dev/null)
-                evc=$(jq -r '.evc' "$addresses_dir_path/$chainId/CoreAddresses.json" 2>/dev/null)
-                swapper=$(jq -r '.swapper' "$addresses_dir_path/$chainId/PeripheryAddresses.json" 2>/dev/null)
-                nttManager=$(jq -r '.manager' "$addresses_dir_path/$chainId/NTTAddresses.json" 2>/dev/null)
-                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/$chainId/PeripheryAddresses.json" 2>/dev/null)
+            addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
+            mkdir -p "$addresses_dir_path"
+
+            if [ "$(ls -A "$addresses_dir_path")" ]; then
+                multisig_dao=$(jq -r '.DAO' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                multisig_labs=$(jq -r '.labs' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                multisig_security_council=$(jq -r '.securityCouncil' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
+                swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+                nttManager=$(jq -r '.manager' "$addresses_dir_path/NTTAddresses.json" 2>/dev/null)
+                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
             fi
 
             if [ -z "$multisig_dao" ] || [ "$multisig_dao" == "$addressZero" ]; then
@@ -1152,7 +1153,7 @@ while true; do
             fi
             
             if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ]; then
-                read -p "Enter the EUL init price for Fee Flow (default: 1e18): " init_price
+                read -p "Enter the EUL init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
             fi
 
             multisig_dao=${multisig_dao:-$addressZero}
@@ -1167,20 +1168,23 @@ while true; do
 
             nttCompilerOptions="--optimize --optimizer-runs 200 --via-ir --use 0.8.19 --out out-ntt"
             
-            if ([ -z "$addresses_dir_path" ] || [ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]) && ([ "$wormhole_core_bridge" != "$addressZero" ]); then
+            if ([ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]) && ([ "$wormhole_core_bridge" != "$addressZero" ]); then
                 echo "Deploying TransceiverStructs library..."
-                result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $broadcast $nttCompilerOptions $@)
-                
-                if [ "$broadcast" = "--broadcast" ]; then
-                    libraryAddress=$(jq -r '.deployedTo' <<< "$result")
+                result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $broadcast $nttCompilerOptions --force $@)
 
-                    if [ -z "$libraryAddress" ]; then
-                        echo "Failed to deploy TransceiverStructs library. Exiting."
-                        exit 1
-                    elif [ "$libraryAddress" != "$addressZero" ]; then
-                        forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$libraryAddress $nttCompilerOptions
-                    fi
+                if [ "$broadcast" = "--broadcast" ]; then
+                    transceiverStructs=$(jq -r '.deployedTo' <<< "$result")
+                else
+                    deployerAddress=$(cast wallet address $@)
+                    transceiverStructs=$(cast compute-address $deployerAddress --rpc-url $DEPLOYMENT_RPC_URL | grep -oE '0x[a-fA-F0-9]{40}')
                 fi
+
+                if [ -z "$transceiverStructs" ] && [ "$broadcast" = "--broadcast" ]; then
+                    echo "Failed to deploy TransceiverStructs library. Exiting."
+                    exit 1
+                fi
+
+                forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiverStructs $nttCompilerOptions
             fi
 
             jq -n \
@@ -1192,6 +1196,7 @@ while true; do
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
                 --arg wormholeCoreBridge "$wormhole_core_bridge" \
                 --arg wormholeRelayer "$wormhole_relayer" \
+                --arg transceiverStructs "$transceiverStructs" \
                 --arg initPrice "$init_price" \
                 '{
                     multisigDAO: $multisigDAO,
@@ -1202,6 +1207,7 @@ while true; do
                     uniswapV3Router: $uniswapRouterV3,
                     wormholeCoreBridge: $wormholeCoreBridge,
                     wormholeRelayer: $wormholeRelayer,
+                    transceiverStructs: $transceiverStructs,
                     feeFlowInitPrice: $initPrice
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
@@ -1299,7 +1305,7 @@ while true; do
 
     if script/utils/executeForgeScript.sh $scriptName "$@" $verify $dry_run; then
         source .env
-        eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+        eval "$(./script/utils/determineArgs.sh "$@")"
         eval "set -- $SCRIPT_ARGS"
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
         deployment_dir="script/deployments/$deployment_name/$chainId"

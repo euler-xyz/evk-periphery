@@ -112,7 +112,7 @@ input=$1
 shift
 
 source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "$(./script/utils/determineArgs.sh "$@")"
 eval "set -- $SCRIPT_ARGS"
 
 if [ -d "$input" ]; then

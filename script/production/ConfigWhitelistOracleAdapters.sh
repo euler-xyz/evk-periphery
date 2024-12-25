@@ -10,7 +10,7 @@ csv_file="$1"
 shift
 
 source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "$(./script/utils/determineArgs.sh "$@")"
 eval "set -- $SCRIPT_ARGS"
 
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"

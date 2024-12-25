@@ -80,10 +80,6 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("broadcast", string("")), "--broadcast");
     }
 
-    function isForceNoAddressesDirPath() internal view returns (bool) {
-        return _strEq(vm.envOr("force_no_addresses_dir_path", string("")), "--force-no-addresses-dir-path");
-    }
-
     function isBatchViaSafe() internal view returns (bool) {
         return _strEq(vm.envOr("batch_via_safe", string("")), "--batch-via-safe");
     }
@@ -94,8 +90,14 @@ abstract contract ScriptExtended is Script {
 
     function getAddressesDirPath() internal view returns (string memory) {
         string memory path = vm.envOr("ADDRESSES_DIR_PATH", string(""));
-        return
+        path =
             bytes(path).length == 0 ? "" : bytes(path)[bytes(path).length - 1] == "/" ? path : string.concat(path, "/");
+
+        require(
+            vm.isDir(path),
+            "getAddressesDirPath: ADDRESSES_DIR_PATH environment variable is not set or the directory does not exist"
+        );
+        return path;
     }
 
     function getAddressFromJson(string memory json, string memory key) internal pure returns (address) {
@@ -130,10 +132,6 @@ abstract contract ScriptExtended is Script {
     }
 
     function getAddressesJson(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
-        if (!vm.isDir(getAddressesDirPath()) && !isForceNoAddressesDirPath()) {
-            revert("getAddressesJson: ADDRESSES_DIR_PATH environment variable is not set");
-        }
-
         try vm.readFile(getAddressesFilePath(jsonFile, chainId)) returns (string memory result) {
             return result;
         } catch {

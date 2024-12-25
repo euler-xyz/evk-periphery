@@ -1,7 +1,7 @@
 #!/bin/bash
 
 source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "$(./script/utils/determineArgs.sh "$@")"
 eval "set -- $SCRIPT_ARGS"
 
 if ! script/utils/checkEnvironment.sh; then

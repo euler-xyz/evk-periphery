@@ -1,6 +1,14 @@
 # Deployment and management scripts
 
-First, create the `.env` file in the root directory of the repository by copying `.env.example`:
+First, clone the `euler-interfaces` repository in the parent directory of the `evk-periphery` repository:
+
+```sh
+cd .. && git clone https://github.com/euler-xyz/euler-interfaces.git && cd evk-periphery
+```
+
+This is in order to give the scripts access to the addresses of the already deployed contracts.
+
+Second, create the `.env` file in the root directory of the repository by copying `.env.example`:
 
 ```sh
 cp .env.example .env
@@ -15,7 +23,6 @@ It should contain the following environment variables:
 - `SAFE_NONCE` (the Safe nonce which will be used to send transactions via Safe; this is optional and if not provided, the script will try to retrieve it from the Safe)
 - `VERIFIER_URL` (url of the contract verifier, i.e. https://api.polygonscan.com/api)
 - `VERIFIER_API_KEY` (verifier api key)
-- `ADDRESSES_DIR_PATH` (path to the `euler-interfaces/addresses` directory containing the directories with the addresses of the deployed contracts per chain, i.e. `../euler-interfaces/addresses`)
 
 ## Anvil fork
 

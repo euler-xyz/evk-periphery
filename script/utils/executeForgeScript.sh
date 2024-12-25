@@ -4,7 +4,7 @@ scriptPath=$1
 shift
 
 source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "$(./script/utils/determineArgs.sh "$@")"
 eval "set -- $SCRIPT_ARGS"
 
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
@@ -25,11 +25,6 @@ if [[ "$@" == *"--dry-run"* ]]; then
     broadcast=""
 fi
 
-if [[ "$@" == *"--force-no-addresses-dir-path"* ]]; then
-    set -- "${@/--force-no-addresses-dir-path/}"
-    force_no_addresses_dir_path="--force-no-addresses-dir-path"
-fi
-
 if [[ "$@" == *"--safe-address"* ]]; then
     safe_address=$(echo "$@" | grep -o '\--safe-address [^ ]*' | cut -d ' ' -f 2)
     set -- $(echo "$@" | sed "s/--safe-address $safe_address//")
@@ -47,7 +42,6 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
 fi
 
 if ! env broadcast=$broadcast safe_address=$safe_address batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
-    force_no_addresses_dir_path=$force_no_addresses_dir_path \
     forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
     exit 1
 fi

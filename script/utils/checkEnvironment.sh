@@ -1,7 +1,7 @@
 #!/bin/bash
 
 source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "$(./script/utils/determineArgs.sh "$@")"
 
 if ! command -v jq &> /dev/null; then
     echo "jq could not be found. Please install jq first."
@@ -21,6 +21,11 @@ if [[ $DEPLOYMENT_RPC_URL == "http://127.0.0.1:8545" ]]; then
         echo "anvil --fork-url ${FORK_RPC_URL}"
         exit 1
     fi
+fi
+
+if [ -z "$ADDRESSES_DIR_PATH" ] || [ ! -d "$ADDRESSES_DIR_PATH" ]; then
+    echo "Error: ADDRESSES_DIR_PATH environment variable is not set or the directory does not exist. Please set it and try again."
+    exit 1
 fi
 
 if [[ "$@" == *"--verify"* ]]; then

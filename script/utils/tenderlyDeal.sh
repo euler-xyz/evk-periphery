@@ -5,7 +5,7 @@ asset=$2
 dealAmount=$3
 
 source .env
-eval "$(./script/utils/getDeploymentRpcUrl.sh "$@")"
+eval "$(./script/utils/determineArgs.sh "$@")"
 eval "set -- $SCRIPT_ARGS"
 
 if [[ $asset == "ETH" ]]; then
