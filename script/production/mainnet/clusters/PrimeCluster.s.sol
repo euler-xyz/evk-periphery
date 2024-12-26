@@ -187,7 +187,7 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[ezETH  ] = irmETH_LRT;
             cluster.kinkIRMParams[RETH   ] = irmETH_LST;
             cluster.kinkIRMParams[mETH   ] = irmETH_LST;
-            cluster.kinkIRMParams[rsETH  ] = irmETH_LST;
+            cluster.kinkIRMParams[rsETH  ] = irmETH_LRT;
             cluster.kinkIRMParams[ETHx   ] = irmETH_LST;
             cluster.kinkIRMParams[USDC   ] = irmUSD_1;
             cluster.kinkIRMParams[USDT   ] = irmUSD_1;
