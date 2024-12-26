@@ -7,8 +7,7 @@ fi
 
 old_perspective="$1"
 new_perspective="$2"
-shift
-shift
+shift 2
 
 source .env
 eval "$(./script/utils/determineArgs.sh "$@")"
