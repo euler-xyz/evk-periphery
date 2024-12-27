@@ -26,7 +26,10 @@ contract OwnershipTransferCore is BatchBuilder {
             console.log("- ProtocolConfig admin is already set to the desired address. Skipping...");
         }
 
-        if (ProtocolConfig(coreAddresses.protocolConfig).feeReceiver() != peripheryAddresses.feeFlowController) {
+        if (
+            ProtocolConfig(coreAddresses.protocolConfig).feeReceiver() != peripheryAddresses.feeFlowController
+                && peripheryAddresses.feeFlowController != address(0)
+        ) {
             console.log("! ProtocolConfig fee receiver is not the FeeFlowController address yet. Remember to set it!");
         }
 

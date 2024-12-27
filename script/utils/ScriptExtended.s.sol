@@ -191,14 +191,19 @@ abstract contract ScriptExtended is Script {
         return chainId;
     }
 
-    function selectFork(uint256 chainId) internal {
+    function selectFork(uint256 chainId) internal returns (bool) {
         require(forks[0] != 0, "selectFork: default fork not found");
 
         if (forks[chainId] == 0) {
-            forks[chainId] = vm.createFork(vm.envString(string.concat("DEPLOYMENT_RPC_URL_", vm.toString(chainId))));
+            string memory rpcUrl = vm.envOr(string.concat("DEPLOYMENT_RPC_URL_", vm.toString(chainId)), string(""));
+
+            if (bytes(rpcUrl).length == 0) return false;
+
+            forks[chainId] = vm.createFork(rpcUrl);
         }
 
         vm.selectFork(forks[chainId]);
+        return true;
     }
 
     function _strEq(string memory a, string memory b) internal pure returns (bool) {

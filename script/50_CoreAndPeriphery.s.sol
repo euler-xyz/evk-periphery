@@ -329,7 +329,7 @@ contract CoreAndPeriphery is BatchBuilder {
                     NTTAddresses memory nttAddressesHub =
                         deserializeNTTAddresses(getAddressesJson("NTTAddresses.json", HUB_CHAIN_ID));
 
-                    selectFork(HUB_CHAIN_ID);
+                    require(selectFork(HUB_CHAIN_ID), "Failed to select fork for chain HUB_CHAIN_ID");
                     verifyNTTAddresses(nttAddressesHub);
                     uint16 wormholeChainIdHub = NttManager(nttAddressesHub.manager).chainId();
                     selectFork(DEFAULT_FORK_CHAIN_ID);
@@ -433,7 +433,10 @@ contract CoreAndPeriphery is BatchBuilder {
                     continue;
                 }
 
-                selectFork(chainIdOther);
+                if (!selectFork(chainIdOther)) {
+                    console.log("    ! Failed to select fork for chain %s. Skipping...", chainIdOther);
+                    continue;
+                }
                 verifyNTTAddresses(nttAddressesOther);
                 uint16 wormholeChainIdOther = NttManager(nttAddressesOther.manager).chainId();
                 selectFork(DEFAULT_FORK_CHAIN_ID);
