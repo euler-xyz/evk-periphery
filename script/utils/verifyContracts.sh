@@ -126,12 +126,13 @@ function verify_broadcast {
             
             if [ -d "out-ntt" ]; then
                 # try to verify as NTT contracts
-                local library="lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs"
+                local nttSrc="lib/native-token-transfers/evm/src"
+                local library="$nttSrc/libraries/TransceiverStructs.sol:TransceiverStructs"
                 local transceiverStructs=$(cat "out-ntt/NttManager.sol/NttManager.json" | jq -r '.metadata.settings.libraries."'"$library"'"')
-                local verificationOptions="--compiler-version 0.8.19 --num-of-optimizations 200 --via-ir --libraries $library:$transceiverStructs"
-                local compilerOptions="--use 0.8.19 --optimize --optimizer-runs 200 --via-ir --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiverStructs"
+                local verificationOptions="--num-of-optimizations 200 --compiler-version 0.8.19 --via-ir --libraries $library:$transceiverStructs"
+                local compilerOptions="--optimize --optimizer-runs 200 --use 0.8.19 --via-ir --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiverStructs"
 
-                forge clean && forge compile lib/native-token-transfers/evm/src $compilerOptions
+                forge clean && forge compile $nttSrc $compilerOptions
 
                 index=0
                 while true; do
@@ -149,13 +150,14 @@ function verify_broadcast {
                             constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                             ;;
                         *)
-                            break 2
+                            break
                             ;;
                     esac
 
                     verify_contract $contractAddress $contractName "$constructorArgs" $verificationOptions
 
                     if [ $? -eq 0 ]; then
+                        verify_contract $transceiverStructs TransceiverStructs "--constructor-args 0x" $verificationOptions
                         break
                     fi
 
