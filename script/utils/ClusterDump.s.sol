@@ -166,6 +166,71 @@ contract ClusterDump is ScriptUtils {
             vm.writeLine(outputScriptFileName, string.concat("None"));
         }
 
+        outputScriptFileName = "./script/Table 1e. Cluster LTV Ramping.csv";
+        vm.writeLine(
+            outputScriptFileName,
+            string.concat(
+                "\nTable 1. Liquidation loan-to-value (LTV) parameters: collateral (row), debt (column):\nTable 1e. Cluster LTV Ramping:"
+            )
+        );
+
+        vm.writeLine(outputScriptFileName, header);
+
+        for (uint256 i = 0; i < vaultInfo.length; ++i) {
+            line = vaultInfo[i].assetSymbol;
+
+            for (uint256 j = 0; j < vaultInfo.length; ++j) {
+                bool found = false;
+                for (uint256 k = 0; k < vaultInfo[j].collateralLTVInfo.length; ++k) {
+                    if (vaultInfo[j].collateralLTVInfo[k].collateral != vaultInfo[i].vault) continue;
+                    line = string.concat(
+                        line,
+                        ",",
+                        vm.toString(vaultInfo[j].collateralLTVInfo[k].targetTimestamp > block.timestamp ? 1 : 0)
+                    );
+                    found = true;
+                    break;
+                }
+                if (!found) line = string.concat(line, ",", vm.toString(uint256(0)));
+            }
+            vm.writeLine(outputScriptFileName, line);
+            line = "";
+        }
+
+        outputScriptFileName = "./script/Table 1f. External Vaults LTV Ramping.csv";
+        vm.writeLine(
+            outputScriptFileName,
+            string.concat(
+                "\nTable 1. Liquidation loan-to-value (LTV) parameters: collateral (row), debt (column):\nTable 1f. External Vaults LTV Ramping:"
+            )
+        );
+        if (externalVaults.length > 0) {
+            vm.writeLine(outputScriptFileName, header);
+
+            for (uint256 i = 0; i < externalVaults.length; ++i) {
+                line = IEVault(externalVaults[i]).symbol();
+
+                for (uint256 j = 0; j < vaultInfo.length; ++j) {
+                    bool found = false;
+                    for (uint256 k = 0; k < vaultInfo[j].collateralLTVInfo.length; ++k) {
+                        if (vaultInfo[j].collateralLTVInfo[k].collateral != externalVaults[i]) continue;
+                        line = string.concat(
+                            line,
+                            ",",
+                            vm.toString(vaultInfo[j].collateralLTVInfo[k].targetTimestamp > block.timestamp ? 1 : 0)
+                        );
+                        found = true;
+                        break;
+                    }
+                    if (!found) line = string.concat(line, ",", vm.toString(uint256(0)));
+                }
+                vm.writeLine(outputScriptFileName, line);
+                line = "";
+            }
+        } else {
+            vm.writeLine(outputScriptFileName, string.concat("None"));
+        }
+
         outputScriptFileName = "./script/Table 2. Supply & Borrow Caps.csv";
         header = "Asset,Supply Cap (unit),Borrow Cap (unit)";
         vm.writeLine(outputScriptFileName, string.concat("\nTable 2. Supply & Borrow Caps:"));
