@@ -1173,19 +1173,21 @@ while true; do
                 result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $broadcast $nttCompilerOptions --force $@)
 
                 if [ "$broadcast" = "--broadcast" ]; then
-                    transceiverStructs=$(jq -r '.deployedTo' <<< "$result")
+                    transceiver_structs=$(jq -r '.deployedTo' <<< "$result")
                 else
                     deployerAddress=$(cast wallet address $@)
-                    transceiverStructs=$(cast compute-address $deployerAddress --rpc-url $DEPLOYMENT_RPC_URL | grep -oE '0x[a-fA-F0-9]{40}')
+                    transceiver_structs=$(cast compute-address $deployerAddress --rpc-url $DEPLOYMENT_RPC_URL | grep -oE '0x[a-fA-F0-9]{40}')
                 fi
 
-                if [ -z "$transceiverStructs" ] && [ "$broadcast" = "--broadcast" ]; then
+                if [ -z "$transceiver_structs" ] && [ "$broadcast" = "--broadcast" ]; then
                     echo "Failed to deploy TransceiverStructs library. Exiting."
                     exit 1
                 fi
 
-                forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiverStructs $nttCompilerOptions
+                forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiver_structs $nttCompilerOptions
             fi
+
+            transceiver_structs=${transceiver_structs:-$addressZero}
 
             jq -n \
                 --arg multisigDAO "$multisig_dao" \
@@ -1196,7 +1198,7 @@ while true; do
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
                 --arg wormholeCoreBridge "$wormhole_core_bridge" \
                 --arg wormholeRelayer "$wormhole_relayer" \
-                --arg transceiverStructs "$transceiverStructs" \
+                --arg transceiverStructs "$transceiver_structs" \
                 --arg initPrice "$init_price" \
                 '{
                     multisigDAO: $multisigDAO,
