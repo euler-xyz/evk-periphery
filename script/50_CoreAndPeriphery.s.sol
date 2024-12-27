@@ -315,38 +315,38 @@ contract CoreAndPeriphery is BatchBuilder {
                 console.log("    Transferring NttManager pauser capability to %s", multisigAddresses.labs);
                 NttManager(nttAddresses.manager).transferPauserCapability(multisigAddresses.labs);
 
-                console.log("    Setting WormholeTransceiver isWormholeRelayingEnabled");
-                WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(wormholeChainId, true);
-
-                console.log("    Setting WormholeTransceiver isWormholeEvmChain");
-                WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(wormholeChainId, true);
-
                 console.log("    Transferring WormholeTransceiver pauser capability to %s", multisigAddresses.labs);
                 WormholeTransceiver(nttAddresses.transceiver).transferPauserCapability(multisigAddresses.labs);
                 stopBroadcast();
 
                 if (block.chainid != HUB_CHAIN_ID) {
-                    NTTAddresses memory nttAddressesMainnet =
-                        deserializeNTTAddresses(getAddressesJson("NTTAddresses.json", 1));
+                    NTTAddresses memory nttAddressesHub =
+                        deserializeNTTAddresses(getAddressesJson("NTTAddresses.json", HUB_CHAIN_ID));
 
                     selectFork(HUB_CHAIN_ID);
-                    verifyNTTAddresses(nttAddressesMainnet);
-                    uint16 wormholeChainIdMainnet = NttManager(nttAddressesMainnet.manager).chainId();
+                    verifyNTTAddresses(nttAddressesHub);
+                    uint16 wormholeChainIdHub = NttManager(nttAddressesHub.manager).chainId();
                     selectFork(DEFAULT_FORK_CHAIN_ID);
 
                     startBroadcast();
-                    console.log("    Setting NttManager peer to %s", nttAddressesMainnet.manager);
+                    console.log("    Setting NttManager peer to %s", nttAddressesHub.manager);
                     NttManager(nttAddresses.manager).setPeer(
-                        wormholeChainIdMainnet,
-                        bytes32(uint256(uint160(nttAddressesMainnet.manager))),
+                        wormholeChainIdHub,
+                        bytes32(uint256(uint160(nttAddressesHub.manager))),
                         EUL_DECIMALS,
                         NTT_INBOUND_LIMIT
                     );
 
-                    console.log("    Setting WormholeTransceiver peer to %s", nttAddressesMainnet.transceiver);
+                    console.log("    Setting WormholeTransceiver peer to %s", nttAddressesHub.transceiver);
                     WormholeTransceiver(nttAddresses.transceiver).setWormholePeer(
-                        wormholeChainIdMainnet, bytes32(uint256(uint160(nttAddressesMainnet.transceiver)))
+                        wormholeChainIdHub, bytes32(uint256(uint160(nttAddressesHub.transceiver)))
                     );
+
+                    console.log("    Setting WormholeTransceiver isWormholeEvmChain");
+                    WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(wormholeChainIdHub, true);
+
+                    console.log("    Setting WormholeTransceiver isWormholeRelayingEnabled");
+                    WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(wormholeChainIdHub, true);
 
                     bytes32 defaultAdminRole = ERC20BurnableMintable(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
                     if (ERC20BurnableMintable(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
@@ -412,6 +412,14 @@ contract CoreAndPeriphery is BatchBuilder {
                     console.log("    Setting WormholeTransceiver peer to %s", nttAddressesOther.transceiver);
                     WormholeTransceiver(nttAddresses.transceiver).setWormholePeer(
                         wormholeChainIdOther, bytes32(uint256(uint160(nttAddressesOther.transceiver)))
+                    );
+
+                    console.log("    Setting WormholeTransceiver isWormholeEvmChain");
+                    WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(wormholeChainIdOther, true);
+
+                    console.log("    Setting WormholeTransceiver isWormholeRelayingEnabled");
+                    WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(
+                        wormholeChainIdOther, true
                     );
                     stopBroadcast();
                 }
