@@ -6,10 +6,21 @@ import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
 abstract contract ScriptExtended is Script {
+    uint256 internal constant DEFAULT_FORK_CHAIN_ID = 0;
+
+    mapping(uint256 => uint256) private forks;
     address private deployerAddress;
     address private safeSignerAddress;
 
     constructor() {
+        forks[DEFAULT_FORK_CHAIN_ID] = vm.activeFork();
+
+        if (forks[DEFAULT_FORK_CHAIN_ID] == 0) {
+            forks[DEFAULT_FORK_CHAIN_ID] = vm.createSelectFork(getCurrentDeploymentRpcUrl());
+        }
+
+        forks[block.chainid] = forks[DEFAULT_FORK_CHAIN_ID];
+
         uint256 deployerPK = vm.envOr("DEPLOYER_KEY", uint256(0));
         uint256 safeSignerPK = vm.envOr("SAFE_KEY", uint256(0));
         uint256 rememberDeployerLength;
@@ -72,8 +83,16 @@ abstract contract ScriptExtended is Script {
         return vm.envOr("SAFE_NONCE", uint256(0));
     }
 
+    function getCurrentDeploymentRpcUrl() internal view returns (string memory) {
+        return vm.envString("DEPLOYMENT_RPC_URL");
+    }
+
+    function getDeploymentRpcUrl(uint256 chainId) internal view returns (string memory) {
+        return vm.envString(string.concat("DEPLOYMENT_RPC_URL_", vm.toString(chainId)));
+    }
+
     function isLocalForkDeployment() internal view returns (bool) {
-        return _strEq(vm.envString("DEPLOYMENT_RPC_URL"), "http://127.0.0.1:8545");
+        return _strEq(getCurrentDeploymentRpcUrl(), "http://127.0.0.1:8545");
     }
 
     function isBroadcast() internal view returns (bool) {
@@ -141,6 +160,45 @@ abstract contract ScriptExtended is Script {
 
     function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
         return getAddressesJson(jsonFile, block.chainid);
+    }
+
+    function getChainIdFromAddressessDirPath(string memory path) internal pure returns (uint256) {
+        bytes memory pathBytes = bytes(path);
+        if (pathBytes.length == 0) return 0;
+
+        // Remove trailing slash if present
+        uint256 endIndex = pathBytes[pathBytes.length - 1] == "/" ? pathBytes.length - 1 : pathBytes.length;
+
+        // Find the last slash
+        uint256 lastSlashIndex;
+        for (uint256 i = 0; i < endIndex; ++i) {
+            if (pathBytes[i] == "/") {
+                lastSlashIndex = i + 1;
+            }
+        }
+
+        // Extract the last directory name
+        string memory lastDir = _substring(path, lastSlashIndex, endIndex);
+
+        // Try to convert to number
+        uint256 chainId;
+        try vm.parseUint(lastDir) returns (uint256 parsed) {
+            chainId = parsed;
+        } catch {
+            chainId = 0;
+        }
+
+        return chainId;
+    }
+
+    function selectFork(uint256 chainId) internal {
+        require(forks[0] != 0, "selectFork: default fork not found");
+
+        if (forks[chainId] == 0) {
+            forks[chainId] = vm.createFork(vm.envString(string.concat("DEPLOYMENT_RPC_URL_", vm.toString(chainId))));
+        }
+
+        vm.selectFork(forks[chainId]);
     }
 
     function _strEq(string memory a, string memory b) internal pure returns (bool) {
