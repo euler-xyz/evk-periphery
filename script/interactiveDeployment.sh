@@ -1297,14 +1297,6 @@ while true; do
         continue
     fi
 
-    if [ $choice -lt 50 ]; then
-        if [[ "$@" != *"--force-no-addresses-dir-path"* ]]; then
-            set -- "$@" --force-no-addresses-dir-path
-        fi
-    else
-        set -- "${@/--force-no-addresses-dir-path/}"
-    fi
-
     if script/utils/executeForgeScript.sh $scriptName "$@" $verify $dry_run; then
         source .env
         eval "$(./script/utils/determineArgs.sh "$@")"
