@@ -80,7 +80,13 @@ abstract contract ScriptExtended is Script {
     }
 
     function getSafeNonce() internal view returns (uint256) {
-        return vm.envOr("SAFE_NONCE", uint256(0));
+        uint256 nonce = vm.envOr("SAFE_NONCE", uint256(0));
+
+        if (nonce == 0) {
+            nonce = vm.envOr("safe_nonce", uint256(0));
+        }
+
+        return nonce;
     }
 
     function getCurrentDeploymentRpcUrl() internal view returns (string memory) {
