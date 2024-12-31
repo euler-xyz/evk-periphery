@@ -88,13 +88,13 @@ contract InterestRates is EVaultTestBase {
         (uint256 borrowAPY, uint256 supplyAPY) = getVaultInfo(address(eTST));
 
         assertApproxEqAbs(borrowAPY, 0.1556e27, 0.0001e27);
-        assertApproxEqAbs(supplyAPY, 0.0700e27, 0.0001e27);
+        assertApproxEqAbs(supplyAPY, 0.07e27, 0.0001e27);
 
         {
             VaultInfoFull memory info = vaultLens.getVaultInfoFull(address(eTST));
 
             assertApproxEqAbs(info.irmInfo.interestRateInfo[0].borrowAPY, 0.1556e27, 0.0001e27);
-            assertApproxEqAbs(info.irmInfo.interestRateInfo[0].supplyAPY, 0.0700e27, 0.0001e27);
+            assertApproxEqAbs(info.irmInfo.interestRateInfo[0].supplyAPY, 0.07e27, 0.0001e27);
         }
 
         skip(365.2425 days);
@@ -103,7 +103,7 @@ contract InterestRates is EVaultTestBase {
         assertApproxEqAbs(eTST.debtOf(user3), 0.5e18 * 1.1556e18 / 1e18, 0.0001e18);
 
         // Depositor has earned 7.00%
-        assertApproxEqAbs(eTST.convertToAssets(eTST.balanceOf(user1)), 1.0700e18, 0.0001e18);
+        assertApproxEqAbs(eTST.convertToAssets(eTST.balanceOf(user1)), 1.07e18, 0.0001e18);
     }
 
     function getVaultInfo(address vault)

@@ -5,14 +5,15 @@ if [ -z "$1" ] || [ -z "$2" ]; then
   exit 1
 fi
 
-source .env
-
 old_perspective="$1"
 new_perspective="$2"
-shift
-shift
+shift 2
 
-addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
+source .env
+eval "$(./script/utils/determineArgs.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
+
+addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
 
 if ! script/utils/checkEnvironment.sh; then

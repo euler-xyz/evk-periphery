@@ -176,6 +176,11 @@ contract AccountLens is Utils {
         }
 
         if (!result.liquidityInfo.queryFailure) {
+            result.liquidityInfo.timeToLiquidation =
+                _calculateTimeToLiquidation(vault, result.liquidityInfo.liabilityValue, collaterals, collateralValues);
+        }
+
+        if (!result.liquidityInfo.queryFailure) {
             result.liquidityInfo.collateralLiquidityRawInfo = new CollateralLiquidityInfo[](collaterals.length);
 
             for (uint256 i = 0; i < collaterals.length; ++i) {
@@ -196,11 +201,6 @@ contract AccountLens is Utils {
                 result.liquidityInfo.collateralLiquidityRawInfo[i].collateralValue = collateralValues[i];
                 result.liquidityInfo.collateralValueRaw += collateralValues[i];
             }
-        }
-
-        if (!result.liquidityInfo.queryFailure) {
-            result.liquidityInfo.timeToLiquidation =
-                _calculateTimeToLiquidation(vault, result.liquidityInfo.liabilityValue, collaterals, collateralValues);
         }
 
         return result;

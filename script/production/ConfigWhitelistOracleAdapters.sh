@@ -6,12 +6,14 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
-source .env
-
 csv_file="$1"
 shift
 
-addresses_dir_path="${ADDRESSES_DIR_PATH%/}"
+source .env
+eval "$(./script/utils/determineArgs.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
+
+addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
 adapter_registry=$(jq -r '.oracleAdapterRegistry' "$addresses_dir_path/PeripheryAddresses.json")
 external_vault_registry=$(jq -r '.externalVaultRegistry' "$addresses_dir_path/PeripheryAddresses.json")
@@ -36,11 +38,30 @@ if [[ "$@" == *"--dry-run"* ]]; then
     broadcast=""
 fi
 
+if [[ "$@" == *"--safe-address"* ]]; then
+    safe_address=$(echo "$@" | grep -o '\--safe-address [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--safe-address $safe_address//")
+else
+    safe_address=$SAFE_ADDRESS
+fi
+
+if [[ "$@" == *"--safe-nonce"* ]]; then
+    safe_nonce=$(echo "$@" | grep -o '\--safe-nonce [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--safe-nonce $safe_nonce//")
+else
+    safe_nonce=$SAFE_NONCE
+fi
+
 if [ -n "$DEPLOYER_KEY" ]; then
     set -- "$@" --private-key "$DEPLOYER_KEY"
 fi
 
 if [[ "$@" == *"--batch-via-safe"* ]]; then
+    if [[ ! "$safe_address" =~ ^0x ]]; then
+        safe_address=$(jq -r ".[\"$safe_address\"]" "$addresses_dir_path/MultisigAddresses.json")
+    fi
+
+    echo "The Safe address is: $safe_address"
     read -p "Provide the directory name to store the Safe Transaction data (default: default): " deployment_name        
     deployment_name=${deployment_name:-default}
 
@@ -55,7 +76,7 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
         echo ""
     fi
 
-    onBehalfOf=$SAFE_ADDRESS
+    onBehalfOf=$safe_address
 
     set -- "${@/--batch-via-safe/}"
     batch_via_safe="--batch-via-safe"
@@ -69,7 +90,7 @@ else
     onBehalfOf=$(cast wallet address $@)
 fi
 
-if [ -z "$onBehalfOf" ]; then
+if [[ ! "$onBehalfOf" =~ ^0x ]]; then
     echo "Cannot retrieve the onBehalfOf address. Exiting..."
     exit 1
 fi
@@ -132,18 +153,15 @@ if [[ "$batch_via_safe" == "--batch-via-safe" ]]; then
     echo "Executing the batch via Safe..."
     calldata=$(cast calldata "batch((address,address,uint256,bytes)[])" $items)
     
-    if [ -z "$SAFE_NONCE" ]; then
-        nonce=$(forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "getNonce(address)" $SAFE_ADDRESS --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $@ | grep -oE '[0-9]+$')
-    else
-        nonce=$SAFE_NONCE
+    if [ -z "$safe_nonce" ]; then
+        safe_nonce=$(forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "getNextNonce(address)" $safe_address --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $@ | grep -oE '[0-9]+$')
     fi
 
-    nonce=$((nonce + 1))
-
-    if env broadcast=$broadcast batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
-        forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "create(address,address,uint256,bytes memory,uint256)" $SAFE_ADDRESS $evc 0 $calldata $nonce --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow $@; then
+    if env broadcast=$broadcast safe_address=$safe_address batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
+        forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "create(bool,address,address,uint256,bytes memory,uint256)" true $safe_address $evc 0 $calldata $safe_nonce --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow $@; then
         
-        deployment_dir="script/deployments/$deployment_name"
+        chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+        deployment_dir="script/deployments/$deployment_name/$chainId"
         mkdir -p "$deployment_dir/output"
 
         for json_file in script/*.json; do

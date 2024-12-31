@@ -56,9 +56,11 @@ if [[ "$@" == *"--account"* ]]; then
 fi
 
 source .env
-deployment_dir="script/deployments/$deployment_name"
-oracleAdaptersAddresses="$deployment_dir/output/OracleAdaptersAddresses.csv"
+eval "$(./script/utils/determineArgs.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+deployment_dir="script/deployments/$deployment_name/$chainId"
+oracleAdaptersAddresses="$deployment_dir/output/OracleAdaptersAddresses.csv"
 
 mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broadcast"
 
@@ -421,10 +423,8 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         continue
     fi
 
-    script/utils/executeForgeScript.sh $scriptName "$@"
-
-    if [[ -f "script/${jsonName}_output.json" ]]; then
-        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/${jsonName}.json")
+    if script/utils/executeForgeScript.sh $scriptName "$@"; then
+        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/${jsonName}.json")
         adapter=$(jq -r '.adapter' "script/${jsonName}_output.json")
         entry="${baseSymbol},${quoteSymbol},${provider},${adapterName},${adapter},$base,$quote,${shouldWhitelist}"
 
@@ -435,11 +435,14 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
             echo "$entry" >> "$csv_oracle_adapters_addresses_path"
         fi
 
+        cp "broadcast/${baseName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
         mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${counter}.json"
         mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${counter}.json"
-        cp "broadcast/${baseName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
     else
-        echo "Error deploying $adapterName..."
-        rm "script/${jsonName}_input.json"
+        for json_file in script/*.json; do
+            rm "$json_file"
+        done
+        echo "Error deploying $adapterName. Exiting..."
+        exit 1
     fi
 done < <(tr -d '\r' < "$csv_file")

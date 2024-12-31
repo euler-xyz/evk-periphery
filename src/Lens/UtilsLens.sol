@@ -138,4 +138,29 @@ contract UtilsLens is Utils {
 
         return result;
     }
+
+    function tokenBalances(address account, address[] calldata tokens) public view returns (uint256[] memory) {
+        uint256[] memory balances = new uint256[](tokens.length);
+
+        for (uint256 i = 0; i < tokens.length; ++i) {
+            if (tokens[i] != address(0)) balances[i] = IEVault(tokens[i]).balanceOf(account);
+            else balances[i] = account.balance;
+        }
+
+        return balances;
+    }
+
+    function tokenAllowances(address spender, address account, address[] calldata tokens)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        uint256[] memory allowances = new uint256[](tokens.length);
+
+        for (uint256 i = 0; i < tokens.length; ++i) {
+            allowances[i] = IEVault(tokens[i]).allowance(account, spender);
+        }
+
+        return allowances;
+    }
 }

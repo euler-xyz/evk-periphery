@@ -8,10 +8,9 @@ optimizer = true
 optimizer_runs = 20_000
 solc = "0.8.24"
 
-fs_permissions = [{ access = "read-write", path = "./"}, { access = "read", path = "../euler-interfaces"}]
+fs_permissions = [{ access = "read-write", path = "./"}, { access = "read-write", path = "../euler-interfaces"}]
 
 gas_reports = ["*"]
-
 
 [profile.default.fmt]
 line_length = 120
@@ -23,9 +22,9 @@ number_underscore = "preserve"
 override_spacing = true
 wrap_comments = true
 ignore = [
-    "script/production/mainnet/clusters/MEGACluster.s.sol",
     "script/production/mainnet/clusters/PrimeCluster.s.sol",
     "script/production/mainnet/clusters/PendeulCluster.s.sol",
+    "script/production/mainnet/clusters/YieldCluster.s.sol",
     "script/production/base/clusters/BaseCluster.s.sol"
 ]
 

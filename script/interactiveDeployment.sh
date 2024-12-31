@@ -1,6 +1,8 @@
 #!/bin/bash
 
 source .env
+eval "$(./script/utils/determineArgs.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
@@ -16,6 +18,18 @@ if [[ "$@" == *"--account"* && -z "$DEPLOYER_KEY" ]]; then
     read -s -p "Enter keystore password: " password
     set -- "$@" --password "$password"
     echo ""
+fi
+
+broadcast="--broadcast"
+if [[ "$@" == *"--dry-run"* ]]; then
+    set -- "${@/--dry-run/}"
+    dry_run="--dry-run"
+    broadcast=""
+fi
+
+if [[ "$@" == *"--verify"* ]]; then
+    set -- "${@/--verify/}"
+    verify="--verify"
 fi
 
 if ! script/utils/checkEnvironment.sh "$@"; then
@@ -41,7 +55,7 @@ while true; do
     echo "12. Governors"
     echo "13. Terms of Use Signer"
     echo "---------------------------------"
-    echo "50. Core and Periphery Deployment"
+    echo "50. Core and Periphery Deployment and Configuration"
     echo "51. Core Ownership Transfer"
     echo "52. Periphery Ownership Transfer"
     echo "53. Governor Roles Configuration"
@@ -112,7 +126,6 @@ while true; do
                     jsonName=00_RewardToken
 
                     read -p "Enter EVC address: " evc
-                    read -p "Enter owner address: " owner
                     read -p "Enter receiver address: " receiver
                     read -p "Enter underlying token address: " underlying
                     read -p "Enter token name: " token_name
@@ -120,14 +133,12 @@ while true; do
                     
                     jq -n \
                         --arg evc "$evc" \
-                        --arg owner "$owner" \
                         --arg receiver "$receiver" \
                         --arg underlying "$underlying" \
                         --arg name "$token_name" \
                         --arg symbol "$token_symbol" \
                         '{
                             evc: $evc,
-                            owner: $owner,
                             receiver: $receiver,
                             underlying: $underlying,
                             name: $name,
@@ -1057,14 +1068,11 @@ while true; do
                     jsonName=12_GovernorAccessControl
                     
                     read -p "Enter the EVC address: " evc
-                    read -p "Enter the admin address: " admin
 
                     jq -n \
                         --arg evc "$evc" \
-                        --arg admin "$admin" \
                         '{
-                            evc: $evc,
-                            admin: $admin
+                            evc: $evc
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 2)
@@ -1074,14 +1082,11 @@ while true; do
                     jsonName=12_GovernorAccessControlEmergency
                     
                     read -p "Enter the EVC address: " evc
-                    read -p "Enter the admin address: " admin
 
                     jq -n \
                         --arg evc "$evc" \
-                        --arg admin "$admin" \
                         '{
-                            evc: $evc,
-                            admin: $admin
+                            evc: $evc
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
@@ -1106,56 +1111,106 @@ while true; do
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         50)
-            echo "Deploying Core and Periphery..."
+            echo "Deploying and configuring Core and Periphery..."
 
             baseName=50_CoreAndPeriphery
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+            addressZero=0x0000000000000000000000000000000000000000
+
+            addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
+            mkdir -p "$addresses_dir_path"
+
+            if [ "$(ls -A "$addresses_dir_path")" ]; then
+                multisig_dao=$(jq -r '.DAO' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                multisig_labs=$(jq -r '.labs' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                multisig_security_council=$(jq -r '.securityCouncil' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
+                swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+                nttManager=$(jq -r '.manager' "$addresses_dir_path/NTTAddresses.json" 2>/dev/null)
+                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+            fi
+
+            if [ -z "$multisig_dao" ] || [ "$multisig_dao" == "$addressZero" ]; then
+                read -p "Enter the DAO multisig address: " multisig_dao
+                read -p "Enter the Labs multisig address: " multisig_labs
+                read -p "Enter the Security Council multisig address: " multisig_security_council
+            fi
+
+            if [ -z "$evc" ] || [ "$evc" == "$addressZero" ]; then
+                read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+            fi
+            
+            if [ -z "$swapper" ] || [ "$swapper" == "$addressZero" ]; then
+                read -p "Enter the Uniswap Router V2 address (default: 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D): " uniswap_router_v2
+                read -p "Enter the Uniswap Router V3 address (default: 0xE592427A0AEce92De3Edee1F18E0157C05861564): " uniswap_router_v3
+            fi
+            
+            if [ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]; then
+                read -p "Enter the Wormhole Core Bridge address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/core.ts or press ENTER to skip): " wormhole_core_bridge
+                read -p "Enter the Wormhole Relayer address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/relayer.ts or press ENTER to skip): " wormhole_relayer
+            fi
+            
+            if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ]; then
+                read -p "Enter the EUL init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
+            fi
+
+            multisig_dao=${multisig_dao:-$addressZero}
+            multisig_labs=${multisig_labs:-$addressZero}
+            multisig_security_council=${multisig_security_council:-$addressZero}
             permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
-
-            read -p "Enter the Uniswap Router V2 address (default: 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D): " uniswap_router_v2
             uniswap_router_v2=${uniswap_router_v2:-0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D}
-
-            read -p "Enter the Uniswap Router V3 address (default: 0xE592427A0AEce92De3Edee1F18E0157C05861564): " uniswap_router_v3
             uniswap_router_v3=${uniswap_router_v3:-0xE592427A0AEce92De3Edee1F18E0157C05861564}
-
-            read -p "Enter the init price (default: 1e18): " init_price
+            wormhole_core_bridge=${wormhole_core_bridge:-$addressZero}
+            wormhole_relayer=${wormhole_relayer:-$addressZero}
             init_price=${init_price:-1000000000000000000}
 
-            read -p "Enter the payment token address: " payment_token
-            read -p "Enter the payment receiver address: " payment_receiver
+            nttCompilerOptions="--optimize --optimizer-runs 200 --via-ir --use 0.8.19 --out out-ntt"
             
-            read -p "Enter the epoch period (seconds) (default: 14 days): " epoch_period
-            epoch_period=${epoch_period:-1209600}
+            if ([ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]) && ([ "$wormhole_core_bridge" != "$addressZero" ]); then
+                echo "Deploying TransceiverStructs library..."
+                result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $broadcast $nttCompilerOptions --force $@)
 
-            read -p "Enter the price multiplier (default: 2e18): " price_multiplier
-            price_multiplier=${price_multiplier:-2000000000000000000}
+                if [ "$broadcast" = "--broadcast" ]; then
+                    transceiver_structs=$(jq -r '.deployedTo' <<< "$result")
+                else
+                    deployerAddress=$(cast wallet address $@)
+                    transceiver_structs=$(cast compute-address $deployerAddress --rpc-url $DEPLOYMENT_RPC_URL | grep -oE '0x[a-fA-F0-9]{40}')
+                fi
 
-            read -p "Enter the min init price (default: 1e6): " min_init_price
-            min_init_price=${min_init_price:-1000000}
+                if [ -z "$transceiver_structs" ] && [ "$broadcast" = "--broadcast" ]; then
+                    echo "Failed to deploy TransceiverStructs library. Exiting."
+                    exit 1
+                fi
+
+                forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiver_structs $nttCompilerOptions
+            fi
+
+            transceiver_structs=${transceiver_structs:-$addressZero}
 
             jq -n \
+                --arg multisigDAO "$multisig_dao" \
+                --arg multisigLabs "$multisig_labs" \
+                --arg multisigSecurityCouncil "$multisig_security_council" \
                 --arg permit2 "$permit2" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
+                --arg wormholeCoreBridge "$wormhole_core_bridge" \
+                --arg wormholeRelayer "$wormhole_relayer" \
+                --arg transceiverStructs "$transceiver_structs" \
                 --arg initPrice "$init_price" \
-                --arg paymentToken "$payment_token" \
-                --arg paymentReceiver "$payment_receiver" \
-                --arg epochPeriod "$epoch_period" \
-                --arg priceMultiplier "$price_multiplier" \
-                --arg minInitPrice "$min_init_price" \
                 '{
+                    multisigDAO: $multisigDAO,
+                    multisigLabs: $multisigLabs,
+                    multisigSecurityCouncil: $multisigSecurityCouncil,
                     permit2: $permit2,
                     uniswapV2Router: $uniswapRouterV2,
                     uniswapV3Router: $uniswapRouterV3,
-                    feeFlowInitPrice: $initPrice,
-                    feeFlowPaymentToken: $paymentToken,
-                    feeFlowPaymentReceiver: $paymentReceiver,
-                    feeFlowEpochPeriod: $epochPeriod,
-                    feeFlowPriceMultiplier: $priceMultiplier,
-                    feeFlowMinInitPrice: $minInitPrice
+                    wormholeCoreBridge: $wormholeCoreBridge,
+                    wormholeRelayer: $wormholeRelayer,
+                    transceiverStructs: $transceiverStructs,
+                    feeFlowInitPrice: $initPrice
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         51)
@@ -1164,17 +1219,6 @@ while true; do
             baseName=51_OwnershipTransferCore
             scriptName=${baseName}.s.sol
             jsonName=$baseName
-
-            read -p "Enter the new Protocol Config Admin address: " protocol_config_admin
-            read -p "Enter the new EVault Factory Governor Admin address: " evault_factory_governor_admin
-
-            jq -n \
-                --arg protocolConfigAdmin "$protocol_config_admin" \
-                --arg eVaultFactoryGovernorAdmin "$evault_factory_governor_admin" \
-                '{
-                    protocolConfigAdmin: $protocolConfigAdmin,
-                    eVaultFactoryGovernorAdmin: $eVaultFactoryGovernorAdmin
-                }' --indent 4 > script/${jsonName}_input.json
             ;;
         52)
             echo "Periphery Ownership Transfer..."
@@ -1182,23 +1226,6 @@ while true; do
             baseName=52_OwnershipTransferPeriphery
             scriptName=${baseName}.s.sol
             jsonName=$baseName
-
-            read -p "Enter the new Oracle Adapter Registry Owner address: " oracle_adapter_registry_owner
-            read -p "Enter the new External Vault Registry Owner address: " external_vault_registry_owner
-            read -p "Enter the new IRM Registry Owner address: " irm_registry_owner
-            read -p "Enter the new Governed Perspective Owner address: " governed_perspective_owner
-
-            jq -n \
-                --arg oracleAdapterRegistryOwner "$oracle_adapter_registry_owner" \
-                --arg externalVaultRegistryOwner "$external_vault_registry_owner" \
-                --arg irmRegistryOwner "$irm_registry_owner" \
-                --arg governedPerspectiveOwner "$governed_perspective_owner" \
-                '{
-                    oracleAdapterRegistryOwner: $oracleAdapterRegistryOwner,
-                    externalVaultRegistryOwner: $externalVaultRegistryOwner,
-                    irmRegistryOwner: $irmRegistryOwner,
-                    governedPerspectiveOwner: $governedPerspectiveOwner
-                }' --indent 4 > script/${jsonName}_input.json
             ;;
         53)
             echo "Governor Roles Configuration..."
@@ -1258,7 +1285,7 @@ while true; do
                     ;;
             esac
 
-            cast send $governor_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $@
+            cast send $governor_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $broadcast $@
             ;;
         *)
             echo "Invalid choice. Exiting."
@@ -1270,13 +1297,23 @@ while true; do
         continue
     fi
 
-    if script/utils/executeForgeScript.sh $scriptName "$@"; then
+    if script/utils/executeForgeScript.sh $scriptName "$@" $verify $dry_run; then
+        source .env
+        eval "$(./script/utils/determineArgs.sh "$@")"
+        eval "set -- $SCRIPT_ARGS"
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-        deployment_dir="script/deployments/$deployment_name"
+        deployment_dir="script/deployments/$deployment_name/$chainId"
+        broadcast_dir="broadcast/${scriptName%:*}/$chainId"
+
+        if [ "$dry_run" = "--dry-run" ]; then
+            deployment_dir="$deployment_dir/dry-run"
+            broadcast_dir="$broadcast_dir/dry-run"
+        fi
+
         mkdir -p "$deployment_dir/broadcast" "$deployment_dir/input" "$deployment_dir/output"
 
         counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
-        cp "broadcast/${baseName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
+        cp "$broadcast_dir/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
 
         for json_file in script/*_input.json; do
             jsonFileName=$(basename "${json_file/_input/}")
@@ -1287,6 +1324,13 @@ while true; do
 
         for json_file in script/*_output.json; do
             jsonFileName=$(basename "${json_file/_output/}")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
+        done
+
+        for json_file in script/*.json; do
+            jsonFileName=$(basename "${json_file}")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
 
             mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"

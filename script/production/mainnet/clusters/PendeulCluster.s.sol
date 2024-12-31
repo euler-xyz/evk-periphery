@@ -6,9 +6,10 @@ import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
+import {ClusterDump} from "../../../utils/ClusterDump.s.sol";
 
 contract Cluster is ManageCluster {
-    function configureCluster() internal override {
+    function defineCluster() internal override {
         // define the path to the cluster addresses file here
         cluster.clusterAddressesPath = "/script/production/mainnet/clusters/PendeulCluster.json";
 
@@ -23,7 +24,7 @@ contract Cluster is ManageCluster {
             cbBTC,
             tBTC,
             pumpBTC,
-            SOLVBTC,
+            solvBTC,
             USD0,
             USD0PlusPlus,
             PT_LBTC_27MAR2025,
@@ -36,10 +37,13 @@ contract Cluster is ManageCluster {
             PT_USD0PlusPlus_27MAR2025,
             PT_USD0PlusPlus_26JUN2025
         ];
+    }
+
+    function configureCluster() internal override {
 
         // define the governors here
-        cluster.oracleRoutersGovernor = EULER_DAO_MULTISIG;
-        cluster.vaultsGovernor = EULER_DAO_MULTISIG;
+        cluster.oracleRoutersGovernor = multisigAddresses.DAO;
+        cluster.vaultsGovernor = multisigAddresses.DAO;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -77,7 +81,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[cbBTC                    ] = "PythOracle";
         cluster.oracleProviders[tBTC                     ] = "PythOracle";
         cluster.oracleProviders[pumpBTC                  ] = "CrossAdapter=FixedRateOracle+PythOracle";
-        cluster.oracleProviders[SOLVBTC                  ] = "CrossAdapter=FixedRateOracle+PythOracle";
+        cluster.oracleProviders[solvBTC                  ] = "CrossAdapter=FixedRateOracle+PythOracle";
         cluster.oracleProviders[USD0                     ] = "PythOracle";
         cluster.oracleProviders[USD0PlusPlus             ] = "PythOracle";
         cluster.oracleProviders[PT_LBTC_27MAR2025        ] = "CrossAdapter=PendleOracle+PythOracle";
@@ -92,7 +96,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[WETH                     ] = "PythOracle";
         cluster.oracleProviders[wstETH                   ] = "PythOracle";
         cluster.oracleProviders[cbETH                    ] = "PythOracle";
-        cluster.oracleProviders[WEETH                    ] = "PythOracle";
+        cluster.oracleProviders[weETH                    ] = "PythOracle";
         cluster.oracleProviders[USDT                     ] = "PythOracle";
         cluster.oracleProviders[USDS                     ] = "ChronicleOracle";
         cluster.oracleProviders[sUSDS                    ] = "ExternalVault|ChronicleOracle";
@@ -108,7 +112,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[cbBTC                    ] = 150;
         cluster.supplyCaps[tBTC                     ] = 150;
         cluster.supplyCaps[pumpBTC                  ] = 150;
-        cluster.supplyCaps[SOLVBTC                  ] = 150;
+        cluster.supplyCaps[solvBTC                  ] = 150;
         cluster.supplyCaps[USD0                     ] = 12_000_000;
         cluster.supplyCaps[USD0PlusPlus             ] = 10_000_000;
         cluster.supplyCaps[PT_LBTC_27MAR2025        ] = 175;
@@ -129,7 +133,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[cbBTC                    ] = 127;
         cluster.borrowCaps[tBTC                     ] = 127;
         cluster.borrowCaps[pumpBTC                  ] = 127;
-        cluster.borrowCaps[SOLVBTC                  ] = 127;
+        cluster.borrowCaps[solvBTC                  ] = 127;
         cluster.borrowCaps[USD0                     ] = 9_840_000;
         cluster.borrowCaps[USD0PlusPlus             ] = 2_500_000;
         cluster.borrowCaps[PT_LBTC_27MAR2025        ] = type(uint256).max;
@@ -166,7 +170,7 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[cbBTC       ] = irmBTC;
             cluster.kinkIRMParams[tBTC        ] = irmBTC;
             cluster.kinkIRMParams[pumpBTC     ] = irmBTCPendeul;
-            cluster.kinkIRMParams[SOLVBTC     ] = irmBTCPendeul;
+            cluster.kinkIRMParams[solvBTC     ] = irmBTCPendeul;
             cluster.kinkIRMParams[USD0        ] = irmRWA_2;
             cluster.kinkIRMParams[USD0PlusPlus] = irmRWA_YLD_2;
         }
@@ -225,21 +229,22 @@ contract Cluster is ManageCluster {
         ];
     }
 
-    function verifyCluster() internal override {
+    function postOperations() internal override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             perspectiveVerify(peripheryAddresses.governedPerspective, cluster.vaults[i]);
         }
         executeBatchPrank(Ownable(peripheryAddresses.governedPerspective).owner());
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i]);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
 
             if (i < 10) {
                 PerspectiveVerifier.verifyPerspective(
                     peripheryAddresses.eulerUngovernedNzxPerspective,
                     cluster.vaults[i],
                     PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR,
-                    PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING | PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER
+                    PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING | PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER,
+                    false
                 );
             } else {
                 PerspectiveVerifier.verifyPerspective(
@@ -248,9 +253,13 @@ contract Cluster is ManageCluster {
                     PerspectiveVerifier.E__ORACLE_INVALID_ROUTER | PerspectiveVerifier.E__UNIT_OF_ACCOUNT | 
                     PerspectiveVerifier.E__GOVERNOR | PerspectiveVerifier.E__LIQUIDATION_DISCOUNT | 
                     PerspectiveVerifier.E__LIQUIDATION_COOL_OFF_TIME,
-                    PerspectiveVerifier.E__SINGLETON
+                    PerspectiveVerifier.E__SINGLETON,
+                    false
                 );
             }
         }
+
+        ClusterDump dumper = new ClusterDump();
+        dumper.dumpCluster(cluster.vaults, cluster.externalVaults);
     }
 }

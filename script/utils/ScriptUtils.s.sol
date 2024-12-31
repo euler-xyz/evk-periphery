@@ -2,10 +2,12 @@
 
 pragma solidity ^0.8.0;
 
+import {Vm} from "forge-std/Vm.sol";
 import {console} from "forge-std/console.sol";
-import {ScriptExtended} from "./ScriptExtended.s.sol";
+import {ScriptExtended, console} from "./ScriptExtended.s.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
+import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
@@ -29,7 +31,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         address permit2;
         address eVaultImplementation;
         address eVaultFactory;
-        address eVaultFactoryGovernor;
     }
 
     function serializeCoreAddresses(CoreAddresses memory Addresses) internal returns (string memory result) {
@@ -40,7 +41,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         result = vm.serializeAddress("coreAddresses", "permit2", Addresses.permit2);
         result = vm.serializeAddress("coreAddresses", "eVaultImplementation", Addresses.eVaultImplementation);
         result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
-        result = vm.serializeAddress("coreAddresses", "eVaultFactoryGovernor", Addresses.eVaultFactoryGovernor);
     }
 
     function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory) {
@@ -51,8 +51,7 @@ abstract contract CoreAddressesLib is ScriptExtended {
             balanceTracker: getAddressFromJson(json, ".balanceTracker"),
             permit2: getAddressFromJson(json, ".permit2"),
             eVaultImplementation: getAddressFromJson(json, ".eVaultImplementation"),
-            eVaultFactory: getAddressFromJson(json, ".eVaultFactory"),
-            eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor")
+            eVaultFactory: getAddressFromJson(json, ".eVaultFactory")
         });
     }
 }
@@ -149,15 +148,133 @@ abstract contract LensAddressesLib is ScriptExtended {
     }
 }
 
-abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAddressesLib {
+abstract contract GovernorAddressesLib is ScriptExtended {
+    struct GovernorAddresses {
+        address eVaultFactoryGovernor;
+        address eVaultFactoryTimelockController;
+        address accessControlEmergencyGovernor;
+    }
+
+    function serializeGovernorAddresses(GovernorAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("governorAddresses", "eVaultFactoryGovernor", Addresses.eVaultFactoryGovernor);
+        result = vm.serializeAddress(
+            "governorAddresses", "eVaultFactoryTimelockController", Addresses.eVaultFactoryTimelockController
+        );
+        result = vm.serializeAddress(
+            "governorAddresses", "accessControlEmergencyGovernor", Addresses.accessControlEmergencyGovernor
+        );
+    }
+
+    function deserializeGovernorAddresses(string memory json) internal pure returns (GovernorAddresses memory) {
+        return GovernorAddresses({
+            eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor"),
+            eVaultFactoryTimelockController: getAddressFromJson(json, ".eVaultFactoryTimelockController"),
+            accessControlEmergencyGovernor: getAddressFromJson(json, ".accessControlEmergencyGovernor")
+        });
+    }
+}
+
+abstract contract TokenAddressesLib is ScriptExtended {
+    struct TokenAddresses {
+        address EUL;
+        address rEUL;
+    }
+
+    function serializeTokenAddresses(TokenAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("tokenAddresses", "EUL", Addresses.EUL);
+        result = vm.serializeAddress("tokenAddresses", "rEUL", Addresses.rEUL);
+    }
+
+    function deserializeTokenAddresses(string memory json) internal pure returns (TokenAddresses memory) {
+        return TokenAddresses({EUL: getAddressFromJson(json, ".EUL"), rEUL: getAddressFromJson(json, ".rEUL")});
+    }
+}
+
+abstract contract MultisigAddressesLib is ScriptExtended {
+    struct MultisigAddresses {
+        address DAO;
+        address labs;
+        address securityCouncil;
+    }
+
+    function serializeMultisigAddresses(MultisigAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("multisigAddresses", "DAO", Addresses.DAO);
+        result = vm.serializeAddress("multisigAddresses", "labs", Addresses.labs);
+        result = vm.serializeAddress("multisigAddresses", "securityCouncil", Addresses.securityCouncil);
+    }
+
+    function deserializeMultisigAddresses(string memory json) internal pure returns (MultisigAddresses memory) {
+        return MultisigAddresses({
+            DAO: getAddressFromJson(json, ".DAO"),
+            labs: getAddressFromJson(json, ".labs"),
+            securityCouncil: getAddressFromJson(json, ".securityCouncil")
+        });
+    }
+
+    function verifyMultisigAddresses(MultisigAddresses memory Addresses) internal view {
+        require(Addresses.DAO != address(0), "DAO multisig is required");
+        require(Addresses.labs != address(0), "Labs multisig is required");
+        require(Addresses.securityCouncil != address(0), "Security Council multisig is required");
+
+        if (!vm.envOr("FORCE_MULTISIG_NOT_CONTRACT", false)) {
+            require(Addresses.DAO.code.length != 0, "DAO multisig is not a contract");
+            require(Addresses.labs.code.length != 0, "Labs multisig is not a contract");
+            require(Addresses.securityCouncil.code.length != 0, "Security Council multisig is not a contract");
+        }
+    }
+}
+
+abstract contract NTTAddressesLib is ScriptExtended {
+    struct NTTAddresses {
+        address manager;
+        address transceiver;
+    }
+
+    function serializeNTTAddresses(NTTAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("nttAddresses", "manager", Addresses.manager);
+        result = vm.serializeAddress("nttAddresses", "transceiver", Addresses.transceiver);
+    }
+
+    function deserializeNTTAddresses(string memory json) internal pure returns (NTTAddresses memory) {
+        return NTTAddresses({
+            manager: getAddressFromJson(json, ".manager"),
+            transceiver: getAddressFromJson(json, ".transceiver")
+        });
+    }
+
+    function verifyNTTAddresses(NTTAddresses memory Addresses) internal view {
+        require(Addresses.manager != address(0) && Addresses.manager.code.length != 0, "NTT manager is required");
+        require(
+            Addresses.transceiver != address(0) && Addresses.transceiver.code.length != 0, "NTT transceiver is required"
+        );
+    }
+}
+
+abstract contract ScriptUtils is
+    MultisigAddressesLib,
+    CoreAddressesLib,
+    PeripheryAddressesLib,
+    LensAddressesLib,
+    NTTAddressesLib,
+    TokenAddressesLib,
+    GovernorAddressesLib
+{
+    MultisigAddresses internal multisigAddresses;
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
+    NTTAddresses internal nttAddresses;
+    TokenAddresses internal tokenAddresses;
+    GovernorAddresses internal governorAddresses;
 
     constructor() {
+        multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
         coreAddresses = deserializeCoreAddresses(getAddressesJson("CoreAddresses.json"));
         peripheryAddresses = deserializePeripheryAddresses(getAddressesJson("PeripheryAddresses.json"));
         lensAddresses = deserializeLensAddresses(getAddressesJson("LensAddresses.json"));
+        nttAddresses = deserializeNTTAddresses(getAddressesJson("NTTAddresses.json"));
+        tokenAddresses = deserializeTokenAddresses(getAddressesJson("TokenAddresses.json"));
+        governorAddresses = deserializeGovernorAddresses(getAddressesJson("GovernorAddresses.json"));
     }
 
     modifier broadcast() {
@@ -174,33 +291,13 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         vm.stopBroadcast();
     }
 
-    function getInputConfigFilePath(string memory jsonFile) internal view returns (string memory) {
-        string memory root = vm.projectRoot();
-        return string.concat(root, "/script/", jsonFile);
-    }
-
-    function getInputConfig(string memory jsonFile) internal view returns (string memory) {
-        return vm.readFile(getInputConfigFilePath(jsonFile));
-    }
-
-    function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
-        string memory addressesDirPath = vm.envOr("ADDRESSES_DIR_PATH", string(""));
-
-        if (bytes(addressesDirPath).length == 0) {
-            revert("getAddressesJson: ADDRESSES_DIR_PATH environment variable is not set");
-        }
-
-        try vm.readFile(string.concat(addressesDirPath, "/", jsonFile)) returns (string memory result) {
-            return result;
-        } catch {
-            return "";
-        }
-    }
-
     function getWETHAddress() internal view returns (address) {
         if (block.chainid == 1) {
             return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        } else if (block.chainid == 10 || block.chainid == 8453 || block.chainid == 1923 || block.chainid == 57073) {
+        } else if (
+            block.chainid == 10 || block.chainid == 8453 || block.chainid == 1923 || block.chainid == 57073
+                || block.chainid == 60808
+        ) {
             return 0x4200000000000000000000000000000000000006;
         } else if (block.chainid == 137) {
             return 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619;
@@ -237,7 +334,7 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
         }
 
         if (adapter == address(0) || counter > 1) {
-            if (bytes(provider).length == 42) return _stringToAddress(provider);
+            if (bytes(provider).length == 42) return _toAddress(provider);
 
             console.log("base: %s, quote: %s, provider: %s", base, quote, provider);
 
@@ -295,9 +392,16 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     function isRedstoneClassicOracle(ChainlinkOracleInfo memory chainlinkOracleInfo) internal pure returns (bool) {
-        if (_strEq(chainlinkOracleInfo.feedDescription, "Redstone Price Feed")) {
-            return true;
+        string[] memory strings = new string[](2);
+        strings[0] = "Redstone Price Feed";
+        strings[1] = "RedStone Price Feed";
+
+        for (uint256 i = 0; i < strings.length; ++i) {
+            if (_strEq(_substring(chainlinkOracleInfo.feedDescription, 0, bytes(strings[i]).length), strings[i])) {
+                return true;
+            }
         }
+
         return false;
     }
 
@@ -346,8 +450,6 @@ abstract contract ScriptUtils is CoreAddressesLib, PeripheryAddressesLib, LensAd
     }
 
     function isGovernorAccessControlInstance(address governorAdmin) internal view returns (bool) {
-        if (governorAdmin == address(0)) return false;
-
         (bool success, bytes memory result) =
             governorAdmin.staticcall(abi.encodeCall(GovernorAccessControl.isGovernorAccessControl, ()));
 
@@ -366,7 +468,7 @@ abstract contract BatchBuilder is ScriptUtils {
     IEVC.BatchItem[] internal batchItems;
     IEVC.BatchItem[] internal criticalItems;
     uint256 internal batchCounter;
-    uint256 internal currentSafeNonce = getSafeCurrentNonce();
+    uint256 internal safeNonce = getSafeNonce();
 
     function addBatchItem(address targetContract, bytes memory data) internal {
         address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
@@ -507,10 +609,9 @@ abstract contract BatchBuilder is ScriptUtils {
         dumpBatch(safe);
 
         SafeTransaction transaction = new SafeTransaction();
+        safeNonce = safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce;
 
-        if (currentSafeNonce == 0) currentSafeNonce = transaction.getNonce(safe);
-
-        transaction.create(safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), ++currentSafeNonce);
+        transaction.create(true, safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), safeNonce++);
 
         clearBatchItems();
     }
@@ -526,6 +627,22 @@ abstract contract BatchBuilder is ScriptUtils {
         json = vm.serializeBytes(key, "data", getBatchCalldata());
 
         vm.writeJson(vm.serializeString("", key, json), path);
+    }
+
+    function grantRole(address accessController, bytes32 role, address account) internal {
+        addBatchItem(accessController, abi.encodeCall(AccessControl.grantRole, (role, account)));
+    }
+
+    function renounceRole(address accessController, bytes32 role, address account) internal {
+        addBatchItem(accessController, abi.encodeCall(AccessControl.renounceRole, (role, account)));
+    }
+
+    function transferOwnership(address ownable, address newOwner) internal {
+        addBatchItem(ownable, abi.encodeCall(Ownable.transferOwnership, (newOwner)));
+    }
+
+    function setWhitelistStatus(address rEUL, address account, uint256 status) internal {
+        addBatchItem(rEUL, abi.encodeWithSignature("setWhitelistStatus(address,uint256)", account, status));
     }
 
     function perspectiveVerify(address perspective, address vault) internal {

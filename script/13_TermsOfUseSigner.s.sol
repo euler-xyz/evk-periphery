@@ -9,7 +9,7 @@ contract TermsOfUseSignerDeployer is ScriptUtils {
     function run() public broadcast returns (address termsOfUseSigner) {
         string memory inputScriptFileName = "13_TermsOfUseSigner_input.json";
         string memory outputScriptFileName = "13_TermsOfUseSigner_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
+        string memory json = getScriptFile(inputScriptFileName);
         address evc = vm.parseJsonAddress(json, ".evc");
 
         termsOfUseSigner = execute(evc);

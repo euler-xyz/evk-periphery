@@ -8,7 +8,7 @@ A cluster is a collection of vaults that work together in the system. The `Manag
 
 ## Management Process
 
-Refer to the `configureCluster()` function in the specific cluster script file. If no vaults are deployed yet, they will get deployed when the management script is executed for the first time. If the vaults are already deployed, the management script will only apply the delta between the cluster script file configuration and the current state of the cluster.
+Refer to the `defineCluster()` and `configureCluster()` functions in the specific cluster script file. If no vaults are deployed yet, they will get deployed when the management script is executed for the first time. If the vaults are already deployed, the management script will only apply the delta between the cluster script file configuration and the current state of the cluster.
 
 Edit the specific cluster file (e.g., `PrimeCluster.s.sol` or `MEGACluster.s.sol`) to set up the desired configuration. Define assets, LTVs, oracle providers, supply caps, borrow caps, IRM parameters, and other settings.
 
@@ -30,7 +30,7 @@ Options:
 
 `--dry-run`: Simulates the deployment without actually executing transactions.
 
-`--batch-via-safe`: Creates the configuration batch transactions in the Safe UI. Contracts deployment and auxiliary transactions are still being performed by the deployer account (the account associated with the `DEPLOYER_KEY`) and only the configuration transactions are created in the Safe UI. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file or provide a different option to derive the Safe signer key instead, i.e. `--ledger` or `--account ACC_NAME`. The address associated must either be a signer or a delegate of the safe in order to be able to create the transactions in the Safe UI.
+You can pass `--batch-via-safe` option to the deployment script in order to create the a batch transaction in the Safe UI. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file or provide a different option to derive the Safe signer key instead, i.e. `--ledger` or `--account ACC_NAME`. The address associated must either be a signer or a delegate of the Safe in order to be able to send the transactions. You can also provide the `--safe-address` option to the command instead of `SAFE_ADDRESS`.
 
 `--use-safe-api`: Uses the Safe API to create the transactions in the Safe UI. This option is only valid if the `--batch-via-safe` option is also used. If `--batch-via-safe` is used, but `--use-safe-api` is not used, the script will only create payload dump files that can be used to create the transactions in the Safe UI.
 

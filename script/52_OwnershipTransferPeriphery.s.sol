@@ -2,23 +2,61 @@
 
 pragma solidity ^0.8.0;
 
-import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
-import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
-import {GovernedPerspective} from "./../src/Perspectives/deployed/GovernedPerspective.sol";
+import {BatchBuilder, console} from "./utils/ScriptUtils.s.sol";
+import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 
-contract OwnershipTransferPeriphery is ScriptUtils {
+contract OwnershipTransferPeriphery is BatchBuilder {
     function run() public {
-        string memory json = getInputConfig("52_OwnershipTransferPeriphery_input.json");
-        address oracleAdapterRegistryOwner = vm.parseJsonAddress(json, ".oracleAdapterRegistryOwner");
-        address externalVaultRegistryOwner = vm.parseJsonAddress(json, ".externalVaultRegistryOwner");
-        address irmRegistryOwner = vm.parseJsonAddress(json, ".irmRegistryOwner");
-        address governedPerspectiveOwner = vm.parseJsonAddress(json, ".governedPerspectiveOwner");
+        verifyMultisigAddresses(multisigAddresses);
 
-        startBroadcast();
-        SnapshotRegistry(peripheryAddresses.oracleAdapterRegistry).transferOwnership(oracleAdapterRegistryOwner);
-        SnapshotRegistry(peripheryAddresses.externalVaultRegistry).transferOwnership(externalVaultRegistryOwner);
-        SnapshotRegistry(peripheryAddresses.irmRegistry).transferOwnership(irmRegistryOwner);
-        GovernedPerspective(peripheryAddresses.governedPerspective).transferOwnership(governedPerspectiveOwner);
-        stopBroadcast();
+        address owner = Ownable(peripheryAddresses.oracleAdapterRegistry).owner();
+        if (owner != multisigAddresses.labs) {
+            if (owner == getDeployer()) {
+                console.log("+ Transferring ownership of OracleAdapterRegistry to %s", multisigAddresses.labs);
+                transferOwnership(peripheryAddresses.oracleAdapterRegistry, multisigAddresses.labs);
+            } else {
+                console.log("! OracleAdapterRegistry owner is not the caller of this script. Skipping...");
+            }
+        } else {
+            console.log("- OracleAdapterRegistry owner is already set to the desired address. Skipping...");
+        }
+
+        owner = Ownable(peripheryAddresses.externalVaultRegistry).owner();
+        if (owner != multisigAddresses.labs) {
+            if (owner == getDeployer()) {
+                console.log("+ Transferring ownership of ExternalVaultRegistry to %s", multisigAddresses.labs);
+                transferOwnership(peripheryAddresses.externalVaultRegistry, multisigAddresses.labs);
+            } else {
+                console.log("! ExternalVaultRegistry owner is not the caller of this script. Skipping...");
+            }
+        } else {
+            console.log("- ExternalVaultRegistry owner is already set to the desired address. Skipping...");
+        }
+
+        owner = Ownable(peripheryAddresses.irmRegistry).owner();
+        if (owner != multisigAddresses.labs) {
+            if (owner == getDeployer()) {
+                console.log("+ Transferring ownership of IRMRegistry to %s", multisigAddresses.labs);
+                transferOwnership(peripheryAddresses.irmRegistry, multisigAddresses.labs);
+            } else {
+                console.log("! IRMRegistry owner is not the caller of this script. Skipping...");
+            }
+        } else {
+            console.log("- IRMRegistry owner is already set to the desired address. Skipping...");
+        }
+
+        owner = Ownable(peripheryAddresses.governedPerspective).owner();
+        if (owner != multisigAddresses.labs) {
+            if (owner == getDeployer()) {
+                console.log("+ Transferring ownership of GovernedPerspective to %s", multisigAddresses.labs);
+                transferOwnership(peripheryAddresses.governedPerspective, multisigAddresses.labs);
+            } else {
+                console.log("! GovernedPerspective owner is not the caller of this script. Skipping...");
+            }
+        } else {
+            console.log("- GovernedPerspective owner is already set to the desired address. Skipping...");
+        }
+
+        executeBatch();
     }
 }
