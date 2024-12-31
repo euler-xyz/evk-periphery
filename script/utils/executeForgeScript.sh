@@ -30,6 +30,11 @@ if [[ "$@" == *"--safe-address"* ]]; then
     set -- $(echo "$@" | sed "s/--safe-address $safe_address//")
 fi
 
+if [[ "$@" == *"--safe-nonce"* ]]; then
+    safe_nonce=$(echo "$@" | grep -o '\--safe-nonce [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--safe-nonce $safe_nonce//")
+fi
+
 if [[ "$@" == *"--batch-via-safe"* ]]; then
     set -- "${@/--batch-via-safe/}"
     batch_via_safe="--batch-via-safe"
@@ -41,7 +46,7 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
     fi
 fi
 
-if ! env broadcast=$broadcast safe_address=$safe_address batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
+if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
     forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
     exit 1
 fi

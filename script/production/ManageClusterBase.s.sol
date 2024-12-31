@@ -341,6 +341,8 @@ abstract contract ManageClusterBase is BatchBuilder {
         if (!isBatchViaSafe()) return;
 
         SafeTransaction safeUtil = new SafeTransaction();
+        if (!safeUtil.isTransactionServiceAPIAvailable()) return;
+
         SafeTransaction.Transaction[] memory transactions = safeUtil.getPendingTransactions(getSafe());
 
         for (uint256 i = 0; i < transactions.length; ++i) {

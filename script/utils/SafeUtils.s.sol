@@ -55,6 +55,21 @@ abstract contract SafeUtil is ScriptExtended {
         bytes signature;
     }
 
+    mapping(uint256 => bool) private transactionServiceAPIAvailable;
+
+    constructor() {
+        transactionServiceAPIAvailable[1] = true;
+        transactionServiceAPIAvailable[10] = true;
+        transactionServiceAPIAvailable[137] = true;
+        transactionServiceAPIAvailable[8453] = true;
+        transactionServiceAPIAvailable[42161] = true;
+        transactionServiceAPIAvailable[43114] = true;
+    }
+
+    function isTransactionServiceAPIAvailable() public view returns (bool) {
+        return transactionServiceAPIAvailable[block.chainid];
+    }
+
     function isSafeOwnerOrDelegate(address safe, address account) public returns (bool) {
         Status memory status = getStatus(safe);
         for (uint256 i = 0; i < status.owners.length; ++i) {
@@ -217,10 +232,14 @@ abstract contract SafeUtil is ScriptExtended {
     }
 
     function getSafeBaseURL() public view returns (string memory) {
+        require(isTransactionServiceAPIAvailable(), "Transaction service API is not available");
+
         if (block.chainid == 1) {
             return "https://safe-transaction-mainnet.safe.global/";
-        } else if (block.chainid == 5) {
-            return "https://safe-transaction-goerli.safe.global/";
+        } else if (block.chainid == 10) {
+            return "https://safe-transaction-optimism.safe.global/";
+        } else if (block.chainid == 137) {
+            return "https://safe-transaction-polygon.safe.global/";
         } else if (block.chainid == 8453) {
             return "https://safe-transaction-base.safe.global/";
         } else if (block.chainid == 42161) {
@@ -228,7 +247,7 @@ abstract contract SafeUtil is ScriptExtended {
         } else if (block.chainid == 43114) {
             return "https://safe-transaction-avalanche.safe.global/";
         } else {
-            revert("getSafeBaseURL: Unsupported chain");
+            return "";
         }
     }
 
@@ -335,7 +354,10 @@ contract SafeTransaction is SafeUtil {
     }
 
     function _simulate() private {
-        if (transaction.sender != address(0) && !isSafeOwnerOrDelegate(transaction.safe, transaction.sender)) {
+        if (
+            transaction.sender != address(0) && isTransactionServiceAPIAvailable()
+                && !isSafeOwnerOrDelegate(transaction.safe, transaction.sender)
+        ) {
             console.log(
                 "Sender (%s) not authorized to execute a transaction on Safe (%s)", transaction.sender, transaction.safe
             );
@@ -432,14 +454,18 @@ contract SafeTransaction is SafeUtil {
     }
 
     function _getCreateCurlCommand() internal view returns (string memory) {
-        return string.concat(
-            "curl -X POST ",
-            getSafesAPIBaseURL(),
-            vm.toString(transaction.safe),
-            "/multisig-transactions/ ",
-            getHeadersString(),
-            "--data-binary @<payload file>\n"
-        );
+        if (isTransactionServiceAPIAvailable()) {
+            return string.concat(
+                "curl -X POST ",
+                getSafesAPIBaseURL(),
+                vm.toString(transaction.safe),
+                "/multisig-transactions/ ",
+                getHeadersString(),
+                "--data-binary @<payload file>\n"
+            );
+        } else {
+            return "Transaction service API is not available. Transaction must be created manually.";
+        }
     }
 }
 
