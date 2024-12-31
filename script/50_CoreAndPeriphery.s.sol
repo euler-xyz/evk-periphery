@@ -47,8 +47,8 @@ contract CoreAndPeriphery is BatchBuilder {
     uint256 internal constant HUB_CHAIN_ID = 1;
     address internal constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
     uint8 internal constant EUL_DECIMALS = 18;
-    address internal constant EVAULT_FACTORY_GOVERNOR_PAUSER = 0xff217004BdD3A6A592162380dc0E6BbF143291eB;
     uint256 internal constant TIMELOCK_MIN_DELAY = 4 days;
+    address[1] internal EVAULT_FACTORY_GOVERNOR_PAUSERS = [0xff217004BdD3A6A592162380dc0E6BbF143291eB];
 
     uint256 internal constant FEE_FLOW_EPOCH_PERIOD = 14 days;
     uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18;
@@ -182,10 +182,12 @@ contract CoreAndPeriphery is BatchBuilder {
             console.log("    Granting pause guardian role to address %s", multisigAddresses.labs);
             AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(pauseGuardianRole, multisigAddresses.labs);
 
-            console.log("    Granting pause guardian role to address %s", EVAULT_FACTORY_GOVERNOR_PAUSER);
-            AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(
-                pauseGuardianRole, EVAULT_FACTORY_GOVERNOR_PAUSER
-            );
+            for (uint256 i = 0; i < EVAULT_FACTORY_GOVERNOR_PAUSERS.length; ++i) {
+                console.log("    Granting pause guardian role to address %s", EVAULT_FACTORY_GOVERNOR_PAUSERS[i]);
+                AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(
+                    pauseGuardianRole, EVAULT_FACTORY_GOVERNOR_PAUSERS[i]
+                );
+            }
 
             console.log("    Granting unpause admin role to address %s", multisigAddresses.labs);
             AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.labs);
