@@ -540,7 +540,7 @@ contract CoreAndPeriphery is BatchBuilder {
                     coreAddresses.evc,
                     input.feeFlowInitPrice,
                     tokenAddresses.EUL,
-                    BURN_ADDRESS,
+                    multisigAddresses.DAO,
                     FEE_FLOW_EPOCH_PERIOD,
                     FEE_FLOW_PRICE_MULTIPLIER,
                     FEE_FLOW_MIN_INIT_PRICE
