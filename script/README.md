@@ -20,7 +20,7 @@ It should contain the following environment variables:
 - `DEPLOYER_KEY` (the private key which will be used for all the contracts deployments; this will also become an owner/admin/governor for all the  deployed contracts; this is optional if you provide a different option to derive the deployer key, i.e. `--ledger` or `--account ACC_NAME`)
 - `SAFE_KEY` (the private key which will be used to sign Safe transactions; this is optional if you don't send transactions via Safe or provide a different option to derive the Safe signer key, i.e. `--ledger` or `--account ACC_NAME`)
 - `SAFE_ADDRESS` (the Safe address which will be used to send transactions via Safe; this is optional if you don't send transactions via Safe. you can use the `--safe-address` option in the command instead. you may also provide the key from the `MultisigAddresses.json` file instead of providing the address)
-- `SAFE_NONCE` (the Safe nonce which will be used to send transactions via Safe; this is optional and if not provided, the script will try to retrieve it from the Safe)
+- `SAFE_NONCE` (the Safe nonce which will be used to send transactions via Safe; this is optional and if not provided, the script will try to retrieve it from the Safe). you can use the `--safe-nonce` option in the command as well
 - `VERIFIER_URL` (url of the contract verifier, i.e. https://api.polygonscan.com/api)
 - `VERIFIER_API_KEY` (verifier api key)
 
