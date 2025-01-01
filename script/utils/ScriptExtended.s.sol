@@ -16,7 +16,7 @@ abstract contract ScriptExtended is Script {
         forks[DEFAULT_FORK_CHAIN_ID] = vm.activeFork();
 
         if (forks[DEFAULT_FORK_CHAIN_ID] == 0) {
-            forks[DEFAULT_FORK_CHAIN_ID] = vm.createSelectFork(getCurrentDeploymentRpcUrl());
+            forks[DEFAULT_FORK_CHAIN_ID] = vm.createSelectFork(getDeploymentRpcUrl());
         }
 
         forks[block.chainid] = forks[DEFAULT_FORK_CHAIN_ID];
@@ -89,16 +89,24 @@ abstract contract ScriptExtended is Script {
         return nonce;
     }
 
-    function getCurrentDeploymentRpcUrl() internal view returns (string memory) {
+    function getDeploymentRpcUrl() internal view returns (string memory) {
         return vm.envString("DEPLOYMENT_RPC_URL");
     }
 
-    function getDeploymentRpcUrl(uint256 chainId) internal view returns (string memory) {
-        return vm.envString(string.concat("DEPLOYMENT_RPC_URL_", vm.toString(chainId)));
+    function getRpcUrl(uint256 chainId, bool failOnNotFound) internal view returns (string memory) {
+        if (failOnNotFound) {
+            return vm.envString(string.concat("DEPLOYMENT_RPC_URL_", vm.toString(chainId)));
+        } else {
+            return vm.envOr(string.concat("DEPLOYMENT_RPC_URL_", vm.toString(chainId)), string(""));
+        }
+    }
+
+    function getLocalRpcUrl() internal pure returns (string memory) {
+        return "http://127.0.0.1:8545";
     }
 
     function isLocalForkDeployment() internal view returns (bool) {
-        return _strEq(getCurrentDeploymentRpcUrl(), "http://127.0.0.1:8545");
+        return _strEq(getDeploymentRpcUrl(), getLocalRpcUrl());
     }
 
     function isBroadcast() internal view returns (bool) {
@@ -201,7 +209,7 @@ abstract contract ScriptExtended is Script {
         require(forks[0] != 0, "selectFork: default fork not found");
 
         if (forks[chainId] == 0) {
-            string memory rpcUrl = vm.envOr(string.concat("DEPLOYMENT_RPC_URL_", vm.toString(chainId)), string(""));
+            string memory rpcUrl = getRpcUrl(chainId, false);
 
             if (bytes(rpcUrl).length == 0) return false;
 

@@ -25,7 +25,8 @@ ignore = [
     "script/production/mainnet/clusters/PrimeCluster.s.sol",
     "script/production/mainnet/clusters/PendeulCluster.s.sol",
     "script/production/mainnet/clusters/YieldCluster.s.sol",
-    "script/production/base/clusters/BaseCluster.s.sol"
+    "script/production/base/clusters/BaseCluster.s.sol",
+    "script/production/swell/clusters/SwellCluster.s.sol"
 ]
 
 [profile.default.fuzz]

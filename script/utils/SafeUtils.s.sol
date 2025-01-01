@@ -280,6 +280,7 @@ contract SafeTransaction is SafeUtil {
     function create(bool isCallOperation, address safe, address target, uint256 value, bytes memory data, uint256 nonce)
         public
     {
+        delete transaction;
         _initialize(isCallOperation, safe, target, value, data, nonce);
         _simulate();
         _create();
@@ -293,6 +294,7 @@ contract SafeTransaction is SafeUtil {
         bytes memory data,
         uint256 nonce
     ) public {
+        delete transaction;
         _initialize(isCallOperation, safe, target, value, data, nonce);
 
         transaction.sender = address(0);
@@ -314,6 +316,7 @@ contract SafeTransaction is SafeUtil {
     }
 
     function simulate(bool isCallOperation, address safe, address target, uint256 value, bytes memory data) public {
+        delete transaction;
         transaction.safe = safe;
         transaction.sender = address(0);
         transaction.to = target;
