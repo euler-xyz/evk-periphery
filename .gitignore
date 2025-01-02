@@ -1,3 +1,6 @@
+# OS files
+.DS_Store
+
 # Compiler files
 cache/
 out/
