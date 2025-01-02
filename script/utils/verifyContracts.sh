@@ -48,8 +48,8 @@ function verify_broadcast {
     local transactions=$(jq -c '.transactions[]' $tmpFileName)
     rm $tmpFileName
 
-    if [ $(echo "$transactions" | wc -l) -eq 1 ]; then
-        sleep 5
+    if [ $(echo "$transactions" | wc -l) -lt 5 ]; then
+        sleep 10
     fi
 
     for tx in $transactions; do
