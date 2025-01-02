@@ -1150,7 +1150,7 @@ while true; do
             fi
             
             if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ]; then
-                read -p "Enter the EUL init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
+                read -p "Enter the EUL/WETH init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
             fi
 
             multisig_dao=${multisig_dao:-$addressZero}
