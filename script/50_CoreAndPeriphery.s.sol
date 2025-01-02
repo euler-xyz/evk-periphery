@@ -48,7 +48,8 @@ contract CoreAndPeriphery is BatchBuilder {
     address internal constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
     uint8 internal constant EUL_DECIMALS = 18;
     uint256 internal constant TIMELOCK_MIN_DELAY = 4 days;
-    address[1] internal EVAULT_FACTORY_GOVERNOR_PAUSERS = [0xff217004BdD3A6A592162380dc0E6BbF143291eB];
+    address[1] internal EVAULT_FACTORY_GOVERNOR_PAUSERS =
+        [0xff217004BdD3A6A592162380dc0E6BbF143291eB, 0xcC6451385685721778E7Bd80B54F8c92b484F601];
 
     uint256 internal constant FEE_FLOW_EPOCH_PERIOD = 14 days;
     uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18;
