@@ -23,6 +23,7 @@ It should contain the following environment variables:
 - `SAFE_NONCE` (the Safe nonce which will be used to send transactions via Safe; this is optional and if not provided, the script will try to retrieve it from the Safe). you can use the `--safe-nonce` option in the command as well
 - `VERIFIER_URL` (url of the contract verifier, i.e. https://api.polygonscan.com/api)
 - `VERIFIER_API_KEY` (verifier api key)
+- `TENDERLY_ACCESS_KEY` (tenderly access key)
 
 ## Anvil fork
 
