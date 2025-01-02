@@ -33,7 +33,9 @@ abstract contract UniswapV2Handler is BaseHandler {
                     (amountOut, type(uint256).max, abi.decode(params.data, (address[])), receiver, block.timestamp)
                 )
             );
-            if (!success) revert Swapper_SwapError(uniswapRouterV2, result);
+            if (!success || (result.length == 0 && uniswapRouterV2.code.length == 0)) {
+                revert Swapper_SwapError(uniswapRouterV2, result);
+            }
         }
     }
 }

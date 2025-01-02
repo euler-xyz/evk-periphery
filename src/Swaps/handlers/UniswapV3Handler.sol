@@ -41,7 +41,9 @@ abstract contract UniswapV3Handler is BaseHandler {
                     })
                 )
             );
-            if (!success) revert Swapper_SwapError(uniswapRouterV3, result);
+            if (!success || (result.length == 0 && uniswapRouterV3.code.length == 0)) {
+                revert Swapper_SwapError(uniswapRouterV3, result);
+            }
         }
     }
 }
