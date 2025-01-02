@@ -39,3 +39,85 @@ You can pass `--batch-via-safe` option to the deployment script in order to crea
 ## Important Notes
 
 Always try to use the `--dry-run` option first to simulate the transactions and check for any potential issues.
+
+# Emergency Cluster Pause
+
+This section assumes that the cluster is governed by the `GovernorAccessControlEmergency` contract with a Safe multisig having an appropriate emergency role granted to it. It also assumes that at least the following environment variables are defined in the `.env` file or their corresponding command line arguments will be provided:
+
+- `DEPLOYMENT_RPC_URL` or `--rpc-url RPC_URL`
+- `DEPLOYER_KEY` or `--account ACCOUNT` or `--ledger` (this must be a signer or a delegate of the Safe)
+- `SAFE_ADDRESS` or `--safe-address ADDRESS`
+- `SAFE_NONCE` or `--safe-nonce NONCE` (this is only necessary if Safe Transaction Service is not available on the network and otherwise may be omitted)
+
+> **IMPORTANT**: Environment variables defined in the `.env` file take precedence over the command line arguments!
+
+## Steps
+
+1. Ensure that you have up to date foundry version installed:
+
+```bash
+foundryup
+```
+
+If you don't have foundry installed at all, before running `foundryup`, you need to first run:
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+```
+
+2. Clone the repository if you don't have it already:
+
+```bash
+git clone https://github.com/euler-xyz/euler-periphery.git && cd euler-periphery
+```
+
+3. Ensure that you have up to date dependencies installed:
+
+```bash
+forge install
+```
+
+4. Do necessary changes in the dedicated cluster script file (e.g. `./script/production/mainnet/clusters/PrimeCluster.s.sol`).
+
+- to reduce the LTVs, search for `cluster.ltvs` and `cluster.externalLTVs` and edit the matrix values accordingly
+
+- to pause vault operations, search for `cluster.hookedOps` and edit it in the following way:
+  - to pause all operations for all the vaults in the cluster, use the following value: `32767`
+  - to pause all operations except for the liquidations for all the vaults in the cluster, use the following value: `30719`
+  - to pause vaults selectively, instead of defining `cluster.hookedOps` value, define `cluster.hookedOpsOverride[SYMBOL]` for each vault you want to pause and use values as described above
+
+- to reduce the supply or borrow caps, search for `cluster.supplyCaps` and `cluster.borrowCaps` and edit the values accordingly
+
+5. Compile the contracts:
+
+```bash
+forge clean && forge compile
+```
+
+6. Run the script:
+
+If environment variables are defined in the `.env` file:
+```bash
+./script/production/ExecuteSolidityScript.sh PATH_TO_CLUSTER_SPECIFIC_SCRIPT --batch-via-safe
+```
+
+If environment variables are **not** defined in the `.env` file:
+```bash
+./script/production/ExecuteSolidityScript.sh PATH_TO_CLUSTER_SPECIFIC_SCRIPT --batch-via-safe --rpc-url RPC_URL --account ACCOUNT --safe-address SAFE_ADDRESS
+```
+
+Example command for the `PrimeCluster.s.sol` script:
+
+```bash
+./script/production/ExecuteSolidityScript.sh script/production/mainnet/clusters/PrimeCluster.s.sol --batch-via-safe
+```
+
+7. Create the transaction in the Safe UI. 
+
+If Safe Transaction Service is available you can either add `--use-safe-api` option to the previous command (then the transaction will be automatically created in the Safe UI) or run the `curl` command as displayed in the console output after running the script. The `<payload file>` is created by the script and can be found under the following path: `script/deployments/[YOUR_SPECIFIED_DIRECTORY]/[CHAIN_ID]/output/SafeTransaction_*.json`.
+
+If Safe Transaction Service is not available, use the Safe UI Transaction Builder tool to create the transaction. Select `Custom data` option. Look up the `SafeTransaction_*.json` file. Copy the `to` address from the file and paste it into the `Enter Address` field. The `To Address` field should get automatically filled in with the same address. Put `0` into the `ETH value` field. Copy the `data` field from the file and paste it into the `Data (Hex encoded)` field. Click `Add transaction` and proceed with the transaction creation in the Safe UI.
+
+8. Coordinate signing process with the Safe multisig signers.
+
+9. Execute the transaction in the Safe UI.
