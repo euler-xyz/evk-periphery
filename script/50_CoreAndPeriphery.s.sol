@@ -540,7 +540,9 @@ contract CoreAndPeriphery is BatchBuilder {
                 peripheryAddresses.feeFlowController = deployer.deploy(
                     coreAddresses.evc,
                     input.feeFlowInitPrice,
-                    tokenAddresses.EUL,
+                    nttAddresses.manager != address(0) && nttAddresses.transceiver != address(0)
+                        ? tokenAddresses.EUL
+                        : getWETHAddress(),
                     multisigAddresses.DAO,
                     FEE_FLOW_EPOCH_PERIOD,
                     FEE_FLOW_PRICE_MULTIPLIER,
