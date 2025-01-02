@@ -18,6 +18,6 @@ abstract contract GenericHandler is BaseHandler {
         setMaxAllowance(params.tokenIn, target);
 
         (bool success, bytes memory result) = target.call(payload);
-        if (!success) revert Swapper_SwapError(target, result);
+        if (!success || (result.length == 0 && target.code.length == 0)) revert Swapper_SwapError(target, result);
     }
 }
