@@ -37,6 +37,9 @@ if ! script/utils/checkEnvironment.sh "$@"; then
     exit 1
 fi
 
+eulerEarnCompilerOptions="--optimize --optimizer-runs 800 --use 0.8.27 --out out-euler-earn"
+nttCompilerOptions="--optimize --optimizer-runs 200 --via-ir --use 0.8.19 --out out-ntt"
+
 while true; do
     echo ""
     echo "Select an option to deploy/configure:"
@@ -54,6 +57,9 @@ while true; do
     echo "11. Fee Flow"
     echo "12. Governors"
     echo "13. Terms of Use Signer"
+    echo "---------------------------------"
+    echo "20. EulerEarn implementation (modules and implementation contract)"
+    echo "21. EulerEarn factory"
     echo "---------------------------------"
     echo "50. Core and Periphery Deployment and Configuration"
     echo "51. Core Ownership Transfer"
@@ -158,7 +164,7 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            read -p "Enter the PERMIT2 contract address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+            read -p "Enter the Permit2 contract address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
             permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
 
             jq -n \
@@ -1107,6 +1113,49 @@ while true; do
                     evc: $evc
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
+        20)
+            echo "Deploying Euler Earn implementation..."
+
+            baseName=20_EulerEarnImplementation
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            read -p "Enter the EVC address: " evc
+            read -p "Enter the Balance Tracker address: " balance_tracker
+            read -p "Enter the Permit2 address: " permit2
+            read -p "Enter the isHarvestCoolDownCheckOn flag (t/f): " is_harvest_cool_down_check_on
+
+            forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
+
+            jq -n \
+                --arg evc "$evc" \
+                --arg balanceTracker "$balance_tracker" \
+                --arg permit2 "$permit2" \
+                --argjson isHarvestCoolDownCheckOn "$(jq -n --argjson val \"$isHarvestCoolDownCheckOn\" 'if $val != "f" then true else false end')" \
+                '{
+                    evc: $evc,
+                    balanceTracker: $balanceTracker,
+                    permit2: $permit2,
+                    isHarvestCoolDownCheckOn: $isHarvestCoolDownCheckOn
+                }' --indent 4 > script/${jsonName}_input.json
+            ;;
+        21)
+            echo "Deploying Euler Earn factory..."
+
+            baseName=21_EulerEarnFactory
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            read -p "Enter the Euler Earn implementation address: " euler_earn_implementation
+
+            forge compile lib/euler-earn/src $eulerEarnCompilerOptions
+
+            jq -n \
+                --arg eulerEarnImplementation "$euler_earn_implementation" \
+                '{
+                    eulerEarnImplementation: $eulerEarnImplementation
+                }' --indent 4 > script/${jsonName}_input.json
+            ;;
         50)
             echo "Deploying and configuring Core and Periphery..."
 
@@ -1127,6 +1176,8 @@ while true; do
                 swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 nttManager=$(jq -r '.manager' "$addresses_dir_path/NTTAddresses.json" 2>/dev/null)
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+                eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
+                eulerEarnFactory=${eulerEarnFactory:-$addressZero}
             fi
 
             if [ -z "$multisig_dao" ] || [ "$multisig_dao" == "$addressZero" ]; then
@@ -1163,7 +1214,9 @@ while true; do
             wormhole_relayer=${wormhole_relayer:-$addressZero}
             init_price=${init_price:-1000000000000000000}
 
-            nttCompilerOptions="--optimize --optimizer-runs 200 --via-ir --use 0.8.19 --out out-ntt"
+            if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
+                forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
+            fi
             
             if ([ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]) && ([ "$wormhole_core_bridge" != "$addressZero" ]); then
                 echo "Deploying TransceiverStructs library..."

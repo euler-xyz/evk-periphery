@@ -32,6 +32,8 @@ import {
 } from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {NttManagerDeployer, WormholeTransceiverDeployer} from "./14_NTT.s.sol";
+import {EulerEarnImplementation, IntegrationsParams} from "./20_EulerEarnImplementation.s.sol";
+import {EulerEarnFactory} from "./21_EulerEarnFactory.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {GovernorAccessControlEmergency} from "./../src/Governor/GovernorAccessControlEmergency.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
@@ -44,6 +46,9 @@ import {NttManager} from "native-token-transfers/NttManager/NttManager.sol";
 import {WormholeTransceiver} from "native-token-transfers/Transceiver/WormholeTransceiver/WormholeTransceiver.sol";
 
 contract CoreAndPeriphery is BatchBuilder {
+    mapping(uint256 chainId => bool isHarvestCoolDownCheckOn) internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON;
+    uint256[1] internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS = [1];
+
     uint256 internal constant HUB_CHAIN_ID = 1;
     address internal constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
     uint8 internal constant EUL_DECIMALS = 18;
@@ -76,6 +81,13 @@ contract CoreAndPeriphery is BatchBuilder {
         address wormholeRelayer;
         address transceiverStructs;
         uint256 feeFlowInitPrice;
+    }
+
+    constructor() {
+        for (uint256 i = 0; i < EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS.length; ++i) {
+            uint256 chainId = EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS[i];
+            EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON[chainId] = true;
+        }
     }
 
     function run()
@@ -169,6 +181,28 @@ contract CoreAndPeriphery is BatchBuilder {
             coreAddresses.eVaultFactory = deployer.deploy(coreAddresses.eVaultImplementation);
         } else {
             console.log("- EVault factory already deployed. Skipping...");
+        }
+
+        if (coreAddresses.eulerEarnImplementation == address(0)) {
+            console.log("+ Deploying Euler Earn implementation...");
+            EulerEarnImplementation deployer = new EulerEarnImplementation();
+            IntegrationsParams memory integrations = IntegrationsParams({
+                evc: coreAddresses.evc,
+                balanceTracker: coreAddresses.balanceTracker,
+                permit2: coreAddresses.permit2,
+                isHarvestCoolDownCheckOn: EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON[block.chainid]
+            });
+            (, coreAddresses.eulerEarnImplementation) = deployer.deploy(integrations);
+        } else {
+            console.log("- Euler Earn implementation already deployed. Skipping...");
+        }
+
+        if (coreAddresses.eulerEarnFactory == address(0)) {
+            console.log("+ Deploying Euler Earn factory...");
+            EulerEarnFactory deployer = new EulerEarnFactory();
+            coreAddresses.eulerEarnFactory = deployer.deploy(coreAddresses.eulerEarnImplementation);
+        } else {
+            console.log("- Euler Earn factory already deployed. Skipping...");
         }
 
         if (governorAddresses.eVaultFactoryGovernor == address(0)) {
@@ -445,6 +479,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 selectFork(DEFAULT_FORK_CHAIN_ID);
 
                 startBroadcast();
+                bool configurationNeeded = false;
                 console.log(
                     "    Attempting to configure NttManager and WormholeTransceiver (%s) for chain %s:",
                     block.chainid,
@@ -460,6 +495,7 @@ contract CoreAndPeriphery is BatchBuilder {
                         nttAddressesOther.manager,
                         chainIdOther
                     );
+                    configurationNeeded = true;
                     if (isManagerOwner) {
                         NttManager(nttAddresses.manager).setPeer(
                             wormholeChainIdOther,
@@ -480,6 +516,7 @@ contract CoreAndPeriphery is BatchBuilder {
                         nttAddressesOther.transceiver,
                         chainIdOther
                     );
+                    configurationNeeded = true;
                     if (isTransceiverOwner) {
                         WormholeTransceiver(nttAddresses.transceiver).setWormholePeer(
                             wormholeChainIdOther, bytes32(uint256(uint160(nttAddressesOther.transceiver)))
@@ -493,6 +530,7 @@ contract CoreAndPeriphery is BatchBuilder {
                         block.chainid,
                         chainIdOther
                     );
+                    configurationNeeded = true;
                     if (isTransceiverOwner) {
                         WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(wormholeChainIdOther, true);
                     }
@@ -504,11 +542,19 @@ contract CoreAndPeriphery is BatchBuilder {
                         block.chainid,
                         chainIdOther
                     );
+                    configurationNeeded = true;
                     if (isTransceiverOwner) {
                         WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(
                             wormholeChainIdOther, true
                         );
                     }
+                }
+
+                if (!configurationNeeded) {
+                    console.log(
+                        "    ! NttManager and WormholeTransceiver already configured for chain %s. Skipping...",
+                        chainIdOther
+                    );
                 }
                 stopBroadcast();
             }
