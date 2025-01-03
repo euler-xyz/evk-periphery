@@ -343,6 +343,7 @@ struct EulerEarnVaultInfoFull {
     uint256 interestSmearEnd;
     uint256 interestLeft;
     uint256 lastHarvestTimestamp;
+    uint256 interestSmearingPeriod;
     uint256 performanceFee;
     address feeReceiver;
     uint256 hookedOperations;
