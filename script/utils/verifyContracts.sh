@@ -23,7 +23,7 @@ function verify_contract {
     if [[ $verifier_url == *"api."* ]]; then
         verifierArgs="$verifierArgs --verifier-api-key $verifier_api_key --verifier=etherscan"
     elif [[ $verifier_url == *"explorer."* || $verifier_url == *"blockscout."* ]]; then
-        verifierArgs="$verifierArgs --verifier=blockscout"
+        verifierArgs="$verifierArgs --verifier-api-key \"\" --verifier=blockscout"
 
         if [[ $constructorArgs == "--guess-constructor-args" ]]; then
             constructorArgs=""
@@ -48,16 +48,24 @@ function verify_broadcast {
     local transactions=$(jq -c '.transactions[]' $tmpFileName)
     rm $tmpFileName
 
-    if [ $(echo "$transactions" | wc -l) -eq 1 ]; then
-        sleep 5
+    if [ $(echo "$transactions" | wc -l) -lt 5 ]; then
+        sleep 10
     fi
 
+    local createVerified=false
+    local eulerEarnIndex=0
+    local nttIndex=0
     for tx in $transactions; do
         local transactionType=$(echo $tx | jq -r '.transactionType')
         local contractAddress=$(echo $tx | jq -r '.contractAddress')
         local contractName=$(echo $tx | jq -r '.contractName')
 
         if [[ $transactionType == "CREATE" && $contractAddress != null && $contractName != null ]]; then
+            if [ "$createVerified" = true ]; then
+                createVerified=false
+                forge clean && forge compile
+            fi
+
             verify_contract $contractAddress $contractName --guess-constructor-args
 
             if [[ $? -ne 0 ]]; then
@@ -78,6 +86,11 @@ function verify_broadcast {
         fi
 
         if [[ $transactionType == "CALL" ]]; then
+            if [ "$createVerified" = true ]; then
+                createVerified=false
+                forge clean && forge compile
+            fi
+
             local function=$(echo $tx | jq -r '.function')
             local arguments=$(echo $tx | jq -r '.arguments')
             local additionalContracts=$(echo $tx | jq -c '.additionalContracts[]')
@@ -123,48 +136,120 @@ function verify_broadcast {
             done
         elif [[ $transactionType == "CREATE" ]]; then
             local initCode=$(echo $tx | jq -r '.transaction.input')
-            
-            if [ -d "out-ntt" ]; then
-                # try to verify as NTT contracts
-                local nttSrc="lib/native-token-transfers/evm/src"
-                local library="$nttSrc/libraries/TransceiverStructs.sol:TransceiverStructs"
-                local transceiverStructs=$(cat "out-ntt/NttManager.sol/NttManager.json" | jq -r '.metadata.settings.libraries."'"$library"'"')
-                local verificationOptions="--num-of-optimizations 200 --compiler-version 0.8.19 --via-ir --libraries $library:$transceiverStructs"
-                local compilerOptions="--optimize --optimizer-runs 200 --use 0.8.19 --via-ir --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiverStructs"
 
-                forge clean && forge compile $nttSrc $compilerOptions
+            if [ -d "out-euler-earn" ]; then
+                # try to verify as EulerEarn contracts
+                local src="lib/euler-earn/src"
+                local verificationOptions="--num-of-optimizations 800 --compiler-version 0.8.27 --root lib/euler-earn"
+                local compilerOptions="--optimize --optimizer-runs 800 --use 0.8.27"
 
-                index=0
+                if [ "$createVerified" = false ]; then
+                    forge clean && forge compile $src $compilerOptions
+                fi
+
                 while true; do
-                    case $index in
+                    case $eulerEarnIndex in
                         0)
-                            # try to verify as NttManager
-                            contractName=NttManager
-                            constructorBytesSize=160
-                            constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                            # try to verify as EulerEarnVault
+                            contractName=EulerEarnVault
+                            constructorBytesSize=128
                             ;;
                         1)
-                            # try to verify as WormholeTransceiver
-                            contractName=WormholeTransceiver
-                            constructorBytesSize=192
-                            constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                            # try to verify as Rewards
+                            contractName=Rewards
+                            constructorBytesSize=128
+                            ;;
+                        2)
+                            # try to verify as Hooks
+                            contractName=Hooks
+                            constructorBytesSize=128
+                            ;;
+                        3)
+                            # try to verify as Fee
+                            contractName=Fee
+                            constructorBytesSize=128
+                            ;;
+                        4)
+                            # try to verify as Strategy
+                            contractName=Strategy
+                            constructorBytesSize=128
+                            ;;
+                        5)
+                            # try to verify as WithdrawalQueue
+                            contractName=WithdrawalQueue
+                            constructorBytesSize=128
+                            ;;
+                        6)
+                            # try to verify as EulerEarn
+                            contractName=EulerEarn
+                            constructorBytesSize=320
+                            ;;
+                        7)
+                            # try to verify as EulerEarnFactory
+                            contractName=EulerEarnFactory
+                            constructorBytesSize=32
                             ;;
                         *)
                             break
                             ;;
                     esac
 
+                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+
+                    verify_contract $contractAddress $contractName "$constructorArgs" $verificationOptions
+
+                    if [ $? -eq 0 ]; then
+                        createVerified=true
+                        ((eulerEarnIndex++))
+                        break
+                    fi
+
+                    ((eulerEarnIndex++))
+                done
+            fi
+            
+            if [ "$createVerified" = false ] && [ -d "out-ntt" ]; then
+                # try to verify as NTT contracts
+                local src="lib/native-token-transfers/evm/src"
+                local library="$src/libraries/TransceiverStructs.sol:TransceiverStructs"
+                local transceiverStructs=$(cat "out-ntt/NttManager.sol/NttManager.json" | jq -r '.metadata.settings.libraries."'"$library"'"')
+                local verificationOptions="--num-of-optimizations 200 --compiler-version 0.8.19 --via-ir --libraries $library:$transceiverStructs"
+                local compilerOptions="--optimize --optimizer-runs 200 --use 0.8.19 --via-ir --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiverStructs"
+
+                if [ "$createVerified" = false ]; then
+                    forge clean && forge compile $src $compilerOptions
+                fi
+
+                while true; do
+                    case $nttIndex in
+                        0)
+                            # try to verify as NttManager
+                            contractName=NttManager
+                            constructorBytesSize=160
+                            ;;
+                        1)
+                            # try to verify as WormholeTransceiver
+                            contractName=WormholeTransceiver
+                            constructorBytesSize=192
+                            ;;
+                        *)
+                            break
+                            ;;
+                    esac
+
+                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+
                     verify_contract $contractAddress $contractName "$constructorArgs" $verificationOptions
 
                     if [ $? -eq 0 ]; then
                         verify_contract $transceiverStructs TransceiverStructs "--constructor-args 0x" $verificationOptions
+                        createVerified=true
+                        ((nttIndex++))
                         break
                     fi
 
-                    ((index++))
+                    ((nttIndex++))
                 done
-
-                forge clean && forge compile
             fi
         fi
     done

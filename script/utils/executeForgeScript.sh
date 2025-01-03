@@ -46,9 +46,18 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
     fi
 fi
 
-if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
+if [[ "$@" == *"--safe-batch-tenderly"* ]]; then
+    set -- "${@/--safe-batch-tenderly/}"
+    safe_batch_tenderly="--safe-batch-tenderly"
+fi
+
+if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api safe_batch_tenderly=$safe_batch_tenderly \
     forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
     exit 1
+fi
+
+if [[ "$broadcast" == "--broadcast" ]] && [[ "$safe_batch_tenderly" == "--safe-batch-tenderly" ]] && compgen -G "script/SafeTransactionTransformed*.json" > /dev/null; then
+    script/utils/safeBatchTenderly.sh
 fi
 
 if [[ "$verify" == "--verify" ]]; then

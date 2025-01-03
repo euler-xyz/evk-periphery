@@ -1,7 +1,9 @@
+# OS files
+**/.DS_Store
+
 # Compiler files
 cache/
-out/
-out-ntt/
+out*/
 
 # Ignores the broadcast logs
 broadcast/

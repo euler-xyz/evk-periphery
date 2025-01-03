@@ -326,6 +326,20 @@ contract SafeTransaction is SafeUtil {
         _simulate();
     }
 
+    function initializeAndDump(
+        bool isCallOperation,
+        address safe,
+        address target,
+        uint256 value,
+        bytes memory data,
+        uint256 nonce,
+        string memory fileName
+    ) public {
+        delete transaction;
+        _initialize(isCallOperation, safe, target, value, data, nonce);
+        _dumpSafeTransaction(fileName);
+    }
+
     function _initialize(
         bool isCallOperation,
         address safe,

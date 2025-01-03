@@ -184,10 +184,10 @@ contract OwnershipTransferCore is BatchBuilder {
         }
 
         privilegedAddress = Ownable(tokenAddresses.rEUL).owner();
-        if (privilegedAddress != multisigAddresses.DAO) {
+        if (privilegedAddress != multisigAddresses.labs) {
             if (privilegedAddress == getDeployer()) {
-                console.log("+ Transferring ownership of rEUL to %s", multisigAddresses.DAO);
-                transferOwnership(tokenAddresses.rEUL, multisigAddresses.DAO);
+                console.log("+ Transferring ownership of rEUL to %s", multisigAddresses.labs);
+                transferOwnership(tokenAddresses.rEUL, multisigAddresses.labs);
             } else {
                 console.log("! rEUL owner is not the caller of this script. Skipping...");
             }
