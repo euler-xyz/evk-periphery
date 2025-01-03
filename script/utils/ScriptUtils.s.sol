@@ -77,6 +77,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address escrowedCollateralPerspective;
         address eulerUngoverned0xPerspective;
         address eulerUngovernedNzxPerspective;
+        address eulerEarnFactoryPerspective;
+        address eulerEarnGovernedPerspective;
         address termsOfUseSigner;
     }
 
@@ -100,6 +102,12 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress(
             "peripheryAddresses", "eulerUngovernedNzxPerspective", Addresses.eulerUngovernedNzxPerspective
         );
+        result = vm.serializeAddress(
+            "peripheryAddresses", "eulerEarnFactoryPerspective", Addresses.eulerEarnFactoryPerspective
+        );
+        result = vm.serializeAddress(
+            "peripheryAddresses", "eulerEarnGovernedPerspective", Addresses.eulerEarnGovernedPerspective
+        );
         result = vm.serializeAddress("peripheryAddresses", "termsOfUseSigner", Addresses.termsOfUseSigner);
     }
 
@@ -118,6 +126,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             escrowedCollateralPerspective: getAddressFromJson(json, ".escrowedCollateralPerspective"),
             eulerUngoverned0xPerspective: getAddressFromJson(json, ".eulerUngoverned0xPerspective"),
             eulerUngovernedNzxPerspective: getAddressFromJson(json, ".eulerUngovernedNzxPerspective"),
+            eulerEarnFactoryPerspective: getAddressFromJson(json, ".eulerEarnFactoryPerspective"),
+            eulerEarnGovernedPerspective: getAddressFromJson(json, ".eulerEarnGovernedPerspective"),
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner")
         });
     }

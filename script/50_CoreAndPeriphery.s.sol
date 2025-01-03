@@ -21,7 +21,8 @@ import {
     PerspectiveGovernedDeployer,
     EVKPerspectiveEscrowedCollateralDeployer,
     EVKPerspectiveEulerUngoverned0xDeployer,
-    EVKPerspectiveEulerUngovernedNzxDeployer
+    EVKPerspectiveEulerUngovernedNzxDeployer,
+    EulerEarnPerspectives
 } from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
@@ -675,6 +676,19 @@ contract CoreAndPeriphery is BatchBuilder {
             );
         } else {
             console.log("- EulerUngovernedNzxPerspective already deployed. Skipping...");
+        }
+
+        if (
+            peripheryAddresses.eulerEarnFactoryPerspective == address(0)
+                && peripheryAddresses.eulerEarnGovernedPerspective == address(0)
+        ) {
+            console.log("+ Deploying EulerEarnFactoryPerspective and EulerEarn GovernedPerspective...");
+            EulerEarnPerspectives deployer = new EulerEarnPerspectives();
+            address[] memory perspectives = deployer.deploy(coreAddresses.eulerEarnFactory);
+            peripheryAddresses.eulerEarnFactoryPerspective = perspectives[0];
+            peripheryAddresses.eulerEarnGovernedPerspective = perspectives[1];
+        } else {
+            console.log("- At least one of the EulerEarn perspectives is already deployed. Skipping...");
         }
 
         if (peripheryAddresses.termsOfUseSigner == address(0)) {
