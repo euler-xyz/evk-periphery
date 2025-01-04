@@ -80,10 +80,10 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[rswETH] = "CrossAdapter=RedstoneClassicOracle+RedstoneClassicOracle";
         cluster.oracleProviders[pzETH ] = "CrossAdapter=RedstoneClassicOracle+RedstoneClassicOracle";
         cluster.oracleProviders[USDe  ] = "RedstoneClassicOracle";
-        cluster.oracleProviders[sUSDe ] = "ExternalVault|RedstoneClassicOracle";
+        cluster.oracleProviders[sUSDe ] = "RedstoneClassicOracle";
         cluster.oracleProviders[swBTC ] = "";
         cluster.oracleProviders[ENA   ] = "";
-        cluster.oracleProviders[SWELL ] = "";
+        cluster.oracleProviders[SWELL ] = "CrossAdapter=RedstoneClassicOracle+RedstoneClassicOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH  ] = 25_000;
