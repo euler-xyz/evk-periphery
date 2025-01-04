@@ -31,6 +31,8 @@ abstract contract CoreAddressesLib is ScriptExtended {
         address permit2;
         address eVaultImplementation;
         address eVaultFactory;
+        address eulerEarnImplementation;
+        address eulerEarnFactory;
     }
 
     function serializeCoreAddresses(CoreAddresses memory Addresses) internal returns (string memory result) {
@@ -41,6 +43,8 @@ abstract contract CoreAddressesLib is ScriptExtended {
         result = vm.serializeAddress("coreAddresses", "permit2", Addresses.permit2);
         result = vm.serializeAddress("coreAddresses", "eVaultImplementation", Addresses.eVaultImplementation);
         result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
+        result = vm.serializeAddress("coreAddresses", "eulerEarnImplementation", Addresses.eulerEarnImplementation);
+        result = vm.serializeAddress("coreAddresses", "eulerEarnFactory", Addresses.eulerEarnFactory);
     }
 
     function deserializeCoreAddresses(string memory json) internal pure returns (CoreAddresses memory) {
@@ -51,7 +55,9 @@ abstract contract CoreAddressesLib is ScriptExtended {
             balanceTracker: getAddressFromJson(json, ".balanceTracker"),
             permit2: getAddressFromJson(json, ".permit2"),
             eVaultImplementation: getAddressFromJson(json, ".eVaultImplementation"),
-            eVaultFactory: getAddressFromJson(json, ".eVaultFactory")
+            eVaultFactory: getAddressFromJson(json, ".eVaultFactory"),
+            eulerEarnImplementation: getAddressFromJson(json, ".eulerEarnImplementation"),
+            eulerEarnFactory: getAddressFromJson(json, ".eulerEarnFactory")
         });
     }
 }
@@ -71,6 +77,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address escrowedCollateralPerspective;
         address eulerUngoverned0xPerspective;
         address eulerUngovernedNzxPerspective;
+        address eulerEarnFactoryPerspective;
+        address eulerEarnGovernedPerspective;
         address termsOfUseSigner;
     }
 
@@ -94,6 +102,12 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress(
             "peripheryAddresses", "eulerUngovernedNzxPerspective", Addresses.eulerUngovernedNzxPerspective
         );
+        result = vm.serializeAddress(
+            "peripheryAddresses", "eulerEarnFactoryPerspective", Addresses.eulerEarnFactoryPerspective
+        );
+        result = vm.serializeAddress(
+            "peripheryAddresses", "eulerEarnGovernedPerspective", Addresses.eulerEarnGovernedPerspective
+        );
         result = vm.serializeAddress("peripheryAddresses", "termsOfUseSigner", Addresses.termsOfUseSigner);
     }
 
@@ -112,6 +126,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             escrowedCollateralPerspective: getAddressFromJson(json, ".escrowedCollateralPerspective"),
             eulerUngoverned0xPerspective: getAddressFromJson(json, ".eulerUngoverned0xPerspective"),
             eulerUngovernedNzxPerspective: getAddressFromJson(json, ".eulerUngovernedNzxPerspective"),
+            eulerEarnFactoryPerspective: getAddressFromJson(json, ".eulerEarnFactoryPerspective"),
+            eulerEarnGovernedPerspective: getAddressFromJson(json, ".eulerEarnGovernedPerspective"),
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner")
         });
     }
@@ -613,7 +629,30 @@ abstract contract BatchBuilder is ScriptUtils {
 
         transaction.create(true, safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), safeNonce++);
 
+        if (isSafeBatchTenderly()) {
+            transformBatchForTenderly();
+            string memory fileName = string.concat(
+                "SafeTransactionTransformed_", vm.toString(safeNonce - 1), "_", vm.toString(safe), ".json"
+            );
+            transaction.initializeAndDump(
+                true, safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), safeNonce - 1, fileName
+            );
+        }
+
         clearBatchItems();
+    }
+
+    function transformBatchForTenderly() internal {
+        for (uint256 i = 0; i < batchItems.length; ++i) {
+            if (bytes4(batchItems[i].data) == IEVault(batchItems[i].targetContract).setLTV.selector) {
+                bytes memory data = batchItems[i].data;
+                assembly {
+                    // set the ramp duration to 0 to simulate the immediate effect of the LTV change
+                    mstore(add(data, 132), 0)
+                }
+                batchItems[i].data = data;
+            }
+        }
     }
 
     function dumpBatch(address from) internal {

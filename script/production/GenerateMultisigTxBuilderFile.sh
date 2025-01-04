@@ -100,7 +100,7 @@ for key in "${keys[@]}"; do
     else
         echo "Removing current signer"
         json=$(echo $json | jq --arg to "$multisig_address" --argjson contractMethod "$contract_method_removeOwner" \
-            --arg current_signer "$current_signer" --arg _threshold "$current_threshold" \
+            --arg current_signer "$current_signer" --arg _threshold "$desired_threshold" \
             '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"prevOwner": "0x0000000000000000000000000000000000000001", "owner": $current_signer, "_threshold": $_threshold}}]' )
     fi
 

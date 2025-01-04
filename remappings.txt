@@ -1,5 +1,8 @@
 lib/euler-price-oracle:@openzeppelin/contracts/=lib/euler-price-oracle/lib/openzeppelin-contracts/contracts/
 lib/native-token-transfers/evm:openzeppelin-contracts/contracts=lib/native-token-transfers/evm/lib/openzeppelin-contracts/contracts/
+lib/euler-earn:@openzeppelin=lib/euler-earn/lib/openzeppelin-contracts/
+lib/euler-earn:@openzeppelin-upgradeable=lib/euler-earn/lib/openzeppelin-contracts-upgradeable/contracts/
+lib/euler-earn:ethereum-vault-connector=lib/euler-earn/lib/ethereum-vault-connector/src/
 openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/
 openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 ethereum-vault-connector/=lib/ethereum-vault-connector/src/

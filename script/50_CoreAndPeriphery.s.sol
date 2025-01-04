@@ -21,7 +21,8 @@ import {
     PerspectiveGovernedDeployer,
     EVKPerspectiveEscrowedCollateralDeployer,
     EVKPerspectiveEulerUngoverned0xDeployer,
-    EVKPerspectiveEulerUngovernedNzxDeployer
+    EVKPerspectiveEulerUngovernedNzxDeployer,
+    EulerEarnPerspectives
 } from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
@@ -32,6 +33,8 @@ import {
 } from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {NttManagerDeployer, WormholeTransceiverDeployer} from "./14_NTT.s.sol";
+import {EulerEarnImplementation, IntegrationsParams} from "./20_EulerEarnImplementation.s.sol";
+import {EulerEarnFactory} from "./21_EulerEarnFactory.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {GovernorAccessControlEmergency} from "./../src/Governor/GovernorAccessControlEmergency.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
@@ -44,6 +47,9 @@ import {NttManager} from "native-token-transfers/NttManager/NttManager.sol";
 import {WormholeTransceiver} from "native-token-transfers/Transceiver/WormholeTransceiver/WormholeTransceiver.sol";
 
 contract CoreAndPeriphery is BatchBuilder {
+    mapping(uint256 chainId => bool isHarvestCoolDownCheckOn) internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON;
+    uint256[1] internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS = [1];
+
     uint256 internal constant HUB_CHAIN_ID = 1;
     address internal constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
     uint8 internal constant EUL_DECIMALS = 18;
@@ -76,6 +82,13 @@ contract CoreAndPeriphery is BatchBuilder {
         address wormholeRelayer;
         address transceiverStructs;
         uint256 feeFlowInitPrice;
+    }
+
+    constructor() {
+        for (uint256 i = 0; i < EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS.length; ++i) {
+            uint256 chainId = EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS[i];
+            EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON[chainId] = true;
+        }
     }
 
     function run()
@@ -169,6 +182,28 @@ contract CoreAndPeriphery is BatchBuilder {
             coreAddresses.eVaultFactory = deployer.deploy(coreAddresses.eVaultImplementation);
         } else {
             console.log("- EVault factory already deployed. Skipping...");
+        }
+
+        if (coreAddresses.eulerEarnImplementation == address(0)) {
+            console.log("+ Deploying EulerEarn implementation...");
+            EulerEarnImplementation deployer = new EulerEarnImplementation();
+            IntegrationsParams memory integrations = IntegrationsParams({
+                evc: coreAddresses.evc,
+                balanceTracker: coreAddresses.balanceTracker,
+                permit2: coreAddresses.permit2,
+                isHarvestCoolDownCheckOn: EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON[block.chainid]
+            });
+            (, coreAddresses.eulerEarnImplementation) = deployer.deploy(integrations);
+        } else {
+            console.log("- EulerEarn implementation already deployed. Skipping...");
+        }
+
+        if (coreAddresses.eulerEarnFactory == address(0)) {
+            console.log("+ Deploying EulerEarn factory...");
+            EulerEarnFactory deployer = new EulerEarnFactory();
+            coreAddresses.eulerEarnFactory = deployer.deploy(coreAddresses.eulerEarnImplementation);
+        } else {
+            console.log("- EulerEarn factory already deployed. Skipping...");
         }
 
         if (governorAddresses.eVaultFactoryGovernor == address(0)) {
@@ -445,6 +480,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 selectFork(DEFAULT_FORK_CHAIN_ID);
 
                 startBroadcast();
+                bool configurationNeeded = false;
                 console.log(
                     "    Attempting to configure NttManager and WormholeTransceiver (%s) for chain %s:",
                     block.chainid,
@@ -460,6 +496,7 @@ contract CoreAndPeriphery is BatchBuilder {
                         nttAddressesOther.manager,
                         chainIdOther
                     );
+                    configurationNeeded = true;
                     if (isManagerOwner) {
                         NttManager(nttAddresses.manager).setPeer(
                             wormholeChainIdOther,
@@ -480,6 +517,7 @@ contract CoreAndPeriphery is BatchBuilder {
                         nttAddressesOther.transceiver,
                         chainIdOther
                     );
+                    configurationNeeded = true;
                     if (isTransceiverOwner) {
                         WormholeTransceiver(nttAddresses.transceiver).setWormholePeer(
                             wormholeChainIdOther, bytes32(uint256(uint160(nttAddressesOther.transceiver)))
@@ -493,6 +531,7 @@ contract CoreAndPeriphery is BatchBuilder {
                         block.chainid,
                         chainIdOther
                     );
+                    configurationNeeded = true;
                     if (isTransceiverOwner) {
                         WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(wormholeChainIdOther, true);
                     }
@@ -504,11 +543,19 @@ contract CoreAndPeriphery is BatchBuilder {
                         block.chainid,
                         chainIdOther
                     );
+                    configurationNeeded = true;
                     if (isTransceiverOwner) {
                         WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(
                             wormholeChainIdOther, true
                         );
                     }
+                }
+
+                if (!configurationNeeded) {
+                    console.log(
+                        "    ! NttManager and WormholeTransceiver already configured for chain %s. Skipping...",
+                        chainIdOther
+                    );
                 }
                 stopBroadcast();
             }
@@ -540,7 +587,9 @@ contract CoreAndPeriphery is BatchBuilder {
                 peripheryAddresses.feeFlowController = deployer.deploy(
                     coreAddresses.evc,
                     input.feeFlowInitPrice,
-                    tokenAddresses.EUL,
+                    nttAddresses.manager != address(0) && nttAddresses.transceiver != address(0)
+                        ? tokenAddresses.EUL
+                        : getWETHAddress(),
                     multisigAddresses.DAO,
                     FEE_FLOW_EPOCH_PERIOD,
                     FEE_FLOW_PRICE_MULTIPLIER,
@@ -629,6 +678,19 @@ contract CoreAndPeriphery is BatchBuilder {
             console.log("- EulerUngovernedNzxPerspective already deployed. Skipping...");
         }
 
+        if (
+            peripheryAddresses.eulerEarnFactoryPerspective == address(0)
+                && peripheryAddresses.eulerEarnGovernedPerspective == address(0)
+        ) {
+            console.log("+ Deploying EulerEarnFactoryPerspective and EulerEarn GovernedPerspective...");
+            EulerEarnPerspectives deployer = new EulerEarnPerspectives();
+            address[] memory perspectives = deployer.deploy(coreAddresses.eulerEarnFactory);
+            peripheryAddresses.eulerEarnFactoryPerspective = perspectives[0];
+            peripheryAddresses.eulerEarnGovernedPerspective = perspectives[1];
+        } else {
+            console.log("- At least one of the EulerEarn perspectives is already deployed. Skipping...");
+        }
+
         if (peripheryAddresses.termsOfUseSigner == address(0)) {
             console.log("+ Deploying Terms of use signer...");
             TermsOfUseSignerDeployer deployer = new TermsOfUseSignerDeployer();
@@ -673,13 +735,13 @@ contract CoreAndPeriphery is BatchBuilder {
         } else {
             console.log("- LensVault already deployed. Skipping...");
         }
-        //if (lensAddresses.eulerEarnVaultLens == address(0)) {
-        //    console.log("+ Deploying EulerEarnVaultLens...");
-        //    LensEulerEarnVaultDeployer deployer = new LensEulerEarnVaultDeployer();
-        //    lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.oracleLens, lensAddresses.utilsLens);
-        //} else {
-        //    console.log("- EulerEarnVaultLens already deployed. Skipping...");
-        //}
+        if (lensAddresses.eulerEarnVaultLens == address(0)) {
+            console.log("+ Deploying EulerEarnVaultLens...");
+            LensEulerEarnVaultDeployer deployer = new LensEulerEarnVaultDeployer();
+            lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.oracleLens, lensAddresses.utilsLens);
+        } else {
+            console.log("- EulerEarnVaultLens already deployed. Skipping...");
+        }
 
         executeBatch();
 

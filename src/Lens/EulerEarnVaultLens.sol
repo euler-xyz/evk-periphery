@@ -49,6 +49,7 @@ contract EulerEarnVaultLens is Utils {
 
         result.lastHarvestTimestamp = IEulerEarn(vault).lastHarvestTimestamp();
 
+        result.interestSmearingPeriod = IEulerEarn(vault).interestSmearingPeriod();
         (result.feeReceiver, result.performanceFee) = IEulerEarn(vault).performanceFeeConfig();
         (result.hookTarget, result.hookedOperations) = IEulerEarn(vault).getHooksConfig();
 
