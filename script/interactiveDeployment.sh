@@ -1003,8 +1003,8 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            read -p "Enter the Uniswap V2 Router02 address (loop up: https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
-            read -p "Enter the Uniswap V3 Router address (loop up: https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
+            read -p "Enter the Uniswap V2 Router02 address (look up: https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
+            read -p "Enter the Uniswap V3 Router address (look up: https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
 
             jq -n \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
@@ -1191,8 +1191,8 @@ while true; do
             fi
             
             if [ -z "$swapper" ] || [ "$swapper" == "$addressZero" ]; then
-                read -p "Enter the Uniswap V2 Router 02 address (loop up: https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
-                read -p "Enter the Uniswap V3 Router address (loop up: https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
+                read -p "Enter the Uniswap V2 Router 02 address (look up: https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
+                read -p "Enter the Uniswap V3 Router address (look up: https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
             fi
             
             if [ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]; then
