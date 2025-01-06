@@ -14,7 +14,7 @@ response=$(curl -w "\n%{http_code}" --request POST \
     --header 'Content-Type: application/json' \
     --header "X-Access-Key: $TENDERLY_ACCESS_KEY" \
     --data '{
-        "slug": "scripts_testing_'$(date +%s)'",
+        "slug": "deployment_scripts_'$(date +%s)'",
         "fork_config": {
             "network_id": '$chainId',
             "block_number": "latest"
