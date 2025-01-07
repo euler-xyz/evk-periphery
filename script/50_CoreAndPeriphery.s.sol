@@ -51,7 +51,7 @@ contract CoreAndPeriphery is BatchBuilder {
     uint256[1] internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS = [1];
 
     uint256 internal constant HUB_CHAIN_ID = 1;
-    address internal constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+    address internal constant BURN_ADDRESS = address(0xdead);
     uint8 internal constant EUL_DECIMALS = 18;
     uint256 internal constant TIMELOCK_MIN_DELAY = 4 days;
     address[2] internal EVAULT_FACTORY_GOVERNOR_PAUSERS =
