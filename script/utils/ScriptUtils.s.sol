@@ -421,7 +421,11 @@ abstract contract ScriptUtils is
         return false;
     }
 
-    function encodeAmountCap(address asset, uint256 amountNoDecimals) internal view returns (uint256) {
+    function encodeAmountCap(address asset, uint256 amountNoDecimals, bool revertOnFailure)
+        internal
+        view
+        returns (uint256)
+    {
         if (amountNoDecimals == type(uint256).max) return 0;
 
         uint256 decimals = ERC20(asset).decimals();
@@ -432,7 +436,7 @@ abstract contract ScriptUtils is
                 : (amountNoDecimals * 10 ** scale) << 6
         ) | (scale + decimals);
 
-        if (AmountCapLib.resolve(AmountCap.wrap(uint16(result))) != amountNoDecimals * 10 ** decimals) {
+        if (revertOnFailure && decodeAmountCap(uint16(result)) != amountNoDecimals * 10 ** decimals) {
             console.log(
                 "expected: %s; actual: %s",
                 amountNoDecimals * 10 ** decimals,
@@ -449,8 +453,12 @@ abstract contract ScriptUtils is
     {
         for (uint256 i = 0; i < assets.length; ++i) {
             address asset = assets[i];
-            caps[asset] = encodeAmountCap(asset, caps[asset]);
+            caps[asset] = encodeAmountCap(asset, caps[asset], true);
         }
+    }
+
+    function decodeAmountCap(uint16 amountCap) internal pure returns (uint256) {
+        return AmountCapLib.resolve(AmountCap.wrap(uint16(amountCap)));
     }
 
     function isGovernanceOperation(bytes4 selector) internal pure returns (bool) {
