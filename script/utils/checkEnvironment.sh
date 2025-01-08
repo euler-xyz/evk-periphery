@@ -55,10 +55,3 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
         exit 1
     fi
 fi
-
-if [[ "$@" == *"--safe-batch-tenderly"* ]]; then
-    if [ -z "$TENDERLY_ACCESS_KEY" ]; then
-        echo "Error: TENDERLY_ACCESS_KEY environment variable is not set. Please set it and try again."
-        exit 1
-    fi
-fi

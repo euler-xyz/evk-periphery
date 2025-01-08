@@ -121,10 +121,6 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("use_safe_api", string("")), "--use-safe-api");
     }
 
-    function isSafeBatchTenderly() internal view returns (bool) {
-        return _strEq(vm.envOr("safe_batch_tenderly", string("")), "--safe-batch-tenderly");
-    }
-
     function getAddressesDirPath() internal view returns (string memory) {
         string memory path = vm.envOr("ADDRESSES_DIR_PATH", string(""));
         path =
