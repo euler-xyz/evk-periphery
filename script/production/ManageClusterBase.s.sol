@@ -23,8 +23,10 @@ abstract contract ManageClusterBase is BatchBuilder {
         address[] oracleRouters;
         uint32 rampDuration;
         uint16[][] ltvs;
+        uint16[][] borrowLTVsOverride;
         address[] externalVaults;
         uint16[][] externalLTVs;
+        uint16[][] externalBorrowLTVsOverride;
         uint16 spreadLTV;
         address unitOfAccount;
         address feeReceiver;
@@ -52,6 +54,13 @@ abstract contract ManageClusterBase is BatchBuilder {
         ) kinkIRMMap;
         address[] irms;
         address stubOracle;
+    }
+
+    struct Params {
+        address vault;
+        address[] collaterals;
+        uint16[] liquidationLTVs;
+        uint16[] borrowLTVsOverride;
     }
 
     Cluster internal cluster;
@@ -279,8 +288,23 @@ abstract contract ManageClusterBase is BatchBuilder {
                 setInterestRateModel(vault, cluster.irms[i]);
             }
 
-            setLTVs(vault, cluster.vaults, getLTVs(cluster.ltvs, i));
-            setLTVs(vault, cluster.externalVaults, getLTVs(cluster.externalLTVs, i));
+            setLTVs(
+                Params({
+                    vault: vault,
+                    collaterals: cluster.vaults,
+                    liquidationLTVs: getLTVs(cluster.ltvs, i),
+                    borrowLTVsOverride: getLTVs(cluster.borrowLTVsOverride, i)
+                })
+            );
+
+            setLTVs(
+                Params({
+                    vault: vault,
+                    collaterals: cluster.externalVaults,
+                    liquidationLTVs: getLTVs(cluster.externalLTVs, i),
+                    borrowLTVsOverride: getLTVs(cluster.externalBorrowLTVsOverride, i)
+                })
+            );
 
             {
                 (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
@@ -395,17 +419,23 @@ abstract contract ManageClusterBase is BatchBuilder {
     }
 
     // sets LTVs for all passed collaterals of the vault
-    function setLTVs(address vault, address[] memory collaterals, uint16[] memory ltvs) private {
-        for (uint256 i = 0; i < collaterals.length; ++i) {
-            address collateral = collaterals[i];
+    function setLTVs(Params memory p) private {
+        for (uint256 i = 0; i < p.collaterals.length; ++i) {
+            address collateral = p.collaterals[i];
             address collateralAsset = IEVault(collateral).asset();
-            address oracleRouter = IEVault(vault).oracle();
-            address unitOfAccount = IEVault(vault).unitOfAccount();
+            address oracleRouter = IEVault(p.vault).oracle();
+            address unitOfAccount = IEVault(p.vault).unitOfAccount();
             (address base, address adapter, bool useStub) =
                 computeRouterConfiguration(collateralAsset, unitOfAccount, cluster.oracleProviders[collateralAsset]);
-            uint16 liquidationLTV = ltvs[i];
-            uint16 borrowLTV = liquidationLTV > cluster.spreadLTV ? liquidationLTV - cluster.spreadLTV : 0;
-            (uint16 currentBorrowLTV, uint16 targetLiquidationLTV,,,) = IEVault(vault).LTVFull(collateral);
+            uint16 liquidationLTV = p.liquidationLTVs[i];
+            uint16 borrowLTV;
+            if (p.borrowLTVsOverride[i] != type(uint16).max) {
+                borrowLTV = liquidationLTV < p.borrowLTVsOverride[i] ? liquidationLTV : p.borrowLTVsOverride[i];
+            } else {
+                borrowLTV = liquidationLTV > cluster.spreadLTV ? liquidationLTV - cluster.spreadLTV : 0;
+            }
+
+            (uint16 currentBorrowLTV, uint16 targetLiquidationLTV,,,) = IEVault(p.vault).LTVFull(collateral);
 
             // configure the oracle router for the collateral before setting the LTV. recognize potentially pending
             // transactions by looking up pendingResolvedVaults and pendingConfiguredAdapters mappings
@@ -442,11 +472,11 @@ abstract contract ManageClusterBase is BatchBuilder {
             if (currentBorrowLTV != borrowLTV || targetLiquidationLTV != liquidationLTV) {
                 // in case the stub oracle has to be used, append the following batch critical section:
                 // configure the stub oracle, set LTV, configure the desired oracle
-                if (useStub && currentBorrowLTV == 0) {
+                if (useStub && liquidationLTV != 0) {
                     govSetConfig_critical(oracleRouter, base, unitOfAccount, cluster.stubOracle);
 
                     setLTV_critical(
-                        vault,
+                        p.vault,
                         collateral,
                         borrowLTV,
                         liquidationLTV,
@@ -458,7 +488,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                     appendCriticalSectionToBatch();
                 } else {
                     setLTV(
-                        vault,
+                        p.vault,
                         collateral,
                         borrowLTV,
                         liquidationLTV,
@@ -543,6 +573,22 @@ abstract contract ManageClusterBase is BatchBuilder {
             cluster.hookTargetOverride[asset] = address(uint160(type(uint160).max));
             cluster.hookedOpsOverride[asset] = type(uint32).max;
             cluster.configFlagsOverride[asset] = type(uint32).max;
+        }
+
+        cluster.borrowLTVsOverride = new uint16[][](cluster.assets.length);
+        for (uint256 i = 0; i < cluster.borrowLTVsOverride.length; ++i) {
+            cluster.borrowLTVsOverride[i] = new uint16[](cluster.assets.length);
+            for (uint256 j = 0; j < cluster.borrowLTVsOverride[i].length; ++j) {
+                cluster.borrowLTVsOverride[i][j] = type(uint16).max;
+            }
+        }
+
+        cluster.externalBorrowLTVsOverride = new uint16[][](cluster.externalVaults.length);
+        for (uint256 i = 0; i < cluster.externalBorrowLTVsOverride.length; ++i) {
+            cluster.externalBorrowLTVsOverride[i] = new uint16[](cluster.assets.length);
+            for (uint256 j = 0; j < cluster.externalBorrowLTVsOverride[i].length; ++j) {
+                cluster.externalBorrowLTVsOverride[i][j] = type(uint16).max;
+            }
         }
     }
 

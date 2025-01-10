@@ -139,16 +139,16 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[sUSDS                    ] = 8_000_000;
         cluster.supplyCaps[DAI                      ] = 10_000_000;
         cluster.supplyCaps[sDAI                     ] = 10_000_000;
-        cluster.supplyCaps[USD0                     ] = 10_000_000;
-        cluster.supplyCaps[USD0PlusPlus             ] = 8_000_000;
+        cluster.supplyCaps[USD0                     ] = 0;
+        cluster.supplyCaps[USD0PlusPlus             ] = 0;
         cluster.supplyCaps[USDe                     ] = 10_000_000;
         cluster.supplyCaps[sUSDe                    ] = 8_000_000;
         cluster.supplyCaps[deUSD                    ] = 0;
         cluster.supplyCaps[sdeUSD                   ] = 0;
         cluster.supplyCaps[mBASIS                   ] = 6_000_000;
-        cluster.supplyCaps[PT_USD0PlusPlus_30JAN2025] = 4_000_000;
-        cluster.supplyCaps[PT_USD0PlusPlus_27MAR2025] = 4_000_000;
-        cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 4_000_000;
+        cluster.supplyCaps[PT_USD0PlusPlus_30JAN2025] = 0;
+        cluster.supplyCaps[PT_USD0PlusPlus_27MAR2025] = 0;
+        cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 0;
         cluster.supplyCaps[PT_sUSDe_27MAR2025       ] = 4_000_000;
         cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 4_000_000;
         cluster.supplyCaps[PT_USDe_27MAR2025        ] = 4_000_000;
@@ -245,6 +245,12 @@ contract Cluster is ManageCluster {
         /* 23 PT_sUSDe_29MAY2025        */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 24 PT_USDe_27MAR2025         */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
+
+        //cluster.borrowLTVsOverride[12] =   [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4];
+        //cluster.borrowLTVsOverride[13] =   [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4];
+        //cluster.borrowLTVsOverride[19] =   [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4];
+        //cluster.borrowLTVsOverride[20] =   [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4];
+        //cluster.borrowLTVsOverride[21] =   [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
