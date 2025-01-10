@@ -6,9 +6,8 @@ import "forge-std/Script.sol";
 import "forge-std/console.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
-import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
 import {Errors} from "euler-price-oracle/lib/Errors.sol";
-import {OracleLens} from "../../src/Lens/OracleLens.sol";
+import {OracleLens, IOracle} from "../../src/Lens/OracleLens.sol";
 
 contract SanityCheckOracle is Script {
     function run() public view {
@@ -43,14 +42,14 @@ library OracleVerifier {
         if (collaterals.length == 0) {
             if (verbose) console.log("No collaterals configured. Oracle config irrelevant");
         } else {
-            address unwrappedAsset = EulerRouter(oracle).resolvedVaults(asset);
+            address unwrappedAsset = IOracle(oracle).resolvedVaults(asset);
             if (unwrappedAsset != address(0)) {
                 require(
                     IEVault(asset).asset() == unwrappedAsset,
                     "resolved external vault asset is not equal to unwrapped asset"
                 );
                 require(
-                    EulerRouter(oracle).getConfiguredOracle(asset, unitOfAccount) == address(0),
+                    IOracle(oracle).getConfiguredOracle(asset, unitOfAccount) == address(0),
                     "asset short-circuiting adapter"
                 );
             }
@@ -59,11 +58,11 @@ library OracleVerifier {
 
             for (uint256 i = 0; i < collaterals.length; ++i) {
                 require(
-                    IEVault(collaterals[i]).asset() == EulerRouter(oracle).resolvedVaults(collaterals[i]),
+                    IEVault(collaterals[i]).asset() == IOracle(oracle).resolvedVaults(collaterals[i]),
                     "collateral asset is not equal to unwrapped asset"
                 );
                 require(
-                    EulerRouter(oracle).getConfiguredOracle(collaterals[i], unitOfAccount) == address(0),
+                    IOracle(oracle).getConfiguredOracle(collaterals[i], unitOfAccount) == address(0),
                     "collateral short-circuiting adapter"
                 );
                 OracleVerifier.verifyOracleCall(oracleLens, oracle, collaterals[i], unitOfAccount, verbose);
@@ -76,15 +75,16 @@ library OracleVerifier {
         internal
         view
     {
-        (, address finalBase,, address finalOracle) = EulerRouter(oracle).resolveOracle(0, base, quote);
+        (, address finalBase,, address finalOracle) = IOracle(oracle).resolveOracle(0, base, quote);
         string memory oracleName =
             finalOracle == address(0) ? base == quote ? "Direct" : "Unknown" : IPriceOracle(finalOracle).name();
         string memory baseSymbol = IEVault(finalBase).symbol();
         string memory quoteSymbol = quote == address(840) ? "USD" : IEVault(quote).symbol();
         uint256 price;
 
-        (bool success, bytes memory result) =
-            oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (10 ** IEVault(base).decimals(), finalBase, quote)));
+        (bool success, bytes memory result) = oracle.staticcall(
+            abi.encodeCall(IPriceOracle.getQuote, (10 ** IEVault(finalBase).decimals(), finalBase, quote))
+        );
 
         if (success) {
             require(result.length == 32, "result length is not 32");
@@ -95,23 +95,26 @@ library OracleVerifier {
             require(OracleLens(oracleLens).isStalePullOracle(finalOracle, result), "oracle is not stale");
         }
 
-        if (verbose) console.log("%s price for %s/%s:", oracleName, baseSymbol, quoteSymbol);
-        if (price == 0) {
-            if (verbose) console.log("  needs an update");
-        } else {
-            uint256 scaledPrice = price * 1e6 / (quote == address(840) ? 1e18 : 10 ** IEVault(quote).decimals());
-            uint256 integerPart = scaledPrice / 1e6;
-            uint256 fractionalPart = scaledPrice % 1e6;
-            string memory zeros = string(
-                abi.encodePacked(
-                    fractionalPart < 100000 ? "0" : "",
-                    fractionalPart < 10000 ? "0" : "",
-                    fractionalPart < 1000 ? "0" : "",
-                    fractionalPart < 100 ? "0" : "",
-                    fractionalPart < 10 ? "0" : ""
-                )
-            );
-            if (verbose) console.log("  %s.%s%s", integerPart, zeros, fractionalPart);
+        if (verbose) {
+            console.log("%s price for %s/%s:", oracleName, baseSymbol, quoteSymbol);
+
+            if (price == 0) {
+                console.log("  needs an update");
+            } else {
+                uint256 scaledPrice = price * 1e6 / (quote == address(840) ? 1e18 : 10 ** IEVault(quote).decimals());
+                uint256 integerPart = scaledPrice / 1e6;
+                uint256 fractionalPart = scaledPrice % 1e6;
+                string memory zeros = string(
+                    abi.encodePacked(
+                        fractionalPart < 100000 ? "0" : "",
+                        fractionalPart < 10000 ? "0" : "",
+                        fractionalPart < 1000 ? "0" : "",
+                        fractionalPart < 100 ? "0" : "",
+                        fractionalPart < 10 ? "0" : ""
+                    )
+                );
+                console.log("  %s.%s%s", integerPart, zeros, fractionalPart);
+            }
         }
     }
 
