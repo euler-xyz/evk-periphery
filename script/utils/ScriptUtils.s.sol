@@ -637,30 +637,7 @@ abstract contract BatchBuilder is ScriptUtils {
 
         transaction.create(true, safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), safeNonce++);
 
-        if (isSafeBatchTenderly()) {
-            transformBatchForTenderly();
-            string memory fileName = string.concat(
-                "SafeTransactionTransformed_", vm.toString(safeNonce - 1), "_", vm.toString(safe), ".json"
-            );
-            transaction.initializeAndDump(
-                true, safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), safeNonce - 1, fileName
-            );
-        }
-
         clearBatchItems();
-    }
-
-    function transformBatchForTenderly() internal {
-        for (uint256 i = 0; i < batchItems.length; ++i) {
-            if (bytes4(batchItems[i].data) == IEVault(batchItems[i].targetContract).setLTV.selector) {
-                bytes memory data = batchItems[i].data;
-                assembly {
-                    // set the ramp duration to 0 to simulate the immediate effect of the LTV change
-                    mstore(add(data, 132), 0)
-                }
-                batchItems[i].data = data;
-            }
-        }
     }
 
     function dumpBatch(address from) internal {

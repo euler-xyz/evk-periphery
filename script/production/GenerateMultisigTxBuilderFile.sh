@@ -12,7 +12,7 @@ fi
 chain_id=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$chain_id"
 config_dir_path="${ADDRESSES_DIR_PATH%/}/../config/multisig"
-keys=('DAO' 'labs' 'securityCouncil')
+keys=('DAO' 'labs' 'securityCouncil' 'securityPartnerA' 'securityPartnerB')
 
 contract_method_addOwnerWithThreshold=$(jq -n '{
   contractMethod: {
