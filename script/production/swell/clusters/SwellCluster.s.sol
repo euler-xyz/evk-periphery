@@ -8,6 +8,8 @@ import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
 import {ClusterDump} from "../../../utils/ClusterDump.s.sol";
 
+import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
@@ -27,16 +29,16 @@ contract Cluster is ManageCluster {
             pzETH,
             USDe,
             sUSDe,
-            swBTC,
-            ENA,
+            //swBTC,
+            //ENA,
             SWELL
         ];
     }
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = getDeployer();
-        cluster.vaultsGovernor = getDeployer();
+        cluster.oracleRoutersGovernor = governorAddresses.accessControlEmergencyGovernor;
+        cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -80,10 +82,10 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[rswETH] = "CrossAdapter=RedstoneClassicOracle+RedstoneClassicOracle";
         cluster.oracleProviders[pzETH ] = "CrossAdapter=RedstoneClassicOracle+RedstoneClassicOracle";
         cluster.oracleProviders[USDe  ] = "RedstoneClassicOracle";
-        cluster.oracleProviders[sUSDe ] = "ExternalVault|RedstoneClassicOracle";
-        cluster.oracleProviders[swBTC ] = "";
-        cluster.oracleProviders[ENA   ] = "";
-        cluster.oracleProviders[SWELL ] = "";
+        cluster.oracleProviders[sUSDe ] = "RedstoneClassicOracle";
+        //cluster.oracleProviders[swBTC ] = "";
+        //cluster.oracleProviders[ENA   ] = "";
+        cluster.oracleProviders[SWELL ] = "CrossAdapter=RedstoneClassicOracle+RedstoneClassicOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH  ] = 25_000;
@@ -96,8 +98,8 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[pzETH ] = 2_500;
         cluster.supplyCaps[USDe  ] = 10_000_000;
         cluster.supplyCaps[sUSDe ] = 10_000_000;
-        cluster.supplyCaps[swBTC ] = 100;
-        cluster.supplyCaps[ENA   ] = 10_000_000;
+        //cluster.supplyCaps[swBTC ] = 100;
+        //cluster.supplyCaps[ENA   ] = 10_000_000;
         cluster.supplyCaps[SWELL ] = 250_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
@@ -110,10 +112,18 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[rswETH] = 625;
         cluster.borrowCaps[pzETH ] = 625;
         cluster.borrowCaps[USDe  ] = 3_000_000;
-        cluster.borrowCaps[sUSDe ] = 3_000_000;
-        cluster.borrowCaps[swBTC ] = 25;
-        cluster.borrowCaps[ENA   ] = 8_000_000;
+        cluster.borrowCaps[sUSDe ] = type(uint256).max;
+        //cluster.borrowCaps[swBTC ] = 25;
+        //cluster.borrowCaps[ENA   ] = 8_000_000;
         cluster.borrowCaps[SWELL ] = 200_000_000;
+
+        // temporarily reduce the borrow caps
+        for (uint256 i = 0; i < cluster.assets.length; ++i) {
+            address asset = cluster.assets[i];
+            if (cluster.borrowCaps[asset] != type(uint256).max) {
+                cluster.borrowCaps[asset] = decodeAmountCap(uint16(encodeAmountCap(asset, cluster.borrowCaps[asset] / 2, false))) / 10 ** IERC20Metadata(asset).decimals();
+            }
+        }
 
         // define IRM classes here and assign them to the assets
         {
@@ -127,7 +137,7 @@ contract Cluster is ManageCluster {
             uint256[4] memory irmETH_LRT     = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
 
             // Base=0% APY,  Kink(25%)=4.60% APY  Max=848.77% APY
-            uint256[4] memory irmBTC_LRT     = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
+            //uint256[4] memory irmBTC_LRT     = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
 
             // Base=0% APY,  Kink(80%)=8.87% APY  Max=848.77% APY
             uint256[4] memory irmDEFI        = [uint256(0), uint256(783779538),  uint256(79868472958), uint256(3435973836)];
@@ -145,8 +155,8 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[pzETH ] = irmETH_LRT;
             cluster.kinkIRMParams[USDe  ] = irmUSD_1_SWELL;
             cluster.kinkIRMParams[sUSDe ] = irmUSD_1_SWELL;
-            cluster.kinkIRMParams[swBTC ] = irmBTC_LRT;
-            cluster.kinkIRMParams[ENA   ] = irmDEFI;
+            //cluster.kinkIRMParams[swBTC ] = irmBTC_LRT;
+            //cluster.kinkIRMParams[ENA   ] = irmDEFI;
             cluster.kinkIRMParams[SWELL ] = irmDEFI;
         }
 
@@ -158,21 +168,21 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0               1       2       3       4       5       6       7       8       9       10      11      12
-        //                WETH            wstETH  weETH   ezETH   rsETH   swETH   rswETH  pzETH   USDe    sUSDe   swBTC   ENA     SWELL
-        /* 0  WETH    */ [uint16(0.00e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.83e4, 0.00e4, 0.78e4, 0.78e4, 0.78e4],
-        /* 1  wstETH  */ [uint16(0.93e4), 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.80e4, 0.00e4, 0.76e4, 0.76e4, 0.76e4],
-        /* 2  weETH   */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.75e4, 0.00e4, 0.75e4, 0.75e4, 0.75e4],
-        /* 3  ezETH   */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.75e4, 0.00e4, 0.75e4, 0.75e4, 0.75e4],
-        /* 4  rsETH   */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.70e4, 0.00e4, 0.70e4, 0.70e4, 0.70e4],
-        /* 5  swETH   */ [uint16(0.85e4), 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.00e4, 0.85e4, 0.85e4, 0.70e4, 0.00e4, 0.70e4, 0.70e4, 0.70e4],
-        /* 6  rswETH  */ [uint16(0.85e4), 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.00e4, 0.85e4, 0.70e4, 0.00e4, 0.70e4, 0.70e4, 0.70e4],
-        /* 7  pzETH   */ [uint16(0.85e4), 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.00e4, 0.70e4, 0.00e4, 0.70e4, 0.70e4, 0.70e4],
-        /* 8  USDe    */ [uint16(0.75e4), 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.00e4, 0.00e4, 0.75e4, 0.75e4, 0.75e4],
-        /* 9  sUSDe   */ [uint16(0.75e4), 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.90e4, 0.00e4, 0.75e4, 0.75e4, 0.75e4],
-        /* 10 swBTC   */ [uint16(0.70e4), 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.00e4, 0.00e4, 0.70e4, 0.70e4],
-        /* 11 ENA     */ [uint16(0.65e4), 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.00e4, 0.65e4, 0.00e4, 0.65e4],
-        /* 12 SWELL   */ [uint16(0.65e4), 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.00e4, 0.65e4, 0.65e4, 0.00e4]
+        //                0               1       2       3       4       5       6       7       8       9       /*10      11     */ 12
+        //                WETH            wstETH  weETH   ezETH   rsETH   swETH   rswETH  pzETH   USDe    sUSDe   /*swBTC   ENA    */ SWELL
+        /* 0  WETH    */ [uint16(0.00e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.83e4, 0.00e4, /*0.78e4, 0.78e4,*/ 0.78e4],
+        /* 1  wstETH  */ [uint16(0.93e4), 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.80e4, 0.00e4, /*0.76e4, 0.76e4,*/ 0.76e4],
+        /* 2  weETH   */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.75e4, 0.00e4, /*0.75e4, 0.75e4,*/ 0.75e4],
+        /* 3  ezETH   */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.75e4, 0.00e4, /*0.75e4, 0.75e4,*/ 0.75e4],
+        /* 4  rsETH   */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.70e4, 0.00e4, /*0.70e4, 0.70e4,*/ 0.70e4],
+        /* 5  swETH   */ [uint16(0.85e4), 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.00e4, 0.85e4, 0.85e4, 0.70e4, 0.00e4, /*0.70e4, 0.70e4,*/ 0.70e4],
+        /* 6  rswETH  */ [uint16(0.85e4), 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.00e4, 0.85e4, 0.70e4, 0.00e4, /*0.70e4, 0.70e4,*/ 0.70e4],
+        /* 7  pzETH   */ [uint16(0.85e4), 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.00e4, 0.70e4, 0.00e4, /*0.70e4, 0.70e4,*/ 0.70e4],
+        /* 8  USDe    */ [uint16(0.75e4), 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.00e4, 0.00e4, /*0.75e4, 0.75e4,*/ 0.75e4],
+        /* 9  sUSDe   */ [uint16(0.75e4), 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.90e4, 0.00e4, /*0.75e4, 0.75e4,*/ 0.75e4],
+    //  /* 10 swBTC   */ [uint16(0.70e4), 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.00e4, /*0.00e4, 0.70e4,*/ 0.70e4],
+    //  /* 11 ENA     */ [uint16(0.65e4), 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.00e4, /*0.65e4, 0.00e4,*/ 0.65e4],
+        /* 12 SWELL   */ [uint16(0.65e4), 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.00e4, /*0.65e4, 0.65e4,*/ 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
@@ -195,7 +205,8 @@ contract Cluster is ManageCluster {
                 PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_SEPARATION
                     | PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_BORROW
                     | PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_LIQUIDATION
-                    | PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING,
+                    | PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING
+                    | PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_LENGTH,
                 false
             );
         }
