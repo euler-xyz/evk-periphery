@@ -71,8 +71,6 @@ abstract contract ManageClusterBase is BatchBuilder {
     mapping(address router => bool transferred) internal pendingGovernanceTransfer;
 
     modifier initialize() {
-        vm.pauseGasMetering();
-
         defineCluster();
         loadCluster();
         configureCluster();
