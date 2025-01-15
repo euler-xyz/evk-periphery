@@ -13,6 +13,8 @@ abstract contract ScriptExtended is Script {
     address private safeSignerAddress;
 
     constructor() {
+        vm.pauseGasMetering();
+
         forks[DEFAULT_FORK_CHAIN_ID] = vm.activeFork();
 
         if (forks[DEFAULT_FORK_CHAIN_ID] == 0) {
