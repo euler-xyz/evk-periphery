@@ -306,10 +306,14 @@ contract ClusterDump is ScriptUtils {
                         : vaultInfo[i].unitOfAccountSymbol
             );
             line = string.concat(line, ",", vm.toString(adapter));
-            line = string.concat(line, ",", IPriceOracle(adapter).name());
-            line = string.concat(
-                line, ",,https://oracles.euler.finance/", vm.toString(block.chainid), "/adapter/", vm.toString(adapter)
-            );
+            if (adapter == address(0)) {
+                line = string.concat(line, ",,,");
+            } else {
+                line = string.concat(line, ",", IPriceOracle(adapter).name());
+                line = string.concat(
+                    line, ",,https://oracles.euler.finance/", vm.toString(block.chainid), "/adapter/", vm.toString(adapter)
+                );
+            }
             vm.writeLine(outputScriptFileName, line);
             line = "";
         }
