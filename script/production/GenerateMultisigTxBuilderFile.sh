@@ -73,19 +73,22 @@ for key in "${keys[@]}"; do
     json=$(echo "$json" | jq --arg to "$multisig_address" --arg createdFromOwnerAddress "$current_signer" \
             '.meta.createdFromOwnerAddress = $createdFromOwnerAddress')
 
-    for signer in "${desired_signers[@]}"; do
+    for i in "${!desired_signers[@]}"; do
+        signer="${desired_signers[$i]}"
         if [[ ! "$signer" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
-            signer=$(jq -r ".$signer" "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null || echo "$signer")
+            resolved_signer=$(jq -r ".$signer" "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null || echo "$signer")
+            desired_signers[$i]=$resolved_signer
         fi
+    done
 
-        echo "Adding signer: $signer"
-        json=$(echo $json | jq --arg to "$multisig_address" --argjson contractMethod "$contract_method_addOwnerWithThreshold" \
-            --arg owner "$signer" --arg _threshold "$current_threshold" \
-            '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"owner": $owner, "_threshold": $_threshold}}]' )
-
-        if [ "$current_signer_is_desired" == false ]; then
-            current_signer_is_desired=$([ "$(echo "$signer" | tr '[:upper:]' '[:lower:]')" = "$(echo "$current_signer" | tr '[:upper:]' '[:lower:]')" ] \
-                && echo true || echo false)
+    for signer in "${desired_signers[@]}"; do
+        if [ "$(echo "$signer" | tr '[:upper:]' '[:lower:]')" == "$(echo "$current_signer" | tr '[:upper:]' '[:lower:]')" ]; then
+          current_signer_is_desired=true
+        else
+          echo "Adding signer: $signer"
+          json=$(echo $json | jq --arg to "$multisig_address" --argjson contractMethod "$contract_method_addOwnerWithThreshold" \
+              --arg owner "$signer" --arg _threshold "$current_threshold" \
+              '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"owner": $owner, "_threshold": $_threshold}}]' )
         fi
     done
 
