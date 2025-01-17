@@ -331,7 +331,7 @@ abstract contract ScriptUtils is
         view
         returns (address adapter)
     {
-        bool isExternalVault = isValidExternalVault(base);
+        bool isExternalVault = _strEq("ExternalVault|", _substring(provider, 0, bytes("ExternalVault|").length));
 
         if (isExternalVault) base = IEVault(base).asset();
 
@@ -350,10 +350,17 @@ abstract contract ScriptUtils is
         }
 
         if (adapter == address(0) || counter > 1) {
-            if (bytes(provider).length == 42) return _toAddress(provider);
+            if (isExternalVault && bytes(provider).length == bytes("ExternalVault|").length + 42) {
+                adapter = _toAddress(_substring(provider, bytes("ExternalVault|").length, type(uint256).max));
+            } else if (bytes(provider).length == 42) {
+                adapter = _toAddress(provider);
+            }
 
+            counter = 0;
+        }
+
+        if (adapter == address(0) || counter > 1) {
             console.log("base: %s, quote: %s, provider: %s", base, quote, provider);
-
             if (adapter == address(0)) revert("getValidAdapters: Adapter not found");
             if (counter > 1) revert("getValidAdapters: Multiple adapters found");
         }
