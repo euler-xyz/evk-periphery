@@ -37,6 +37,7 @@ abstract contract Addresses {
     address internal constant USD0PlusPlus = 0x35D8949372D46B7a3D5A56006AE77B215fc69bC0;
     address internal constant GHO = 0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f;
     address internal constant crvUSD = 0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E;
+    address internal constant scrvUSD = 0x0655977FEb2f289A4aB78af67BAB0d17aAb84367;
     address internal constant FRAX = 0x853d955aCEf822Db058eb8505911ED77F175b99e;
     address internal constant rlUSD = 0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD;
     address internal constant USDa = 0x8A60E489004Ca22d775C5F2c657598278d17D9c2;
