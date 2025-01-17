@@ -481,7 +481,7 @@ contract SafeTransaction is SafeUtil {
                 "--data-binary @<payload file>\n"
             );
         } else {
-            return "Transaction service API is not available. Transaction must be created manually.";
+            return "Transaction service API is not available. Transaction must be created manually via Safe UI.";
         }
     }
 }

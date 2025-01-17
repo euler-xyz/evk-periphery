@@ -154,6 +154,11 @@ if [[ "$batch_via_safe" == "--batch-via-safe" ]]; then
     calldata=$(cast calldata "batch((address,address,uint256,bytes)[])" $items)
     
     if [ -z "$safe_nonce" ]; then
+        if [ "$(forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "isTransactionServiceAPIAvailable()" --rpc-url "$DEPLOYMENT_RPC_URL" $@ | grep -oE 'true|false')" != "true" ]; then
+            echo "Transaction service API is not available. Failed to get next nonce. Provide it via --safe-nonce or SAFE_NONCE in .env Exiting..."
+            exit 1
+        fi
+
         safe_nonce=$(forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "getNextNonce(address)" $safe_address --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $@ | grep -oE '[0-9]+$')
     fi
 
