@@ -99,9 +99,10 @@ for key in "${keys[@]}"; do
             '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"_threshold": $_threshold}}]' )
     else
         echo "Removing current signer"
+        prev_owner="${desired_signers[0]}"
         json=$(echo $json | jq --arg to "$multisig_address" --argjson contractMethod "$contract_method_removeOwner" \
-            --arg current_signer "$current_signer" --arg _threshold "$desired_threshold" \
-            '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"prevOwner": "0x0000000000000000000000000000000000000001", "owner": $current_signer, "_threshold": $_threshold}}]' )
+            --arg current_signer "$current_signer" --arg _threshold "$desired_threshold" --arg prev_owner "$prev_owner" \
+            '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"prevOwner": $prev_owner, "owner": $current_signer, "_threshold": $_threshold}}]' )
     fi
 
     if [ "$(echo $json | jq '.transactions | length')" -gt 0 ]; then
