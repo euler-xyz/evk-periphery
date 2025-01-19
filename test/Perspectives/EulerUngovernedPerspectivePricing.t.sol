@@ -5,7 +5,7 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 
 import {EulerRouter} from "euler-price-oracle/EulerRouter.sol";
-import {IEVault} from "euler-vault-kit/EVault/IEVault.sol";
+import {IEVault} from "evk/EVault/IEVault.sol";
 
 import {EulerUngovernedPerspectiveHarness} from "./EulerUngovernedPerspectiveHarness.sol";
 import {EulerRouterFactory} from "../../src/EulerRouterFactory/EulerRouterFactory.sol";
