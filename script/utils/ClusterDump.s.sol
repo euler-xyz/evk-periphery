@@ -311,7 +311,11 @@ contract ClusterDump is ScriptUtils {
             } else {
                 line = string.concat(line, ",", IPriceOracle(adapter).name());
                 line = string.concat(
-                    line, ",,https://oracles.euler.finance/", vm.toString(block.chainid), "/adapter/", vm.toString(adapter)
+                    line,
+                    ",,https://oracles.euler.finance/",
+                    vm.toString(block.chainid),
+                    "/adapter/",
+                    vm.toString(adapter)
                 );
             }
             vm.writeLine(outputScriptFileName, line);

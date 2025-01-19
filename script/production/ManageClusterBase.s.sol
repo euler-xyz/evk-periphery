@@ -431,7 +431,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                 computeRouterConfiguration(collateralAsset, unitOfAccount, cluster.oracleProviders[collateralAsset]);
             uint16 liquidationLTV = p.liquidationLTVs[i];
             uint16 borrowLTV;
-            
+
             if (p.borrowLTVsOverride[i] != type(uint16).max) {
                 borrowLTV = liquidationLTV < p.borrowLTVsOverride[i] ? liquidationLTV : p.borrowLTVsOverride[i];
             } else {
