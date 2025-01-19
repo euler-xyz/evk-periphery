@@ -9,7 +9,6 @@ ethereum-vault-connector/=lib/ethereum-vault-connector/src/
 evc/=lib/ethereum-vault-connector/src/
 evk/=lib/euler-vault-kit/src/
 evk-test/=lib/euler-vault-kit/test/
-euler-vault-kit/=lib/euler-vault-kit/src/
 euler-price-oracle/=lib/euler-price-oracle/src/
 euler-price-oracle-test/=lib/euler-price-oracle/test/
 fee-flow/=lib/fee-flow/src/

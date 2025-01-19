@@ -3,7 +3,7 @@
 pragma solidity ^0.8.24;
 
 import {DefaultSetupTest} from "./DefaultSetupTest.sol";
-import {IEVault} from "euler-vault-kit/EVault/IEVault.sol";
+import {IEVault} from "evk/EVault/IEVault.sol";
 import {IPerspective} from "../../src/Perspectives/implementation/interfaces/IPerspective.sol";
 
 contract EulerUngovernedPerspectiveTest is DefaultSetupTest {
