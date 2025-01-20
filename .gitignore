@@ -1,9 +1,15 @@
+# OS files
+**/.DS_Store
+
 # Compiler files
 cache/
-out/
+out*/
 
 # Ignores the broadcast logs
 broadcast/
 
 # Dotenv file
 .env
+
+# Scripts temporary files
+script/*.json

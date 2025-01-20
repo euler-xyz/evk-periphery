@@ -9,8 +9,8 @@ contract EVaultFactory is ScriptUtils {
     function run() public broadcast returns (address eVaultFactory) {
         string memory inputScriptFileName = "06_EVaultFactory_input.json";
         string memory outputScriptFileName = "06_EVaultFactory_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
-        address eVaultImplementation = abi.decode(vm.parseJson(json, ".eVaultImplementation"), (address));
+        string memory json = getScriptFile(inputScriptFileName);
+        address eVaultImplementation = vm.parseJsonAddress(json, ".eVaultImplementation");
 
         eVaultFactory = execute(eVaultImplementation);
 

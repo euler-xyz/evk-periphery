@@ -18,9 +18,7 @@ contract OracleLensLidoTest is LidoOracleHelper {
 
     function testLidoOracle(FuzzableState memory s) public {
         setUpState(s);
-        address[] memory bases = new address[](1);
-        bases[0] = WSTETH;
-        OracleDetailedInfo memory data = lens.getOracleInfo(oracle, bases, STETH);
+        OracleDetailedInfo memory data = lens.getOracleInfo(oracle, new address[](0), new address[](0));
 
         assertEq(data.name, "LidoOracle");
         LidoOracleInfo memory oracleInfo = abi.decode(data.oracleInfo, (LidoOracleInfo));

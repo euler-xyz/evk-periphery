@@ -102,7 +102,12 @@ contract AccountLens is Utils {
         result.assetsAccount = IEVault(result.asset).balanceOf(account);
         result.shares = IEVault(vault).balanceOf(account);
         result.assets = IEVault(vault).convertToAssets(result.shares);
-        result.borrowed = IEVault(vault).debtOf(account);
+
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).debtOf, (account)));
+
+        if (success && data.length >= 32) {
+            result.borrowed = abi.decode(data, (uint256));
+        }
 
         result.assetAllowanceVault = IEVault(result.asset).allowance(account, vault);
 
@@ -173,6 +178,29 @@ contract AccountLens is Utils {
         if (!result.liquidityInfo.queryFailure) {
             result.liquidityInfo.timeToLiquidation =
                 _calculateTimeToLiquidation(vault, result.liquidityInfo.liabilityValue, collaterals, collateralValues);
+        }
+
+        if (!result.liquidityInfo.queryFailure) {
+            result.liquidityInfo.collateralLiquidityRawInfo = new CollateralLiquidityInfo[](collaterals.length);
+
+            for (uint256 i = 0; i < collaterals.length; ++i) {
+                (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).LTVBorrow, (collaterals[i])));
+
+                collateralValues[i] = 0;
+
+                if (success && data.length >= 32) {
+                    uint256 borrowLTV = abi.decode(data, (uint16));
+
+                    if (borrowLTV != 0) {
+                        collateralValues[i] = result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateralValue
+                            * CONFIG_SCALE / borrowLTV;
+                    }
+                }
+
+                result.liquidityInfo.collateralLiquidityRawInfo[i].collateral = collaterals[i];
+                result.liquidityInfo.collateralLiquidityRawInfo[i].collateralValue = collateralValues[i];
+                result.liquidityInfo.collateralValueRaw += collateralValues[i];
+            }
         }
 
         return result;

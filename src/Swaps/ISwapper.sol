@@ -25,6 +25,8 @@ interface ISwapper {
         address tokenOut;
         // Vault to which the unused input in exact output swap will be deposited back
         address vaultIn;
+        // An EVC compatible account address, to which the unused input in exact output swap will be deposited back
+        address accountIn;
         // In swapping modes (0 and 1) - address of the intended recipient of the bought tokens
         // In swap and repay mode (2) - address of the liability vault of the account, where to repay debt
         // Note that if the swap uses off-chain encoded payload, the receiver might be ignored. The user
@@ -35,7 +37,8 @@ interface ISwapper {
         // In swap and repay mode (2) - amount of debt the account should have after swap and repay.
         //    To repay all debt without leaving any dust, set this to zero.
         uint256 amountOut;
-        // Auxiliary payload for swap providers
+        // Auxiliary payload for swap providers. For GenericHandler it's an abi encoded tuple: target contract address
+        // and call data
         bytes data;
     }
 

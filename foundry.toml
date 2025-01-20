@@ -6,11 +6,11 @@ libs = ["lib"]
 evm_version = "cancun"
 optimizer = true
 optimizer_runs = 20_000
+solc = "0.8.24"
 
-fs_permissions = [{ access = "read-write", path = "./"}]
+fs_permissions = [{ access = "read-write", path = "./"}, { access = "read-write", path = "../euler-interfaces"}]
 
 gas_reports = ["*"]
-
 
 [profile.default.fmt]
 line_length = 120
@@ -21,6 +21,14 @@ quote_style = "double"
 number_underscore = "preserve"
 override_spacing = true
 wrap_comments = true
+ignore = [
+    "script/production/mainnet/clusters/PrimeCluster.s.sol",
+    "script/production/mainnet/clusters/PendeulCluster.s.sol",
+    "script/production/mainnet/clusters/YieldCluster.s.sol",
+    "script/production/base/clusters/BaseCluster.s.sol",
+    "script/production/swell/clusters/SwellCluster.s.sol",
+    "script/production/swell/clusters/SwellETHCluster.s.sol"
+]
 
 [profile.default.fuzz]
 max_test_rejects = 1_000_000

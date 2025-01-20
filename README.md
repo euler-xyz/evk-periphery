@@ -5,7 +5,7 @@ Periphery contracts for the [Euler Vault Kit](https://github.com/euler-xyz/euler
 
 > Euler Price Oracles is a library of modular oracle adapters and components that implement `IPriceOracle`, an opinionated quote-based interface.
 
-The periphery consists of 4 components that are designed to be used on-chain: IRMFactory, OracleFactory, Perspectives, Swaps. Also included is an off-chain component called Lens, which is purely to assist with off-chain querying of chain-state.
+The periphery consists of several components designed to be used both on-chain and off-chain to support the Euler Vault Kit ecosystem.
 
 ## On-Chain Components
 
@@ -28,14 +28,6 @@ Directory: [src/IRMFactory](src/IRMFactory)
 
 This is an immutable factory contract for deploying Linear Kink IRM instances, used by EVK vaults. It does some basic parameter validation and tracks the addresses of created IRMs, so that the deployment provenance of IRM instances can be verified by perspectives. Linear Kink IRMs are immutable and stateless.
 
-### IRM
-
-Directory: [src/IRM](src/IRM)
-
-Alternative interest rate models for use by EVK vaults.
-
-* IRMAdaptiveCurve is a Linear Kink model with an adaptive mechanism based on exponential growth/decay. As utilization persists above/below the kink the Linear Kink IRM is translated up/down. This model is based on Morpho's [AdaptiveCurveIrm](https://github.com/morpho-org/morpho-blue-irm/blob/8242d5d0414b75368f150d251b518a6c9cf797af/src/adaptive-curve-irm/AdaptiveCurveIrm.sol). More information: [Morpho docs](https://docs.morpho.org/morpho/contracts/irm/adaptive-curve-irm/), [LlamaRisk explainer](https://www.llamarisk.com/research/morph-crvusd-vault-irm).
-
 ### EulerRouterFactory
 
 Directory: [src/EulerRouterFactory](src/EulerRouterFactory)
@@ -49,14 +41,11 @@ This is an immutable contract that can be used to deploy instances of `EulerRout
 
 Directory: [src/SnapshotRegistry](src/SnapshotRegistry)
 
-Although the root of trust of a router can be verified through `OracleFactory`, individual adapters cannot. Because of the large variety of adapters, and also because it is difficult to determine the safety of various adapter parameters on-chain, the root of trust of adapters is difficult to verify. The adapter registry is one possible solution to this. It is a governed whitelist contract, where a governor can add new adapters and revoke existing ones. Perspectives who trust the governor of the registry can verify that each adapter was added there.
+A governed whitelist contract for tracking trusted adapters and other components. It provides historical querying capabilities and permanent revocation of entries.
 
-* Querying the SnapshotRegistry takes a `snapshotTime` parameter. This can be used to query the registry state at a point in the past. This allows a user who doesn't trust the registry to verify each apadter that was installed at a given time, and be confident that the governor can never alter this set. If you do trust the governor, the `snapshotTime` can simply be `block.timestamp`.
-* After revoking, an adapter can never be added back again. Instead, simply deploy an identical one at a new address.
-
-SnapshotRegistry can also be used as a whitelist for external ERC4626 vaults that can be configured as internally resolved vaults in `EulerRouter`. Practically speaking this allows a perspective to recognize ERC4626 yield-bearing tokens as collateral or liability.
-
-SnapshotRegistry can also be used as a whitelist for and other smart contracts (i.e. IRMs).
+* Querying uses a `snapshotTime` parameter to view historical state
+* Revoked entries cannot be re-added
+* Can whitelist oracle adapters, ERC4626 vaults, and other contracts like IRMs
 
 ### Swaps
 
@@ -64,12 +53,70 @@ Directory: [src/Swaps](src/Swaps)
 
 [Docs](./docs/swaps.md)
 
-Utilities for performing DEX swaps for EVK vault operations.
+Utilities for performing DEX swaps for EVK vault operations. Includes a main Swapper contract and various DEX-specific handlers.
 
-`Swapper.sol` and the handlers are considered to live outside the trusted code-base. Swapper invocations should always be followed by a call to one of `SwapVerifier`'s methods. `SwapVerifier.sol` *is* considered part of the trusted code-base.
+* `Swapper.sol` and handlers are considered untrusted code
+* `SwapVerifier.sol` provides trusted verification of swap outcomes
+* Includes handlers for different DEX protocols
+
+### Lens
+
+Directory: [src/Lens](src/Lens)
+
+Off-chain utilities for querying on-chain state. Includes multiple specialized lens contracts:
+
+* `AccountLens` - For querying account-level information
+* `VaultLens` - For querying vault-specific data
+* `OracleLens` - For querying oracle prices and configurations
+* `EulerEarnVaultLens` - For querying Euler Earn vault specifics
+* `IRMLens` - For querying Interest Rate Model data
+* `UtilsLens` - For general utility queries
+
+### AccessControl
+
+Directory: [src/AccessControl](src/AccessControl)
+
+Function-level access control system using selector-based permissions, allowing granular control over who can call specific contract functions.
+
+### Governor
+
+Directory: [src/Governor](src/Governor)
+
+A comprehensive governance contracts system including:
+* Factory-based governor deployment
+* Tiered access control system
+* Emergency access control mechanisms
+* Guardian functionality
+
+### ERC20
+
+Directory: [src/ERC20](src/ERC20)
+
+Custom ERC20 token implementations and extensions.
+
+### HookTarget
+
+Directory: [src/HookTarget](src/HookTarget)
+
+Extensible hook system for vault operations:
+* Access control integration
+* Guardian-specific hooks
+
+### Liquidator
+
+Directory: [src/Liquidator](src/Liquidator)
+
+Custom liquidator contracts.
+
+### TermsOfUseSigner
+
+Directory: [src/TermsOfUseSigner](src/TermsOfUseSigner)
+
+Contracts managing the signing and verification of terms of use.
+
+## Development
 
 Fork tests require `.env` file with `FORK_RPC_URL` variable set to a provider with archive node support, like Alchemy.
-
 
 ## Safety
 
@@ -78,8 +125,6 @@ This software is experimental and is provided "as is" and "as available".
 No warranties are provided and no liability will be accepted for any loss incurred through the use of this codebase.
 
 Always include thorough tests when using EVK Periphery to ensure it interacts correctly with your code.
-
-EVK Periphery is currently unaudited and should not be used in production.
 
 ## License
 

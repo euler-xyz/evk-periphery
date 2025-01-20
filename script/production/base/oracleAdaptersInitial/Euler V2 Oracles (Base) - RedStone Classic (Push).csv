@@ -1,0 +1,2 @@
+Asset,Quote,Provider,Deploy,Whitelist,Heartbeat,Deviation %,Class,base,quote,feed,maxStaleness
+LBTC_FUNAMENTAL,BTC,RedStone Classic,Yes,Yes,86400,1.00,ChainlinkOracle,0xecAc9C5F704e954931349Da37F60E39f515c11c1,0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB,0x5C4c8d6f6Bf79B718F3e8399AaBdFEd01cB7e48f,90000

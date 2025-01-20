@@ -1,105 +1,53 @@
 #!/bin/bash
 
-function execute_forge_script {
-    local scriptName=$1
-    local shouldVerify=$2
+source .env
+eval "$(./script/utils/determineArgs.sh "$@")"
+eval "set -- $SCRIPT_ARGS"
 
-    forge script script/$scriptName --rpc-url "$DEPLOYMENT_RPC_URL" --broadcast --legacy --slow
-
-    if [[ $shouldVerify == "y" ]]; then
-        chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-        broadcastFileName=${scriptName%%:*}
-
-        ./script/utils/verifyContracts.sh "./broadcast/$broadcastFileName/$chainId/run-latest.json"
-    fi
-}
-
-function save_results {
-    local jsonName=$1
-    local deployment_name=$2
-    local deployment_dir="script/deployments/$deployment_name"
-    local timestamp=$(date +%s)
-    local chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-
-    mkdir -p "$deployment_dir/input" "$deployment_dir/output" "$deployment_dir/broadcast"
-
-    if [[ -f "script/${jsonName}_output.json" ]]; then
-        mv "script/${jsonName}_input.json" "$deployment_dir/input/${jsonName}_${timestamp}.json"
-        mv "script/${jsonName}_output.json" "$deployment_dir/output/${jsonName}_${timestamp}.json"
-        mv "./broadcast/${jsonName}.s.sol/$chainId/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${timestamp}.json"
-    else
-        rm "script/${jsonName}_input.json"
-    fi
-}
-
-if ! command -v jq &> /dev/null
-then
-    echo "jq could not be found. Please install jq first."
-    echo "You can install jq by running: sudo apt-get install jq"
-    exit 1
-fi
-
-if [[ ! -d "$(pwd)/script" ]]; then
-    echo "Error: script directory does not exist in the current directory."
-    echo "Please ensure this script is run from the top project directory."
-    exit 1
-fi
-
-if [[ -f .env ]]; then
-    source .env
-else
-    echo "Error: .env file does not exist. Please create it and try again."
-    exit 1
-fi
-
-echo ""
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
-
-read -p "Do you want to deploy on a local fork? (y/n) (default: y): " local_fork
-local_fork=${local_fork:-y}
-
-if [[ $local_fork == "y" ]]; then
-    # Check if Anvil is running
-    if ! pgrep -x "anvil" > /dev/null; then
-        echo "Anvil is not running. Please start Anvil and try again."
-        echo "You can spin up a local fork with the following command:"
-        echo "anvil --fork-url ${FORK_RPC_URL}"
-        exit 1
-    fi  
-fi
-
-if [ -z "$DEPLOYMENT_RPC_URL" ]; then
-    echo "Error: DEPLOYMENT_RPC_URL environment variable is not set. Please set it and try again."
-    exit 1
-fi
-
-read -p "Do you want to verify the deployed contracts? (y/n) (default: n): " verify_contracts
-verify_contracts=${verify_contracts:-n}
-
-if [[ $verify_contracts == "y" ]]; then
-    if [ -z "$VERIFIER_URL" ]; then
-        echo "Error: VERIFIER_URL environment variable is not set. Please set it and try again."
-        exit 1
-    fi
-
-    if [ -z "$VERIFIER_API_KEY" ]; then
-        echo "Error: VERIFIER_API_KEY environment variable is not set. Please set it and try again."
-        exit 1
-    fi
-fi
 
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
+if [ -n "$DEPLOYER_KEY" ]; then
+    set -- "$@" --private-key "$DEPLOYER_KEY"
+fi
+
+if [[ "$@" == *"--account"* && -z "$DEPLOYER_KEY" ]]; then
+    read -s -p "Enter keystore password: " password
+    set -- "$@" --password "$password"
+    echo ""
+fi
+
+broadcast="--broadcast"
+if [[ "$@" == *"--dry-run"* ]]; then
+    set -- "${@/--dry-run/}"
+    dry_run="--dry-run"
+    broadcast=""
+fi
+
+if [[ "$@" == *"--verify"* ]]; then
+    set -- "${@/--verify/}"
+    verify="--verify"
+fi
+
+if ! script/utils/checkEnvironment.sh "$@"; then
+    echo "Environment check failed. Exiting."
+    exit 1
+fi
+
+eulerEarnCompilerOptions="--optimize --optimizer-runs 800 --use 0.8.27 --out out-euler-earn"
+nttCompilerOptions="--optimize --optimizer-runs 200 --via-ir --use 0.8.19 --out out-ntt"
+
 while true; do
     echo ""
-    echo "Select an option to deploy:"
-    echo "0. ERC20 mock token"
+    echo "Select an option to deploy/configure:"
+    echo "0. ERC20 tokens"
     echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
-    echo "2. Periphery factories (Oracle Router, Oracle Adapter Registry, Kink IRM Factory)"
+    echo "2. Periphery factories and registries"
     echo "3. Oracle adapter"
-    echo "4. Kink IRM"
+    echo "4. IRM"
     echo "5. EVault implementation (modules and implementation contract)"
     echo "6. EVault factory"
     echo "7. EVault"
@@ -107,34 +55,107 @@ while true; do
     echo "9. Perspectives"
     echo "10. Swap"
     echo "11. Fee Flow"
-    read -p "Enter your choice (0-11): " choice
+    echo "12. Governors"
+    echo "13. Terms of Use Signer"
+    echo "---------------------------------"
+    echo "20. EulerEarn implementation (modules and implementation contract)"
+    echo "21. EulerEarn factory"
+    echo "---------------------------------"
+    echo "50. Core and Periphery Deployment and Configuration"
+    echo "51. Core Ownership Transfer"
+    echo "52. Periphery Ownership Transfer"
+    echo "53. Governor Roles Configuration"
+    read -p "Enter your choice: " choice
 
     case $choice in
         0)
-            echo "Deploying ERC20 mock token..."
+            echo "Deploying ERC20 token..."
+            echo "Select the type of ERC20 token to deploy:"
+            echo "0. Mock Mintable ERC20"
+            echo "1. Burnable-Mintable ERC20"
+            echo "2. Reward token"
+            read -p "Enter your choice (0-2): " token_choice
 
-            baseName=00_MockERC20
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
+            baseName=00_ERC20
 
-            read -p "Enter token name (default: MockERC20): " token_name
-            token_name=${token_name:-MockERC20}
+            case $token_choice in
+                0)
+                    echo "Deploying Mock Mintable ERC20..."
 
-            read -p "Enter token symbol (default: MOCK): " token_symbol
-            token_symbol=${token_symbol:-MOCK}
+                    scriptName=${baseName}.s.sol:MockERC20MintableDeployer
+                    jsonName=00_MockERC20Mintable
 
-            read -p "Enter token decimals (default: 18): " token_decimals
-            token_decimals=${token_decimals:-18}
+                    read -p "Enter token name (default: MockERC20Mintable): " token_name
+                    token_name=${token_name:-MockERC20Mintable}
 
-            jq -n \
-                --arg name "$token_name" \
-                --arg symbol "$token_symbol" \
-                --argjson decimals "$token_decimals" \
-                '{
-                    name: $name,
-                    symbol: $symbol,
-                    decimals: $decimals
-                }' --indent 4 > script/${jsonName}_input.json
+                    read -p "Enter token symbol (default: MOCK): " token_symbol
+                    token_symbol=${token_symbol:-MOCK}
+
+                    read -p "Enter token decimals (default: 18): " token_decimals
+                    token_decimals=${token_decimals:-18}
+
+                    jq -n \
+                        --arg name "$token_name" \
+                        --arg symbol "$token_symbol" \
+                        --arg decimals "$token_decimals" \
+                        '{
+                            name: $name,
+                            symbol: $symbol,
+                            decimals: $decimals
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Burnable-Mintable ERC20..."
+
+                    scriptName=${baseName}.s.sol:ERC20BurnableMintableDeployer
+                    jsonName=00_ERC20BurnableMintable
+
+                    read -p "Enter token name: " token_name
+                    read -p "Enter token symbol: " token_symbol
+                    read -p "Enter token decimals (default: 18): " token_decimals
+                    token_decimals=${token_decimals:-18}
+
+                    jq -n \
+                        --arg name "$token_name" \
+                        --arg symbol "$token_symbol" \
+                        --arg decimals "$token_decimals" \
+                        '{
+                            name: $name,
+                            symbol: $symbol,
+                            decimals: $decimals
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                2)
+                    echo "Deploying Reward token..."
+
+                    scriptName=${baseName}.s.sol:RewardTokenDeployer
+                    jsonName=00_RewardToken
+
+                    read -p "Enter EVC address: " evc
+                    read -p "Enter receiver address: " receiver
+                    read -p "Enter underlying token address: " underlying
+                    read -p "Enter token name: " token_name
+                    read -p "Enter token symbol: " token_symbol
+                    
+                    jq -n \
+                        --arg evc "$evc" \
+                        --arg receiver "$receiver" \
+                        --arg underlying "$underlying" \
+                        --arg name "$token_name" \
+                        --arg symbol "$token_symbol" \
+                        '{
+                            evc: $evc,
+                            receiver: $receiver,
+                            underlying: $underlying,
+                            name: $name,
+                            symbol: $symbol
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid token choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         1)
             echo "Deploying intergrations..."
@@ -142,6 +163,15 @@ while true; do
             baseName=01_Integrations
             scriptName=${baseName}.s.sol
             jsonName=$baseName
+
+            read -p "Enter the Permit2 contract address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+            permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
+
+            jq -n \
+                --arg permit2 "$permit2" \
+                '{
+                    permit2: $permit2
+                }' --indent 4 > script/${jsonName}_input.json
             ;;
         2)
             echo "Deploying periphery factories..."
@@ -168,9 +198,23 @@ while true; do
             echo "4. Redstone"
             echo "5. Cross"
             echo "6. Uniswap"
-            read -p "Enter your choice (0-6): " adapter_choice
+            echo "7. Lido Fundamental"
+            echo "8. Fixed Rate"
+            echo "9. Rate Provider"
+            echo "10. Pendle"
+            echo "11. Chainlink Infrequent"
+            echo "12. Idle Tranche"
+            read -p "Enter your choice (0-12): " adapter_choice
 
             baseName=03_OracleAdapters
+
+            read -p "Should the adapter be added to the Adapter Registry? (y/n) (default: n): " add_to_adapter_registry
+            add_to_adapter_registry=${add_to_adapter_registry:-n}
+
+            adapter_registry=0x0000000000000000000000000000000000000000
+            if [[ $add_to_adapter_registry != "n" ]]; then
+                read -p "Enter the Adapter Registry address: " adapter_registry
+            fi
 
             case $adapter_choice in
                 0)
@@ -179,19 +223,20 @@ while true; do
                     scriptName=${baseName}.s.sol:ChainlinkAdapter
                     jsonName=03_ChainlinkAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
                     read -p "Enter feed address: " feed
                     read -p "Enter max staleness (in seconds): " max_staleness
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feed "$feed" \
-                        --argjson maxStaleness "$max_staleness" \
+                        --arg maxStaleness "$max_staleness" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -205,19 +250,20 @@ while true; do
                     scriptName=${baseName}.s.sol:ChronicleAdapter
                     jsonName=03_ChronicleAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
                     read -p "Enter feed address: " feed
                     read -p "Enter max staleness (in seconds): " max_staleness
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feed "$feed" \
-                        --argjson maxStaleness "$max_staleness" \
+                        --arg maxStaleness "$max_staleness" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -231,11 +277,11 @@ while true; do
                     scriptName=${baseName}.s.sol:LidoAdapter
                     jsonName=03_LidoAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
-
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
@@ -245,7 +291,6 @@ while true; do
                     scriptName=${baseName}.s.sol:PythAdapter
                     jsonName=03_PythAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter Pyth address: " pyth
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
@@ -254,14 +299,16 @@ while true; do
                     read -p "Enter max confidence width: " max_conf_width
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg pyth "$pyth" \
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feedId "$feed_id" \
-                        --argjson maxStaleness "$max_staleness" \
-                        --argjson maxConfWidth "$max_conf_width" \
+                        --arg maxStaleness "$max_staleness" \
+                        --arg maxConfWidth "$max_conf_width" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             pyth: $pyth,
                             base: $base,
@@ -277,7 +324,6 @@ while true; do
                     scriptName=${baseName}.s.sol:RedstoneAdapter
                     jsonName=03_RedstoneAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter quote token address: " quote
                     read -p "Enter feed ID: " feed_id
@@ -285,13 +331,15 @@ while true; do
                     read -p "Enter max staleness (in seconds): " max_staleness
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg quote "$quote" \
                         --arg feedId "$feed_id" \
-                        --argjson feedDecimals "$feed_decimals" \
-                        --argjson maxStaleness "$max_staleness" \
+                        --arg feedDecimals "$feed_decimals" \
+                        --arg maxStaleness "$max_staleness" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -306,7 +354,6 @@ while true; do
                     scriptName=${baseName}.s.sol:CrossAdapterDeployer
                     jsonName=03_CrossAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter base token address: " base
                     read -p "Enter cross token address: " cross
                     read -p "Enter quote token address: " quote
@@ -314,6 +361,7 @@ while true; do
                     read -p "Enter oracleCrossQuote address: " oracle_cross_quote
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg base "$base" \
                         --arg cross "$cross" \
@@ -321,6 +369,7 @@ while true; do
                         --arg oracleBaseCross "$oracle_base_cross" \
                         --arg oracleCrossQuote "$oracle_cross_quote" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             base: $base,
                             quote: $quote,
@@ -335,7 +384,6 @@ while true; do
                     scriptName=${baseName}.s.sol:UniswapAdapter
                     jsonName=03_UniswapAdapter
 
-                    read -p "Enter the Adapter Registry address: " adapter_registry
                     read -p "Enter tokenA address: " token_a
                     read -p "Enter tokenB address: " token_b
                     read -p "Enter fee: " fee
@@ -343,19 +391,161 @@ while true; do
                     read -p "Enter uniswapV3Factory address: " uniswap_v3_factory
 
                     jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
                         --arg adapterRegistry "$adapter_registry" \
                         --arg tokenA "$token_a" \
                         --arg tokenB "$token_b" \
-                        --argjson fee "$fee" \
-                        --argjson twapWindow "$twap_window" \
+                        --arg fee "$fee" \
+                        --arg twapWindow "$twap_window" \
                         --arg uniswapV3Factory "$uniswap_v3_factory" \
                         '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
                             adapterRegistry: $adapterRegistry,
                             tokenA: $tokenA,
                             tokenB: $tokenB,
                             fee: $fee,
                             twapWindow: $twapWindow,
                             uniswapV3Factory: $uniswapV3Factory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                7)
+                    echo "Deploying Lido Fundamental Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:LidoFundamentalAdapter
+                    jsonName=03_LidoFundamentalAdapter
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                8)
+                    echo "Deploying Fixed Rate Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:FixedRateAdapter
+                    jsonName=03_FixedRateAdapter
+
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter rate: " rate
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --arg rate "$rate" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            base: $base,
+                            quote: $quote,
+                            rate: $rate
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                9)
+                    echo "Deploying Rate Provider Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:RateProviderAdapter
+                    jsonName=03_RateProviderAdapter
+
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter rate provider address: " rate_provider
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --arg rateProvider "$rate_provider" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            base: $base,
+                            quote: $quote,
+                            rateProvider: $rateProvider
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                10)
+                    echo "Deploying Pendle Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:PendleAdapter
+                    jsonName=03_PendleAdapter
+
+                    read -p "Enter Pendle Oracle address: " pendle_oracle
+                    read -p "Enter Pendle Market address: " pendle_market
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter twapWindow: " twap_window
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg pendleOracle "$pendle_oracle" \
+                        --arg pendleMarket "$pendle_market" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --arg twapWindow "$twap_window" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            pendleOracle: $pendleOracle,
+                            pendleMarket: $pendleMarket,
+                            base: $base,
+                            quote: $quote,
+                            twapWindow: $twapWindow
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                11)
+                    echo "Deploying Chainlink Infrequent Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:ChainlinkInfrequentAdapter
+                    jsonName=03_ChainlinkInfrequentAdapter
+
+                    read -p "Enter base token address: " base
+                    read -p "Enter quote token address: " quote
+                    read -p "Enter feed address: " feed
+                    read -p "Enter max staleness (in seconds): " max_staleness
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg base "$base" \
+                        --arg quote "$quote" \
+                        --arg feed "$feed" \
+                        --arg maxStaleness "$max_staleness" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            base: $base,
+                            quote: $quote,
+                            feed: $feed,
+                            maxStaleness: $maxStaleness
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                12)
+                    echo "Deploying Idle Tranche Adapter..."
+                    
+                    scriptName=${baseName}.s.sol:IdleTranchesAdapter
+                    jsonName=03_IdleTranchesAdapter
+
+                    read -p "Enter CDO address: " cdo
+                    read -p "Enter tranche address: " tranche
+
+                    jq -n \
+                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
+                        --arg adapterRegistry "$adapter_registry" \
+                        --arg cdo "$cdo" \
+                        --arg tranche "$tranche" \
+                        '{
+                            addToAdapterRegistry: $addToAdapterRegistry,
+                            adapterRegistry: $adapterRegistry,
+                            cdo: $cdo,
+                            tranche: $tranche
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
@@ -365,31 +555,45 @@ while true; do
             esac            
             ;;
         4)
-            echo "Deploying kink IRM..."
-            
-            baseName=04_KinkIRM
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
+            echo "Deploying IRM..."
+            echo "Select the type of IRM to deploy:"
+            echo "0. Kink"
+            read -p "Enter your choice (0-0): " irm_choice
 
-            read -p "Enter the IRM Factory address: " irm_factory
-            read -p "Enter base rate SPY: " base_rate
-            read -p "Enter slope1 parameter: " slope1
-            read -p "Enter slope2 parameter: " slope2
-            read -p "Enter kink parameter: " kink
+            baseName=04_IRM
 
-            jq -n \
-                --arg irmFactory "$irm_factory" \
-                --arg baseRate "$base_rate" \
-                --arg slope1 "$slope1" \
-                --arg slope2 "$slope2" \
-                --arg kink "$kink" \
-                '{
-                    irmFactory: $irmFactory,
-                    baseRate: $baseRate,
-                    slope1: $slope1,
-                    slope2: $slope2,
-                    kink: $kink
-                }' --indent 4 > script/${jsonName}_input.json
+            case $irm_choice in
+                0)
+                    echo "Deploying Kink IRM..."
+                    
+                    scriptName=${baseName}.s.sol:KinkIRM
+                    jsonName=04_KinkIRM
+
+                    read -p "Enter the Kink IRM Factory address: " kinkIRMFactory
+                    read -p "Enter base rate SPY: " base_rate
+                    read -p "Enter slope1 parameter: " slope1
+                    read -p "Enter slope2 parameter: " slope2
+                    read -p "Enter kink parameter: " kink
+
+                    jq -n \
+                        --arg kinkIRMFactory "$kinkIRMFactory" \
+                        --arg baseRate "$base_rate" \
+                        --arg slope1 "$slope1" \
+                        --arg slope2 "$slope2" \
+                        --arg kink "$kink" \
+                        '{
+                            kinkIRMFactory: $kinkIRMFactory,
+                            baseRate: $baseRate,
+                            slope1: $slope1,
+                            slope2: $slope2,
+                            kink: $kink
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid IRM choice. Exiting."
+                    exit 1
+                    ;;
+            esac            
             ;;
         5)
             echo "Deploying EVault implementation..."
@@ -435,88 +639,362 @@ while true; do
             ;;
         7)
             echo "Deploying EVault..."
+            echo "Select the type of EVault to deploy:"
+            echo "0. Vanilla EVault"
+            echo "1. Singleton Escrow EVault"
+            read -p "Enter your choice (0-1): " vault_choice
 
             baseName=07_EVault
-            scriptName=${baseName}Deployer.s.sol
-            jsonName=$baseName
 
-            read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle
-            deploy_router_for_oracle=${deploy_router_for_oracle:-y}
+            case $vault_choice in
+                0)
+                    echo "Deploying vanilla EVault..."
+                    
+                    scriptName=${baseName}.s.sol:EVaultDeployer
+                    jsonName=07_EVault
 
-            oracle_router_factory=0x0000000000000000000000000000000000000000
-            if [[ $deploy_router_for_oracle != "n" ]]; then
-                read -p "Enter the Oracle Router Factory address: " oracle_router_factory
-            fi
-            
-            read -p "Enter the EVault Factory address: " evault_factory
-            read -p "Should the vault be upgradable? (y/n) (default: n): " upgradable
-            upgradable=${upgradable:-n}
-            read -p "Enter the Asset address: " asset
-            read -p "Enter the Oracle address: " oracle
-            read -p "Enter the Unit of Account address: " unit_of_account
+                    read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle
+                    deploy_router_for_oracle=${deploy_router_for_oracle:-y}
 
-            jq -n \
-                --argjson deployRouterForOracle "$(jq -n --argjson val \"$deploy_router_for_oracle\" 'if $val != "n" then true else false end')" \
-                --arg oracleRouterFactory "$oracle_router_factory" \
-                --arg eVaultFactory "$evault_factory" \
-                --argjson upgradable "$(jq -n --argjson val \"$upgradable\" 'if $val == "y" then true else false end')" \
-                --arg asset "$asset" \
-                --arg oracle "$oracle" \
-                --arg unitOfAccount "$unit_of_account" \
-                '{
-                    deployRouterForOracle: $deployRouterForOracle,
-                    oracleRouterFactory: $oracleRouterFactory,
-                    eVaultFactory: $eVaultFactory,
-                    upgradable: $upgradable,
-                    asset: $asset,
-                    oracle: $oracle,
-                    unitOfAccount: $unitOfAccount
-                }' --indent 4 > script/${jsonName}_input.json
+                    oracle_router_factory=0x0000000000000000000000000000000000000000
+                    if [[ $deploy_router_for_oracle != "n" ]]; then
+                        read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+                    fi
+                    
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Should the vault be upgradable? (y/n) (default: n): " upgradable
+                    upgradable=${upgradable:-n}
+                    read -p "Enter the Asset address: " asset
+                    read -p "Enter the Oracle address: " oracle
+                    read -p "Enter the Unit of Account address: " unit_of_account
+
+                    jq -n \
+                        --argjson deployRouterForOracle "$(jq -n --argjson val \"$deploy_router_for_oracle\" 'if $val != "n" then true else false end')" \
+                        --arg oracleRouterFactory "$oracle_router_factory" \
+                        --arg eVaultFactory "$evault_factory" \
+                        --argjson upgradable "$(jq -n --argjson val \"$upgradable\" 'if $val == "y" then true else false end')" \
+                        --arg asset "$asset" \
+                        --arg oracle "$oracle" \
+                        --arg unitOfAccount "$unit_of_account" \
+                        '{
+                            deployRouterForOracle: $deployRouterForOracle,
+                            oracleRouterFactory: $oracleRouterFactory,
+                            eVaultFactory: $eVaultFactory,
+                            upgradable: $upgradable,
+                            asset: $asset,
+                            oracle: $oracle,
+                            unitOfAccount: $unitOfAccount
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying singleton escrow EVault..."
+                    
+                    scriptName=${baseName}.s.sol:EVaultSingletonEscrowDeployer
+                    jsonName=07_EVaultSingletonEscrow
+
+                    read -p "Enter the EVC address: " evc
+                    read -p "Enter the Escrowed Collateral Perspective address: " escrowed_collateral_perspective
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Enter the Asset address: " asset
+
+                    jq -n \
+                        --arg evc "$evc" \
+                        --arg escrowedCollateralPerspective "$escrowed_collateral_perspective" \
+                        --arg eVaultFactory "$evault_factory" \
+                        --arg asset "$asset" \
+                        '{
+                            evc: $evc,
+                            escrowedCollateralPerspective: $escrowedCollateralPerspective,
+                            eVaultFactory: $eVaultFactory,
+                            asset: $asset
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid EVault choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         8)
             echo "Deploying lenses..."
+            echo "Select the type of lens to deploy:"
+            echo "0. All (Account Lens, Vault Lens, Euler Earn Vault Lens, Oracle Lens, IRM Lens, Utils Lens)"
+            echo "1. Account Lens"
+            echo "2. Vault Lens"
+            echo "3. Euler Earn Vault Lens"
+            echo "4. Oracle Lens"
+            echo "5. IRM Lens"
+            echo "6. Utils Lens"
+            read -p "Enter your choice (0-6): " lens_choice
             
             baseName=08_Lenses
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
-            
-            read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
 
-            jq -n \
-                --arg oracleAdapterRegistry "$oracle_adapter_registry" \
-                '{
-                    oracleAdapterRegistry: $oracleAdapterRegistry
-                }' --indent 4 > script/${jsonName}_input.json
+            case $lens_choice in
+                0)
+                    echo "Deploying all lenses..."
+                    
+                    scriptName=${baseName}.s.sol:Lenses
+                    jsonName=08_Lenses
+
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+
+                    jq -n \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        '{
+                            oracleAdapterRegistry: $oracleAdapterRegistry,
+                            kinkIRMFactory: $kinkIRMFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Account Lens..."
+                    
+                    scriptName=${baseName}.s.sol:LensAccountDeployer
+                    jsonName=08_LensAccount
+                    ;;
+                2)
+                    echo "Deploying Vault Lens..."
+                    
+                    scriptName=${baseName}.s.sol:LensVaultDeployer
+                    jsonName=08_LensVault
+                    
+                    read -p "Enter the Oracle Lens address: " oracle_lens
+                    read -p "Enter the Utils Lens address: " utils_lens
+                    read -p "Enter the IRM Lens address: " irm_lens
+
+                    jq -n \
+                        --arg oracleLens "$oracle_lens" \
+                        --arg utilsLens "$utils_lens" \
+                        --arg irmLens "$irm_lens" \
+                        '{
+                            oracleLens: $oracleLens,
+                            utilsLens: $utilsLens,
+                            irmLens: $irmLens
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                3)
+                    echo "Deploying Euler Earn Vault Lens..."
+                    
+                    scriptName=${baseName}.s.sol:LensEulerEarnVaultDeployer
+                    jsonName=08_LensEulerEarnVault
+                    
+                    read -p "Enter the Oracle Lens address: " oracle_lens
+                    read -p "Enter the Utils Lens address: " utils_lens
+
+                    jq -n \
+                        --arg oracleLens "$oracle_lens" \
+                        --arg utilsLens "$utils_lens" \
+                        '{
+                            oracleLens: $oracleLens,
+                            utilsLens: $utilsLens
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                4)
+                    echo "Deploying Oracle Lens..."
+
+                    scriptName=${baseName}.s.sol:LensOracleDeployer
+                    jsonName=08_LensOracle
+
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+
+                    jq -n \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        '{
+                            oracleAdapterRegistry: $oracleAdapterRegistry
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                5)
+                    echo "Deploying IRM Lens..."
+
+                    scriptName=${baseName}.s.sol:LensIRMDeployer
+                    jsonName=08_LensIRM
+
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+
+                    jq -n \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        '{
+                            kinkIRMFactory: $kinkIRMFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                6)
+                    echo "Deploying Utils Lens..."
+
+                    scriptName=${baseName}.s.sol:LensUtilsDeployer
+                    jsonName=08_LensUtils
+                    
+                    read -p "Enter the Oracle Lens address: " oracle_lens
+
+                    jq -n \
+                        --arg oracleLens "$oracle_lens" \
+                        '{
+                            oracleLens: $oracleLens
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid lens choice. Exiting."
+                    exit 1
+                    ;;
+            esac            
             ;;
         9)
             echo "Deploying Perspectives..."
-            
+            echo "Select the type of perspectives to deploy:"
+            echo "0. All EVK Perspectives (EVK Factory, Governed, Escrowed Collateral, Euler Ungoverned 0x, Euler Ungoverned nzx)"
+            echo "1. Governed Perspective"
+            echo "2. EVK Escrowed Collateral Perspective"
+            echo "3. EVK Euler Ungoverned 0x Perspective"
+            echo "4. EVK Euler Ungoverned nzx Perspective"
+            echo "5. Euler Earn Perspective"
+            read -p "Enter your choice (0-5): " perspectives_choice
+
             baseName=09_Perspectives
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
 
-            read -p "Enter the EVault Factory address: " evault_factory
-            read -p "Enter the Oracle Router Factory address: " oracle_router_factory
-            read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
-            read -p "Enter the External Vault Registry address: " external_vault_registry
-            read -p "Enter the Kink IRM Factory address: " kink_irm_factory
-            read -p "Enter the IRM Registry address: " irm_registry
+            case $perspectives_choice in
+                0)
+                    echo "Deploying all EVK Perspectives..."
 
-            jq -n \
-                --arg eVaultFactory "$evault_factory" \
-                --arg oracleRouterFactory "$oracle_router_factory" \
-                --arg oracleAdapterRegistry "$oracle_adapter_registry" \
-                --arg externalVaultRegistry "$external_vault_registry" \
-                --arg kinkIRMFactory "$kink_irm_factory" \
-                --arg irmRegistry "$irm_registry" \
-                '{
-                    eVaultFactory: $eVaultFactory,
-                    oracleRouterFactory: $oracleRouterFactory,
-                    oracleAdapterRegistry: $oracleAdapterRegistry,
-                    externalVaultRegistry: $externalVaultRegistry,
-                    kinkIRMFactory: $kinkIRMFactory,
-                    irmRegistry: $irmRegistry
-                }' --indent 4 > script/${jsonName}_input.json
+                    scriptName=${baseName}.s.sol:EVKPerspectives
+                    jsonName=09_EVKPerspectives
+
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+                    read -p "Enter the External Vault Registry address: " external_vault_registry
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+                    read -p "Enter the IRM Registry address: " irm_registry
+
+                    jq -n \
+                        --arg eVaultFactory "$evault_factory" \
+                        --arg oracleRouterFactory "$oracle_router_factory" \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        --arg externalVaultRegistry "$external_vault_registry" \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        --arg irmRegistry "$irm_registry" \
+                        '{
+                            eVaultFactory: $eVaultFactory,
+                            oracleRouterFactory: $oracleRouterFactory,
+                            oracleAdapterRegistry: $oracleAdapterRegistry,
+                            externalVaultRegistry: $externalVaultRegistry,
+                            kinkIRMFactory: $kinkIRMFactory,
+                            irmRegistry: $irmRegistry
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Governed Perspective..."
+
+                    scriptName=${baseName}.s.sol:PerspectiveGovernedDeployer
+                    jsonName=09_PerspectiveGoverned
+
+                    read -p "Enter the EVC address: " evc
+
+                    jq -n \
+                        --arg evc "$evc" \
+                        '{
+                            evc: $evc
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                2)
+                    echo "Deploying EVK Escrowed Collateral Perspective..."
+
+                    scriptName=${baseName}.s.sol:EVKPerspectiveEscrowedCollateralDeployer
+                    jsonName=09_EVKPerspectiveEscrowedCollateral
+
+                    read -p "Enter the EVault Factory address: " evault_factory
+
+                    jq -n \
+                        --arg eVaultFactory "$evault_factory" \
+                        '{
+                            eVaultFactory: $eVaultFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                3)
+                    echo "Deploying EVK Euler Ungoverned 0x Perspective..."
+
+                    scriptName=${baseName}.s.sol:EVKPerspectiveEulerUngoverned0xDeployer
+                    jsonName=09_EVKPerspectiveEulerUngoverned0x
+
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+                    read -p "Enter the External Vault Registry address: " external_vault_registry
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+                    read -p "Enter the IRM Registry address: " irm_registry
+                    read -p "Enter the Escrowed Collateral Perspective address: " escrowed_collateral_perspective
+
+                    jq -n \
+                        --arg eVaultFactory "$evault_factory" \
+                        --arg oracleRouterFactory "$oracle_router_factory" \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        --arg externalVaultRegistry "$external_vault_registry" \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        --arg irmRegistry "$irm_registry" \
+                        --arg escrowedCollateralPerspective "$escrowed_collateral_perspective" \
+                        '{
+                            eVaultFactory: $eVaultFactory,
+                            oracleRouterFactory: $oracleRouterFactory,
+                            oracleAdapterRegistry: $oracleAdapterRegistry,
+                            externalVaultRegistry: $externalVaultRegistry,
+                            kinkIRMFactory: $kinkIRMFactory,
+                            irmRegistry: $irmRegistry,
+                            escrowedCollateralPerspective: $escrowedCollateralPerspective
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                4)
+                    echo "Deploying EVK Euler Ungoverned nzx Perspective..."
+
+                    scriptName=${baseName}.s.sol:EVKPerspectiveEulerUngovernedNzxDeployer
+                    jsonName=09_EVKPerspectiveEulerUngovernedNzx
+
+                    read -p "Enter the EVault Factory address: " evault_factory
+                    read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+                    read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
+                    read -p "Enter the External Vault Registry address: " external_vault_registry
+                    read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+                    read -p "Enter the IRM Registry address: " irm_registry
+                    read -p "Enter the Governed Perspective address: " governed_perspective
+                    read -p "Enter the Escrowed Collateral Perspective address: " escrowed_collateral_perspective
+
+                    jq -n \
+                        --arg eVaultFactory "$evault_factory" \
+                        --arg oracleRouterFactory "$oracle_router_factory" \
+                        --arg oracleAdapterRegistry "$oracle_adapter_registry" \
+                        --arg externalVaultRegistry "$external_vault_registry" \
+                        --arg kinkIRMFactory "$kink_irm_factory" \
+                        --arg irmRegistry "$irm_registry" \
+                        --arg governedPerspective "$governed_perspective" \
+                        --arg escrowedCollateralPerspective "$escrowed_collateral_perspective" \
+                        '{
+                            eVaultFactory: $eVaultFactory,
+                            oracleRouterFactory: $oracleRouterFactory,
+                            oracleAdapterRegistry: $oracleAdapterRegistry,
+                            externalVaultRegistry: $externalVaultRegistry,
+                            kinkIRMFactory: $kinkIRMFactory,
+                            irmRegistry: $irmRegistry,
+                            governedPerspective: $governedPerspective,
+                            escrowedCollateralPerspective: $escrowedCollateralPerspective
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                5)
+                    echo "Deploying Euler Earn Perspectives..."
+
+                    scriptName=${baseName}.s.sol:EulerEarnPerspectives
+                    jsonName=09_EulerEarnPerspectives
+
+                    read -p "Enter the Euler Earn Factory address: " euler_earn_factory
+
+                    jq -n \
+                        --arg eulerEarnFactory "$euler_earn_factory" \
+                        '{
+                            eulerEarnFactory: $eulerEarnFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid perspectives choice. Exiting."
+                    exit 1
+                    ;;
+            esac
             ;;
         10)
             echo "Deploying Swapper..."
@@ -525,21 +1003,15 @@ while true; do
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
-            read -p "Enter the OneInch Aggregator address: " oneinch_aggregator
-            read -p "Enter the Uniswap Router V2 address: " uniswap_router_v2
-            read -p "Enter the Uniswap Router V3 address: " uniswap_router_v3
-            read -p "Enter the Uniswap Router 02 address: " uniswap_router_02
+            read -p "Enter the Uniswap V2 Router02 address (look up: https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
+            read -p "Enter the Uniswap V3 Router address (look up: https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
 
             jq -n \
-                --arg oneInchAggregator "$oneinch_aggregator" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
-                --arg uniswapRouter02 "$uniswap_router_02" \
                 '{
-                    oneInchAggregator: $oneInchAggregator,
                     uniswapRouterV2: $uniswapRouterV2,
-                    uniswapRouterV3: $uniswapRouterV3,
-                    uniswapRouter02: $uniswapRouter02
+                    uniswapRouterV3: $uniswapRouterV3
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         11)
@@ -559,12 +1031,12 @@ while true; do
 
             jq -n \
                 --arg evc "$evc" \
-                --argjson initPrice "$init_price" \
+                --arg initPrice "$init_price" \
                 --arg paymentToken "$payment_token" \
                 --arg paymentReceiver "$payment_receiver" \
-                --argjson epochPeriod "$epoch_period" \
-                --argjson priceMultiplier "$price_multiplier" \
-                --argjson minInitPrice "$min_init_price" \
+                --arg epochPeriod "$epoch_period" \
+                --arg priceMultiplier "$price_multiplier" \
+                --arg minInitPrice "$min_init_price" \
                 '{
                     evc: $evc,
                     initPrice: $initPrice,
@@ -574,7 +1046,306 @@ while true; do
                     priceMultiplier: $priceMultiplier,
                     minInitPrice: $minInitPrice
                 }' --indent 4 > script/${jsonName}_input.json
+            ;;
+        12)
+            echo "Deploying governor..."
+            echo "Select the type of governor to deploy:"
+            echo "0. EVault Factory Governor"
+            echo "1. Governor Access Control"
+            echo "2. Governor Access Control Emergency"
+            read -p "Enter your choice (0-2): " governor_choice
 
+            baseName=12_Governor
+
+            case $governor_choice in
+                0)
+                    echo "Deploying EVault Factory Governor..."
+            
+                    scriptName=${baseName}.s.sol:EVaultFactoryGovernorDeployer
+                    jsonName=12_EVaultFactoryGovernor
+                    ;;
+                1)
+                    echo "Deploying Governor Access Control..."
+                    
+                    scriptName=${baseName}.s.sol:GovernorAccessControlDeployer
+                    jsonName=12_GovernorAccessControl
+                    
+                    read -p "Enter the EVC address: " evc
+
+                    jq -n \
+                        --arg evc "$evc" \
+                        '{
+                            evc: $evc
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                2)
+                    echo "Deploying Governor Access Control Emergency..."
+                    
+                    scriptName=${baseName}.s.sol:GovernorAccessControlEmergencyDeployer
+                    jsonName=12_GovernorAccessControlEmergency
+                    
+                    read -p "Enter the EVC address: " evc
+
+                    jq -n \
+                        --arg evc "$evc" \
+                        '{
+                            evc: $evc
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                *)
+                    echo "Invalid governor choice. Exiting."
+                    exit 1
+                    ;;
+            esac
+            ;;
+        13)
+            echo "Deploying Terms of Use Signer..."
+
+            baseName=13_TermsOfUseSigner
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            read -p "Enter the EVC address: " evc
+
+            jq -n \
+                --arg evc "$evc" \
+                '{
+                    evc: $evc
+                }' --indent 4 > script/${jsonName}_input.json
+            ;;
+        20)
+            echo "Deploying Euler Earn implementation..."
+
+            baseName=20_EulerEarnImplementation
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            read -p "Enter the EVC address: " evc
+            read -p "Enter the Balance Tracker address: " balance_tracker
+            read -p "Enter the Permit2 address: " permit2
+            read -p "Enter the isHarvestCoolDownCheckOn flag (t/f): " is_harvest_cool_down_check_on
+
+            forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
+
+            jq -n \
+                --arg evc "$evc" \
+                --arg balanceTracker "$balance_tracker" \
+                --arg permit2 "$permit2" \
+                --argjson isHarvestCoolDownCheckOn "$(jq -n --argjson val \"$isHarvestCoolDownCheckOn\" 'if $val != "f" then true else false end')" \
+                '{
+                    evc: $evc,
+                    balanceTracker: $balanceTracker,
+                    permit2: $permit2,
+                    isHarvestCoolDownCheckOn: $isHarvestCoolDownCheckOn
+                }' --indent 4 > script/${jsonName}_input.json
+            ;;
+        21)
+            echo "Deploying Euler Earn factory..."
+
+            baseName=21_EulerEarnFactory
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            read -p "Enter the Euler Earn implementation address: " euler_earn_implementation
+
+            forge compile lib/euler-earn/src $eulerEarnCompilerOptions
+
+            jq -n \
+                --arg eulerEarnImplementation "$euler_earn_implementation" \
+                '{
+                    eulerEarnImplementation: $eulerEarnImplementation
+                }' --indent 4 > script/${jsonName}_input.json
+            ;;
+        50)
+            echo "Deploying and configuring Core and Periphery..."
+
+            baseName=50_CoreAndPeriphery
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            addressZero=0x0000000000000000000000000000000000000000
+
+            addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
+            mkdir -p "$addresses_dir_path"
+
+            if [ "$(ls -A "$addresses_dir_path")" ]; then
+                multisig_dao=$(jq -r '.DAO' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                multisig_labs=$(jq -r '.labs' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                multisig_security_council=$(jq -r '.securityCouncil' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                securityPartnerA=$(jq -r '.securityPartnerA' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                securityPartnerB=$(jq -r '.securityPartnerB' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
+                swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+                nttManager=$(jq -r '.manager' "$addresses_dir_path/NTTAddresses.json" 2>/dev/null)
+                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+                eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
+                eulerEarnFactory=${eulerEarnFactory:-$addressZero}
+            fi
+
+            if [ -z "$multisig_dao" ] || [ "$multisig_dao" == "$addressZero" ]; then
+                read -p "Enter the DAO multisig address: " multisig_dao
+                read -p "Enter the Labs multisig address: " multisig_labs
+                read -p "Enter the Security Council multisig address: " multisig_security_council
+                read -p "Enter the Security Partner A address: " security_partner_a
+                read -p "Enter the Security Partner B address: " security_partner_b
+            fi
+
+            if [ -z "$evc" ] || [ "$evc" == "$addressZero" ]; then
+                read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+            fi
+            
+            if [ -z "$swapper" ] || [ "$swapper" == "$addressZero" ]; then
+                read -p "Enter the Uniswap V2 Router 02 address (look up: https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
+                read -p "Enter the Uniswap V3 Router address (look up: https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
+            fi
+            
+            if [ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]; then
+                read -p "Enter the Wormhole Core Bridge address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/core.ts or press ENTER to skip): " wormhole_core_bridge
+                read -p "Enter the Wormhole Relayer address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/relayer.ts or press ENTER to skip): " wormhole_relayer
+            fi
+            
+            if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ]; then
+                read -p "Enter the EUL/WETH init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
+            fi
+
+            multisig_dao=${multisig_dao:-$addressZero}
+            multisig_labs=${multisig_labs:-$addressZero}
+            multisig_security_council=${multisig_security_council:-$addressZero}
+            securityPartnerA=${securityPartnerA:-$addressZero}
+            securityPartnerB=${securityPartnerB:-$addressZero}
+            permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
+            uniswap_router_v2=${uniswap_router_v2:-$addressZero}
+            uniswap_router_v3=${uniswap_router_v3:-$addressZero}
+            wormhole_core_bridge=${wormhole_core_bridge:-$addressZero}
+            wormhole_relayer=${wormhole_relayer:-$addressZero}
+            init_price=${init_price:-1000000000000000000}
+
+            if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
+                forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
+            fi
+            
+            if ([ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]) && ([ "$wormhole_core_bridge" != "$addressZero" ]); then
+                echo "Deploying TransceiverStructs library..."
+                result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $broadcast $nttCompilerOptions --force $@)
+
+                if [ "$broadcast" = "--broadcast" ]; then
+                    transceiver_structs=$(jq -r '.deployedTo' <<< "$result")
+                else
+                    deployerAddress=$(cast wallet address $@)
+                    transceiver_structs=$(cast compute-address $deployerAddress --rpc-url $DEPLOYMENT_RPC_URL | grep -oE '0x[a-fA-F0-9]{40}')
+                fi
+
+                if [ -z "$transceiver_structs" ] && [ "$broadcast" = "--broadcast" ]; then
+                    echo "Failed to deploy TransceiverStructs library. Exiting."
+                    exit 1
+                fi
+
+                forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiver_structs $nttCompilerOptions
+            fi
+
+            transceiver_structs=${transceiver_structs:-$addressZero}
+
+            jq -n \
+                --arg multisigDAO "$multisig_dao" \
+                --arg multisigLabs "$multisig_labs" \
+                --arg multisigSecurityCouncil "$multisig_security_council" \
+                --arg securityPartnerA "$security_partner_a" \
+                --arg securityPartnerB "$security_partner_b" \
+                --arg permit2 "$permit2" \
+                --arg uniswapRouterV2 "$uniswap_router_v2" \
+                --arg uniswapRouterV3 "$uniswap_router_v3" \
+                --arg wormholeCoreBridge "$wormhole_core_bridge" \
+                --arg wormholeRelayer "$wormhole_relayer" \
+                --arg transceiverStructs "$transceiver_structs" \
+                --arg initPrice "$init_price" \
+                '{
+                    multisigDAO: $multisigDAO,
+                    multisigLabs: $multisigLabs,
+                    multisigSecurityCouncil: $multisigSecurityCouncil,
+                    securityPartnerA: $securityPartnerA,
+                    securityPartnerB: $securityPartnerB,
+                    permit2: $permit2,
+                    uniswapV2Router: $uniswapRouterV2,
+                    uniswapV3Router: $uniswapRouterV3,
+                    wormholeCoreBridge: $wormholeCoreBridge,
+                    wormholeRelayer: $wormholeRelayer,
+                    transceiverStructs: $transceiverStructs,
+                    feeFlowInitPrice: $initPrice
+                }' --indent 4 > script/${jsonName}_input.json
+            ;;
+        51)
+            echo "Core Ownership Transfer..."
+
+            baseName=51_OwnershipTransferCore
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+            ;;
+        52)
+            echo "Periphery Ownership Transfer..."
+
+            baseName=52_OwnershipTransferPeriphery
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+            ;;
+        53)
+            echo "Governor Roles Configuration..."
+            
+            baseName=skip
+            
+            read -p "Enter the Governor contract address: " governor_contract_address
+            read -p "Enter the Account address to grant/revoke role: " account_address
+
+            echo "Enter the role by: "
+            echo "0. Bytes32 role identifier"
+            echo "1. Bytes4 function selector, i.e. 0x12345678"
+            echo "2. String function signature, i.e. setFeeReceiver(address)"
+            echo "3. String role name, i.e. LTV_EMERGENCY_ROLE"
+            read -p "Enter your choice (0-3): " role_choice
+            
+            case $role_choice in
+                0)
+                    read -p "Enter the bytes32 role identifier: " bytes32_role_identifier
+                    ;;
+                1)
+                    read -p "Enter the bytes4 function selector: " selector_role
+                    bytes32_role_identifier=$(cast to-bytes32 $selector_role)
+                    ;;
+                2)
+                    read -p "Enter the string function signature: " signature_role
+                    selector_role=$(cast sig $signature_role)
+                    bytes32_role_identifier=$(cast to-bytes32 $selector_role)
+                    ;;
+                3)
+                    read -p "Enter the string role name: " string_role_name
+                    bytes32_role_identifier=$(cast keccak $string_role_name)
+                    ;;
+                *)
+                    echo "Invalid role choice. Exiting."
+                    exit 1
+                    ;;
+            esac
+
+            echo "Select the operation type:"
+            echo "0. Grant Role"
+            echo "1. Revoke Role"
+            read -p "Enter your choice (0-1): " operation_type
+            
+            case $operation_type in
+                0)
+                    echo "Granting role ($bytes32_role_identifier) to account ($account_address) on governor contract ($governor_contract_address)"
+                    signature="grantRole(bytes32,address)"
+                    ;;
+                1)
+                    echo "Revoking role ($bytes32_role_identifier) from account ($account_address) on governor contract ($governor_contract_address)"
+                    signature="revokeRole(bytes32,address)"
+                    ;;
+                *)
+                    echo "Invalid operation type. Exiting."
+                    exit 1
+                    ;;
+            esac
+
+            cast send $governor_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $broadcast $@
             ;;
         *)
             echo "Invalid choice. Exiting."
@@ -582,6 +1353,51 @@ while true; do
             ;;
     esac
 
-    execute_forge_script $scriptName $verify_contracts
-    save_results $jsonName "$deployment_name"
+    if [ $baseName == "skip" ]; then
+        continue
+    fi
+
+    if script/utils/executeForgeScript.sh $scriptName "$@" $verify $dry_run; then
+        source .env
+        eval "$(./script/utils/determineArgs.sh "$@")"
+        eval "set -- $SCRIPT_ARGS"
+        chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+        deployment_dir="script/deployments/$deployment_name/$chainId"
+        broadcast_dir="broadcast/${scriptName%:*}/$chainId"
+
+        if [ "$dry_run" = "--dry-run" ]; then
+            deployment_dir="$deployment_dir/dry-run"
+            broadcast_dir="$broadcast_dir/dry-run"
+        fi
+
+        mkdir -p "$deployment_dir/broadcast" "$deployment_dir/input" "$deployment_dir/output"
+
+        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
+        cp "$broadcast_dir/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
+
+        for json_file in script/*_input.json; do
+            jsonFileName=$(basename "${json_file/_input/}")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/input/${jsonFileName%.json}_$counter.json"
+        done
+
+        for json_file in script/*_output.json; do
+            jsonFileName=$(basename "${json_file/_output/}")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
+        done
+
+        for json_file in script/*.json; do
+            jsonFileName=$(basename "${json_file}")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
+
+            mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
+        done
+    else
+        for json_file in script/*.json; do
+            rm "$json_file"
+        done
+    fi
 done

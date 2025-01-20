@@ -34,12 +34,12 @@ contract EVaultImplementation is ScriptUtils {
         Base.Integrations memory integrations;
         string memory inputScriptFileName = "05_EVaultImplementation_input.json";
         string memory outputScriptFileName = "05_EVaultImplementation_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
-        integrations.evc = abi.decode(vm.parseJson(json, ".evc"), (address));
-        integrations.protocolConfig = abi.decode(vm.parseJson(json, ".protocolConfig"), (address));
-        integrations.sequenceRegistry = abi.decode(vm.parseJson(json, ".sequenceRegistry"), (address));
-        integrations.balanceTracker = abi.decode(vm.parseJson(json, ".balanceTracker"), (address));
-        integrations.permit2 = abi.decode(vm.parseJson(json, ".permit2"), (address));
+        string memory json = getScriptFile(inputScriptFileName);
+        integrations.evc = vm.parseJsonAddress(json, ".evc");
+        integrations.protocolConfig = vm.parseJsonAddress(json, ".protocolConfig");
+        integrations.sequenceRegistry = vm.parseJsonAddress(json, ".sequenceRegistry");
+        integrations.balanceTracker = vm.parseJsonAddress(json, ".balanceTracker");
+        integrations.permit2 = vm.parseJsonAddress(json, ".permit2");
 
         Dispatch.DeployedModules memory modules;
         (modules, implementation) = execute(integrations);

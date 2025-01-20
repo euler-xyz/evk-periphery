@@ -21,8 +21,8 @@ contract PeripheryFactories is ScriptUtils {
     {
         string memory inputScriptFileName = "02_PeripheryFactories_input.json";
         string memory outputScriptFileName = "02_PeripheryFactories_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
-        address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
+        string memory json = getScriptFile(inputScriptFileName);
+        address evc = vm.parseJsonAddress(json, ".evc");
 
         (oracleRouterFactory, oracleAdapterRegistry, externalVaultRegistry, kinkIRMFactory, irmRegistry) = execute(evc);
 
@@ -60,9 +60,9 @@ contract PeripheryFactories is ScriptUtils {
         )
     {
         oracleRouterFactory = address(new EulerRouterFactory(evc));
-        oracleAdapterRegistry = address(new SnapshotRegistry(getDeployer()));
-        externalVaultRegistry = address(new SnapshotRegistry(getDeployer()));
+        oracleAdapterRegistry = address(new SnapshotRegistry(evc, getDeployer()));
+        externalVaultRegistry = address(new SnapshotRegistry(evc, getDeployer()));
         kinkIRMFactory = address(new EulerKinkIRMFactory());
-        irmRegistry = address(new SnapshotRegistry(getDeployer()));
+        irmRegistry = address(new SnapshotRegistry(evc, getDeployer()));
     }
 }

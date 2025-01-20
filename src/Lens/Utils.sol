@@ -17,6 +17,25 @@ abstract contract Utils {
     int256 public constant TTL_LIQUIDATION = -1;
     int256 public constant TTL_ERROR = -2;
 
+    function getWETHAddress() internal view returns (address) {
+        if (block.chainid == 1) {
+            return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        } else if (
+            block.chainid == 10 || block.chainid == 8453 || block.chainid == 1923 || block.chainid == 57073
+                || block.chainid == 60808
+        ) {
+            return 0x4200000000000000000000000000000000000006;
+        } else if (block.chainid == 137) {
+            return 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619;
+        } else if (block.chainid == 42161) {
+            return 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+        } else if (block.chainid == 43114) {
+            return 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB;
+        } else {
+            revert("getWETHAddress: Unsupported chain");
+        }
+    }
+
     function _strEq(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(bytes(a)) == keccak256(bytes(b));
     }
@@ -37,29 +56,29 @@ abstract contract Utils {
         return success && data.length >= 32 ? abi.decode(data, (uint8)) : 18;
     }
 
-    function _computeSupplySPY(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
-        internal
-        pure
-        returns (uint256)
-    {
-        uint256 totalAssets = cash + borrows;
-        return totalAssets == 0 ? 0 : borrowSPY * borrows * (CONFIG_SCALE - interestFee) / totalAssets / CONFIG_SCALE;
-    }
-
-    function _computeAPYs(uint256 borrowSPY, uint256 supplySPY)
+    function _computeAPYs(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
         internal
         pure
         returns (uint256 borrowAPY, uint256 supplyAPY)
     {
-        bool overflowBorrow;
-        bool overflowSupply;
-        (borrowAPY, overflowBorrow) = RPow.rpow(borrowSPY + ONE, SECONDS_PER_YEAR, ONE);
-        (supplyAPY, overflowSupply) = RPow.rpow(supplySPY + ONE, SECONDS_PER_YEAR, ONE);
+        uint256 totalAssets = cash + borrows;
+        bool overflow;
 
-        if (overflowBorrow || overflowSupply) return (0, 0);
+        (borrowAPY, overflow) = RPow.rpow(borrowSPY + ONE, SECONDS_PER_YEAR, ONE);
+
+        if (overflow) return (0, 0);
 
         borrowAPY -= ONE;
-        supplyAPY -= ONE;
+        supplyAPY =
+            totalAssets == 0 ? 0 : borrowAPY * borrows * (CONFIG_SCALE - interestFee) / totalAssets / CONFIG_SCALE;
+    }
+
+    struct CollateralInfo {
+        uint256 borrowSPY;
+        uint256 borrows;
+        uint256 totalAssets;
+        uint256 interestFee;
+        uint256 borrowInterest;
     }
 
     function _calculateTimeToLiquidation(
@@ -83,7 +102,7 @@ abstract contract Utils {
         }
 
         // get individual collateral interest rates and total collateral value
-        uint256[] memory collateralSPYs = new uint256[](collaterals.length);
+        CollateralInfo[] memory collateralInfos = new CollateralInfo[](collaterals.length);
         uint256 collateralValue;
         for (uint256 i = 0; i < collaterals.length; ++i) {
             address collateral = collaterals[i];
@@ -91,18 +110,26 @@ abstract contract Utils {
             (bool success, bytes memory data) =
                 collateral.staticcall(abi.encodeCall(IEVault(collateral).interestRate, ()));
 
-            uint256 borrowSPY;
             if (success && data.length >= 32) {
-                borrowSPY = abi.decode(data, (uint256));
+                collateralInfos[i].borrowSPY = abi.decode(data, (uint256));
             }
 
-            if (borrowSPY > 0) {
-                collateralSPYs[i] = _computeSupplySPY(
-                    borrowSPY,
-                    IEVault(collateral).cash(),
-                    IEVault(collateral).totalBorrows(),
-                    IEVault(collateral).interestFee()
-                );
+            (success, data) = collateral.staticcall(abi.encodeCall(IEVault(collateral).totalBorrows, ()));
+
+            if (success && data.length >= 32) {
+                collateralInfos[i].borrows = abi.decode(data, (uint256));
+            }
+
+            (success, data) = collateral.staticcall(abi.encodeCall(IEVault(collateral).cash, ()));
+
+            if (success && data.length >= 32) {
+                collateralInfos[i].totalAssets = abi.decode(data, (uint256)) + collateralInfos[i].borrows;
+            }
+
+            (success, data) = collateral.staticcall(abi.encodeCall(IEVault(collateral).interestFee, ()));
+
+            if (success && data.length >= 32) {
+                collateralInfos[i].interestFee = abi.decode(data, (uint256));
             }
 
             collateralValue += collateralValues[i];
@@ -128,7 +155,7 @@ abstract contract Utils {
 
             // calculate the liability interest accrued
             uint256 liabilityInterest;
-            {
+            if (liabilitySPY > 0) {
                 (uint256 multiplier, bool overflow) = RPow.rpow(liabilitySPY + ONE, uint256(ttl), ONE);
 
                 if (overflow) return TTL_ERROR;
@@ -139,11 +166,16 @@ abstract contract Utils {
             // calculate the collaterals interest accrued
             uint256 collateralInterest;
             for (uint256 i = 0; i < collaterals.length; ++i) {
-                (uint256 multiplier, bool overflow) = RPow.rpow(collateralSPYs[i] + ONE, uint256(ttl), ONE);
+                if (collateralInfos[i].borrowSPY == 0 || collateralInfos[i].totalAssets == 0) continue;
+
+                (uint256 multiplier, bool overflow) = RPow.rpow(collateralInfos[i].borrowSPY + ONE, uint256(ttl), ONE);
 
                 if (overflow) return TTL_ERROR;
 
-                collateralInterest = collateralValues[i] * multiplier / ONE - collateralValues[i];
+                collateralInfos[i].borrowInterest = collateralValues[i] * multiplier / ONE - collateralValues[i];
+
+                collateralInterest += collateralInfos[i].borrowInterest * collateralInfos[i].borrows
+                    * (CONFIG_SCALE - collateralInfos[i].interestFee) / collateralInfos[i].totalAssets / CONFIG_SCALE;
             }
 
             // calculate the health factor

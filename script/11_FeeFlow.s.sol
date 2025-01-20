@@ -9,14 +9,14 @@ contract FeeFlow is ScriptUtils {
     function run() public broadcast returns (address feeFlowController) {
         string memory inputScriptFileName = "11_FeeFlow_input.json";
         string memory outputScriptFileName = "11_FeeFlow_output.json";
-        string memory json = getInputConfig(inputScriptFileName);
-        address evc = abi.decode(vm.parseJson(json, ".evc"), (address));
-        uint256 initPrice = abi.decode(vm.parseJson(json, ".initPrice"), (uint256));
-        address paymentToken = abi.decode(vm.parseJson(json, ".paymentToken"), (address));
-        address paymentReceiver = abi.decode(vm.parseJson(json, ".paymentReceiver"), (address));
-        uint256 epochPeriod = abi.decode(vm.parseJson(json, ".epochPeriod"), (uint256));
-        uint256 priceMultiplier = abi.decode(vm.parseJson(json, ".priceMultiplier"), (uint256));
-        uint256 minInitPrice = abi.decode(vm.parseJson(json, ".minInitPrice"), (uint256));
+        string memory json = getScriptFile(inputScriptFileName);
+        address evc = vm.parseJsonAddress(json, ".evc");
+        uint256 initPrice = vm.parseJsonUint(json, ".initPrice");
+        address paymentToken = vm.parseJsonAddress(json, ".paymentToken");
+        address paymentReceiver = vm.parseJsonAddress(json, ".paymentReceiver");
+        uint256 epochPeriod = vm.parseJsonUint(json, ".epochPeriod");
+        uint256 priceMultiplier = vm.parseJsonUint(json, ".priceMultiplier");
+        uint256 minInitPrice = vm.parseJsonUint(json, ".minInitPrice");
 
         feeFlowController =
             execute(evc, initPrice, paymentToken, paymentReceiver, epochPeriod, priceMultiplier, minInitPrice);

@@ -9,8 +9,8 @@ import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-import {EulerBasePerspective} from "../../src/Perspectives/deployed/EulerBasePerspective.sol";
-import {EscrowPerspective} from "../../src/Perspectives/deployed/EscrowPerspective.sol";
+import {EulerUngovernedPerspective} from "../../src/Perspectives/deployed/EulerUngovernedPerspective.sol";
+import {EscrowedCollateralPerspective} from "../../src/Perspectives/deployed/EscrowedCollateralPerspective.sol";
 import {PerspectiveErrors} from "../../src/Perspectives/implementation/PerspectiveErrors.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
@@ -32,10 +32,10 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
     EulerKinkIRMFactory irmFactory;
     SnapshotRegistry irmRegistry;
 
-    EscrowPerspective escrowPerspective;
-    EulerBasePerspective eulerBasePerspective1;
-    EulerBasePerspective eulerBasePerspective2;
-    EulerBasePerspective eulerBasePerspective3;
+    EscrowedCollateralPerspective escrowedCollateralPerspective;
+    EulerUngovernedPerspective eulerUngovernedPerspective1;
+    EulerUngovernedPerspective eulerUngovernedPerspective2;
+    EulerUngovernedPerspective eulerUngovernedPerspective3;
 
     TestERC20 assetTST3;
     TestERC20 assetTST4;
@@ -62,10 +62,10 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         // deploy the oracle-related contracts
         routerFactory = new EulerRouterFactory(address(evc));
         router = EulerRouter(routerFactory.deploy(routerGovernor));
-        adapterRegistry = new SnapshotRegistry(registryOwner);
-        externalVaultRegistry = new SnapshotRegistry(registryOwner);
+        adapterRegistry = new SnapshotRegistry(address(evc), registryOwner);
+        externalVaultRegistry = new SnapshotRegistry(address(evc), registryOwner);
         irmFactory = new EulerKinkIRMFactory();
-        irmRegistry = new SnapshotRegistry(registryOwner);
+        irmRegistry = new SnapshotRegistry(address(evc), registryOwner);
 
         // deploy the IRMs
         irmFactory = new EulerKinkIRMFactory();
@@ -75,41 +75,51 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         address irmCustom2 = address(new IRMLinearKink(0, 4, 5, 6));
 
         // deploy different perspectives
-        escrowPerspective = new EscrowPerspective(address(factory));
+        escrowedCollateralPerspective = new EscrowedCollateralPerspective(address(factory));
+
+        address[] memory recognizedUnitOfAccounts = new address[](2);
+        recognizedUnitOfAccounts[0] = address(840);
+        recognizedUnitOfAccounts[1] = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
         address[] memory recognizedCollateralPerspectives = new address[](1);
         recognizedCollateralPerspectives[0] = address(0);
-        eulerBasePerspective1 = new EulerBasePerspective(
+        eulerUngovernedPerspective1 = new EulerUngovernedPerspective(
+            "Euler Ungoverned Perspective 1",
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
             address(externalVaultRegistry),
             address(irmFactory),
             address(irmRegistry),
+            recognizedUnitOfAccounts,
             recognizedCollateralPerspectives
         );
 
-        recognizedCollateralPerspectives[0] = address(escrowPerspective);
-        eulerBasePerspective2 = new EulerBasePerspective(
+        recognizedCollateralPerspectives[0] = address(escrowedCollateralPerspective);
+        eulerUngovernedPerspective2 = new EulerUngovernedPerspective(
+            "Euler Ungoverned Perspective 2",
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
             address(externalVaultRegistry),
             address(irmFactory),
             address(irmRegistry),
+            recognizedUnitOfAccounts,
             recognizedCollateralPerspectives
         );
 
         recognizedCollateralPerspectives = new address[](2);
-        recognizedCollateralPerspectives[0] = address(escrowPerspective);
-        recognizedCollateralPerspectives[1] = address(eulerBasePerspective1);
-        eulerBasePerspective3 = new EulerBasePerspective(
+        recognizedCollateralPerspectives[0] = address(escrowedCollateralPerspective);
+        recognizedCollateralPerspectives[1] = address(eulerUngovernedPerspective1);
+        eulerUngovernedPerspective3 = new EulerUngovernedPerspective(
+            "Euler Ungoverned Perspective 3",
             address(factory),
             address(routerFactory),
             address(adapterRegistry),
             address(externalVaultRegistry),
             address(irmFactory),
             address(irmRegistry),
+            recognizedUnitOfAccounts,
             recognizedCollateralPerspectives
         );
 
@@ -221,10 +231,10 @@ contract DefaultSetupTest is EVaultTestBase, PerspectiveErrors {
         IEVault(vaultBase6xv).setHookConfig(address(0), 0);
         IEVault(vaultBase6xv).setGovernorAdmin(address(0));
 
-        vm.label(address(escrowPerspective), "escrowPerspective");
-        vm.label(address(eulerBasePerspective1), "eulerBasePerspective1");
-        vm.label(address(eulerBasePerspective2), "eulerBasePerspective2");
-        vm.label(address(eulerBasePerspective3), "eulerBasePerspective3");
+        vm.label(address(escrowedCollateralPerspective), "escrowedCollateralPerspective");
+        vm.label(address(eulerUngovernedPerspective1), "eulerUngovernedPerspective1");
+        vm.label(address(eulerUngovernedPerspective2), "eulerUngovernedPerspective2");
+        vm.label(address(eulerUngovernedPerspective3), "eulerUngovernedPerspective3");
         vm.label(vaultEscrow, "vaultEscrow");
         vm.label(vaultBase1, "vaultBase1");
         vm.label(vaultBase2, "vaultBase2");

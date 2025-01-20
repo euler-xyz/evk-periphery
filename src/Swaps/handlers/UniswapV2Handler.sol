@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {BaseHandler} from "./BaseHandler.sol";
-import {ISwapRouterV2} from "../vendor/ISwapRouterV2.sol";
+import {IUniswapV2Router01} from "../vendor/ISwapRouterV2.sol";
 
 /// @title UniswapV2Handler
 /// @custom:security-contact security@euler.xyz
@@ -27,13 +27,15 @@ abstract contract UniswapV2Handler is BaseHandler {
         (uint256 amountOut, address receiver) = resolveParams(params);
 
         if (amountOut > 0) {
-            ISwapRouterV2(uniswapRouterV2).swapTokensForExactTokens({
-                amountOut: amountOut,
-                amountInMax: type(uint256).max,
-                path: abi.decode(params.data, (address[])),
-                to: receiver,
-                deadline: block.timestamp
-            });
+            (bool success, bytes memory result) = uniswapRouterV2.call(
+                abi.encodeCall(
+                    IUniswapV2Router01.swapTokensForExactTokens,
+                    (amountOut, type(uint256).max, abi.decode(params.data, (address[])), receiver, block.timestamp)
+                )
+            );
+            if (!success || (result.length == 0 && uniswapRouterV2.code.length == 0)) {
+                revert Swapper_SwapError(uniswapRouterV2, result);
+            }
         }
     }
 }

@@ -1,85 +1,123 @@
-# Euler deployment scripts
+# Cluster Deployment and Management
 
-First, create the `.env` file in the root directory of the repository by copying `.env.example`:
+This README explains how to manage a cluster using the provided scripts.
 
-```sh
-cp .env.example .env
+## Overview
+
+A cluster is a collection of vaults that work together in the system. The `ManageClusterBase.s.sol` contract provides the base functionality for configuring and managing clusters, while specific cluster implementations (like `PrimeCluster.s.sol` or `MEGACluster.s.sol`) define the actual configuration for each cluster.
+
+## Management Process
+
+Refer to the `defineCluster()` and `configureCluster()` functions in the specific cluster script file. If no vaults are deployed yet, they will get deployed when the management script is executed for the first time. If the vaults are already deployed, the management script will only apply the delta between the cluster script file configuration and the current state of the cluster.
+
+Edit the specific cluster file (e.g., `PrimeCluster.s.sol` or `MEGACluster.s.sol`) to set up the desired configuration. Define assets, LTVs, oracle providers, supply caps, borrow caps, IRM parameters, and other settings.
+
+The corresponding `.json` files created in the scripts directory are used as the deployed contracts addresses cache. They are used for further management of the cluster. This is how the existing contract addresses are being loaded into the management script.
+
+## Run the script:
+
+Use the `ExecuteSolidityScript.sh` script to run the management script.
+
+Use the following command:
+
+```bash
+./script/production/ExecuteSolidityScript.sh script/production/mainnet/clusters/<ClusterSpecificScript> [options]
 ```
 
-It should contain the following environment variables:
-- `FORK_RPC_URL` (remote endpoint from which the state will be fetched in case of a local anvil deployment)
-- `DEPLOYMENT_RPC_URL` (destination RPC endpoint; use http://127.0.0.1:8545 in case of a local anvil deployment)
-- `DEPLOYER_KEY` (the private key which will be used for all the contracts deployments; this will also become an initial owner/admin/governor for all the  deployed contracts and later transferred)
-- `VERIFIER_URL` (url of the contract verifier, i.e. https://api.polygonscan.com/api)
-- `VERIFIER_API_KEY` (verifier api key)
+Replace `<ClusterSpecificScript>` with the cluster specific file name, i.e. `PrimeCluster.s.sol`.
 
-## Anvil fork
+Options:
 
-If you want to deploy on a local anvil fork, load the variables in the `.env` file and spin up the fork:
+`--dry-run`: Simulates the deployment without actually executing transactions.
 
-```sh
-source .env && anvil --fork-url "$FORK_RPC_URL"
+You can pass `--batch-via-safe` option to the deployment script in order to create the a batch transaction in the Safe UI. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file or provide a different option to derive the Safe signer key instead, i.e. `--ledger` or `--account ACC_NAME`. The address associated must either be a signer or a delegate of the Safe in order to be able to send the transactions. You can also provide the `--safe-address` option to the command instead of `SAFE_ADDRESS`.
+
+`--use-safe-api`: Uses the Safe API to create the transactions in the Safe UI. This option is only valid if the `--batch-via-safe` option is also used. If `--batch-via-safe` is used, but `--use-safe-api` is not used, the script will only create payload dump files that can be used to create the transactions in the Safe UI.
+
+`--verify`: Verifies the deployed contracts (if any) in the blockchain explorer.
+
+## Important Notes
+
+Always try to use the `--dry-run` option first to simulate the transactions and check for any potential issues.
+
+# Emergency Cluster Pause
+
+This section assumes that the cluster is governed by the `GovernorAccessControlEmergency` contract with a Safe multisig having an appropriate emergency role granted to it. It also assumes that at least the following environment variables are defined in the `.env` file or their corresponding command line arguments will be provided:
+
+- `DEPLOYMENT_RPC_URL` or `--rpc-url RPC_URL`
+- `DEPLOYER_KEY` or `--account ACCOUNT` or `--ledger` (this must be a signer or a delegate of the Safe)
+- `SAFE_ADDRESS` or `--safe-address ADDRESS`
+- `SAFE_NONCE` or `--safe-nonce NONCE` (this is only necessary if Safe Transaction Service is not available on the network and otherwise may be omitted)
+
+> **IMPORTANT**: Environment variables defined in the `.env` file take precedence over the command line arguments!
+
+## Steps
+
+1. Ensure that you have up to date foundry version installed:
+
+```bash
+foundryup
 ```
 
-After that, deploy the contracts in a different terminal window.
+If you don't have foundry installed at all, before running `foundryup`, you need to first run:
 
-## Deployment
-
-### Results
-
-The results of the deployment will be saved in `script/deployments/[your_deployment_name]` directory.
-
-### 1. Deploy the core contracts:
-
-```sh
-./script/production/Core.sh <solidity_script_dir_path>
+```bash
+curl -L https://foundry.paradigm.xyz | bash
 ```
 
-i.e.
-```sh
-./script/production/Core.sh script/production/arbitrum
+2. Clone the repository if you don't have it already:
+
+```bash
+git clone https://github.com/euler-xyz/euler-periphery.git && cd euler-periphery
 ```
 
-The core contracts addresses which are the result of this deployment will be stored in `script/deployments/[your_deployment_name]/output/CoreInfo.json`. They will be required for the other scripts to run but also the Front End team needs those.
+3. Ensure that you have up to date dependencies installed:
 
-### 2. Copy the oracle adapters data in the CSV format into any directory you like
-### 3. Deploy the oracle adapters adding them to the Adapters Registry:
-
-```sh
-./script/production/OracleAdapters.sh <csv_file_path>
+```bash
+forge install
 ```
 
-i.e.
-```sh
-./script/production/OracleAdapters.sh "script/production/arbitrum/oracleAdapters/test/Euler V2 Oracles (Arbitrum) - Chainlink.csv"
+4. Do necessary changes in the dedicated cluster script file (e.g. `./script/production/mainnet/clusters/PrimeCluster.s.sol`).
+
+- to reduce the LTVs, search for `cluster.ltvs` and `cluster.externalLTVs` and edit the matrix values accordingly
+
+- to pause vault operations, search for `cluster.hookedOps` and edit it in the following way:
+  - to pause all operations for all the vaults in the cluster, use the following value: `32767`
+  - to pause all operations except for the liquidations for all the vaults in the cluster, use the following value: `30719`
+  - to pause vaults selectively, instead of defining `cluster.hookedOps` value, define `cluster.hookedOpsOverride[SYMBOL]` for each vault you want to pause and use values as described above
+
+- to reduce the supply or borrow caps, search for `cluster.supplyCaps` and `cluster.borrowCaps` and edit the values accordingly
+
+5. Compile the contracts:
+
+```bash
+forge clean && forge compile
 ```
 
-The above command must be run for each oracle provider/oracle type. You will be prompted for the Adapter Registry address which you should have obtained in step 1.
+6. Run the script:
 
-**Important**
-Note that the Cross adapter relies on the previous adapters deployment hence the Cross CSV must contain appropriate adapters addresses when the script is run. These can be taken from `script/deployments/[your_deployment_name]/output/adaptersList.csv`
-
-### 4. Deploy the initial set of vaults:
-
-```sh
-./script/production/InitialVaults.sh <solidity_script_dir_path> <core_info_json_file_path>
+If environment variables are defined in the `.env` file:
+```bash
+./script/production/ExecuteSolidityScript.sh PATH_TO_CLUSTER_SPECIFIC_SCRIPT --batch-via-safe
 ```
 
-i.e.
-```sh
-./script/production/InitialVaults.sh script/production/arbitrum script/deployments/default/output/CoreInfo.json
+If environment variables are **not** defined in the `.env` file:
+```bash
+./script/production/ExecuteSolidityScript.sh PATH_TO_CLUSTER_SPECIFIC_SCRIPT --batch-via-safe --rpc-url RPC_URL --account ACCOUNT --safe-address SAFE_ADDRESS
 ```
 
-**Important**
-Note that the vaults deployment relies on the deployed oracle adapter addresses. Prepare the `InitialVaults.s.sol` accordingly before running the script.
+Example command for the `PrimeCluster.s.sol` script:
 
-### 5. Transfer the ownership of the core contracts:
-
-```sh
-./script/production/OwnershipTransfer.sh <solidity_script_dir_path> <core_info_json_file_path>
+```bash
+./script/production/ExecuteSolidityScript.sh script/production/mainnet/clusters/PrimeCluster.s.sol --batch-via-safe
 ```
 
-i.e.
-```sh
-./script/production/OwnershipTransfer.sh script/production/arbitrum script/deployments/default/output/CoreInfo.json
-```
+7. Create the transaction in the Safe UI. 
+
+If Safe Transaction Service is available you can either add `--use-safe-api` option to the previous command (then the transaction will be automatically created in the Safe UI) or run the `curl` command as displayed in the console output after running the script. The `<payload file>` is created by the script and can be found under the following path: `script/deployments/[YOUR_SPECIFIED_DIRECTORY]/[CHAIN_ID]/output/SafeTransaction_*.json`.
+
+If Safe Transaction Service is not available, use the Safe UI Transaction Builder tool to create the transaction. Select `Custom data` option. Look up the `SafeTransaction_*.json` file. Copy the `to` address from the file and paste it into the `Enter Address` field. The `To Address` field should get automatically filled in with the same address. Put `0` into the `ETH value` field. Copy the `data` field from the file and paste it into the `Data (Hex encoded)` field. Click `Add transaction` and proceed with the transaction creation in the Safe UI.
+
+8. Coordinate signing process with the Safe multisig signers.
+
+9. Execute the transaction in the Safe UI.
