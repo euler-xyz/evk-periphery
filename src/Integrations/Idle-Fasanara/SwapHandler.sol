@@ -40,12 +40,20 @@ contract SwapHandler {
     }
 
     function swapExactTokensForAATranche(uint256 amountIn) external {
+        if (amountIn == type(uint256).max) {
+            amountIn = IERC20(token).balanceOf(msg.sender);
+        }
+
         IERC20(token).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(token).forceApprove(idleCDO, type(uint256).max);
         IERC20(AATranche).transfer(vaultAATranche, IIdleCDO(idleCDO).depositAA(amountIn));
     }
 
     function swapExactAATrancheForTokens(uint256 amountIn) external {
+        if (amountIn == type(uint256).max) {
+            amountIn = IERC20(AATranche).balanceOf(msg.sender);
+        }
+
         IERC20(AATranche).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(token).transfer(vaultToken, IIdleCDO(idleCDO).withdrawAA(amountIn));
     }
