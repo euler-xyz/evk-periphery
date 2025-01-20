@@ -75,8 +75,8 @@ contract CoreAndPeriphery is BatchBuilder {
         address multisigDAO;
         address multisigLabs;
         address multisigSecurityCouncil;
-        address securityPartnerA;
-        address securityPartnerB;
+        address multisigSecurityPartnerA;
+        address multisigSecurityPartnerB;
         address permit2;
         address uniswapV2Router;
         address uniswapV3Router;
@@ -108,8 +108,8 @@ contract CoreAndPeriphery is BatchBuilder {
             multisigDAO: vm.parseJsonAddress(json, ".multisigDAO"),
             multisigLabs: vm.parseJsonAddress(json, ".multisigLabs"),
             multisigSecurityCouncil: vm.parseJsonAddress(json, ".multisigSecurityCouncil"),
-            securityPartnerA: vm.parseJsonAddress(json, ".securityPartnerA"),
-            securityPartnerB: vm.parseJsonAddress(json, ".securityPartnerB"),
+            multisigSecurityPartnerA: vm.parseJsonAddress(json, ".multisigSecurityPartnerA"),
+            multisigSecurityPartnerB: vm.parseJsonAddress(json, ".multisigSecurityPartnerB"),
             permit2: vm.parseJsonAddress(json, ".permit2"),
             uniswapV2Router: vm.parseJsonAddress(json, ".uniswapV2Router"),
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
@@ -142,8 +142,8 @@ contract CoreAndPeriphery is BatchBuilder {
             multisigAddresses.DAO = input.multisigDAO;
             multisigAddresses.labs = input.multisigLabs;
             multisigAddresses.securityCouncil = input.multisigSecurityCouncil;
-            multisigAddresses.securityPartnerA = input.securityPartnerA;
-            multisigAddresses.securityPartnerB = input.securityPartnerB;
+            multisigAddresses.securityPartnerA = input.multisigSecurityPartnerA;
+            multisigAddresses.securityPartnerB = input.multisigSecurityPartnerB;
         } else {
             console.log("- At least one of the multisig addresses already assigned. Skipping...");
         }
