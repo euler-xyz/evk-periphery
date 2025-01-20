@@ -14,6 +14,7 @@ import {
     MarketParamsLib
 } from "morpho-blue-irm/adaptive-curve-irm/AdaptiveCurveIrm.sol";
 
+/// @dev This test is disabled because the IRMs cannot be equivalent due to the order of application of the interest.
 contract IRMAdaptiveCurveDiffTest is Test {
     using MarketParamsLib for MarketParams;
 
