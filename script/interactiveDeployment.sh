@@ -1186,8 +1186,8 @@ while true; do
                 read -p "Enter the DAO multisig address: " multisig_dao
                 read -p "Enter the Labs multisig address: " multisig_labs
                 read -p "Enter the Security Council multisig address: " multisig_security_council
-                read -p "Enter the Security Partner A address: " security_partner_a
-                read -p "Enter the Security Partner B address: " security_partner_b
+                read -p "Enter the Security Partner A address: " multisig_security_partner_A
+                read -p "Enter the Security Partner B address: " multisig_security_partner_B
             fi
 
             if [ -z "$evc" ] || [ "$evc" == "$addressZero" ]; then
