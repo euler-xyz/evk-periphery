@@ -1172,8 +1172,8 @@ while true; do
                 multisig_dao=$(jq -r '.DAO' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
                 multisig_labs=$(jq -r '.labs' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
                 multisig_security_council=$(jq -r '.securityCouncil' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
-                securityPartnerA=$(jq -r '.securityPartnerA' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
-                securityPartnerB=$(jq -r '.securityPartnerB' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                multisig_security_partner_A=$(jq -r '.securityPartnerA' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                multisig_security_partner_B=$(jq -r '.securityPartnerB' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
                 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 nttManager=$(jq -r '.manager' "$addresses_dir_path/NTTAddresses.json" 2>/dev/null)
@@ -1211,8 +1211,8 @@ while true; do
             multisig_dao=${multisig_dao:-$addressZero}
             multisig_labs=${multisig_labs:-$addressZero}
             multisig_security_council=${multisig_security_council:-$addressZero}
-            securityPartnerA=${securityPartnerA:-$addressZero}
-            securityPartnerB=${securityPartnerB:-$addressZero}
+            multisig_security_partner_A=${multisig_security_partner_A:-$addressZero}
+            multisig_security_partner_B=${multisig_security_partner_B:-$addressZero}
             permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
             uniswap_router_v2=${uniswap_router_v2:-$addressZero}
             uniswap_router_v3=${uniswap_router_v3:-$addressZero}
@@ -1249,8 +1249,8 @@ while true; do
                 --arg multisigDAO "$multisig_dao" \
                 --arg multisigLabs "$multisig_labs" \
                 --arg multisigSecurityCouncil "$multisig_security_council" \
-                --arg securityPartnerA "$security_partner_a" \
-                --arg securityPartnerB "$security_partner_b" \
+                --arg multisigSecurityPartnerA "$multisig_security_partner_A" \
+                --arg multisigSecurityPartnerB "$multisig_security_partner_B" \
                 --arg permit2 "$permit2" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
@@ -1262,8 +1262,8 @@ while true; do
                     multisigDAO: $multisigDAO,
                     multisigLabs: $multisigLabs,
                     multisigSecurityCouncil: $multisigSecurityCouncil,
-                    securityPartnerA: $securityPartnerA,
-                    securityPartnerB: $securityPartnerB,
+                    multisigSecurityPartnerA: $multisigSecurityPartnerA,
+                    multisigSecurityPartnerB: $multisigSecurityPartnerB,
                     permit2: $permit2,
                     uniswapV2Router: $uniswapRouterV2,
                     uniswapV3Router: $uniswapRouterV3,

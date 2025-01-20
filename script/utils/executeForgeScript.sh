@@ -51,7 +51,7 @@ if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce 
     exit 1
 fi
 
-if [[ "$verify" == "--verify" ]]; then
+if [[ "$verify" == "--verify" && "$broadcast" == "--broadcast" ]]; then
     broadcastFileName=$(basename "${scriptPath%%:*}")
 
     script/utils/verifyContracts.sh "broadcast/$broadcastFileName/$chainId/run-latest.json"
