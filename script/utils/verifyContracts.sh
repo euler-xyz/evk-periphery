@@ -54,7 +54,6 @@ function verify_broadcast {
 
     local createVerified=false
     local eulerEarnIndex=0
-    local nttIndex=0
     for tx in $transactions; do
         local transactionType=$(echo $tx | jq -r '.transactionType')
         local contractAddress=$(echo $tx | jq -r '.contractAddress')
@@ -205,50 +204,6 @@ function verify_broadcast {
                     fi
 
                     ((eulerEarnIndex++))
-                done
-            fi
-            
-            if [ "$createVerified" = false ] && [ -d "out-ntt" ]; then
-                # try to verify as NTT contracts
-                local src="lib/native-token-transfers/evm/src"
-                local library="$src/libraries/TransceiverStructs.sol:TransceiverStructs"
-                local transceiverStructs=$(cat "out-ntt/NttManager.sol/NttManager.json" | jq -r '.metadata.settings.libraries."'"$library"'"')
-                local verificationOptions="--num-of-optimizations 200 --compiler-version 0.8.19 --via-ir --libraries $library:$transceiverStructs"
-                local compilerOptions="--optimize --optimizer-runs 200 --use 0.8.19 --via-ir --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiverStructs"
-
-                if [ "$createVerified" = false ]; then
-                    forge clean && forge compile $src $compilerOptions
-                fi
-
-                while true; do
-                    case $nttIndex in
-                        0)
-                            # try to verify as NttManager
-                            contractName=NttManager
-                            constructorBytesSize=160
-                            ;;
-                        1)
-                            # try to verify as WormholeTransceiver
-                            contractName=WormholeTransceiver
-                            constructorBytesSize=192
-                            ;;
-                        *)
-                            break
-                            ;;
-                    esac
-
-                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-
-                    verify_contract $contractAddress $contractName "$constructorArgs" $verificationOptions
-
-                    if [ $? -eq 0 ]; then
-                        verify_contract $transceiverStructs TransceiverStructs "--constructor-args 0x" $verificationOptions
-                        createVerified=true
-                        ((nttIndex++))
-                        break
-                    fi
-
-                    ((nttIndex++))
                 done
             fi
         fi

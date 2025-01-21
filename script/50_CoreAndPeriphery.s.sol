@@ -32,7 +32,7 @@ import {
     GovernorAccessControlEmergencyDeployer
 } from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
-import {NttManagerDeployer, WormholeTransceiverDeployer} from "./14_NTT.s.sol";
+import {OFTAdapterUpgradeableDeployer, MintBurnOFTAdapterDeployer} from "./14_OFT.s.sol";
 import {EulerEarnImplementation, IntegrationsParams} from "./20_EulerEarnImplementation.s.sol";
 import {EulerEarnFactory} from "./21_EulerEarnFactory.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
@@ -43,8 +43,6 @@ import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
-import {NttManager} from "native-token-transfers/NttManager/NttManager.sol";
-import {WormholeTransceiver} from "native-token-transfers/Transceiver/WormholeTransceiver/WormholeTransceiver.sol";
 
 contract CoreAndPeriphery is BatchBuilder {
     mapping(uint256 chainId => bool isHarvestCoolDownCheckOn) internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON;
@@ -80,9 +78,7 @@ contract CoreAndPeriphery is BatchBuilder {
         address permit2;
         address uniswapV2Router;
         address uniswapV3Router;
-        address wormholeCoreBridge;
-        address wormholeRelayer;
-        address transceiverStructs;
+        address lzEndpoint;
         uint256 feeFlowInitPrice;
     }
 
@@ -100,7 +96,7 @@ contract CoreAndPeriphery is BatchBuilder {
             CoreAddresses memory,
             PeripheryAddresses memory,
             LensAddresses memory,
-            NTTAddresses memory
+            BridgeAddresses memory
         )
     {
         string memory json = getScriptFile("50_CoreAndPeriphery_input.json");
@@ -113,25 +109,9 @@ contract CoreAndPeriphery is BatchBuilder {
             permit2: vm.parseJsonAddress(json, ".permit2"),
             uniswapV2Router: vm.parseJsonAddress(json, ".uniswapV2Router"),
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
-            wormholeCoreBridge: vm.parseJsonAddress(json, ".wormholeCoreBridge"),
-            wormholeRelayer: vm.parseJsonAddress(json, ".wormholeRelayer"),
-            transceiverStructs: vm.parseJsonAddress(json, ".transceiverStructs"),
+            lzEndpoint: vm.parseJsonAddress(json, ".lzEndpoint"),
             feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice")
         });
-
-        if (
-            !isBroadcast() && nttAddresses.manager == address(0) && nttAddresses.transceiver == address(0)
-                && input.wormholeCoreBridge != address(0) && input.wormholeRelayer != address(0)
-        ) {
-            startBroadcast();
-            bytes memory bytecode = vm.getCode("out-ntt/TransceiverStructs.sol/TransceiverStructs.json");
-            address lib;
-            assembly {
-                lib := create(0, add(bytecode, 0x20), mload(bytecode))
-            }
-            stopBroadcast();
-            require(input.transceiverStructs == lib, "TransceiverStructs address mismatch");
-        }
 
         if (
             multisigAddresses.DAO == address(0) && multisigAddresses.labs == address(0)
@@ -321,32 +301,17 @@ contract CoreAndPeriphery is BatchBuilder {
             console.log("- rEUL already deployed. Skipping...");
         }
 
-        if (nttAddresses.manager == address(0) && nttAddresses.transceiver == address(0)) {
-            if (input.wormholeCoreBridge != address(0) && input.wormholeRelayer != address(0)) {
-                console.log("+ Deploying NttManager and WormholeTransceiver...");
-                uint16 wormholeChainId = NttManager(input.wormholeCoreBridge).chainId();
-                {
-                    NttManagerDeployer deployer = new NttManagerDeployer();
-                    nttAddresses.manager = deployer.deploy(
-                        tokenAddresses.EUL,
-                        block.chainid == HUB_CHAIN_ID ? true : false,
-                        wormholeChainId,
-                        NTT_RATE_LIMIT_DURATION,
-                        NTT_SKIP_RATE_LIMITING
-                    );
+        if (bridgeAddresses.oftAdapter == address(0)) {
+            if (input.lzEndpoint != address(0)) {
+                console.log("+ Deploying OFT Adapter...");
+                if (block.chainid == HUB_CHAIN_ID) {
+                    OFTAdapterUpgradeableDeployer deployer = new OFTAdapterUpgradeableDeployer();
+                    bridgeAddresses.oftAdapter = deployer.deploy(tokenAddresses.EUL, input.lzEndpoint);
+                } else {
+                    MintBurnOFTAdapterDeployer deployer = new MintBurnOFTAdapterDeployer();
+                    bridgeAddresses.oftAdapter = deployer.deploy(tokenAddresses.EUL, input.lzEndpoint);
                 }
-                {
-                    WormholeTransceiverDeployer deployer = new WormholeTransceiverDeployer();
-                    nttAddresses.transceiver = deployer.deploy(
-                        nttAddresses.manager,
-                        input.wormholeCoreBridge,
-                        input.wormholeRelayer,
-                        WORMHOLE_SPECIAL_RELAYER_ADDR,
-                        WORMHOLE_CONSISTENCY_LEVEL,
-                        WORMHOLE_GAS_LIMIT
-                    );
-                }
-
+                /*
                 startBroadcast();
                 console.log("    Setting NttManager (%s) transceiver", block.chainid);
                 NttManager(nttAddresses.manager).setTransceiver(nttAddresses.transceiver);
@@ -358,7 +323,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 NttManager(nttAddresses.manager).setThreshold(NTT_THRESHOLD);
 
                 console.log(
-                    "    Transferring NttManager (%s) pauser capability to %s", block.chainid, multisigAddresses.labs
+                "    Transferring NttManager (%s) pauser capability to %s", block.chainid, multisigAddresses.labs
                 );
                 NttManager(nttAddresses.manager).transferPauserCapability(multisigAddresses.labs);
 
@@ -408,53 +373,53 @@ contract CoreAndPeriphery is BatchBuilder {
                         block.chainid,
                         HUB_CHAIN_ID
                     );
-                    WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(wormholeChainIdHub, true);
+                WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(wormholeChainIdHub, true);
 
                     console.log(
                         "    Setting WormholeTransceiver (%s) isWormholeRelayingEnabled for chain %s",
                         block.chainid,
                         HUB_CHAIN_ID
                     );
-                    WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(wormholeChainIdHub, true);
+                WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(wormholeChainIdHub, true);
 
-                    bytes32 defaultAdminRole = ERC20BurnableMintable(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
-                    if (ERC20BurnableMintable(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
-                        console.log("    Granting EUL minter role to the NttManager address %s", nttAddresses.manager);
+                bytes32 defaultAdminRole = ERC20BurnableMintable(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
+                if (ERC20BurnableMintable(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
+                console.log("    Granting EUL minter role to the NttManager address %s", nttAddresses.manager);
                         bytes32 minterRole = ERC20BurnableMintable(tokenAddresses.EUL).MINTER_ROLE();
                         AccessControl(tokenAddresses.EUL).grantRole(minterRole, nttAddresses.manager);
                     } else {
                         console.log(
-                            "    ! The deployer no longer has the EUL default admin role to grant the minter role to the NttManager. This must be done manually. Skipping..."
+                "    ! The deployer no longer has the EUL default admin role to grant the minter role to the NttManager.
+                This must be done manually. Skipping..."
                         );
                     }
                     stopBroadcast();
-                }
+                }*/
             } else {
-                console.log(
-                    "! WormholeCoreBridge or WormholeRelayer not set for NttManager and WormholeTransceiver deployment. Skipping..."
-                );
+                console.log("! LayerZero endpoint not set for OFT Adapter deployment. Skipping...");
             }
         } else {
-            console.log("- NttManager or WormholeTransceiver already deployed. Skipping...");
+            console.log("- OFT Adapter already deployed. Skipping...");
         }
-
+        /*
         if (
-            block.chainid == HUB_CHAIN_ID && nttAddresses.manager != address(0)
-                && nttAddresses.transceiver != address(0)
+            block.chainid == HUB_CHAIN_ID && bridgeAddresses.oftAdapter != address(0)
         ) {
-            console.log("+ Attempting to configure NttManager and WormholeTransceiver (%s)...", block.chainid);
+            console.log("+ Attempting to configure OFT Adapter (%s)...", block.chainid);
             bool isManagerOwner = NttManager(nttAddresses.manager).owner() == getDeployer();
             bool isTransceiverOwner = NttManager(nttAddresses.transceiver).owner() == getDeployer();
 
             if (!isManagerOwner) {
                 console.log(
-                    "    ! The caller of this script is not the NttManager owner. Below NttManager configuration must be done manually."
+        "    ! The caller of this script is not the NttManager owner. Below NttManager configuration must be done
+        manually."
                 );
             }
 
             if (!isTransceiverOwner) {
                 console.log(
-                    "    ! The caller of this script is not the WormholeTransceiver owner. Below WormholeTransceiver configuration must be done manually."
+        "    ! The caller of this script is not the WormholeTransceiver owner. Below WormholeTransceiver configuration
+        must be done manually."
                 );
             }
 
@@ -473,7 +438,7 @@ contract CoreAndPeriphery is BatchBuilder {
 
                 if (nttAddressesOther.manager == address(0) || nttAddressesOther.transceiver == address(0)) {
                     console.log(
-                        "    ! NttManager or WormholeTransceiver not deployed for chain %s. Skipping...", chainIdOther
+        "    ! NttManager or WormholeTransceiver not deployed for chain %s. Skipping...", chainIdOther
                     );
                     continue;
                 }
@@ -540,11 +505,11 @@ contract CoreAndPeriphery is BatchBuilder {
                     );
                     configurationNeeded = true;
                     if (isTransceiverOwner) {
-                        WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(wormholeChainIdOther, true);
+        WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(wormholeChainIdOther, true);
                     }
                 }
 
-                if (!WormholeTransceiver(nttAddresses.transceiver).isWormholeRelayingEnabled(wormholeChainIdOther)) {
+        if (!WormholeTransceiver(nttAddresses.transceiver).isWormholeRelayingEnabled(wormholeChainIdOther)) {
                     console.log(
                         "        Setting WormholeTransceiver (%s) isWormholeRelayingEnabled for chain %s",
                         block.chainid,
@@ -566,8 +531,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 }
                 stopBroadcast();
             }
-        }
-
+        }*/
         if (
             peripheryAddresses.oracleRouterFactory == address(0)
                 && peripheryAddresses.oracleAdapterRegistry == address(0)
@@ -594,9 +558,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 peripheryAddresses.feeFlowController = deployer.deploy(
                     coreAddresses.evc,
                     input.feeFlowInitPrice,
-                    nttAddresses.manager != address(0) && nttAddresses.transceiver != address(0)
-                        ? tokenAddresses.EUL
-                        : getWETHAddress(),
+                    bridgeAddresses.oftAdapter != address(0) ? tokenAddresses.EUL : getWETHAddress(),
                     multisigAddresses.DAO,
                     FEE_FLOW_EPOCH_PERIOD,
                     FEE_FLOW_PRICE_MULTIPLIER,
@@ -761,7 +723,7 @@ contract CoreAndPeriphery is BatchBuilder {
         vm.writeJson(serializeGovernorAddresses(governorAddresses), getScriptFilePath("GovernorAddresses_output.json"));
         vm.writeJson(serializeTokenAddresses(tokenAddresses), getScriptFilePath("TokenAddresses_output.json"));
         vm.writeJson(serializeLensAddresses(lensAddresses), getScriptFilePath("LensAddresses_output.json"));
-        vm.writeJson(serializeNTTAddresses(nttAddresses), getScriptFilePath("NTTAddresses_output.json"));
+        vm.writeJson(serializeBridgeAddresses(bridgeAddresses), getScriptFilePath("BridgeAddresses_output.json"));
 
         if (isBroadcast() && !isLocalForkDeployment()) {
             vm.createDir(getAddressesFilePath("", block.chainid), true);
@@ -787,9 +749,11 @@ contract CoreAndPeriphery is BatchBuilder {
             vm.writeJson(
                 serializeLensAddresses(lensAddresses), getAddressesFilePath("LensAddresses.json", block.chainid)
             );
-            vm.writeJson(serializeNTTAddresses(nttAddresses), getAddressesFilePath("NTTAddresses.json", block.chainid));
+            vm.writeJson(
+                serializeBridgeAddresses(bridgeAddresses), getAddressesFilePath("BridgeAddresses.json", block.chainid)
+            );
         }
 
-        return (multisigAddresses, coreAddresses, peripheryAddresses, lensAddresses, nttAddresses);
+        return (multisigAddresses, coreAddresses, peripheryAddresses, lensAddresses, bridgeAddresses);
     }
 }

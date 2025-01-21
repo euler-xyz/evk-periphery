@@ -250,29 +250,17 @@ abstract contract MultisigAddressesLib is ScriptExtended {
     }
 }
 
-abstract contract NTTAddressesLib is ScriptExtended {
-    struct NTTAddresses {
-        address manager;
-        address transceiver;
+abstract contract BridgeAddressesLib is ScriptExtended {
+    struct BridgeAddresses {
+        address oftAdapter;
     }
 
-    function serializeNTTAddresses(NTTAddresses memory Addresses) internal returns (string memory result) {
-        result = vm.serializeAddress("nttAddresses", "manager", Addresses.manager);
-        result = vm.serializeAddress("nttAddresses", "transceiver", Addresses.transceiver);
+    function serializeBridgeAddresses(BridgeAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("bridgeAddresses", "oftAdapter", Addresses.oftAdapter);
     }
 
-    function deserializeNTTAddresses(string memory json) internal pure returns (NTTAddresses memory) {
-        return NTTAddresses({
-            manager: getAddressFromJson(json, ".manager"),
-            transceiver: getAddressFromJson(json, ".transceiver")
-        });
-    }
-
-    function verifyNTTAddresses(NTTAddresses memory Addresses) internal view {
-        require(Addresses.manager != address(0) && Addresses.manager.code.length != 0, "NTT manager is required");
-        require(
-            Addresses.transceiver != address(0) && Addresses.transceiver.code.length != 0, "NTT transceiver is required"
-        );
+    function deserializeBridgeAddresses(string memory json) internal pure returns (BridgeAddresses memory) {
+        return BridgeAddresses({oftAdapter: getAddressFromJson(json, ".oftAdapter")});
     }
 }
 
@@ -281,7 +269,7 @@ abstract contract ScriptUtils is
     CoreAddressesLib,
     PeripheryAddressesLib,
     LensAddressesLib,
-    NTTAddressesLib,
+    BridgeAddressesLib,
     TokenAddressesLib,
     GovernorAddressesLib
 {
@@ -289,7 +277,7 @@ abstract contract ScriptUtils is
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
-    NTTAddresses internal nttAddresses;
+    BridgeAddresses internal bridgeAddresses;
     TokenAddresses internal tokenAddresses;
     GovernorAddresses internal governorAddresses;
 
@@ -298,7 +286,7 @@ abstract contract ScriptUtils is
         coreAddresses = deserializeCoreAddresses(getAddressesJson("CoreAddresses.json"));
         peripheryAddresses = deserializePeripheryAddresses(getAddressesJson("PeripheryAddresses.json"));
         lensAddresses = deserializeLensAddresses(getAddressesJson("LensAddresses.json"));
-        nttAddresses = deserializeNTTAddresses(getAddressesJson("NTTAddresses.json"));
+        bridgeAddresses = deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json"));
         tokenAddresses = deserializeTokenAddresses(getAddressesJson("TokenAddresses.json"));
         governorAddresses = deserializeGovernorAddresses(getAddressesJson("GovernorAddresses.json"));
     }

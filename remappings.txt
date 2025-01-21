@@ -1,5 +1,4 @@
 lib/euler-price-oracle:@openzeppelin/contracts/=lib/euler-price-oracle/lib/openzeppelin-contracts/contracts/
-lib/native-token-transfers/evm:openzeppelin-contracts/contracts=lib/native-token-transfers/evm/lib/openzeppelin-contracts/contracts/
 lib/euler-earn:@openzeppelin=lib/euler-earn/lib/openzeppelin-contracts/
 lib/euler-earn:@openzeppelin-upgradeable=lib/euler-earn/lib/openzeppelin-contracts-upgradeable/contracts/
 lib/euler-earn:ethereum-vault-connector=lib/euler-earn/lib/ethereum-vault-connector/src/
@@ -22,6 +21,5 @@ fee-flow/=lib/fee-flow/src/
 reward-streams/=lib/reward-streams/src/
 @openzeppelin/=lib/openzeppelin-contracts/contracts/
 euler-earn/=lib/euler-earn/src/
-native-token-transfers/=lib/native-token-transfers/evm/src/
 layerzero/oft-evm/=lib/layerzero-devtools/packages/oft-evm/contracts/
 layerzero/oft-evm-upgradeable/=lib/layerzero-devtools/packages/oft-evm-upgradeable/contracts/

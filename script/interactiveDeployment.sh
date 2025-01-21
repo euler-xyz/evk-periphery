@@ -38,7 +38,6 @@ if ! script/utils/checkEnvironment.sh "$@"; then
 fi
 
 eulerEarnCompilerOptions="--optimize --optimizer-runs 800 --use 0.8.27 --out out-euler-earn"
-nttCompilerOptions="--optimize --optimizer-runs 200 --via-ir --use 0.8.19 --out out-ntt"
 
 while true; do
     echo ""
@@ -1176,7 +1175,7 @@ while true; do
                 multisig_security_partner_B=$(jq -r '.securityPartnerB' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
                 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
-                nttManager=$(jq -r '.manager' "$addresses_dir_path/NTTAddresses.json" 2>/dev/null)
+                oftAdapter=$(jq -r '.oftAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 eulerEarnFactory=${eulerEarnFactory:-$addressZero}
@@ -1199,9 +1198,8 @@ while true; do
                 read -p "Enter the Uniswap V3 Router address (look up: https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
             fi
             
-            if [ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]; then
-                read -p "Enter the Wormhole Core Bridge address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/core.ts or press ENTER to skip): " wormhole_core_bridge
-                read -p "Enter the Wormhole Relayer address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/relayer.ts or press ENTER to skip): " wormhole_relayer
+            if [ -z "$oftAdapter" ] || [ "$oftAdapter" == "$addressZero" ]; then
+                read -p "Enter the LayerZero endpoint address (look up: xxx or press ENTER to skip): " lz_endpoint
             fi
             
             if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ]; then
@@ -1216,34 +1214,12 @@ while true; do
             permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
             uniswap_router_v2=${uniswap_router_v2:-$addressZero}
             uniswap_router_v3=${uniswap_router_v3:-$addressZero}
-            wormhole_core_bridge=${wormhole_core_bridge:-$addressZero}
-            wormhole_relayer=${wormhole_relayer:-$addressZero}
+            lz_endpoint=${lz_endpoint:-$addressZero}
             init_price=${init_price:-1000000000000000000}
 
             if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
             fi
-            
-            if ([ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]) && ([ "$wormhole_core_bridge" != "$addressZero" ]); then
-                echo "Deploying TransceiverStructs library..."
-                result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $broadcast $nttCompilerOptions --force $@)
-
-                if [ "$broadcast" = "--broadcast" ]; then
-                    transceiver_structs=$(jq -r '.deployedTo' <<< "$result")
-                else
-                    deployerAddress=$(cast wallet address $@)
-                    transceiver_structs=$(cast compute-address $deployerAddress --rpc-url $DEPLOYMENT_RPC_URL | grep -oE '0x[a-fA-F0-9]{40}')
-                fi
-
-                if [ -z "$transceiver_structs" ] && [ "$broadcast" = "--broadcast" ]; then
-                    echo "Failed to deploy TransceiverStructs library. Exiting."
-                    exit 1
-                fi
-
-                forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiver_structs $nttCompilerOptions
-            fi
-
-            transceiver_structs=${transceiver_structs:-$addressZero}
 
             jq -n \
                 --arg multisigDAO "$multisig_dao" \
@@ -1254,9 +1230,7 @@ while true; do
                 --arg permit2 "$permit2" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
-                --arg wormholeCoreBridge "$wormhole_core_bridge" \
-                --arg wormholeRelayer "$wormhole_relayer" \
-                --arg transceiverStructs "$transceiver_structs" \
+                --arg lzEndpoint "$lz_endpoint" \
                 --arg initPrice "$init_price" \
                 '{
                     multisigDAO: $multisigDAO,
@@ -1267,9 +1241,7 @@ while true; do
                     permit2: $permit2,
                     uniswapV2Router: $uniswapRouterV2,
                     uniswapV3Router: $uniswapRouterV3,
-                    wormholeCoreBridge: $wormholeCoreBridge,
-                    wormholeRelayer: $wormholeRelayer,
-                    transceiverStructs: $transceiverStructs,
+                    lzEndpoint: $lzEndpoint,
                     feeFlowInitPrice: $initPrice
                 }' --indent 4 > script/${jsonName}_input.json
             ;;

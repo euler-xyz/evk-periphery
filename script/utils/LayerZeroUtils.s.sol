@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import {stdJson} from "forge-std/StdJson.sol";
 import {ScriptExtended} from "./ScriptExtended.s.sol";
-import {console} from "forge-std/console.sol";
 
 abstract contract LayerZeroUtil is ScriptExtended {
     using stdJson for string;
@@ -16,16 +15,16 @@ abstract contract LayerZeroUtil is ScriptExtended {
         inputs[2] = getMatadataAPIURL();
         bytes memory result = vm.ffi(inputs);
 
-        require(result.length != 0, "getRawMetadata: Failed to get metadata");
+        require(result.length != 0, "getRawMetadata: failed to get metadata");
 
         return string(result);
     }
 
     function getDeploymentInfo(string memory eid) public returns (address, address, address, string memory) {
-        return getDeploymentInfo(eid, getRawMetadata());
+        return getDeploymentInfo(getRawMetadata(), eid);
     }
 
-    function getDeploymentInfo(string memory eid, string memory metadata)
+    function getDeploymentInfo(string memory metadata, string memory eid)
         public
         view
         returns (address executor, address sendUln302, address receiveUln302, string memory chainKey)
@@ -64,21 +63,21 @@ abstract contract LayerZeroUtil is ScriptExtended {
 
         require(
             executor != address(0) && sendUln302 != address(0) && receiveUln302 != address(0),
-            "getDeploymentInfo: Executor, sendUln302, or receiveUln302 is not set"
+            "getDeploymentInfo: executor, sendUln302, or receiveUln302 is not set"
         );
     }
 
-    function getDVNAddresses(string[] memory dvns, string memory chainKey) public view returns (address[] memory) {
-        return getDVNAddresses(dvns, chainKey, getRawMetadata());
+    function getDVNAddresses(string[] memory dvns, string memory chainKey) public returns (address[] memory) {
+        return getDVNAddresses(getRawMetadata(), dvns, chainKey);
     }
 
-    function getDVNAddresses(string[] memory dvns, string memory chainKey, string memory metadata)
+    function getDVNAddresses(string memory metadata, string[] memory dvns, string memory chainKey)
         public
         view
         returns (address[] memory dvnAddresses)
     {
         string memory key = string.concat(".", chainKey, ".dvns");
-        require(vm.keyExists(metadata, key), "getDVNAddresses: ");
+        require(vm.keyExists(metadata, key), "getDVNAddresses: dvns not found for a given chainKey");
 
         string[] memory keys = vm.parseJsonKeys(metadata, key);
         dvnAddresses = new address[](dvns.length);
@@ -94,12 +93,12 @@ abstract contract LayerZeroUtil is ScriptExtended {
                     break;
                 }
 
-                require(j != keys.length - 1, "getDVNAddresses: ");
+                require(j != keys.length - 1, "getDVNAddresses: dvn address not found for a given canonicalName");
             }
         }
 
         for (uint256 i = 0; i < dvnAddresses.length; ++i) {
-            require(dvnAddresses[i] != address(0), "getDVNAddresses: ");
+            require(dvnAddresses[i] != address(0), "getDVNAddresses: not all dvn addresses found");
         }
     }
 
