@@ -59,8 +59,8 @@ contract EdgeFactoryTest is EVaultTestBase {
         vaultParams[1] = IEdgeFactory.VaultParams(address(assetTST2), irm, false);
 
         IEdgeFactory.AdapterParams[] memory adapterParams = new IEdgeFactory.AdapterParams[](2);
-        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), unitOfAccount, address(stubOracle));
-        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST2), unitOfAccount, address(stubOracle));
+        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), address(stubOracle));
+        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST2), address(stubOracle));
 
         address[] memory externalVaults = new address[](0);
         IEdgeFactory.RouterParams memory routerParams = IEdgeFactory.RouterParams(externalVaults, adapterParams);
@@ -88,11 +88,11 @@ contract EdgeFactoryTest is EVaultTestBase {
         vaultParams[4] = IEdgeFactory.VaultParams(address(assetTST5), address(0), true);
 
         IEdgeFactory.AdapterParams[] memory adapterParams = new IEdgeFactory.AdapterParams[](5);
-        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), unitOfAccount, address(stubOracle));
-        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST2), unitOfAccount, address(stubOracle));
-        adapterParams[2] = IEdgeFactory.AdapterParams(address(assetTST3), unitOfAccount, address(stubOracle));
-        adapterParams[3] = IEdgeFactory.AdapterParams(address(assetTST4), unitOfAccount, address(stubOracle));
-        adapterParams[4] = IEdgeFactory.AdapterParams(address(assetTST5), unitOfAccount, address(stubOracle));
+        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), address(stubOracle));
+        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST2), address(stubOracle));
+        adapterParams[2] = IEdgeFactory.AdapterParams(address(assetTST3), address(stubOracle));
+        adapterParams[3] = IEdgeFactory.AdapterParams(address(assetTST4), address(stubOracle));
+        adapterParams[4] = IEdgeFactory.AdapterParams(address(assetTST5), address(stubOracle));
 
         address[] memory externalVaults = new address[](0);
         IEdgeFactory.RouterParams memory routerParams = IEdgeFactory.RouterParams(externalVaults, adapterParams);
@@ -121,7 +121,7 @@ contract EdgeFactoryTest is EVaultTestBase {
         vaultParams[0] = IEdgeFactory.VaultParams(address(assetTST), irm, false);
 
         IEdgeFactory.AdapterParams[] memory adapterParams = new IEdgeFactory.AdapterParams[](1);
-        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), unitOfAccount, address(stubOracle));
+        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), address(stubOracle));
 
         address[] memory externalVaults = new address[](0);
         IEdgeFactory.RouterParams memory routerParams = IEdgeFactory.RouterParams(externalVaults, adapterParams);
@@ -143,8 +143,8 @@ contract EdgeFactoryTest is EVaultTestBase {
         vaultParams[1] = IEdgeFactory.VaultParams(address(assetTST2), irm, true);
 
         IEdgeFactory.AdapterParams[] memory adapterParams = new IEdgeFactory.AdapterParams[](2);
-        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), unitOfAccount, address(stubOracle));
-        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST2), unitOfAccount, address(stubOracle));
+        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), address(stubOracle));
+        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST2), address(stubOracle));
 
         address[] memory externalVaults = new address[](0);
         IEdgeFactory.RouterParams memory routerParams = IEdgeFactory.RouterParams(externalVaults, adapterParams);
@@ -168,8 +168,8 @@ contract EdgeFactoryTest is EVaultTestBase {
         vaultParams[1] = IEdgeFactory.VaultParams(address(assetTST3), irm, true);
 
         IEdgeFactory.AdapterParams[] memory adapterParams = new IEdgeFactory.AdapterParams[](2);
-        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), unitOfAccount, address(stubOracle));
-        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST3), unitOfAccount, address(stubOracle));
+        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), address(stubOracle));
+        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST3), address(stubOracle));
 
         address[] memory externalVaults = new address[](0);
         IEdgeFactory.RouterParams memory routerParams = IEdgeFactory.RouterParams(externalVaults, adapterParams);
@@ -193,8 +193,8 @@ contract EdgeFactoryTest is EVaultTestBase {
         vaultParams[1] = IEdgeFactory.VaultParams(address(assetTST2), irm, true);
 
         IEdgeFactory.AdapterParams[] memory adapterParams = new IEdgeFactory.AdapterParams[](2);
-        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), unitOfAccount, address(stubOracle));
-        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST2), unitOfAccount, address(stubOracle));
+        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), address(stubOracle));
+        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST2), address(stubOracle));
 
         address[] memory externalVaults = new address[](0);
         IEdgeFactory.RouterParams memory routerParams = IEdgeFactory.RouterParams(externalVaults, adapterParams);
@@ -218,8 +218,8 @@ contract EdgeFactoryTest is EVaultTestBase {
         vaultParams[1] = IEdgeFactory.VaultParams(address(assetTST2), irm, true);
 
         IEdgeFactory.AdapterParams[] memory adapterParams = new IEdgeFactory.AdapterParams[](2);
-        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), unitOfAccount, address(stubOracle));
-        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST2), unitOfAccount, address(stubOracle));
+        adapterParams[0] = IEdgeFactory.AdapterParams(address(assetTST), address(stubOracle));
+        adapterParams[1] = IEdgeFactory.AdapterParams(address(assetTST2), address(stubOracle));
 
         address[] memory externalVaults = new address[](2);
         externalVaults[0] = address(assetTST);
@@ -298,7 +298,7 @@ contract EdgeFactoryTest is EVaultTestBase {
 
         for (uint256 i; i < adapterParams.length; ++i) {
             assertEq(
-                EulerRouter(router).getConfiguredOracle(adapterParams[i].base, adapterParams[i].quote),
+                EulerRouter(router).getConfiguredOracle(adapterParams[i].base, deployParams.unitOfAccount),
                 adapterParams[i].adapter
             );
         }

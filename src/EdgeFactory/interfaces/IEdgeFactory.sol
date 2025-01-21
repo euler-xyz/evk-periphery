@@ -20,11 +20,9 @@ interface IEdgeFactory {
 
     /// @notice Parameters for configuring an oracle adapter in the router
     /// @param base The base token address
-    /// @param quote The quote token address
     /// @param adapter The oracle adapter address
     struct AdapterParams {
         address base;
-        address quote;
         address adapter;
     }
 

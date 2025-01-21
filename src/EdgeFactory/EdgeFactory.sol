@@ -23,10 +23,6 @@ contract EdgeFactory is IEdgeFactory {
     /// @notice Whether deployed vaults are upgradeable
     bool internal constant VAULT_UPGRADEABLE = true;
 
-    /// @notice Interest fee charged by vaults (0.1%)
-    /// @dev Represented in basis points where 1e4 = 100%
-    uint16 internal constant INTEREST_FEE = 0.1e4;
-
     /// @notice Minimum delay for a liquidation to happen in seconds
     uint16 internal constant LIQ_COOL_OFF_TIME = 1;
 
@@ -72,7 +68,7 @@ contract EdgeFactory is IEdgeFactory {
         // Configure adapters in the router
         for (uint256 i; i < routerParams.adapters.length; ++i) {
             AdapterParams memory adapterParams = routerParams.adapters[i];
-            router.govSetConfig(adapterParams.base, adapterParams.quote, adapterParams.adapter);
+            router.govSetConfig(adapterParams.base, params.unitOfAccount, adapterParams.adapter);
         }
 
         // Resolve external vaults in the router
@@ -83,7 +79,6 @@ contract EdgeFactory is IEdgeFactory {
 
         // Deploy and configure vaults
         address[] memory vaults = new address[](params.vaults.length);
-        address vaultImplementation = GenericFactory(eVaultFactory).implementation();
         for (uint256 i; i < params.vaults.length; ++i) {
             VaultParams memory vaultParams = params.vaults[i];
 
@@ -93,8 +88,7 @@ contract EdgeFactory is IEdgeFactory {
                 vault = EscrowedCollateralPerspective(escrowedCollateralPerspective).singletonLookup(vaultParams.asset);
                 if (vault == address(0)) {
                     bytes memory trailingData = abi.encodePacked(vaultParams.asset, address(0), address(0));
-                    vault =
-                        GenericFactory(eVaultFactory).createProxy(vaultImplementation, VAULT_UPGRADEABLE, trailingData);
+                    vault = GenericFactory(eVaultFactory).createProxy(address(0), VAULT_UPGRADEABLE, trailingData);
                     IEVault(vault).setHookConfig(address(0), 0);
                     IEVault(vault).setGovernorAdmin(address(0));
                     EscrowedCollateralPerspective(escrowedCollateralPerspective).perspectiveVerify(vault, true);
@@ -102,11 +96,11 @@ contract EdgeFactory is IEdgeFactory {
             } else {
                 // This is a borrowable vault. Deploy and configure it.
                 bytes memory trailingData = abi.encodePacked(vaultParams.asset, router, params.unitOfAccount);
-                vault = GenericFactory(eVaultFactory).createProxy(vaultImplementation, VAULT_UPGRADEABLE, trailingData);
-                IEVault(vault).setInterestFee(INTEREST_FEE);
+                vault = GenericFactory(eVaultFactory).createProxy(address(0), VAULT_UPGRADEABLE, trailingData);
                 IEVault(vault).setInterestRateModel(vaultParams.irm);
                 IEVault(vault).setLiquidationCoolOffTime(LIQ_COOL_OFF_TIME);
                 IEVault(vault).setMaxLiquidationDiscount(MAX_LIQ_DISCOUNT);
+                IEVault(vault).setHookConfig(address(0), 0);
             }
             vaults[i] = vault;
             // Resolve vault in the router
