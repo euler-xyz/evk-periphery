@@ -34,8 +34,13 @@ abstract contract Utils {
         } else if (block.chainid == 43114) {
             return 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB;
         } else {
-            revert("getWETHAddress: Unsupported chain");
+            // test networks
+            if (block.chainid == 10143 || block.chainid == 80084) {
+                return address(0);
+            }
         }
+
+        revert("getWETHAddress: Unsupported chain");
     }
 
     function _strEq(string memory a, string memory b) internal pure returns (bool) {
