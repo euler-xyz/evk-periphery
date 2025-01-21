@@ -588,36 +588,43 @@ contract CoreAndPeriphery is BatchBuilder {
         }
 
         if (peripheryAddresses.feeFlowController == address(0)) {
-            if (input.feeFlowInitPrice != 0) {
+            address paymentToken = nttAddresses.manager != address(0) && nttAddresses.transceiver != address(0)
+                ? tokenAddresses.EUL
+                : getWETHAddress();
+
+            if (input.feeFlowInitPrice != 0 && paymentToken != address(0)) {
                 console.log("+ Deploying FeeFlow...");
                 FeeFlow deployer = new FeeFlow();
                 peripheryAddresses.feeFlowController = deployer.deploy(
                     coreAddresses.evc,
                     input.feeFlowInitPrice,
-                    nttAddresses.manager != address(0) && nttAddresses.transceiver != address(0)
-                        ? tokenAddresses.EUL
-                        : getWETHAddress(),
+                    paymentToken,
                     multisigAddresses.DAO,
                     FEE_FLOW_EPOCH_PERIOD,
                     FEE_FLOW_PRICE_MULTIPLIER,
                     FEE_FLOW_MIN_INIT_PRICE
                 );
+            } else {
+                console.log("! feeFlowInitPrice or paymentToken is not set for FeeFlow deployment. Skipping...");
+            }
 
+            address feeReceiver = peripheryAddresses.feeFlowController == address(0)
+                ? multisigAddresses.DAO
+                : peripheryAddresses.feeFlowController;
+
+            if (ProtocolConfig(coreAddresses.protocolConfig).feeReceiver() != feeReceiver) {
                 if (ProtocolConfig(coreAddresses.protocolConfig).admin() == getDeployer()) {
                     startBroadcast();
-                    console.log(
-                        "    Setting ProtocolConfig fee receiver to the FeeFlowController address %s",
-                        peripheryAddresses.feeFlowController
-                    );
-                    ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(peripheryAddresses.feeFlowController);
+                    console.log("+ Setting ProtocolConfig fee receiver to the %s address", feeReceiver);
+                    ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(feeReceiver);
                     stopBroadcast();
                 } else {
                     console.log(
-                        "    ! The deployer no longer has the ProtocolConfig admin role to set the FeeFlowController address. This must be done manually. Skipping..."
+                        "! The deployer no longer has the ProtocolConfig admin role to set the fee receiver address. This must be done manually. Skipping..."
                     );
                 }
             } else {
-                console.log("! feeFlowInitPrice is not set for FeeFlow deployment. Skipping...");
+                console.log("- ProtocolConfig fee receiver is already set to the desired address. Skipping...");
             }
         } else {
             console.log("- FeeFlowController already deployed. Skipping...");
