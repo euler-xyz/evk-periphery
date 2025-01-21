@@ -6,9 +6,11 @@ libs = ["lib"]
 evm_version = "cancun"
 optimizer = true
 optimizer_runs = 20_000
-solc = "0.8.24"
 
-fs_permissions = [{ access = "read-write", path = "./"}, { access = "read-write", path = "../euler-interfaces"}]
+fs_permissions = [
+    { access = "read-write", path = "./" },
+    { access = "read-write", path = "../euler-interfaces" },
+]
 
 gas_reports = ["*"]
 
@@ -27,7 +29,7 @@ ignore = [
     "script/production/mainnet/clusters/YieldCluster.s.sol",
     "script/production/base/clusters/BaseCluster.s.sol",
     "script/production/swell/clusters/SwellCluster.s.sol",
-    "script/production/swell/clusters/SwellETHCluster.s.sol"
+    "script/production/swell/clusters/SwellETHCluster.s.sol",
 ]
 
 [profile.default.fuzz]
