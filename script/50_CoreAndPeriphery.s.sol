@@ -77,7 +77,7 @@ contract CoreAndPeriphery is BatchBuilder {
     uint32 internal constant OFT_MAX_MESSAGE_SIZE = 10000;
     uint64 internal constant OFT_CONFIRMATIONS = 15; // TODO
     uint8 internal constant OFT_REQUIRED_DVNS_COUNT = 2;
-    string[3] internal OFT_ACCEPTED_DVNS = ["LayerZero Labs", "Google Cloud", "Polyhedra"];
+    string[5] internal OFT_ACCEPTED_DVNS = ["LayerZero Labs", "Google", "Polyhedra", "Nethermind", "Horizen"];
 
     struct Input {
         address multisigDAO;
