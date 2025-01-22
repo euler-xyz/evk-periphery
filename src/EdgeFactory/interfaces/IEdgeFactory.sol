@@ -83,6 +83,18 @@ interface IEdgeFactory {
     /// @dev - Less than 2 vaults are specified in params
     function deploy(DeployParams calldata params) external returns (address, address[] memory);
 
+    /// @notice The factory contract for deploying vaults
+    function eVaultFactory() external view returns (address);
+
+    /// @notice The factory contract for deploying routers
+    function eulerRouterFactory() external view returns (address);
+
+    /// @notice Address of the escrowed collateral perspective contract
+    function escrowedCollateralPerspective() external view returns (address);
+
+    /// @notice Get the array of vaults for a given deployment index
+    function getDeployment(uint256 i) external view returns (address[] memory);
+
     /// @notice Get the total number of deployments
     /// @return count The total number of Edge markets deployed
     function getDeploymentsListLength() external view returns (uint256);
@@ -94,15 +106,6 @@ interface IEdgeFactory {
     /// market
     function getDeploymentsListSlice(uint256 start, uint256 end) external view returns (address[][] memory list);
 
-    /// @notice The factory contract for deploying vaults
-    function eVaultFactory() external view returns (address);
-
-    /// @notice The factory contract for deploying routers
-    function eulerRouterFactory() external view returns (address);
-
-    /// @notice Address of the escrowed collateral perspective contract
-    function escrowedCollateralPerspective() external view returns (address);
-
-    /// @notice Array of all deployed router addresses
-    function deployedRouters(uint256 index) external view returns (address);
+    /// @notice Whether a vault belongs to any one Edge market
+    function isDeployed(address vault) external view returns (bool);
 }

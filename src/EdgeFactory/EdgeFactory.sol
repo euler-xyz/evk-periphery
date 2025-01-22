@@ -20,9 +20,6 @@ contract EdgeFactory is IEdgeFactory {
     /// @notice Name of the factory contract
     string public constant name = "Edge Factory";
 
-    /// @notice Whether deployed vaults are upgradeable
-    bool internal constant VAULT_UPGRADEABLE = true;
-
     /// @notice Minimum delay for a liquidation to happen in seconds
     uint16 internal constant LIQ_COOL_OFF_TIME = 1;
 
@@ -39,13 +36,11 @@ contract EdgeFactory is IEdgeFactory {
     /// @notice Address of the escrowed collateral perspective contract
     address public immutable escrowedCollateralPerspective;
 
-    /// @notice Mapping from router address to its associated vault addresses
-    /// @dev Each router maps to an array of vault addresses that were deployed with it as part of an Edge market
-    mapping(address => address[]) public routerToVaults;
+    /// @notice Mapping from vault address to whether it was
+    mapping(address => bool) public isDeployed;
 
-    /// @notice Array of all deployed router addresses
-    /// @dev Maintains a list of all routers deployed by this factory, in chronological order
-    address[] public deployedRouters;
+    /// @notice Array of all Edge market deployments.
+    address[][] internal deployments;
 
     /// @notice Constructs a new EdgeFactory
     /// @param _eVaultFactory Address of the vault factory contract
@@ -88,7 +83,7 @@ contract EdgeFactory is IEdgeFactory {
                 vault = EscrowedCollateralPerspective(escrowedCollateralPerspective).singletonLookup(vaultParams.asset);
                 if (vault == address(0)) {
                     bytes memory trailingData = abi.encodePacked(vaultParams.asset, address(0), address(0));
-                    vault = GenericFactory(eVaultFactory).createProxy(address(0), VAULT_UPGRADEABLE, trailingData);
+                    vault = GenericFactory(eVaultFactory).createProxy(address(0), true, trailingData);
                     IEVault(vault).setHookConfig(address(0), 0);
                     IEVault(vault).setGovernorAdmin(address(0));
                     EscrowedCollateralPerspective(escrowedCollateralPerspective).perspectiveVerify(vault, true);
@@ -96,7 +91,7 @@ contract EdgeFactory is IEdgeFactory {
             } else {
                 // This is a borrowable vault. Deploy and configure it.
                 bytes memory trailingData = abi.encodePacked(vaultParams.asset, router, params.unitOfAccount);
-                vault = GenericFactory(eVaultFactory).createProxy(address(0), VAULT_UPGRADEABLE, trailingData);
+                vault = GenericFactory(eVaultFactory).createProxy(address(0), true, trailingData);
                 IEVault(vault).setInterestRateModel(vaultParams.irm);
                 IEVault(vault).setLiquidationCoolOffTime(LIQ_COOL_OFF_TIME);
                 IEVault(vault).setMaxLiquidationDiscount(MAX_LIQ_DISCOUNT);
@@ -121,28 +116,35 @@ contract EdgeFactory is IEdgeFactory {
             if (!params.vaults[i].escrow) {
                 IEVault(vaults[i]).setGovernorAdmin(address(0));
             }
+            if (!isDeployed[vaults[i]]) {
+                isDeployed[vaults[i]] = true;
+            }
         }
         router.transferGovernance(address(0));
 
-        deployedRouters.push(address(router));
-        routerToVaults[address(router)] = vaults;
+        deployments.push(vaults);
         emit EdgeDeployed(address(router), vaults);
         return (address(router), vaults);
     }
 
     /// @inheritdoc IEdgeFactory
+    function getDeployment(uint256 i) external view returns (address[] memory) {
+        return deployments[i];
+    }
+
+    /// @inheritdoc IEdgeFactory
     function getDeploymentsListLength() external view returns (uint256) {
-        return deployedRouters.length;
+        return deployments.length;
     }
 
     /// @inheritdoc IEdgeFactory
     function getDeploymentsListSlice(uint256 start, uint256 end) external view returns (address[][] memory list) {
-        if (end == type(uint256).max) end = deployedRouters.length;
-        if (end < start || end > deployedRouters.length) revert();
+        if (end == type(uint256).max) end = deployments.length;
+        if (end < start || end > deployments.length) revert();
 
         list = new address[][](end - start);
         for (uint256 i; i < end - start; ++i) {
-            list[i] = routerToVaults[deployedRouters[i]];
+            list[i] = deployments[i];
         }
     }
 }

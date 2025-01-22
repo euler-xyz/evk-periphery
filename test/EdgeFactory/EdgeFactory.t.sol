@@ -256,6 +256,8 @@ contract EdgeFactoryTest is EVaultTestBase {
         IEdgeFactory.AdapterParams[] memory adapterParams = routerParams.adapters;
 
         assertEq(vaults.length, vaultParams.length);
+        assertEq(edgeFactory.getDeploymentsListLength(), 1);
+        assertEq(edgeFactory.getDeployment(0), vaults);
         for (uint256 i; i < vaults.length; ++i) {
             assertEq(IEVault(vaults[i]).asset(), vaultParams[i].asset);
             assertEq(IEVault(vaults[i]).governorAdmin(), address(0));
@@ -271,6 +273,8 @@ contract EdgeFactoryTest is EVaultTestBase {
                 assertEq(IEVault(vaults[i]).liquidationCoolOffTime(), 1);
                 assertEq(IEVault(vaults[i]).maxLiquidationDiscount(), 0.15e4);
             }
+
+            assertEq(edgeFactory.isDeployed(vaults[i]), true);
         }
 
         // Verify LTVs
