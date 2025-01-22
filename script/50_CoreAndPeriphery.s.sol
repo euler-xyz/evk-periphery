@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {BatchBuilder, Vm, console} from "./utils/ScriptUtils.s.sol";
+import {LayerZeroUtil} from "./utils/LayerZeroUtils.s.sol";
 import {ERC20BurnableMintableDeployer, RewardTokenDeployer} from "./00_ERC20.s.sol";
 import {Integrations} from "./01_Integrations.s.sol";
 import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
@@ -43,6 +44,18 @@ import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
+import {ILayerZeroEndpointV2, IOAppCore} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
+import {
+    IMessageLibManager,
+    SetConfigParam
+} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
+import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
+import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
+
+interface IEndpointV2 is ILayerZeroEndpointV2 {
+    function eid() external view returns (uint32);
+    function delegates(address oapp) external view returns (address);
+}
 
 contract CoreAndPeriphery is BatchBuilder {
     mapping(uint256 chainId => bool isHarvestCoolDownCheckOn) internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON;
@@ -59,15 +72,12 @@ contract CoreAndPeriphery is BatchBuilder {
     uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18;
     uint256 internal constant FEE_FLOW_MIN_INIT_PRICE = 10 ** EUL_DECIMALS;
 
-    uint8 internal constant NTT_THRESHOLD = 1;
-    bool internal constant NTT_SKIP_RATE_LIMITING = false;
-    uint64 internal constant NTT_RATE_LIMIT_DURATION = 1 days;
-    uint256 internal constant NTT_OUTBOUND_LIMIT = 1e5 * 10 ** EUL_DECIMALS;
-    uint256 internal constant NTT_INBOUND_LIMIT = 1e4 * 10 ** EUL_DECIMALS;
-
-    address internal constant WORMHOLE_SPECIAL_RELAYER_ADDR = address(0);
-    uint8 internal constant WORMHOLE_CONSISTENCY_LEVEL = 202;
-    uint256 internal constant WORMHOLE_GAS_LIMIT = 500000;
+    uint32 internal constant OFT_EXECUTOR_CONFIG_TYPE = 1;
+    uint32 internal constant OFT_ULN_CONFIG_TYPE = 2;
+    uint32 internal constant OFT_MAX_MESSAGE_SIZE = 10000;
+    uint64 internal constant OFT_CONFIRMATIONS = 15; // TODO
+    uint8 internal constant OFT_REQUIRED_DVNS_COUNT = 2;
+    string[3] internal OFT_ACCEPTED_DVNS = ["LayerZero Labs", "Google Cloud", "Polyhedra"];
 
     struct Input {
         address multisigDAO;
@@ -78,8 +88,8 @@ contract CoreAndPeriphery is BatchBuilder {
         address permit2;
         address uniswapV2Router;
         address uniswapV3Router;
-        address lzEndpoint;
         uint256 feeFlowInitPrice;
+        bool deployOFT;
     }
 
     constructor() {
@@ -109,8 +119,8 @@ contract CoreAndPeriphery is BatchBuilder {
             permit2: vm.parseJsonAddress(json, ".permit2"),
             uniswapV2Router: vm.parseJsonAddress(json, ".uniswapV2Router"),
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
-            lzEndpoint: vm.parseJsonAddress(json, ".lzEndpoint"),
-            feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice")
+            feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice"),
+            deployOFT: vm.parseJsonBool(json, ".deployOFT")
         });
 
         if (
@@ -302,129 +312,156 @@ contract CoreAndPeriphery is BatchBuilder {
         }
 
         if (bridgeAddresses.oftAdapter == address(0)) {
-            if (input.lzEndpoint != address(0)) {
+            if (input.deployOFT) {
                 console.log("+ Deploying OFT Adapter...");
+
+                LayerZeroUtil lzUtil = new LayerZeroUtil();
+                string memory lzMetadata = lzUtil.getRawMetadata();
+                LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(lzMetadata, block.chainid);
+
+                require(info.endpointV2 != address(0), "Failed to get OFT Adapter deployment info");
+
+                uint32 eid = IEndpointV2(info.endpointV2).eid();
+
                 if (block.chainid == HUB_CHAIN_ID) {
                     OFTAdapterUpgradeableDeployer deployer = new OFTAdapterUpgradeableDeployer();
-                    bridgeAddresses.oftAdapter = deployer.deploy(tokenAddresses.EUL, input.lzEndpoint);
+                    bridgeAddresses.oftAdapter = deployer.deploy(tokenAddresses.EUL, info.endpointV2);
                 } else {
                     MintBurnOFTAdapterDeployer deployer = new MintBurnOFTAdapterDeployer();
-                    bridgeAddresses.oftAdapter = deployer.deploy(tokenAddresses.EUL, input.lzEndpoint);
+                    bridgeAddresses.oftAdapter = deployer.deploy(tokenAddresses.EUL, info.endpointV2);
                 }
-                /*
-                startBroadcast();
-                console.log("    Setting NttManager (%s) transceiver", block.chainid);
-                NttManager(nttAddresses.manager).setTransceiver(nttAddresses.transceiver);
 
-                console.log("    Setting NttManager (%s) outbound limit", block.chainid);
-                NttManager(nttAddresses.manager).setOutboundLimit(NTT_OUTBOUND_LIMIT);
+                vm.startBroadcast();
+                console.log("    Setting OFT Adapter (%s) send library", block.chainid);
+                IMessageLibManager(info.endpointV2).setSendLibrary(bridgeAddresses.oftAdapter, eid, info.sendUln302);
 
-                console.log("    Setting NttManager (%s) threshold", block.chainid);
-                NttManager(nttAddresses.manager).setThreshold(NTT_THRESHOLD);
-
-                console.log(
-                "    Transferring NttManager (%s) pauser capability to %s", block.chainid, multisigAddresses.labs
+                console.log("    Setting OFT Adapter (%s) receive library", block.chainid);
+                IMessageLibManager(info.endpointV2).setReceiveLibrary(
+                    bridgeAddresses.oftAdapter, eid, info.receiveUln302, 0
                 );
-                NttManager(nttAddresses.manager).transferPauserCapability(multisigAddresses.labs);
-
-                console.log(
-                    "    Transferring WormholeTransceiver (%s) pauser capability to %s",
-                    block.chainid,
-                    multisigAddresses.labs
-                );
-                WormholeTransceiver(nttAddresses.transceiver).transferPauserCapability(multisigAddresses.labs);
-                stopBroadcast();
+                vm.stopBroadcast();
 
                 if (block.chainid != HUB_CHAIN_ID) {
-                    NTTAddresses memory nttAddressesHub =
-                        deserializeNTTAddresses(getAddressesJson("NTTAddresses.json", HUB_CHAIN_ID));
-
+                    BridgeAddresses memory bridgeAddressesHub =
+                        deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", HUB_CHAIN_ID));
+                    require(
+                        bridgeAddressesHub.oftAdapter != address(0) && bridgeAddressesHub.oftAdapter.code.length != 0,
+                        "Failed to get bridge addresses for chain HUB_CHAIN_ID"
+                    );
                     require(selectFork(HUB_CHAIN_ID), "Failed to select fork for chain HUB_CHAIN_ID");
-                    verifyNTTAddresses(nttAddressesHub);
-                    uint16 wormholeChainIdHub = NttManager(nttAddressesHub.manager).chainId();
+                    uint32 eidHub = IEndpointV2(address(IOAppCore(bridgeAddressesHub.oftAdapter).endpoint())).eid();
                     selectFork(DEFAULT_FORK_CHAIN_ID);
 
-                    startBroadcast();
-                    console.log(
-                        "    Setting NttManager (%s) peer to %s for chain %s",
-                        block.chainid,
-                        nttAddressesHub.manager,
-                        HUB_CHAIN_ID
-                    );
-                    NttManager(nttAddresses.manager).setPeer(
-                        wormholeChainIdHub,
-                        bytes32(uint256(uint160(nttAddressesHub.manager))),
-                        EUL_DECIMALS,
-                        NTT_INBOUND_LIMIT
-                    );
+                    addBridgeConfigCache(block.chainid, HUB_CHAIN_ID);
 
-                    console.log(
-                        "    Setting WormholeTransceiver (%s) peer to %s for chain %s",
-                        block.chainid,
-                        nttAddressesHub.transceiver,
-                        HUB_CHAIN_ID
-                    );
-                    WormholeTransceiver(nttAddresses.transceiver).setWormholePeer(
-                        wormholeChainIdHub, bytes32(uint256(uint160(nttAddressesHub.transceiver)))
-                    );
+                    string[] memory acceptedDVNs = new string[](OFT_ACCEPTED_DVNS.length);
+                    for (uint256 i = 0; i < OFT_ACCEPTED_DVNS.length; ++i) {
+                        acceptedDVNs[i] = OFT_ACCEPTED_DVNS[i];
+                    }
 
-                    console.log(
-                        "    Setting WormholeTransceiver (%s) isWormholeEvmChain for chain %s",
-                        block.chainid,
-                        HUB_CHAIN_ID
-                    );
-                WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(wormholeChainIdHub, true);
+                    (, address[] memory dvns) = lzUtil.getDVNAddresses(lzMetadata, acceptedDVNs, info.chainKey);
+                    require(dvns.length >= OFT_REQUIRED_DVNS_COUNT, "Failed to find enough accepted send DVNs");
+                    assembly {
+                        mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
+                    }
 
-                    console.log(
-                        "    Setting WormholeTransceiver (%s) isWormholeRelayingEnabled for chain %s",
-                        block.chainid,
-                        HUB_CHAIN_ID
-                    );
-                WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(wormholeChainIdHub, true);
+                    SetConfigParam[] memory params = new SetConfigParam[](2);
+                    params[0] = SetConfigParam({
+                        eid: eidHub,
+                        configType: OFT_EXECUTOR_CONFIG_TYPE,
+                        config: abi.encode(ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor}))
+                    });
+                    params[1] = SetConfigParam({
+                        eid: eidHub,
+                        configType: OFT_ULN_CONFIG_TYPE,
+                        config: abi.encode(
+                            UlnConfig({
+                                confirmations: OFT_CONFIRMATIONS,
+                                requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
+                                optionalDVNCount: 0,
+                                optionalDVNThreshold: 0,
+                                requiredDVNs: dvns,
+                                optionalDVNs: new address[](0)
+                            })
+                        )
+                    });
 
-                bytes32 defaultAdminRole = ERC20BurnableMintable(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
-                if (ERC20BurnableMintable(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
-                console.log("    Granting EUL minter role to the NttManager address %s", nttAddresses.manager);
+                    vm.startBroadcast();
+                    console.log("    Setting OFT Adapter (%s) send config for chain %s", block.chainid, HUB_CHAIN_ID);
+                    IMessageLibManager(info.endpointV2).setConfig(bridgeAddresses.oftAdapter, info.sendUln302, params);
+                    vm.stopBroadcast();
+
+                    info = lzUtil.getDeploymentInfo(lzMetadata, HUB_CHAIN_ID);
+                    (, dvns) = lzUtil.getDVNAddresses(lzMetadata, acceptedDVNs, info.chainKey);
+                    require(dvns.length >= OFT_REQUIRED_DVNS_COUNT, "Failed to find enough accepted receive DVNs");
+                    assembly {
+                        mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
+                    }
+
+                    params = new SetConfigParam[](1);
+                    params[0] = SetConfigParam({
+                        eid: eidHub,
+                        configType: OFT_ULN_CONFIG_TYPE,
+                        config: abi.encode(
+                            UlnConfig({
+                                confirmations: OFT_CONFIRMATIONS,
+                                requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
+                                optionalDVNCount: 0,
+                                optionalDVNThreshold: 0,
+                                requiredDVNs: dvns,
+                                optionalDVNs: new address[](0)
+                            })
+                        )
+                    });
+
+                    vm.startBroadcast();
+                    console.log("    Setting OFT Adapter (%s) receive config for chain %s", block.chainid, HUB_CHAIN_ID);
+                    IMessageLibManager(info.endpointV2).setConfig(
+                        bridgeAddresses.oftAdapter, info.receiveUln302, params
+                    );
+                    vm.stopBroadcast();
+
+                    bytes32 defaultAdminRole = ERC20BurnableMintable(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
+                    if (ERC20BurnableMintable(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
+                        console.log("    Granting EUL minter role to the OFT Adapter %s", bridgeAddresses.oftAdapter);
                         bytes32 minterRole = ERC20BurnableMintable(tokenAddresses.EUL).MINTER_ROLE();
-                        AccessControl(tokenAddresses.EUL).grantRole(minterRole, nttAddresses.manager);
+                        AccessControl(tokenAddresses.EUL).grantRole(minterRole, bridgeAddresses.oftAdapter);
                     } else {
                         console.log(
-                "    ! The deployer no longer has the EUL default admin role to grant the minter role to the NttManager.
-                This must be done manually. Skipping..."
+                            "    ! The deployer no longer has the EUL default admin role to grant the minter role to the OFT Adapter. This must be done manually. Skipping..."
                         );
                     }
                     stopBroadcast();
-                }*/
+                }
             } else {
-                console.log("! LayerZero endpoint not set for OFT Adapter deployment. Skipping...");
+                console.log("! OFT Adapter deployment deliberately skipped. Skipping...");
             }
         } else {
             console.log("- OFT Adapter already deployed. Skipping...");
         }
-        /*
-        if (
-            block.chainid == HUB_CHAIN_ID && bridgeAddresses.oftAdapter != address(0)
-        ) {
+
+        if (block.chainid == HUB_CHAIN_ID && bridgeAddresses.oftAdapter != address(0)) {
             console.log("+ Attempting to configure OFT Adapter (%s)...", block.chainid);
-            bool isManagerOwner = NttManager(nttAddresses.manager).owner() == getDeployer();
-            bool isTransceiverOwner = NttManager(nttAddresses.transceiver).owner() == getDeployer();
 
-            if (!isManagerOwner) {
+            address endpoint = address(IOAppCore(bridgeAddresses.oftAdapter).endpoint());
+            bool isDelegate = IEndpointV2(endpoint).delegates(bridgeAddresses.oftAdapter) == getDeployer();
+
+            if (!isDelegate) {
                 console.log(
-        "    ! The caller of this script is not the NttManager owner. Below NttManager configuration must be done
-        manually."
+                    "    ! The caller of this script is not the OFT Adapter delegate. Below OFT Adapter configuration must be done manually."
                 );
             }
 
-            if (!isTransceiverOwner) {
-                console.log(
-        "    ! The caller of this script is not the WormholeTransceiver owner. Below WormholeTransceiver configuration
-        must be done manually."
-                );
+            string[] memory acceptedDVNs = new string[](OFT_ACCEPTED_DVNS.length);
+            for (uint256 i = 0; i < OFT_ACCEPTED_DVNS.length; ++i) {
+                acceptedDVNs[i] = OFT_ACCEPTED_DVNS[i];
             }
 
-            string memory addressesDirPath = getAddressesDirPath();
-            Vm.DirEntry[] memory entries = vm.readDir(addressesDirPath, 1);
+            LayerZeroUtil lzUtil = new LayerZeroUtil();
+            string memory lzMetadata = lzUtil.getRawMetadata();
+            LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(lzMetadata, block.chainid);
+
+            Vm.DirEntry[] memory entries = vm.readDir(getAddressesDirPath(), 1);
 
             for (uint256 i = 0; i < entries.length; ++i) {
                 if (!entries[i].isDir) continue;
@@ -433,13 +470,11 @@ contract CoreAndPeriphery is BatchBuilder {
 
                 if (chainIdOther == 0 || chainIdOther == HUB_CHAIN_ID) continue;
 
-                NTTAddresses memory nttAddressesOther =
-                    deserializeNTTAddresses(getAddressesJson("NTTAddresses.json", chainIdOther));
+                BridgeAddresses memory bridgeAddressesOther =
+                    deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", chainIdOther));
 
-                if (nttAddressesOther.manager == address(0) || nttAddressesOther.transceiver == address(0)) {
-                    console.log(
-        "    ! NttManager or WormholeTransceiver not deployed for chain %s. Skipping...", chainIdOther
-                    );
+                if (bridgeAddressesOther.oftAdapter == address(0) || bridgeAddressesOther.oftAdapter.code.length == 0) {
+                    console.log("    ! OFT Adapter not deployed for chain %s. Skipping...", chainIdOther);
                     continue;
                 }
 
@@ -447,91 +482,92 @@ contract CoreAndPeriphery is BatchBuilder {
                     console.log("    ! Failed to select fork for chain %s. Skipping...", chainIdOther);
                     continue;
                 }
-                verifyNTTAddresses(nttAddressesOther);
-                uint16 wormholeChainIdOther = NttManager(nttAddressesOther.manager).chainId();
+
+                uint32 eidOther = IEndpointV2(address(IOAppCore(bridgeAddressesOther.oftAdapter).endpoint())).eid();
                 selectFork(DEFAULT_FORK_CHAIN_ID);
 
-                startBroadcast();
-                bool configurationNeeded = false;
-                console.log(
-                    "    Attempting to configure NttManager and WormholeTransceiver (%s) for chain %s:",
-                    block.chainid,
-                    chainIdOther
-                );
-                if (
-                    NttManager(nttAddresses.manager).getPeer(wormholeChainIdOther).peerAddress
-                        != bytes32(uint256(uint160(nttAddressesOther.manager)))
-                ) {
+                bool configurationNeeded = addBridgeConfigCache(block.chainid, chainIdOther);
+
+                (, address[] memory dvns) = lzUtil.getDVNAddresses(lzMetadata, acceptedDVNs, info.chainKey);
+                require(dvns.length >= OFT_REQUIRED_DVNS_COUNT, "Failed to find enough accepted send DVNs");
+                assembly {
+                    mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
+                }
+
+                SetConfigParam[] memory params = new SetConfigParam[](2);
+                params[0] = SetConfigParam({
+                    eid: eidOther,
+                    configType: OFT_EXECUTOR_CONFIG_TYPE,
+                    config: abi.encode(ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor}))
+                });
+                params[1] = SetConfigParam({
+                    eid: eidOther,
+                    configType: OFT_ULN_CONFIG_TYPE,
+                    config: abi.encode(
+                        UlnConfig({
+                            confirmations: OFT_CONFIRMATIONS,
+                            requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
+                            optionalDVNCount: 0,
+                            optionalDVNThreshold: 0,
+                            requiredDVNs: dvns,
+                            optionalDVNs: new address[](0)
+                        })
+                    )
+                });
+
+                if (configurationNeeded) {
                     console.log(
-                        "        Setting NttManager (%s) peer to %s for chain %s",
-                        block.chainid,
-                        nttAddressesOther.manager,
-                        chainIdOther
+                        "    Attempting to set OFT Adapter (%s) send config for chain %s", block.chainid, chainIdOther
                     );
-                    configurationNeeded = true;
-                    if (isManagerOwner) {
-                        NttManager(nttAddresses.manager).setPeer(
-                            wormholeChainIdOther,
-                            bytes32(uint256(uint160(nttAddressesOther.manager))),
-                            EUL_DECIMALS,
-                            NTT_INBOUND_LIMIT
-                        );
+                    if (isDelegate) {
+                        vm.startBroadcast();
+                        IMessageLibManager(endpoint).setConfig(bridgeAddresses.oftAdapter, info.sendUln302, params);
+                        vm.stopBroadcast();
                     }
                 }
 
-                if (
-                    WormholeTransceiver(nttAddresses.transceiver).getWormholePeer(wormholeChainIdOther)
-                        != bytes32(uint256(uint160(nttAddressesOther.transceiver)))
-                ) {
-                    console.log(
-                        "        Setting WormholeTransceiver (%s) peer to %s for chain %s",
-                        block.chainid,
-                        nttAddressesOther.transceiver,
-                        chainIdOther
-                    );
-                    configurationNeeded = true;
-                    if (isTransceiverOwner) {
-                        WormholeTransceiver(nttAddresses.transceiver).setWormholePeer(
-                            wormholeChainIdOther, bytes32(uint256(uint160(nttAddressesOther.transceiver)))
-                        );
-                    }
+                LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(lzMetadata, chainIdOther);
+                (, dvns) = lzUtil.getDVNAddresses(lzMetadata, acceptedDVNs, infoOther.chainKey);
+                require(dvns.length >= OFT_REQUIRED_DVNS_COUNT, "Failed to find enough accepted receive DVNs");
+                assembly {
+                    mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
                 }
 
-                if (!WormholeTransceiver(nttAddresses.transceiver).isWormholeEvmChain(wormholeChainIdOther)) {
-                    console.log(
-                        "        Setting WormholeTransceiver (%s) isWormholeEvmChain for chain %s",
-                        block.chainid,
-                        chainIdOther
-                    );
-                    configurationNeeded = true;
-                    if (isTransceiverOwner) {
-        WormholeTransceiver(nttAddresses.transceiver).setIsWormholeEvmChain(wormholeChainIdOther, true);
-                    }
-                }
+                params = new SetConfigParam[](1);
+                params[0] = SetConfigParam({
+                    eid: eidOther,
+                    configType: OFT_ULN_CONFIG_TYPE,
+                    config: abi.encode(
+                        UlnConfig({
+                            confirmations: OFT_CONFIRMATIONS,
+                            requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
+                            optionalDVNCount: 0,
+                            optionalDVNThreshold: 0,
+                            requiredDVNs: dvns,
+                            optionalDVNs: new address[](0)
+                        })
+                    )
+                });
 
-        if (!WormholeTransceiver(nttAddresses.transceiver).isWormholeRelayingEnabled(wormholeChainIdOther)) {
+                if (configurationNeeded) {
                     console.log(
-                        "        Setting WormholeTransceiver (%s) isWormholeRelayingEnabled for chain %s",
+                        "    Attempting to set OFT Adapter (%s) receive config for chain %s",
                         block.chainid,
                         chainIdOther
                     );
-                    configurationNeeded = true;
-                    if (isTransceiverOwner) {
-                        WormholeTransceiver(nttAddresses.transceiver).setIsWormholeRelayingEnabled(
-                            wormholeChainIdOther, true
-                        );
+                    if (isDelegate) {
+                        vm.startBroadcast();
+                        IMessageLibManager(endpoint).setConfig(bridgeAddresses.oftAdapter, info.receiveUln302, params);
+                        vm.stopBroadcast();
                     }
                 }
 
                 if (!configurationNeeded) {
-                    console.log(
-                        "    ! NttManager and WormholeTransceiver already configured for chain %s. Skipping...",
-                        chainIdOther
-                    );
+                    console.log("    ! OFT Adapter already configured for chain %s. Skipping...", chainIdOther);
                 }
-                stopBroadcast();
             }
-        }*/
+        }
+
         if (
             peripheryAddresses.oracleRouterFactory == address(0)
                 && peripheryAddresses.oracleAdapterRegistry == address(0)
@@ -724,6 +760,7 @@ contract CoreAndPeriphery is BatchBuilder {
         vm.writeJson(serializeTokenAddresses(tokenAddresses), getScriptFilePath("TokenAddresses_output.json"));
         vm.writeJson(serializeLensAddresses(lensAddresses), getScriptFilePath("LensAddresses_output.json"));
         vm.writeJson(serializeBridgeAddresses(bridgeAddresses), getScriptFilePath("BridgeAddresses_output.json"));
+        vm.writeJson(serializeBridgeConfigCache(), getScriptFilePath("BridgeConfigCache_output.json"));
 
         if (isBroadcast() && !isLocalForkDeployment()) {
             vm.createDir(getAddressesFilePath("", block.chainid), true);
@@ -752,6 +789,7 @@ contract CoreAndPeriphery is BatchBuilder {
             vm.writeJson(
                 serializeBridgeAddresses(bridgeAddresses), getAddressesFilePath("BridgeAddresses.json", block.chainid)
             );
+            vm.writeJson(serializeBridgeConfigCache(), getBridgeConfigCacheJsonFilePath("BridgeConfigCache.json"));
         }
 
         return (multisigAddresses, coreAddresses, peripheryAddresses, lensAddresses, bridgeAddresses);

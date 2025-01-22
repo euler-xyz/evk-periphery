@@ -207,6 +207,18 @@ abstract contract ScriptExtended is Script {
         return chainId;
     }
 
+    function getBridgeConfigCacheJsonFilePath(string memory jsonFile) internal view returns (string memory) {
+        return string.concat(getAddressesDirPath(), "../config/bridge", jsonFile);
+    }
+
+    function getBridgeConfigCacheJson(string memory jsonFile) internal view returns (string memory) {
+        try vm.readFile(getBridgeConfigCacheJsonFilePath(jsonFile)) returns (string memory result) {
+            return result;
+        } catch {
+            return "";
+        }
+    }
+
     function selectFork(uint256 chainId) internal returns (bool) {
         require(forks[0] != 0, "selectFork: default fork not found");
 

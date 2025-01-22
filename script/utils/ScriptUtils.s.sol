@@ -3,9 +3,12 @@
 pragma solidity ^0.8.0;
 
 import {Vm} from "forge-std/Vm.sol";
+import {stdJson} from "forge-std/StdJson.sol";
 import {console} from "forge-std/console.sol";
 import {ScriptExtended, console} from "./ScriptExtended.s.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
+import {Arrays} from "openzeppelin-contracts/utils/Arrays.sol";
+import {EnumerableMap, EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableMap.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
@@ -264,6 +267,43 @@ abstract contract BridgeAddressesLib is ScriptExtended {
     }
 }
 
+abstract contract BridgeConfigCache is ScriptExtended {
+    using stdJson for string;
+    using Arrays for uint256[];
+    using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableMap for EnumerableMap.UintToUintMap;
+
+    EnumerableSet.UintSet internal srcChainIds;
+    mapping(uint256 srcChainIds => EnumerableMap.UintToUintMap) internal config;
+
+    function addBridgeConfigCache(uint256 srcChainId, uint256 dstChainId) internal returns (bool) {
+        srcChainIds.add(srcChainId);
+        return config[srcChainId].set(dstChainId, 1);
+    }
+
+    function serializeBridgeConfigCache() internal returns (string memory result) {
+        for (uint256 i = 0; i < srcChainIds.length(); ++i) {
+            uint256 srcChainId = srcChainIds.at(i);
+            result = vm.serializeUint("oft", vm.toString(srcChainId), config[srcChainId].keys().sort());
+        }
+        result = vm.serializeString("", "oft", result);
+    }
+
+    function deserializeBridgeConfigCache(string memory json) internal {
+        if (bytes(json).length == 0 || !vm.keyExists(json, ".oft")) return;
+
+        string[] memory keys = vm.parseJsonKeys(json, ".oft");
+
+        for (uint256 i = 0; i < keys.length; ++i) {
+            uint256[] memory values = json.readUintArrayOr(string.concat(".oft.", keys[i]), new uint256[](0));
+
+            for (uint256 j = 0; j < values.length; ++j) {
+                addBridgeConfigCache(vm.parseUint(keys[i]), values[j]);
+            }
+        }
+    }
+}
+
 abstract contract ScriptUtils is
     MultisigAddressesLib,
     CoreAddressesLib,
@@ -271,7 +311,8 @@ abstract contract ScriptUtils is
     LensAddressesLib,
     BridgeAddressesLib,
     TokenAddressesLib,
-    GovernorAddressesLib
+    GovernorAddressesLib,
+    BridgeConfigCache
 {
     MultisigAddresses internal multisigAddresses;
     CoreAddresses internal coreAddresses;
@@ -289,6 +330,7 @@ abstract contract ScriptUtils is
         bridgeAddresses = deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json"));
         tokenAddresses = deserializeTokenAddresses(getAddressesJson("TokenAddresses.json"));
         governorAddresses = deserializeGovernorAddresses(getAddressesJson("GovernorAddresses.json"));
+        deserializeBridgeConfigCache(getBridgeConfigCacheJson("BridgeConfigCache.json"));
     }
 
     modifier broadcast() {

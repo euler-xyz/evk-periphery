@@ -1198,12 +1198,12 @@ while true; do
                 read -p "Enter the Uniswap V3 Router address (look up: https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
             fi
             
-            if [ -z "$oftAdapter" ] || [ "$oftAdapter" == "$addressZero" ]; then
-                read -p "Enter the LayerZero endpoint address (look up: xxx or press ENTER to skip): " lz_endpoint
-            fi
-            
             if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ]; then
                 read -p "Enter the EUL/WETH init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
+            fi
+
+            if [ -z "$oftAdapter" ] || [ "$oftAdapter" == "$addressZero" ]; then
+                read -p "Should deploy OFT Adapter? (y/n) (default: n):" deploy_oft
             fi
 
             multisig_dao=${multisig_dao:-$addressZero}
@@ -1214,12 +1214,14 @@ while true; do
             permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
             uniswap_router_v2=${uniswap_router_v2:-$addressZero}
             uniswap_router_v3=${uniswap_router_v3:-$addressZero}
-            lz_endpoint=${lz_endpoint:-$addressZero}
             init_price=${init_price:-1000000000000000000}
+            deploy_oft=${deploy_oft:-n}
 
             if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
             fi
+
+            set -- "$@" --ffi
 
             jq -n \
                 --arg multisigDAO "$multisig_dao" \
@@ -1230,8 +1232,8 @@ while true; do
                 --arg permit2 "$permit2" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
-                --arg lzEndpoint "$lz_endpoint" \
                 --arg initPrice "$init_price" \
+                --argjson deployOFT "$(jq -n --argjson val \"$deploy_oft\" 'if $val == "t" then true else false end')" \
                 '{
                     multisigDAO: $multisigDAO,
                     multisigLabs: $multisigLabs,
@@ -1241,8 +1243,8 @@ while true; do
                     permit2: $permit2,
                     uniswapV2Router: $uniswapRouterV2,
                     uniswapV3Router: $uniswapRouterV3,
-                    lzEndpoint: $lzEndpoint,
-                    feeFlowInitPrice: $initPrice
+                    feeFlowInitPrice: $initPrice,
+                    deployOFT: $deployOFT
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         51)
