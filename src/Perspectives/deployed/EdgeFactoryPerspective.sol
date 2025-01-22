@@ -21,19 +21,17 @@ contract EdgeFactoryPerspective is BasePerspective {
 
     /// @inheritdoc BasePerspective
     function perspectiveVerifyInternal(address vault) internal virtual override {
-        // TODO
-        //testProperty(IEdgeFactory(address(vaultFactory)).isProxy(vault), ERROR__FACTORY);
+        testProperty(IEdgeFactory(address(vaultFactory)).isDeployed(vault), ERROR__FACTORY);
     }
 
     /// @inheritdoc BasePerspective
     function isVerified(address vault) public view virtual override returns (bool) {
-        // TODO
-        //return IEdgeFactory(address(vaultFactory)).isProxy(vault);
+        return IEdgeFactory(address(vaultFactory)).isDeployed(vault);
     }
 
     /// @inheritdoc BasePerspective
     function verifiedLength() public view virtual override returns (uint256) {
-        address[][] memory list = IEdgeFactory(address(vaultFactory)).getProxyListSlice(0, type(uint256).max);
+        address[][] memory list = IEdgeFactory(address(vaultFactory)).getDeploymentsListSlice(0, type(uint256).max);
 
         uint256 count;
         for (uint256 i = 0; i < list.length; ++i) {
@@ -45,7 +43,7 @@ contract EdgeFactoryPerspective is BasePerspective {
 
     /// @inheritdoc BasePerspective
     function verifiedArray() public view virtual override returns (address[] memory) {
-        address[][] memory list = IEdgeFactory(address(vaultFactory)).getProxyListSlice(0, type(uint256).max);
+        address[][] memory list = IEdgeFactory(address(vaultFactory)).getDeploymentsListSlice(0, type(uint256).max);
 
         uint256 count;
         for (uint256 i = 0; i < list.length; ++i) {
