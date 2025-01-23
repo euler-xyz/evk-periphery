@@ -81,6 +81,8 @@ interface IEdgeFactory {
     /// @dev After deployment, governance is permanently renounced
     /// @dev Reverts if:
     /// @dev - Less than 2 vaults are specified in params
+    /// @return The deployed router contract
+    /// @return An array of vault addresses in the market
     function deploy(DeployParams calldata params) external returns (address, address[] memory);
 
     /// @notice The factory contract for deploying vaults

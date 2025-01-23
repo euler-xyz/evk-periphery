@@ -36,7 +36,7 @@ contract EdgeFactory is IEdgeFactory {
     /// @notice Address of the escrowed collateral perspective contract
     address public immutable escrowedCollateralPerspective;
 
-    /// @notice Mapping from vault address to whether it was
+    /// @notice Mapping from vault address to whether it was deployed by this factory
     mapping(address => bool) public isDeployed;
 
     /// @notice Array of all Edge market deployments.
