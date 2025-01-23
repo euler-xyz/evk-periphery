@@ -208,7 +208,7 @@ abstract contract ScriptExtended is Script {
     }
 
     function getBridgeConfigCacheJsonFilePath(string memory jsonFile) internal view returns (string memory) {
-        return string.concat(getAddressesDirPath(), "../config/bridge", jsonFile);
+        return string.concat(getAddressesDirPath(), "../config/bridge/", jsonFile);
     }
 
     function getBridgeConfigCacheJson(string memory jsonFile) internal view returns (string memory) {
