@@ -1191,12 +1191,12 @@ while true; do
             fi
 
             if [ -z "$evc" ] || [ "$evc" == "$addressZero" ]; then
-                read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+                read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3 or look up https://docs.oku.trade/home/extra-information/deployed-contracts): " permit2
             fi
             
             if [ -z "$swapper" ] || [ "$swapper" == "$addressZero" ]; then
-                read -p "Enter the Uniswap V2 Router 02 address (look up: https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
-                read -p "Enter the Uniswap V3 Router address (look up: https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
+                read -p "Enter the Uniswap V2 Router 02 address (default: address(0) or look up https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
+                read -p "Enter the Uniswap V3 Router address (default: address(0) or look up https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
             fi
             
             if [ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]; then
