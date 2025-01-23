@@ -1204,11 +1204,6 @@ while true; do
 
             if [ -z "$oftAdapter" ] || [ "$oftAdapter" == "$addressZero" ]; then
                 read -p "Should deploy OFT Adapter? (y/n) (default: n): " deploy_oft
-
-                if [ "$deploy_oft" == "y" ]; then
-                    read -p "Enter the number of send confirmations from the deployment chain to the hub chain (look up: https://layerzeroscan.com/tools/defaults?version=V2): " send_confirmations
-                    read -p "Enter the number of receive confirmations from the hub chain to the deployment chain (look up: https://layerzeroscan.com/tools/defaults?version=V2): " receive_confirmations
-                fi
             fi
 
             multisig_dao=${multisig_dao:-$addressZero}
@@ -1221,8 +1216,6 @@ while true; do
             uniswap_router_v3=${uniswap_router_v3:-$addressZero}
             init_price=${init_price:-1000000000000000000}
             deploy_oft=${deploy_oft:-n}
-            send_confirmations=${send_confirmations:-0}
-            receive_confirmations=${receive_confirmations:-0}
 
             if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
@@ -1241,8 +1234,6 @@ while true; do
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
                 --arg initPrice "$init_price" \
                 --argjson deployOFT "$(jq -n --argjson val \"$deploy_oft\" 'if $val == "y" then true else false end')" \
-                --arg sendConfirmations "$send_confirmations" \
-                --arg receiveConfirmations "$receive_confirmations" \
                 '{
                     multisigDAO: $multisigDAO,
                     multisigLabs: $multisigLabs,
@@ -1253,9 +1244,7 @@ while true; do
                     uniswapV2Router: $uniswapRouterV2,
                     uniswapV3Router: $uniswapRouterV3,
                     feeFlowInitPrice: $initPrice,
-                    deployOFT: $deployOFT,
-                    sendConfirmations: $sendConfirmations,
-                    receiveConfirmations: $receiveConfirmations
+                    deployOFT: $deployOFT
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         51)

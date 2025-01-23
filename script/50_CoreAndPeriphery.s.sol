@@ -89,8 +89,6 @@ contract CoreAndPeriphery is BatchBuilder {
         address uniswapV3Router;
         uint256 feeFlowInitPrice;
         bool deployOFT;
-        uint256 sendConfirmations;
-        uint256 receiveConfirmations;
     }
 
     constructor() {
@@ -121,9 +119,7 @@ contract CoreAndPeriphery is BatchBuilder {
             uniswapV2Router: vm.parseJsonAddress(json, ".uniswapV2Router"),
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
             feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice"),
-            deployOFT: vm.parseJsonBool(json, ".deployOFT"),
-            sendConfirmations: vm.parseJsonUint(json, ".sendConfirmations"),
-            receiveConfirmations: vm.parseJsonUint(json, ".receiveConfirmations")
+            deployOFT: vm.parseJsonBool(json, ".deployOFT")
         });
 
         if (
@@ -324,8 +320,6 @@ contract CoreAndPeriphery is BatchBuilder {
 
                 require(info.endpointV2 != address(0), "Failed to get OFT Adapter deployment info");
 
-                uint32 eid = IEndpointV2(info.endpointV2).eid();
-
                 if (block.chainid == HUB_CHAIN_ID) {
                     OFTAdapterUpgradeableDeployer deployer = new OFTAdapterUpgradeableDeployer();
                     bridgeAddresses.oftAdapter = deployer.deploy(tokenAddresses.EUL, info.endpointV2);
@@ -334,13 +328,21 @@ contract CoreAndPeriphery is BatchBuilder {
                     bridgeAddresses.oftAdapter = deployer.deploy(tokenAddresses.EUL, info.endpointV2);
                 }
 
+                require(
+                    address(IOAppCore(bridgeAddresses.oftAdapter).endpoint()) == info.endpointV2,
+                    "OFT Adapter endpoint mismatch"
+                );
+                require(IEndpointV2(info.endpointV2).eid() == info.eid, "OFT Adapter eid mismatch");
+
                 vm.startBroadcast();
                 console.log("    Setting OFT Adapter send library on chain %s", block.chainid);
-                IMessageLibManager(info.endpointV2).setSendLibrary(bridgeAddresses.oftAdapter, eid, info.sendUln302);
+                IMessageLibManager(info.endpointV2).setSendLibrary(
+                    bridgeAddresses.oftAdapter, info.eid, info.sendUln302
+                );
 
                 console.log("    Setting OFT Adapter receive library on chain %s", block.chainid);
                 IMessageLibManager(info.endpointV2).setReceiveLibrary(
-                    bridgeAddresses.oftAdapter, eid, info.receiveUln302, 0
+                    bridgeAddresses.oftAdapter, info.eid, info.receiveUln302, 0
                 );
                 vm.stopBroadcast();
 
@@ -348,39 +350,36 @@ contract CoreAndPeriphery is BatchBuilder {
                     BridgeAddresses memory bridgeAddressesHub =
                         deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", HUB_CHAIN_ID));
 
+                    LayerZeroUtil.DeploymentInfo memory infoHub = lzUtil.getDeploymentInfo(lzMetadata, HUB_CHAIN_ID);
+
                     require(
                         bridgeAddressesHub.oftAdapter != address(0),
                         "Failed to get bridge addresses for chain HUB_CHAIN_ID"
                     );
-                    require(selectFork(HUB_CHAIN_ID), "Failed to select fork for chain HUB_CHAIN_ID");
-
-                    uint32 eidHub = IEndpointV2(address(IOAppCore(bridgeAddressesHub.oftAdapter).endpoint())).eid();
-                    selectFork(DEFAULT_FORK_CHAIN_ID);
 
                     addBridgeConfigCache(block.chainid, HUB_CHAIN_ID);
 
-                    (, address[] memory dvns) = lzUtil.getDVNAddresses(lzMetadata, getAcceptedDVNs(), info.chainKey);
-                    require(dvns.length >= OFT_REQUIRED_DVNS_COUNT, "Failed to find enough accepted send DVNs");
-                    assembly {
-                        mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
-                    }
-
                     SetConfigParam[] memory params = new SetConfigParam[](2);
                     params[0] = SetConfigParam({
-                        eid: eidHub,
+                        eid: infoHub.eid,
                         configType: OFT_EXECUTOR_CONFIG_TYPE,
                         config: abi.encode(ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor}))
                     });
                     params[1] = SetConfigParam({
-                        eid: eidHub,
+                        eid: infoHub.eid,
                         configType: OFT_ULN_CONFIG_TYPE,
                         config: abi.encode(
                             UlnConfig({
-                                confirmations: uint64(input.sendConfirmations),
+                                confirmations: abi.decode(
+                                    IMessageLibManager(info.endpointV2).getConfig(
+                                        bridgeAddresses.oftAdapter, info.sendUln302, infoHub.eid, OFT_ULN_CONFIG_TYPE
+                                    ),
+                                    (UlnConfig)
+                                ).confirmations,
                                 requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
                                 optionalDVNCount: 0,
                                 optionalDVNThreshold: 0,
-                                requiredDVNs: dvns,
+                                requiredDVNs: getDVNAddresses(lzUtil, lzMetadata, info.chainKey),
                                 optionalDVNs: new address[](0)
                             })
                         )
@@ -393,24 +392,22 @@ contract CoreAndPeriphery is BatchBuilder {
                     IMessageLibManager(info.endpointV2).setConfig(bridgeAddresses.oftAdapter, info.sendUln302, params);
                     vm.stopBroadcast();
 
-                    LayerZeroUtil.DeploymentInfo memory infoHub = lzUtil.getDeploymentInfo(lzMetadata, HUB_CHAIN_ID);
-                    (, dvns) = lzUtil.getDVNAddresses(lzMetadata, getAcceptedDVNs(), infoHub.chainKey);
-                    require(dvns.length >= OFT_REQUIRED_DVNS_COUNT, "Failed to find enough accepted receive DVNs");
-                    assembly {
-                        mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
-                    }
-
                     params = new SetConfigParam[](1);
                     params[0] = SetConfigParam({
-                        eid: eidHub,
+                        eid: infoHub.eid,
                         configType: OFT_ULN_CONFIG_TYPE,
                         config: abi.encode(
                             UlnConfig({
-                                confirmations: uint64(input.receiveConfirmations),
+                                confirmations: abi.decode(
+                                    IMessageLibManager(info.endpointV2).getConfig(
+                                        bridgeAddresses.oftAdapter, info.receiveUln302, infoHub.eid, OFT_ULN_CONFIG_TYPE
+                                    ),
+                                    (UlnConfig)
+                                ).confirmations,
                                 requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
                                 optionalDVNCount: 0,
                                 optionalDVNThreshold: 0,
-                                requiredDVNs: dvns,
+                                requiredDVNs: getDVNAddresses(lzUtil, lzMetadata, infoHub.chainKey),
                                 optionalDVNs: new address[](0)
                             })
                         )
@@ -448,20 +445,17 @@ contract CoreAndPeriphery is BatchBuilder {
         if (block.chainid == HUB_CHAIN_ID && bridgeAddresses.oftAdapter != address(0)) {
             console.log("+ Attempting to configure OFT Adapter on chain %s", block.chainid);
 
-            address endpoint = address(IOAppCore(bridgeAddresses.oftAdapter).endpoint());
-            bool isDelegate = IEndpointV2(endpoint).delegates(bridgeAddresses.oftAdapter) == getDeployer();
+            LayerZeroUtil lzUtil = new LayerZeroUtil();
+            string memory lzMetadata = lzUtil.getRawMetadata();
+            LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(lzMetadata, block.chainid);
+            Vm.DirEntry[] memory entries = vm.readDir(getAddressesDirPath(), 1);
+            bool isDelegate = IEndpointV2(info.endpointV2).delegates(bridgeAddresses.oftAdapter) == getDeployer();
 
             if (!isDelegate) {
                 console.log(
                     "    ! The caller of this script is not the OFT Adapter delegate. Below OFT Adapter configuration must be done manually."
                 );
             }
-
-            LayerZeroUtil lzUtil = new LayerZeroUtil();
-            string memory lzMetadata = lzUtil.getRawMetadata();
-            LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(lzMetadata, block.chainid);
-
-            Vm.DirEntry[] memory entries = vm.readDir(getAddressesDirPath(), 1);
 
             for (uint256 i = 0; i < entries.length; ++i) {
                 if (!entries[i].isDir) continue;
@@ -480,56 +474,49 @@ contract CoreAndPeriphery is BatchBuilder {
                     continue;
                 }
 
-                if (!selectFork(chainIdOther)) {
-                    console.log("    ! Failed to select fork for chain %s. Skipping...", chainIdOther);
-                    continue;
-                }
+                if (addBridgeConfigCache(block.chainid, chainIdOther)) {
+                    if (!selectFork(chainIdOther)) {
+                        console.log("    ! Failed to select fork for chain %s. Skipping...", chainIdOther);
+                        removeBridgeConfigCache(block.chainid, chainIdOther);
+                        continue;
+                    }
+                    uint64 confirmationsSendOther = abi.decode(
+                        IMessageLibManager(infoOther.endpointV2).getConfig(
+                            bridgeAddressesOther.oftAdapter, infoOther.sendUln302, info.eid, OFT_ULN_CONFIG_TYPE
+                        ),
+                        (UlnConfig)
+                    ).confirmations;
+                    uint64 confirmationsReceiveOther = abi.decode(
+                        IMessageLibManager(infoOther.endpointV2).getConfig(
+                            bridgeAddressesOther.oftAdapter, infoOther.receiveUln302, info.eid, OFT_ULN_CONFIG_TYPE
+                        ),
+                        (UlnConfig)
+                    ).confirmations;
+                    selectFork(DEFAULT_FORK_CHAIN_ID);
 
-                uint32 eidOther = IEndpointV2(address(IOAppCore(bridgeAddressesOther.oftAdapter).endpoint())).eid();
-                uint64 confirmationsSendOther = abi.decode(
-                    IMessageLibManager(address(IOAppCore(bridgeAddressesOther.oftAdapter).endpoint())).getConfig(
-                        bridgeAddressesOther.oftAdapter, infoOther.sendUln302, eidOther, OFT_ULN_CONFIG_TYPE
-                    ),
-                    (UlnConfig)
-                ).confirmations;
-                uint64 confirmationsReceiveOther = abi.decode(
-                    IMessageLibManager(address(IOAppCore(bridgeAddressesOther.oftAdapter).endpoint())).getConfig(
-                        bridgeAddressesOther.oftAdapter, infoOther.receiveUln302, eidOther, OFT_ULN_CONFIG_TYPE
-                    ),
-                    (UlnConfig)
-                ).confirmations;
-                selectFork(DEFAULT_FORK_CHAIN_ID);
+                    address[] memory dvns = getDVNAddresses(lzUtil, lzMetadata, info.chainKey);
 
-                bool configurationNeeded = addBridgeConfigCache(block.chainid, chainIdOther);
+                    SetConfigParam[] memory params = new SetConfigParam[](2);
+                    params[0] = SetConfigParam({
+                        eid: infoOther.eid,
+                        configType: OFT_EXECUTOR_CONFIG_TYPE,
+                        config: abi.encode(ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor}))
+                    });
+                    params[1] = SetConfigParam({
+                        eid: infoOther.eid,
+                        configType: OFT_ULN_CONFIG_TYPE,
+                        config: abi.encode(
+                            UlnConfig({
+                                confirmations: confirmationsSendOther,
+                                requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
+                                optionalDVNCount: 0,
+                                optionalDVNThreshold: 0,
+                                requiredDVNs: dvns,
+                                optionalDVNs: new address[](0)
+                            })
+                        )
+                    });
 
-                (, address[] memory dvns) = lzUtil.getDVNAddresses(lzMetadata, getAcceptedDVNs(), info.chainKey);
-                require(dvns.length >= OFT_REQUIRED_DVNS_COUNT, "Failed to find enough accepted send DVNs");
-                assembly {
-                    mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
-                }
-
-                SetConfigParam[] memory params = new SetConfigParam[](2);
-                params[0] = SetConfigParam({
-                    eid: eidOther,
-                    configType: OFT_EXECUTOR_CONFIG_TYPE,
-                    config: abi.encode(ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor}))
-                });
-                params[1] = SetConfigParam({
-                    eid: eidOther,
-                    configType: OFT_ULN_CONFIG_TYPE,
-                    config: abi.encode(
-                        UlnConfig({
-                            confirmations: confirmationsSendOther,
-                            requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
-                            optionalDVNCount: 0,
-                            optionalDVNThreshold: 0,
-                            requiredDVNs: dvns,
-                            optionalDVNs: new address[](0)
-                        })
-                    )
-                });
-
-                if (configurationNeeded) {
                     console.log(
                         "    Attempting to set OFT Adapter send config on chain %s for chain %s",
                         block.chainid,
@@ -537,34 +524,30 @@ contract CoreAndPeriphery is BatchBuilder {
                     );
                     if (isDelegate) {
                         vm.startBroadcast();
-                        IMessageLibManager(endpoint).setConfig(bridgeAddresses.oftAdapter, info.sendUln302, params);
+                        IMessageLibManager(info.endpointV2).setConfig(
+                            bridgeAddresses.oftAdapter, info.sendUln302, params
+                        );
                         vm.stopBroadcast();
                     }
-                }
 
-                (, dvns) = lzUtil.getDVNAddresses(lzMetadata, getAcceptedDVNs(), infoOther.chainKey);
-                require(dvns.length >= OFT_REQUIRED_DVNS_COUNT, "Failed to find enough accepted receive DVNs");
-                assembly {
-                    mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
-                }
+                    dvns = getDVNAddresses(lzUtil, lzMetadata, infoOther.chainKey);
 
-                params = new SetConfigParam[](1);
-                params[0] = SetConfigParam({
-                    eid: eidOther,
-                    configType: OFT_ULN_CONFIG_TYPE,
-                    config: abi.encode(
-                        UlnConfig({
-                            confirmations: confirmationsReceiveOther,
-                            requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
-                            optionalDVNCount: 0,
-                            optionalDVNThreshold: 0,
-                            requiredDVNs: dvns,
-                            optionalDVNs: new address[](0)
-                        })
-                    )
-                });
+                    params = new SetConfigParam[](1);
+                    params[0] = SetConfigParam({
+                        eid: infoOther.eid,
+                        configType: OFT_ULN_CONFIG_TYPE,
+                        config: abi.encode(
+                            UlnConfig({
+                                confirmations: confirmationsReceiveOther,
+                                requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
+                                optionalDVNCount: 0,
+                                optionalDVNThreshold: 0,
+                                requiredDVNs: dvns,
+                                optionalDVNs: new address[](0)
+                            })
+                        )
+                    });
 
-                if (configurationNeeded) {
                     console.log(
                         "    Attempting to set OFT Adapter receive config on chain %s for chain %s",
                         block.chainid,
@@ -572,12 +555,12 @@ contract CoreAndPeriphery is BatchBuilder {
                     );
                     if (isDelegate) {
                         vm.startBroadcast();
-                        IMessageLibManager(endpoint).setConfig(bridgeAddresses.oftAdapter, info.receiveUln302, params);
+                        IMessageLibManager(info.endpointV2).setConfig(
+                            bridgeAddresses.oftAdapter, info.receiveUln302, params
+                        );
                         vm.stopBroadcast();
                     }
-                }
-
-                if (!configurationNeeded) {
+                } else {
                     console.log("    ! OFT Adapter already configured for chain %s. Skipping...", chainIdOther);
                 }
             }
@@ -818,5 +801,20 @@ contract CoreAndPeriphery is BatchBuilder {
             acceptedDVNs[i] = OFT_ACCEPTED_DVNS[i];
         }
         return acceptedDVNs;
+    }
+
+    function getDVNAddresses(LayerZeroUtil lzUtil, string memory metadata, string memory chainKey)
+        internal
+        view
+        returns (address[] memory)
+    {
+        (, address[] memory dvns) = lzUtil.getDVNAddresses(metadata, getAcceptedDVNs(), chainKey);
+        require(
+            dvns.length >= OFT_REQUIRED_DVNS_COUNT, string.concat("Failed to find enough accepted DVNs for ", chainKey)
+        );
+        assembly {
+            mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
+        }
+        return dvns;
     }
 }

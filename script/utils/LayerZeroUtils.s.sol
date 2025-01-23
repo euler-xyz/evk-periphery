@@ -9,11 +9,12 @@ contract LayerZeroUtil is ScriptExtended {
     using stdJson for string;
 
     struct DeploymentInfo {
+        uint32 eid;
+        string chainKey;
         address endpointV2;
         address executor;
         address sendUln302;
         address receiveUln302;
-        string chainKey;
     }
 
     function getRawMetadata() public returns (string memory) {
@@ -56,6 +57,12 @@ contract LayerZeroUtil is ScriptExtended {
                 }
 
                 result = DeploymentInfo({
+                    eid: uint32(
+                        vm.parseUint(
+                            metadata.readStringOr(string.concat(key, ".deployments[", vm.toString(j), "].eid"), "0")
+                        )
+                    ),
+                    chainKey: metadata.readStringOr(string.concat(key, ".deployments[", vm.toString(j), "].chainKey"), ""),
                     endpointV2: metadata.readAddressOr(
                         string.concat(key, ".deployments[", vm.toString(j), "].endpointV2.address"), address(0)
                     ),
@@ -67,8 +74,7 @@ contract LayerZeroUtil is ScriptExtended {
                     ),
                     receiveUln302: metadata.readAddressOr(
                         string.concat(key, ".deployments[", vm.toString(j), "].receiveUln302.address"), address(0)
-                    ),
-                    chainKey: metadata.readStringOr(string.concat(key, ".deployments[", vm.toString(j), "].chainKey"), "")
+                    )
                 });
 
                 break;
