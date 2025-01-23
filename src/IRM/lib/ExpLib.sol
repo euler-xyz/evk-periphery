@@ -6,6 +6,7 @@ pragma solidity ^0.8.0;
 /// @author Adapted from Morpho Labs
 /// (https://github.com/morpho-org/morpho-blue-irm/blob/a824ce06a53f45f12d0ffedb51abd756896b29fa/src/adaptive-curve-irm/libraries/ExpLib.sol)
 /// @notice Library to approximate the exponential function.
+
 library ExpLib {
     int256 internal constant WAD = 1e18;
     /// @dev ln(2).
@@ -18,6 +19,7 @@ library ExpLib {
     /// @dev The value of wExp(`WEXP_UPPER_BOUND`).
     int256 internal constant WEXP_UPPER_VALUE = 57716089161558943949701069502944508345128.422502756744429568e18;
     /// @dev Returns an approximation of exp.
+
     function wExp(int256 x) internal pure returns (int256) {
         unchecked {
             // If x < ln(1e-18) then exp(x) < 1e-18 so it is rounded to zero.
