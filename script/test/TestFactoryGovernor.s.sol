@@ -7,7 +7,7 @@ import {SafeTransaction, SafeUtil} from "../utils/SafeUtils.s.sol";
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {FactoryGovernor} from "../../src/Governor/FactoryGovernor.sol";
-import {IEVault} from "evk/EVault/IEVault.sol";
+import {IEVault, IGovernance} from "evk/EVault/IEVault.sol";
 
 contract TestFactoryGovernor is ScriptUtils {
 
@@ -279,6 +279,23 @@ contract TestFactoryGovernor is ScriptUtils {
         FactoryGovernor(governorAddresses.eVaultFactoryGovernor).unpause(coreAddresses.eVaultFactory);
 
         IEVault(EUSDC2).touch();
+
+
+        // VAULT GOVERNORS
+
+        // DAO can change the governor
+        address newAdmin = address(1111);
+
+        require(IEVault(EUSDC2).governorAdmin() != newAdmin);
+
+        vm.prank(multisigAddresses.DAO);
+        (bool success,) = governorAddresses.accessControlEmergencyGovernor
+            .call(abi.encodePacked(abi.encodeCall(IGovernance.setGovernorAdmin, (newAdmin)), EUSDC2));
+
+        require(success, "set admin");
+
+        require(IEVault(EUSDC2).governorAdmin() == newAdmin);
+
     }
 
     function simulatePendingTransactions() internal virtual {
