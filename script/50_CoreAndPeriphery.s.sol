@@ -22,7 +22,8 @@ import {
     EVKPerspectiveEscrowedCollateralDeployer,
     EVKPerspectiveEulerUngoverned0xDeployer,
     EVKPerspectiveEulerUngovernedNzxDeployer,
-    EulerEarnPerspectives
+    EulerEarnPerspectivesDeployer,
+    EdgePerspectivesDeployer
 } from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
@@ -33,6 +34,7 @@ import {
 } from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {NttManagerDeployer, WormholeTransceiverDeployer} from "./14_NTT.s.sol";
+import {EdgeFactoryDeployer} from "./15_EdgeFactory.s.sol";
 import {EulerEarnImplementation, IntegrationsParams} from "./20_EulerEarnImplementation.s.sol";
 import {EulerEarnFactory} from "./21_EulerEarnFactory.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
@@ -572,7 +574,7 @@ contract CoreAndPeriphery is BatchBuilder {
             peripheryAddresses.oracleRouterFactory == address(0)
                 && peripheryAddresses.oracleAdapterRegistry == address(0)
                 && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0)
-                && peripheryAddresses.irmRegistry == address(0)
+                && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
         ) {
             console.log("+ Deploying Periphery factories...");
             PeripheryFactories deployer = new PeripheryFactories();
@@ -581,6 +583,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 peripheryAddresses.oracleAdapterRegistry,
                 peripheryAddresses.externalVaultRegistry,
                 peripheryAddresses.kinkIRMFactory,
+                peripheryAddresses.adaptiveCurveIRMFactory,
                 peripheryAddresses.irmRegistry
             ) = deployer.deploy(coreAddresses.evc);
         } else {
@@ -696,13 +699,33 @@ contract CoreAndPeriphery is BatchBuilder {
             peripheryAddresses.eulerEarnFactoryPerspective == address(0)
                 && peripheryAddresses.eulerEarnGovernedPerspective == address(0)
         ) {
-            console.log("+ Deploying EulerEarnFactoryPerspective and EulerEarn GovernedPerspective...");
-            EulerEarnPerspectives deployer = new EulerEarnPerspectives();
+            console.log("+ Deploying EulerEarnFactoryPerspective and Euler Earn GovernedPerspective...");
+            EulerEarnPerspectivesDeployer deployer = new EulerEarnPerspectivesDeployer();
             address[] memory perspectives = deployer.deploy(coreAddresses.eulerEarnFactory);
             peripheryAddresses.eulerEarnFactoryPerspective = perspectives[0];
             peripheryAddresses.eulerEarnGovernedPerspective = perspectives[1];
         } else {
-            console.log("- At least one of the EulerEarn perspectives is already deployed. Skipping...");
+            console.log("- At least one of the Euler Earn perspectives is already deployed. Skipping...");
+        }
+
+        if (peripheryAddresses.edgeFactory == address(0)) {
+            console.log("+ Deploying EdgeFactory...");
+            EdgeFactoryDeployer deployer = new EdgeFactoryDeployer();
+            peripheryAddresses.edgeFactory = deployer.deploy(
+                coreAddresses.eVaultFactory,
+                peripheryAddresses.oracleRouterFactory,
+                peripheryAddresses.escrowedCollateralPerspective
+            );
+        } else {
+            console.log("- EdgeFactory already deployed. Skipping...");
+        }
+
+        if (peripheryAddresses.edgeFactoryPerspective == address(0)) {
+            console.log("+ Deploying EdgeFactoryPerspective...");
+            EdgePerspectivesDeployer deployer = new EdgePerspectivesDeployer();
+            peripheryAddresses.edgeFactoryPerspective = deployer.deploy(peripheryAddresses.edgeFactory)[0];
+        } else {
+            console.log("- EdgeFactoryPerspective already deployed. Skipping...");
         }
 
         if (peripheryAddresses.termsOfUseSigner == address(0)) {

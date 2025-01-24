@@ -68,6 +68,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address oracleAdapterRegistry;
         address externalVaultRegistry;
         address kinkIRMFactory;
+        address adaptiveCurveIRMFactory;
         address irmRegistry;
         address swapper;
         address swapVerifier;
@@ -79,6 +80,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address eulerUngovernedNzxPerspective;
         address eulerEarnFactoryPerspective;
         address eulerEarnGovernedPerspective;
+        address edgeFactory;
+        address edgeFactoryPerspective;
         address termsOfUseSigner;
     }
 
@@ -87,6 +90,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "oracleAdapterRegistry", Addresses.oracleAdapterRegistry);
         result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
         result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
+        result = vm.serializeAddress("peripheryAddresses", "adaptiveCurveIRMFactory", Addresses.adaptiveCurveIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "irmRegistry", Addresses.irmRegistry);
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
         result = vm.serializeAddress("peripheryAddresses", "swapVerifier", Addresses.swapVerifier);
@@ -108,6 +112,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress(
             "peripheryAddresses", "eulerEarnGovernedPerspective", Addresses.eulerEarnGovernedPerspective
         );
+        result = vm.serializeAddress("peripheryAddresses", "edgeFactory", Addresses.edgeFactory);
+        result = vm.serializeAddress("peripheryAddresses", "edgeFactoryPerspective", Addresses.edgeFactoryPerspective);
         result = vm.serializeAddress("peripheryAddresses", "termsOfUseSigner", Addresses.termsOfUseSigner);
     }
 
@@ -117,6 +123,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             oracleAdapterRegistry: getAddressFromJson(json, ".oracleAdapterRegistry"),
             externalVaultRegistry: getAddressFromJson(json, ".externalVaultRegistry"),
             kinkIRMFactory: getAddressFromJson(json, ".kinkIRMFactory"),
+            adaptiveCurveIRMFactory: getAddressFromJson(json, ".adaptiveCurveIRMFactory"),
             irmRegistry: getAddressFromJson(json, ".irmRegistry"),
             swapper: getAddressFromJson(json, ".swapper"),
             swapVerifier: getAddressFromJson(json, ".swapVerifier"),
@@ -128,6 +135,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             eulerUngovernedNzxPerspective: getAddressFromJson(json, ".eulerUngovernedNzxPerspective"),
             eulerEarnFactoryPerspective: getAddressFromJson(json, ".eulerEarnFactoryPerspective"),
             eulerEarnGovernedPerspective: getAddressFromJson(json, ".eulerEarnGovernedPerspective"),
+            edgeFactory: getAddressFromJson(json, ".edgeFactory"),
+            edgeFactoryPerspective: getAddressFromJson(json, ".edgeFactoryPerspective"),
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner")
         });
     }

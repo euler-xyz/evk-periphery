@@ -57,6 +57,8 @@ while true; do
     echo "11. Fee Flow"
     echo "12. Governors"
     echo "13. Terms of Use Signer"
+    echo "14. Bridging contracts"
+    echo "15. Edge factory"
     echo "---------------------------------"
     echo "20. EulerEarn implementation (modules and implementation contract)"
     echo "21. EulerEarn factory"
@@ -846,8 +848,9 @@ while true; do
             echo "2. EVK Escrowed Collateral Perspective"
             echo "3. EVK Euler Ungoverned 0x Perspective"
             echo "4. EVK Euler Ungoverned nzx Perspective"
-            echo "5. Euler Earn Perspective"
-            read -p "Enter your choice (0-5): " perspectives_choice
+            echo "5. Euler Earn Perspectives"
+            echo "6. Edge Perspectives"
+            read -p "Enter your choice (0-6): " perspectives_choice
 
             baseName=09_Perspectives
 
@@ -979,7 +982,7 @@ while true; do
                 5)
                     echo "Deploying Euler Earn Perspectives..."
 
-                    scriptName=${baseName}.s.sol:EulerEarnPerspectives
+                    scriptName=${baseName}.s.sol:EulerEarnPerspectivesDeployer
                     jsonName=09_EulerEarnPerspectives
 
                     read -p "Enter the Euler Earn Factory address: " euler_earn_factory
@@ -988,6 +991,20 @@ while true; do
                         --arg eulerEarnFactory "$euler_earn_factory" \
                         '{
                             eulerEarnFactory: $eulerEarnFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                6)
+                    echo "Deploying Edge Perspectives..."
+
+                    scriptName=${baseName}.s.sol:EdgePerspectivesDeployer
+                    jsonName=09_EdgePerspectives
+
+                    read -p "Enter the Edge Factory address: " edge_factory
+
+                    jq -n \
+                        --arg edgeFactory "$edge_factory" \
+                        '{
+                            edgeFactory: $edgeFactory
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
@@ -1111,6 +1128,34 @@ while true; do
                 --arg evc "$evc" \
                 '{
                     evc: $evc
+                }' --indent 4 > script/${jsonName}_input.json
+            ;;
+        14)
+            echo "Deploying Bridging contracts..."
+            echo "Option unavailable!"
+            
+            baseName=skip
+
+            ;;
+        15)
+            echo "Deploying Edge Factory..."
+
+            baseName=15_EdgeFactory
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            read -p "Enter the EVault Factory address: " evault_factory
+            read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+            read -p "Enter the Escrowed Collateral Perspective address: " escrowed_collateral_perspective
+
+            jq -n \
+                --arg eVaultFactory "$evault_factory" \
+                --arg oracleRouterFactory "$oracle_router_factory" \
+                --arg escrowedCollateralPerspective "$escrowed_collateral_perspective" \
+                '{
+                    eVaultFactory: $eVaultFactory,
+                    oracleRouterFactory: $oracleRouterFactory,
+                    escrowedCollateralPerspective: $escrowedCollateralPerspective
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         20)
