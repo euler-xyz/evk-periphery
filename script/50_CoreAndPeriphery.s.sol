@@ -101,21 +101,33 @@ contract CoreAndPeriphery is BatchBuilder {
 
     AdaptiveCurveIRMParams[] internal DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS;
 
+    int256 internal constant YEAR = 365 days;
+    int256 internal constant IRM_TARGET_UTILIZATION = 0.9e18;
+    int256[5] internal IRM_INITIAL_RATES_AT_TARGET =
+        [0.01e18 / YEAR, 0.02e18 / YEAR, 0.04e18 / YEAR, 0.08e18 / YEAR, 0.16e18 / YEAR];
+    int256 internal constant IRM_MIN_RATE_AT_TARGET = 0.001e18 / YEAR;
+    int256 internal constant IRM_MAX_RATE_AT_TARGET = 2e18 / YEAR;
+    int256 internal constant IRM_CURVE_STEEPNESS = 4e18;
+    int256 internal constant IRM_ADJUSTMENT_SPEED = 50e18 / YEAR;
+
     constructor() {
         for (uint256 i = 0; i < EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS.length; ++i) {
             uint256 chainId = EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS[i];
             EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON[chainId] = true;
         }
-        DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.push(
-            AdaptiveCurveIRMParams({
-                targetUtilization: 0,
-                initialRateAtTarget: 0,
-                minRateAtTarget: 0,
-                maxRateAtTarget: 0,
-                curveSteepness: 0,
-                adjustmentSpeed: 0
-            })
-        );
+
+        for (uint256 i = 0; i < IRM_INITIAL_RATES_AT_TARGET.length; ++i) {
+            DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.push(
+                AdaptiveCurveIRMParams({
+                    targetUtilization: IRM_TARGET_UTILIZATION,
+                    initialRateAtTarget: IRM_INITIAL_RATES_AT_TARGET[i],
+                    minRateAtTarget: IRM_MIN_RATE_AT_TARGET,
+                    maxRateAtTarget: IRM_MAX_RATE_AT_TARGET,
+                    curveSteepness: IRM_CURVE_STEEPNESS,
+                    adjustmentSpeed: IRM_ADJUSTMENT_SPEED
+                })
+            );
+        }
     }
 
     function run()
