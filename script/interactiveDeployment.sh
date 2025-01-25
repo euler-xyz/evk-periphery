@@ -560,6 +560,7 @@ while true; do
             echo "Deploying IRM..."
             echo "Select the type of IRM to deploy:"
             echo "0. Kink"
+            echo "1. Adaptive Curve"
             read -p "Enter your choice (0-0): " irm_choice
 
             baseName=04_IRM
@@ -568,7 +569,7 @@ while true; do
                 0)
                     echo "Deploying Kink IRM..."
                     
-                    scriptName=${baseName}.s.sol:KinkIRM
+                    scriptName=${baseName}.s.sol:KinkIRMDeployer
                     jsonName=04_KinkIRM
 
                     read -p "Enter the Kink IRM Factory address: " kinkIRMFactory
@@ -589,6 +590,38 @@ while true; do
                             slope1: $slope1,
                             slope2: $slope2,
                             kink: $kink
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Adaptive Curve IRM..."
+                    
+                    scriptName=${baseName}.s.sol:AdaptiveCurveIRMDeployer
+                    jsonName=04_AdaptiveCurveIRM
+
+                    read -p "Enter the Adaptive Curve IRM Factory address: " adaptiveCurveIRMFactory
+                    read -p "Enter target utilization: " target_utilization
+                    read -p "Enter initial rate at target: " initial_rate_at_target
+                    read -p "Enter min rate at target: " min_rate_at_target
+                    read -p "Enter max rate at target: " max_rate_at_target
+                    read -p "Enter curve steepness: " curve_steepness
+                    read -p "Enter adjustment speed: " adjustment_speed
+
+                    jq -n \
+                        --arg adaptiveCurveIRMFactory "$adaptiveCurveIRMFactory" \
+                        --arg targetUtilization "$target_utilization" \
+                        --arg initialRateAtTarget "$initial_rate_at_target" \
+                        --arg minRateAtTarget "$min_rate_at_target" \
+                        --arg maxRateAtTarget "$max_rate_at_target" \
+                        --arg curveSteepness "$curve_steepness" \
+                        --arg adjustmentSpeed "$adjustment_speed" \
+                        '{
+                            adaptiveCurveIRMFactory: $adaptiveCurveIRMFactory,
+                            targetUtilization: $targetUtilization,
+                            initialRateAtTarget: $initialRateAtTarget,
+                            minRateAtTarget: $minRateAtTarget,
+                            maxRateAtTarget: $maxRateAtTarget,
+                            curveSteepness: $curveSteepness,
+                            adjustmentSpeed: $adjustmentSpeed
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)

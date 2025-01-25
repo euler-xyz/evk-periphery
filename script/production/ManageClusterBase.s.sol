@@ -7,7 +7,7 @@ import {BatchBuilder} from "../utils/ScriptUtils.s.sol";
 import {SafeTransaction, SafeUtil} from "../utils/SafeUtils.s.sol";
 import {IRMLens} from "../../src/Lens/IRMLens.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
-import {KinkIRM} from "../04_IRM.s.sol";
+import {KinkIRMDeployer} from "../04_IRM.s.sol";
 import {EVaultDeployer, OracleRouterDeployer, EulerRouter} from "../07_EVault.s.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
 import {StubOracle} from "../utils/StubOracle.sol";
@@ -155,7 +155,7 @@ abstract contract ManageClusterBase is BatchBuilder {
 
         // deploy the IRMs
         {
-            KinkIRM deployer = new KinkIRM();
+            KinkIRMDeployer deployer = new KinkIRMDeployer();
             for (uint256 i = 0; i < cluster.assets.length; ++i) {
                 uint256[4] storage p = cluster.kinkIRMParams[cluster.assets[i]];
                 address irm = cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]];

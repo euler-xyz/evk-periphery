@@ -6,6 +6,7 @@ import {BatchBuilder, Vm, console} from "./utils/ScriptUtils.s.sol";
 import {ERC20BurnableMintableDeployer, RewardTokenDeployer} from "./00_ERC20.s.sol";
 import {Integrations} from "./01_Integrations.s.sol";
 import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
+import {AdaptiveCurveIRMDeployer} from "./04_IRM.s.sol";
 import {EVaultImplementation} from "./05_EVaultImplementation.s.sol";
 import {EVaultFactory} from "./06_EVaultFactory.s.sol";
 import {
@@ -41,6 +42,7 @@ import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {GovernorAccessControlEmergency} from "./../src/Governor/GovernorAccessControlEmergency.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
+import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
@@ -49,6 +51,30 @@ import {NttManager} from "native-token-transfers/NttManager/NttManager.sol";
 import {WormholeTransceiver} from "native-token-transfers/Transceiver/WormholeTransceiver/WormholeTransceiver.sol";
 
 contract CoreAndPeriphery is BatchBuilder {
+    struct Input {
+        address multisigDAO;
+        address multisigLabs;
+        address multisigSecurityCouncil;
+        address multisigSecurityPartnerA;
+        address multisigSecurityPartnerB;
+        address permit2;
+        address uniswapV2Router;
+        address uniswapV3Router;
+        address wormholeCoreBridge;
+        address wormholeRelayer;
+        address transceiverStructs;
+        uint256 feeFlowInitPrice;
+    }
+
+    struct AdaptiveCurveIRMParams {
+        int256 targetUtilization;
+        int256 initialRateAtTarget;
+        int256 minRateAtTarget;
+        int256 maxRateAtTarget;
+        int256 curveSteepness;
+        int256 adjustmentSpeed;
+    }
+
     mapping(uint256 chainId => bool isHarvestCoolDownCheckOn) internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON;
     uint256[1] internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS = [1];
 
@@ -73,26 +99,23 @@ contract CoreAndPeriphery is BatchBuilder {
     uint8 internal constant WORMHOLE_CONSISTENCY_LEVEL = 202;
     uint256 internal constant WORMHOLE_GAS_LIMIT = 500000;
 
-    struct Input {
-        address multisigDAO;
-        address multisigLabs;
-        address multisigSecurityCouncil;
-        address multisigSecurityPartnerA;
-        address multisigSecurityPartnerB;
-        address permit2;
-        address uniswapV2Router;
-        address uniswapV3Router;
-        address wormholeCoreBridge;
-        address wormholeRelayer;
-        address transceiverStructs;
-        uint256 feeFlowInitPrice;
-    }
+    AdaptiveCurveIRMParams[] internal DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS;
 
     constructor() {
         for (uint256 i = 0; i < EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS.length; ++i) {
             uint256 chainId = EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS[i];
             EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON[chainId] = true;
         }
+        DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.push(
+            AdaptiveCurveIRMParams({
+                targetUtilization: 0,
+                initialRateAtTarget: 0,
+                minRateAtTarget: 0,
+                maxRateAtTarget: 0,
+                curveSteepness: 0,
+                adjustmentSpeed: 0
+            })
+        );
     }
 
     function run()
@@ -753,7 +776,8 @@ contract CoreAndPeriphery is BatchBuilder {
         if (lensAddresses.irmLens == address(0)) {
             console.log("+ Deploying LensIRM...");
             LensIRMDeployer deployer = new LensIRMDeployer();
-            lensAddresses.irmLens = deployer.deploy(peripheryAddresses.kinkIRMFactory);
+            lensAddresses.irmLens =
+                deployer.deploy(peripheryAddresses.kinkIRMFactory, peripheryAddresses.adaptiveCurveIRMFactory);
         } else {
             console.log("- LensIRM already deployed. Skipping...");
         }
@@ -778,6 +802,44 @@ contract CoreAndPeriphery is BatchBuilder {
             lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.oracleLens, lensAddresses.utilsLens);
         } else {
             console.log("- EulerEarnVaultLens already deployed. Skipping...");
+        }
+
+        if (peripheryAddresses.adaptiveCurveIRMFactory != address(0) && peripheryAddresses.irmRegistry != address(0)) {
+            if (
+                SnapshotRegistry(peripheryAddresses.irmRegistry).getValidAddresses(
+                    address(0), address(0), block.timestamp
+                ).length == 0
+            ) {
+                address owner = SnapshotRegistry(peripheryAddresses.irmRegistry).owner();
+                if (owner == getDeployer() || (owner == getSafe() && isBatchViaSafe())) {
+                    console.log("+ Deploying default Adaptive Curve IRMs and adding them to the IRM registry...");
+                    AdaptiveCurveIRMDeployer deployer = new AdaptiveCurveIRMDeployer();
+                    for (uint256 i = 0; i < DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.length; ++i) {
+                        add(
+                            peripheryAddresses.irmRegistry,
+                            deployer.deploy(
+                                peripheryAddresses.adaptiveCurveIRMFactory,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].targetUtilization,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].initialRateAtTarget,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].minRateAtTarget,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].maxRateAtTarget,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].curveSteepness,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].adjustmentSpeed
+                            ),
+                            address(0),
+                            address(0)
+                        );
+                    }
+                } else {
+                    console.log(
+                        "    ! The deployer or specified Safe no longer has the IRM registry owner role to add the default IRMs. Skipping..."
+                    );
+                }
+            } else {
+                console.log("- Adaptive Curve IRMs already deployed and added to the IRM registry. Skipping...");
+            }
+        } else {
+            console.log("- Adaptive Curve IRM factory or IRM registry not deployed. Skipping...");
         }
 
         executeBatch();

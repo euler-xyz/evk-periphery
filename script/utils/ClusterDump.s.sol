@@ -20,8 +20,11 @@ contract ClusterDump is ScriptUtils {
 
     function dumpCluster(address[] memory vaults, address[] memory externalVaults) public {
         Lenses deployer = new Lenses();
-        address[] memory lenses =
-            deployer.execute(peripheryAddresses.oracleAdapterRegistry, peripheryAddresses.kinkIRMFactory);
+        address[] memory lenses = deployer.execute(
+            peripheryAddresses.oracleAdapterRegistry,
+            peripheryAddresses.kinkIRMFactory,
+            peripheryAddresses.adaptiveCurveIRMFactory
+        );
         address vaultLens = lenses[4];
 
         VaultInfoFull[] memory vaultInfo;

@@ -722,6 +722,10 @@ abstract contract BatchBuilder is ScriptUtils {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetResolvedVault, (vault, set)));
     }
 
+    function add(address snapshotRegistry, address element, address base, address quote) internal {
+        addBatchItem(snapshotRegistry, abi.encodeCall(SnapshotRegistry.add, (element, base, quote)));
+    }
+
     function setGovernorAdmin(address vault, address newGovernorAdmin) internal {
         addBatchItem(vault, abi.encodeCall(IEVault(vault).setGovernorAdmin, (newGovernorAdmin)));
     }
