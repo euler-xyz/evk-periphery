@@ -111,7 +111,7 @@ abstract contract SafeUtil is ScriptExtended {
 
         uint256 lastPendingNonce = abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0
             ? 0
-            : vm.parseJsonUint(string(response), resultsIndexKey(0, "nonce"));
+            : vm.parseJsonUint(string(response), _indexedKey(".results", 0, ".nonce"));
 
         uint256 stateNextNonce = getStatus(safe).nonce;
 
@@ -153,7 +153,7 @@ abstract contract SafeUtil is ScriptExtended {
         address[] memory delegates = new address[](count);
 
         for (uint256 i = 0; i < count; ++i) {
-            delegates[i] = vm.parseJsonAddress(string(response), resultsIndexKey(i, "delegate"));
+            delegates[i] = vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".delegate"));
         }
 
         return delegates;
@@ -171,7 +171,7 @@ abstract contract SafeUtil is ScriptExtended {
         uint256 counter = 0;
 
         for (uint256 i = 0; i < length; ++i) {
-            if (vm.parseJsonUint(string(response), resultsIndexKey(i, "nonce")) >= nonce) {
+            if (vm.parseJsonUint(string(response), _indexedKey(".results", i, ".nonce")) >= nonce) {
                 ++counter;
             }
         }
@@ -180,28 +180,28 @@ abstract contract SafeUtil is ScriptExtended {
         counter = 0;
         for (int256 index = int256(length - 1); index >= 0; --index) {
             uint256 i = uint256(index);
-            uint256 txNonce = vm.parseJsonUint(string(response), resultsIndexKey(i, "nonce"));
+            uint256 txNonce = vm.parseJsonUint(string(response), _indexedKey(".results", i, ".nonce"));
 
             if (txNonce < nonce) continue;
 
             transactions[counter] = Transaction({
-                safe: vm.parseJsonAddress(string(response), resultsIndexKey(i, "safe")),
+                safe: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".safe")),
                 sender: address(0),
-                to: vm.parseJsonAddress(string(response), resultsIndexKey(i, "to")),
-                value: vm.parseJsonUint(string(response), resultsIndexKey(i, "value")),
+                to: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".to")),
+                value: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".value")),
                 data: "",
-                operation: Operation(vm.parseJsonUint(string(response), resultsIndexKey(i, "operation"))),
-                safeTxGas: vm.parseJsonUint(string(response), resultsIndexKey(i, "safeTxGas")),
-                baseGas: vm.parseJsonUint(string(response), resultsIndexKey(i, "baseGas")),
-                gasPrice: vm.parseJsonUint(string(response), resultsIndexKey(i, "gasPrice")),
-                gasToken: vm.parseJsonAddress(string(response), resultsIndexKey(i, "gasToken")),
-                refundReceiver: vm.parseJsonAddress(string(response), resultsIndexKey(i, "refundReceiver")),
+                operation: Operation(vm.parseJsonUint(string(response), _indexedKey(".results", i, ".operation"))),
+                safeTxGas: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".safeTxGas")),
+                baseGas: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".baseGas")),
+                gasPrice: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".gasPrice")),
+                gasToken: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".gasToken")),
+                refundReceiver: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".refundReceiver")),
                 nonce: txNonce,
-                hash: vm.parseJsonBytes32(string(response), resultsIndexKey(i, "safeTxHash")),
+                hash: vm.parseJsonBytes32(string(response), _indexedKey(".results", i, ".safeTxHash")),
                 signature: ""
             });
 
-            try vm.parseJsonBytes(string(response), resultsIndexKey(i, "data")) returns (bytes memory data) {
+            try vm.parseJsonBytes(string(response), _indexedKey(".results", i, ".data")) returns (bytes memory data) {
                 transactions[counter].data = data;
             } catch {}
 
@@ -257,10 +257,6 @@ abstract contract SafeUtil is ScriptExtended {
             headersString = string.concat(headersString, "-H \"", headers[i], "\" ");
         }
         return headersString;
-    }
-
-    function resultsIndexKey(uint256 i, string memory key) private pure returns (string memory) {
-        return string.concat(".results[", vm.toString(i), "].", key);
     }
 }
 

@@ -274,4 +274,12 @@ abstract contract ScriptExtended is Script {
 
         return address(result);
     }
+
+    function _indexedKey(string memory preIndex, uint256 index, string memory postIndex)
+        internal
+        pure
+        returns (string memory)
+    {
+        return string.concat(preIndex, "[", vm.toString(index), "]", postIndex);
+    }
 }
