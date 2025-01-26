@@ -13,7 +13,9 @@ contract OFTAdapterUpgradeable is OFTAdapter {
     /// @notice Creates the OFTAdapterUpgradeable contract
     /// @param _token The address of the underlying ERC20 token
     /// @param _lzEndpoint The LayerZero endpoint address
-    constructor(address _token, address _lzEndpoint) OFTAdapter(_token, _lzEndpoint) {}
+    constructor(address _token, address _lzEndpoint) OFTAdapter(_token, _lzEndpoint) {
+        _disableInitializers();
+    }
 
     /// @notice Initializes the OFTAdapterUpgradeable contract
     /// @param _delegate The address of the delegate
