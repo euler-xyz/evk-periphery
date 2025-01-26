@@ -42,38 +42,28 @@ contract LayerZeroUtil is ScriptExtended {
 
         for (uint256 i = 0; i < keys.length; ++i) {
             string memory key = string.concat(".", keys[i]);
+            string memory deploymentsKey = string.concat(key, ".deployments");
 
             if (
                 metadata.readUintOr(string.concat(key, ".chainDetails.nativeChainId"), 0) != chainId
-                    || !vm.keyExists(metadata, string.concat(key, ".deployments"))
+                    || !vm.keyExists(metadata, deploymentsKey)
             ) continue;
 
-            uint256 deploymentsLength =
-                abi.decode(vm.parseJson(metadata, string.concat(key, ".deployments")), (string[])).length;
+            uint256 deploymentsLength = abi.decode(vm.parseJson(metadata, deploymentsKey), (string[])).length;
 
             for (uint256 j = 0; j < deploymentsLength; ++j) {
-                if (!vm.keyExists(metadata, string.concat(key, ".deployments[", vm.toString(j), "].endpointV2"))) {
+                if (!vm.keyExists(metadata, _indexedKey(deploymentsKey, j, ".endpointV2"))) {
                     continue;
                 }
 
                 result = DeploymentInfo({
-                    eid: uint32(
-                        vm.parseUint(
-                            metadata.readStringOr(string.concat(key, ".deployments[", vm.toString(j), "].eid"), "0")
-                        )
-                    ),
-                    chainKey: metadata.readStringOr(string.concat(key, ".deployments[", vm.toString(j), "].chainKey"), ""),
-                    endpointV2: metadata.readAddressOr(
-                        string.concat(key, ".deployments[", vm.toString(j), "].endpointV2.address"), address(0)
-                    ),
-                    executor: metadata.readAddressOr(
-                        string.concat(key, ".deployments[", vm.toString(j), "].executor.address"), address(0)
-                    ),
-                    sendUln302: metadata.readAddressOr(
-                        string.concat(key, ".deployments[", vm.toString(j), "].sendUln302.address"), address(0)
-                    ),
+                    eid: uint32(vm.parseUint(metadata.readStringOr(_indexedKey(deploymentsKey, j, ".eid"), "0"))),
+                    chainKey: metadata.readStringOr(_indexedKey(deploymentsKey, j, ".chainKey"), ""),
+                    endpointV2: metadata.readAddressOr(_indexedKey(deploymentsKey, j, ".endpointV2.address"), address(0)),
+                    executor: metadata.readAddressOr(_indexedKey(deploymentsKey, j, ".executor.address"), address(0)),
+                    sendUln302: metadata.readAddressOr(_indexedKey(deploymentsKey, j, ".sendUln302.address"), address(0)),
                     receiveUln302: metadata.readAddressOr(
-                        string.concat(key, ".deployments[", vm.toString(j), "].receiveUln302.address"), address(0)
+                        _indexedKey(deploymentsKey, j, ".receiveUln302.address"), address(0)
                     )
                 });
 

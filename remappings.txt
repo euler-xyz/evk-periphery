@@ -24,3 +24,4 @@ reward-streams/=lib/reward-streams/src/
 euler-earn/=lib/euler-earn/src/
 layerzero/oft-evm/=lib/layerzero-devtools/packages/oft-evm/contracts/
 layerzero/oft-evm-upgradeable/=lib/layerzero-devtools/packages/oft-evm-upgradeable/contracts/
+solidity-bytes-utils/=lib/solidity-bytes-utils/
