@@ -61,7 +61,7 @@ contract HookTarget is HookTargetAccessControl {
     /// @notice Checks the vault's debt status and mints debt tokens if needed
     /// @dev If the vault's total borrows exceeds the debt token supply, mints the difference to the treasury
     /// @return The function selector (0) to indicate successful execution
-    function checkVaultStatus() external returns (bytes4) {        
+    function checkVaultStatus() external returns (bytes4) {
         uint256 eVaultTotalDebt = eVault.totalBorrows();
         uint256 dTokenTotalDebt = dToken.totalSupply();
 

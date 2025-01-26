@@ -43,8 +43,8 @@ contract Cluster is ManageCluster {
         cluster.liquidationCoolOffTime = 1;
 
         // define hook target and hooked ops here. if needed to be defined per asset, populate the hookTargetOverride and hookedOpsOverride mappings
-        cluster.hookTarget = address(0); // TODO
-        cluster.hookedOps = OP_DEPOSIT | OP_MINT | OP_SKIM | OP_LIQUIDATE | OP_FLASHLOAN | OP_VAULT_STATUS_CHECK;
+        cluster.hookTargetOverride[USD0] = address(0); // TODO
+        cluster.hookedOpsOverride[USDO] = OP_DEPOSIT | OP_MINT | OP_SKIM | OP_LIQUIDATE | OP_FLASHLOAN | OP_VAULT_STATUS_CHECK;
 
         // define config flags here. if needed to be defined per asset, populate the configFlagsOverride mapping
         cluster.configFlags = 1;
