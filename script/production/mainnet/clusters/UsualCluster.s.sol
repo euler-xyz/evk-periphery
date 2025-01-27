@@ -35,6 +35,9 @@ contract Cluster is ManageCluster {
         // define unit of account here
         cluster.unitOfAccount = USD;
 
+        // define fee receiver here and interest fee here. if needed to be defined per asset, populate the feeReceiverOverride and interestFeeOverride mappings
+        cluster.feeReceiver = address(0);
+        cluster.interestFee = 0.1e4;
         //cluster.interestFeeOverride[USD0] = 0.04e4; // TODO
 
         // define liquidation cool off time here. if needed to be defined per asset, populate the liquidationCoolOffTimeOverride mapping
