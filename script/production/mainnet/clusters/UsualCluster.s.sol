@@ -48,8 +48,8 @@ contract Cluster is ManageCluster {
         cluster.configFlagsOverride[USD0] = CFG_DONT_SOCIALIZE_DEBT;
 
         // define oracle providers here. 
-        cluster.oracleProviders[USD0PlusPlus] = "FixedRateOracle";
-        cluster.oracleProviders[USD0        ] = "FixedRateOracle";
+        cluster.oracleProviders[USD0PlusPlus] = "0x16a8760feB814AfC9e3748d09A46f602C8Ade027";
+        cluster.oracleProviders[USD0        ] = "0x83e0698654dF4bC9F888c635ebE1382F0E4F7a61";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USD0PlusPlus] = type(uint256).max;
