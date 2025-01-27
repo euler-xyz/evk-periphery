@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {CrossAdapter} from "euler-price-oracle/adapter/CrossAdapter.sol";
 import {BatchBuilder} from "../utils/ScriptUtils.s.sol";
 import {SafeTransaction, SafeUtil} from "../utils/SafeUtils.s.sol";
@@ -20,6 +21,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         address vaultsGovernor;
         address[] assets;
         address[] vaults;
+        bool[] vaultUpgradable;
         address[] oracleRouters;
         uint32 rampDuration;
         uint16[][] ltvs;
@@ -131,7 +133,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                 if (cluster.vaults[i] == address(0)) {
                     cluster.vaults[i] = deployer.deploy(
                         coreAddresses.eVaultFactory,
-                        true,
+                        cluster.vaultUpgradable[i],
                         cluster.assets[i],
                         cluster.oracleRouters[i],
                         cluster.unitOfAccount
@@ -544,6 +546,12 @@ abstract contract ManageClusterBase is BatchBuilder {
             }
         }
 
+        cluster.vaultUpgradable = new bool[](cluster.assets.length);
+        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            cluster.vaultUpgradable[i] =
+                GenericFactory(coreAddresses.eVaultFactory).getProxyConfig(cluster.vaults[i]).upgradeable;
+        }
+
         for (uint256 i = 0; i < cluster.irms.length; ++i) {
             InterestRateModelDetailedInfo memory irmInfo =
                 IRMLens(lensAddresses.irmLens).getInterestRateModelInfo(cluster.irms[i]);
@@ -557,6 +565,13 @@ abstract contract ManageClusterBase is BatchBuilder {
 
         if (cluster.vaults.length == 0) {
             cluster.vaults = new address[](cluster.assets.length);
+        }
+
+        if (cluster.vaultUpgradable.length == 0) {
+            cluster.vaultUpgradable = new bool[](cluster.assets.length);
+            for (uint256 i = 0; i < cluster.vaultUpgradable.length; ++i) {
+                cluster.vaultUpgradable[i] = true;
+            }
         }
 
         if (cluster.oracleRouters.length == 0) {
@@ -597,6 +612,10 @@ abstract contract ManageClusterBase is BatchBuilder {
 
     function checkClusterDataSanity() private view {
         require(cluster.vaults.length == cluster.assets.length, "Vaults and assets length mismatch");
+        require(
+            cluster.vaultUpgradable.length == cluster.assets.length,
+            "Vaults upgradable array and assets length mismatch"
+        );
         require(cluster.oracleRouters.length == cluster.assets.length, "OracleRouters and assets length mismatch");
         require(cluster.irms.length == cluster.assets.length, "IRMs and assets length mismatch");
         require(cluster.ltvs.length == cluster.assets.length, "LTVs and assets length mismatch");
