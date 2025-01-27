@@ -22,32 +22,30 @@ contract Cluster is ManageCluster {
     }
 
     function configureCluster() internal override {
-
         // define the governors here
         cluster.oracleRoutersGovernor = getDeployer();
         cluster.vaultsGovernor = getDeployer();
 
+        // define whether the vaults are upgradable or not
+        cluster.vaultUpgradable = [
+            false,
+            false
+        ];
+
         // define unit of account here
         cluster.unitOfAccount = USD;
 
-        // define fee receiver here and interest fee here. if needed to be defined per asset, populate the feeReceiverOverride and interestFeeOverride mappings
-        cluster.feeReceiver = address(0);
-        cluster.interestFee = 0.1e4;
-
-        //cluster.interestFeeOverride[USD0] = 0.05e4;
-
-        // define max liquidation discount here. if needed to be defined per asset, populate the maxLiquidationDiscountOverride mapping
-        cluster.maxLiquidationDiscount = 0;
+        //cluster.interestFeeOverride[USD0] = 0.04e4; // TODO
 
         // define liquidation cool off time here. if needed to be defined per asset, populate the liquidationCoolOffTimeOverride mapping
-        cluster.liquidationCoolOffTime = 1;
+        cluster.liquidationCoolOffTimeOverride[USD0] = 1;
 
         // define hook target and hooked ops here. if needed to be defined per asset, populate the hookTargetOverride and hookedOpsOverride mappings
         cluster.hookTargetOverride[USD0] = address(0); // TODO
-        cluster.hookedOpsOverride[USDO] = OP_DEPOSIT | OP_MINT | OP_SKIM | OP_LIQUIDATE | OP_FLASHLOAN | OP_VAULT_STATUS_CHECK;
+        cluster.hookedOpsOverride[USD0] = OP_DEPOSIT | OP_MINT | OP_SKIM | OP_LIQUIDATE | OP_VAULT_STATUS_CHECK;
 
         // define config flags here. if needed to be defined per asset, populate the configFlagsOverride mapping
-        cluster.configFlags = 1;
+        cluster.configFlagsOverride[USD0] = CFG_DONT_SOCIALIZE_DEBT;
 
         // define oracle providers here. 
         cluster.oracleProviders[USD0PlusPlus] = "FixedRateOracle";
@@ -64,7 +62,7 @@ contract Cluster is ManageCluster {
         // define IRM classes here and assign them to the assets
         {
             // Base=5% APY,  Kink(100%)=5% APY  Max=5% APY
-            uint256[4] memory irm_fixed_rate = [uint256(1546098748700445000), uint256(0), uint256(0), uint256(type(uint32).max)];
+            uint256[4] memory irm_fixed_rate = [uint256(1546098755264741952), uint256(0), uint256(0), type(uint32).max];
 
             cluster.kinkIRMParams[USD0] = irm_fixed_rate;
         }
