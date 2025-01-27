@@ -685,6 +685,5 @@ abstract contract ManageClusterBase is BatchBuilder {
             "Invalid governors"
         );
         require(cluster.unitOfAccount != address(0), "Invalid unit of account");
-        require(cluster.maxLiquidationDiscount != 0, "Invalid max liquidation discount");
     }
 }
