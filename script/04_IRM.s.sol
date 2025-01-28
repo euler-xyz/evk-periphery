@@ -4,8 +4,9 @@ pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {EulerKinkIRMFactory} from "../src/IRMFactory/EulerKinkIRMFactory.sol";
+import {EulerIRMAdaptiveCurveFactory} from "../src/IRMFactory/EulerIRMAdaptiveCurveFactory.sol";
 
-contract KinkIRM is ScriptUtils {
+contract KinkIRMDeployer is ScriptUtils {
     function run() public broadcast returns (address irm) {
         string memory inputScriptFileName = "04_KinkIRM_input.json";
         string memory outputScriptFileName = "04_KinkIRM_output.json";
@@ -36,5 +37,68 @@ contract KinkIRM is ScriptUtils {
         returns (address irm)
     {
         irm = EulerKinkIRMFactory(kinkIRMFactory).deploy(baseRate, slope1, slope2, kink);
+    }
+}
+
+contract AdaptiveCurveIRMDeployer is ScriptUtils {
+    function run() public broadcast returns (address irm) {
+        string memory inputScriptFileName = "04_AdaptiveCurveIRM_input.json";
+        string memory outputScriptFileName = "04_AdaptiveCurveIRM_output.json";
+        string memory json = getScriptFile(inputScriptFileName);
+        address adaptiveCurveIRMFactory = vm.parseJsonAddress(json, ".adaptiveCurveIRMFactory");
+        int256 targetUtilization = vm.parseJsonInt(json, ".targetUtilization");
+        int256 initialRateAtTarget = vm.parseJsonInt(json, ".initialRateAtTarget");
+        int256 minRateAtTarget = vm.parseJsonInt(json, ".minRateAtTarget");
+        int256 maxRateAtTarget = vm.parseJsonInt(json, ".maxRateAtTarget");
+        int256 curveSteepness = vm.parseJsonInt(json, ".curveSteepness");
+        int256 adjustmentSpeed = vm.parseJsonInt(json, ".adjustmentSpeed");
+
+        irm = execute(
+            adaptiveCurveIRMFactory,
+            targetUtilization,
+            initialRateAtTarget,
+            minRateAtTarget,
+            maxRateAtTarget,
+            curveSteepness,
+            adjustmentSpeed
+        );
+
+        string memory object;
+        object = vm.serializeAddress("irm", "irm", irm);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(
+        address adaptiveCurveIRMFactory,
+        int256 targetUtilization,
+        int256 initialRateAtTarget,
+        int256 minRateAtTarget,
+        int256 maxRateAtTarget,
+        int256 curveSteepness,
+        int256 adjustmentSpeed
+    ) public broadcast returns (address irm) {
+        irm = execute(
+            adaptiveCurveIRMFactory,
+            targetUtilization,
+            initialRateAtTarget,
+            minRateAtTarget,
+            maxRateAtTarget,
+            curveSteepness,
+            adjustmentSpeed
+        );
+    }
+
+    function execute(
+        address adaptiveCurveIRMFactory,
+        int256 targetUtilization,
+        int256 initialRateAtTarget,
+        int256 minRateAtTarget,
+        int256 maxRateAtTarget,
+        int256 curveSteepness,
+        int256 adjustmentSpeed
+    ) public returns (address irm) {
+        irm = EulerIRMAdaptiveCurveFactory(adaptiveCurveIRMFactory).deploy(
+            targetUtilization, initialRateAtTarget, minRateAtTarget, maxRateAtTarget, curveSteepness, adjustmentSpeed
+        );
     }
 }

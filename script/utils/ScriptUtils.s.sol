@@ -71,6 +71,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address oracleAdapterRegistry;
         address externalVaultRegistry;
         address kinkIRMFactory;
+        address adaptiveCurveIRMFactory;
         address irmRegistry;
         address swapper;
         address swapVerifier;
@@ -82,6 +83,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address eulerUngovernedNzxPerspective;
         address eulerEarnFactoryPerspective;
         address eulerEarnGovernedPerspective;
+        address edgeFactory;
+        address edgeFactoryPerspective;
         address termsOfUseSigner;
     }
 
@@ -90,6 +93,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "oracleAdapterRegistry", Addresses.oracleAdapterRegistry);
         result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
         result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
+        result = vm.serializeAddress("peripheryAddresses", "adaptiveCurveIRMFactory", Addresses.adaptiveCurveIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "irmRegistry", Addresses.irmRegistry);
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
         result = vm.serializeAddress("peripheryAddresses", "swapVerifier", Addresses.swapVerifier);
@@ -111,6 +115,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress(
             "peripheryAddresses", "eulerEarnGovernedPerspective", Addresses.eulerEarnGovernedPerspective
         );
+        result = vm.serializeAddress("peripheryAddresses", "edgeFactory", Addresses.edgeFactory);
+        result = vm.serializeAddress("peripheryAddresses", "edgeFactoryPerspective", Addresses.edgeFactoryPerspective);
         result = vm.serializeAddress("peripheryAddresses", "termsOfUseSigner", Addresses.termsOfUseSigner);
     }
 
@@ -120,6 +126,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             oracleAdapterRegistry: getAddressFromJson(json, ".oracleAdapterRegistry"),
             externalVaultRegistry: getAddressFromJson(json, ".externalVaultRegistry"),
             kinkIRMFactory: getAddressFromJson(json, ".kinkIRMFactory"),
+            adaptiveCurveIRMFactory: getAddressFromJson(json, ".adaptiveCurveIRMFactory"),
             irmRegistry: getAddressFromJson(json, ".irmRegistry"),
             swapper: getAddressFromJson(json, ".swapper"),
             swapVerifier: getAddressFromJson(json, ".swapVerifier"),
@@ -131,6 +138,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             eulerUngovernedNzxPerspective: getAddressFromJson(json, ".eulerUngovernedNzxPerspective"),
             eulerEarnFactoryPerspective: getAddressFromJson(json, ".eulerEarnFactoryPerspective"),
             eulerEarnGovernedPerspective: getAddressFromJson(json, ".eulerEarnGovernedPerspective"),
+            edgeFactory: getAddressFromJson(json, ".edgeFactory"),
+            edgeFactoryPerspective: getAddressFromJson(json, ".edgeFactoryPerspective"),
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner")
         });
     }
@@ -371,8 +380,13 @@ abstract contract ScriptUtils is
         } else if (block.chainid == 43114) {
             return 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB;
         } else {
-            revert("getWETHAddress: Unsupported chain");
+            // test networks
+            if (block.chainid == 10143 || block.chainid == 80084) {
+                return address(0);
+            }
         }
+
+        revert("getWETHAddress: Unsupported chain");
     }
 
     function getValidAdapter(address base, address quote, string memory provider)
@@ -743,6 +757,10 @@ abstract contract BatchBuilder is ScriptUtils {
 
     function govSetResolvedVault(address oracleRouter, address vault, bool set) internal {
         addBatchItem(oracleRouter, abi.encodeCall(EulerRouter.govSetResolvedVault, (vault, set)));
+    }
+
+    function add(address snapshotRegistry, address element, address base, address quote) internal {
+        addBatchItem(snapshotRegistry, abi.encodeCall(SnapshotRegistry.add, (element, base, quote)));
     }
 
     function setGovernorAdmin(address vault, address newGovernorAdmin) internal {

@@ -56,6 +56,8 @@ while true; do
     echo "11. Fee Flow"
     echo "12. Governors"
     echo "13. Terms of Use Signer"
+    echo "14. Bridging contracts"
+    echo "15. Edge factory"
     echo "---------------------------------"
     echo "20. EulerEarn implementation (modules and implementation contract)"
     echo "21. EulerEarn factory"
@@ -557,6 +559,7 @@ while true; do
             echo "Deploying IRM..."
             echo "Select the type of IRM to deploy:"
             echo "0. Kink"
+            echo "1. Adaptive Curve"
             read -p "Enter your choice (0-0): " irm_choice
 
             baseName=04_IRM
@@ -565,7 +568,7 @@ while true; do
                 0)
                     echo "Deploying Kink IRM..."
                     
-                    scriptName=${baseName}.s.sol:KinkIRM
+                    scriptName=${baseName}.s.sol:KinkIRMDeployer
                     jsonName=04_KinkIRM
 
                     read -p "Enter the Kink IRM Factory address: " kinkIRMFactory
@@ -586,6 +589,38 @@ while true; do
                             slope1: $slope1,
                             slope2: $slope2,
                             kink: $kink
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                1)
+                    echo "Deploying Adaptive Curve IRM..."
+                    
+                    scriptName=${baseName}.s.sol:AdaptiveCurveIRMDeployer
+                    jsonName=04_AdaptiveCurveIRM
+
+                    read -p "Enter the Adaptive Curve IRM Factory address: " adaptiveCurveIRMFactory
+                    read -p "Enter target utilization: " target_utilization
+                    read -p "Enter initial rate at target: " initial_rate_at_target
+                    read -p "Enter min rate at target: " min_rate_at_target
+                    read -p "Enter max rate at target: " max_rate_at_target
+                    read -p "Enter curve steepness: " curve_steepness
+                    read -p "Enter adjustment speed: " adjustment_speed
+
+                    jq -n \
+                        --arg adaptiveCurveIRMFactory "$adaptiveCurveIRMFactory" \
+                        --arg targetUtilization "$target_utilization" \
+                        --arg initialRateAtTarget "$initial_rate_at_target" \
+                        --arg minRateAtTarget "$min_rate_at_target" \
+                        --arg maxRateAtTarget "$max_rate_at_target" \
+                        --arg curveSteepness "$curve_steepness" \
+                        --arg adjustmentSpeed "$adjustment_speed" \
+                        '{
+                            adaptiveCurveIRMFactory: $adaptiveCurveIRMFactory,
+                            targetUtilization: $targetUtilization,
+                            initialRateAtTarget: $initialRateAtTarget,
+                            minRateAtTarget: $minRateAtTarget,
+                            maxRateAtTarget: $maxRateAtTarget,
+                            curveSteepness: $curveSteepness,
+                            adjustmentSpeed: $adjustmentSpeed
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
@@ -845,8 +880,9 @@ while true; do
             echo "2. EVK Escrowed Collateral Perspective"
             echo "3. EVK Euler Ungoverned 0x Perspective"
             echo "4. EVK Euler Ungoverned nzx Perspective"
-            echo "5. Euler Earn Perspective"
-            read -p "Enter your choice (0-5): " perspectives_choice
+            echo "5. Euler Earn Perspectives"
+            echo "6. Edge Perspectives"
+            read -p "Enter your choice (0-6): " perspectives_choice
 
             baseName=09_Perspectives
 
@@ -978,7 +1014,7 @@ while true; do
                 5)
                     echo "Deploying Euler Earn Perspectives..."
 
-                    scriptName=${baseName}.s.sol:EulerEarnPerspectives
+                    scriptName=${baseName}.s.sol:EulerEarnPerspectivesDeployer
                     jsonName=09_EulerEarnPerspectives
 
                     read -p "Enter the Euler Earn Factory address: " euler_earn_factory
@@ -987,6 +1023,20 @@ while true; do
                         --arg eulerEarnFactory "$euler_earn_factory" \
                         '{
                             eulerEarnFactory: $eulerEarnFactory
+                        }' --indent 4 > script/${jsonName}_input.json
+                    ;;
+                6)
+                    echo "Deploying Edge Perspectives..."
+
+                    scriptName=${baseName}.s.sol:EdgePerspectivesDeployer
+                    jsonName=09_EdgePerspectives
+
+                    read -p "Enter the Edge Factory address: " edge_factory
+
+                    jq -n \
+                        --arg edgeFactory "$edge_factory" \
+                        '{
+                            edgeFactory: $edgeFactory
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 *)
@@ -1112,6 +1162,34 @@ while true; do
                     evc: $evc
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
+        14)
+            echo "Deploying Bridging contracts..."
+            echo "Option unavailable!"
+            
+            baseName=skip
+
+            ;;
+        15)
+            echo "Deploying Edge Factory..."
+
+            baseName=15_EdgeFactory
+            scriptName=${baseName}.s.sol
+            jsonName=$baseName
+
+            read -p "Enter the EVault Factory address: " evault_factory
+            read -p "Enter the Oracle Router Factory address: " oracle_router_factory
+            read -p "Enter the Escrowed Collateral Perspective address: " escrowed_collateral_perspective
+
+            jq -n \
+                --arg eVaultFactory "$evault_factory" \
+                --arg oracleRouterFactory "$oracle_router_factory" \
+                --arg escrowedCollateralPerspective "$escrowed_collateral_perspective" \
+                '{
+                    eVaultFactory: $eVaultFactory,
+                    oracleRouterFactory: $oracleRouterFactory,
+                    escrowedCollateralPerspective: $escrowedCollateralPerspective
+                }' --indent 4 > script/${jsonName}_input.json
+            ;;
         20)
             echo "Deploying Euler Earn implementation..."
 
@@ -1190,12 +1268,12 @@ while true; do
             fi
 
             if [ -z "$evc" ] || [ "$evc" == "$addressZero" ]; then
-                read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3): " permit2
+                read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3 or look up https://docs.oku.trade/home/extra-information/deployed-contracts): " permit2
             fi
             
             if [ -z "$swapper" ] || [ "$swapper" == "$addressZero" ]; then
-                read -p "Enter the Uniswap V2 Router 02 address (look up: https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
-                read -p "Enter the Uniswap V3 Router address (look up: https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
+                read -p "Enter the Uniswap V2 Router 02 address (default: address(0) or look up https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
+                read -p "Enter the Uniswap V3 Router address (default: address(0) or look up https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
             fi
             
             if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ]; then
