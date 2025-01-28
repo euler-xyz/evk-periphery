@@ -588,7 +588,7 @@ contract CoreAndPeriphery is BatchBuilder {
                             configType: OFT_ULN_CONFIG_TYPE,
                             config: abi.encode(
                                 UlnConfig({
-                                    confirmations: confirmationsSendOther,
+                                    confirmations: confirmationsReceiveOther,
                                     requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
                                     optionalDVNCount: 0,
                                     optionalDVNThreshold: 0,
@@ -621,7 +621,7 @@ contract CoreAndPeriphery is BatchBuilder {
                             configType: OFT_ULN_CONFIG_TYPE,
                             config: abi.encode(
                                 UlnConfig({
-                                    confirmations: confirmationsReceiveOther,
+                                    confirmations: confirmationsSendOther,
                                     requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
                                     optionalDVNCount: 0,
                                     optionalDVNThreshold: 0,
