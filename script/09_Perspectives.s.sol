@@ -10,6 +10,7 @@ import {GovernedPerspective} from "../src/Perspectives/deployed/GovernedPerspect
 import {EscrowedCollateralPerspective} from "../src/Perspectives/deployed/EscrowedCollateralPerspective.sol";
 import {EulerUngovernedPerspective} from "../src/Perspectives/deployed/EulerUngovernedPerspective.sol";
 import {EulerEarnFactoryPerspective} from "../src/Perspectives/deployed/EulerEarnFactoryPerspective.sol";
+import {EdgeFactoryPerspective} from "../src/Perspectives/deployed/EdgeFactoryPerspective.sol";
 
 contract EVKPerspectives is ScriptUtils {
     function run() public broadcast returns (address[] memory perspectives) {
@@ -414,7 +415,7 @@ contract EVKPerspectiveEulerUngovernedNzxDeployer is ScriptUtils {
     }
 }
 
-contract EulerEarnPerspectives is ScriptUtils {
+contract EulerEarnPerspectivesDeployer is ScriptUtils {
     function run() public broadcast returns (address[] memory perspectives) {
         string memory inputScriptFileName = "09_EulerEarnPerspectives_input.json";
         string memory outputScriptFileName = "09_EulerEarnPerspectives_output.json";
@@ -447,5 +448,31 @@ contract EulerEarnPerspectives is ScriptUtils {
         perspectives = new address[](2);
         perspectives[0] = eulerEarnFactoryPerspective;
         perspectives[1] = governedPerspective;
+    }
+}
+
+contract EdgePerspectivesDeployer is ScriptUtils {
+    function run() public broadcast returns (address[] memory perspectives) {
+        string memory inputScriptFileName = "09_EdgePerspectives_input.json";
+        string memory outputScriptFileName = "09_EdgePerspectives_output.json";
+        string memory json = getScriptFile(inputScriptFileName);
+        address edgeFactory = vm.parseJsonAddress(json, ".edgeFactory");
+
+        perspectives = execute(edgeFactory);
+
+        string memory object;
+        object = vm.serializeAddress("perspectives", "edgeFactoryPerspective", perspectives[0]);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address edgeFactory) public broadcast returns (address[] memory perspectives) {
+        perspectives = execute(edgeFactory);
+    }
+
+    function execute(address edgeFactory) public returns (address[] memory perspectives) {
+        address edgeFactoryPerspective = address(new EdgeFactoryPerspective(edgeFactory));
+
+        perspectives = new address[](1);
+        perspectives[0] = edgeFactoryPerspective;
     }
 }

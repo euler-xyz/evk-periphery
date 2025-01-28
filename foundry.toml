@@ -2,6 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+solc = "0.8.24"
 
 evm_version = "cancun"
 optimizer = true
@@ -29,7 +30,7 @@ ignore = [
     "script/production/mainnet/clusters/YieldCluster.s.sol",
     "script/production/base/clusters/BaseCluster.s.sol",
     "script/production/swell/clusters/SwellCluster.s.sol",
-    "script/production/swell/clusters/SwellETHCluster.s.sol",
+    "script/production/swell/clusters/SwellETHCluster.s.sol"
 ]
 
 [profile.default.fuzz]

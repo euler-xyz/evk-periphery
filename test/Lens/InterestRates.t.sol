@@ -8,6 +8,7 @@ import {RPow} from "../../lib/euler-vault-kit/src/EVault/shared/lib/RPow.sol";
 
 import "../../src/Lens/LensTypes.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
+import {EulerIRMAdaptiveCurveFactory} from "../../src/IRMFactory/EulerIRMAdaptiveCurveFactory.sol";
 import {AccountLens} from "../../src/Lens/AccountLens.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
 import {IRMLens} from "../../src/Lens/IRMLens.sol";
@@ -24,6 +25,7 @@ contract InterestRates is EVaultTestBase {
     address user3;
 
     EulerKinkIRMFactory public irmFactory;
+    EulerIRMAdaptiveCurveFactory public irmAdaptiveCurveFactory;
     AccountLens public accountLens;
     OracleLens public oracleLens;
     IRMLens public irmLens;
@@ -36,9 +38,10 @@ contract InterestRates is EVaultTestBase {
         super.setUp();
 
         irmFactory = new EulerKinkIRMFactory();
+        irmAdaptiveCurveFactory = new EulerIRMAdaptiveCurveFactory();
         accountLens = new AccountLens();
         oracleLens = new OracleLens(address(0));
-        irmLens = new IRMLens(address(irmFactory));
+        irmLens = new IRMLens(address(irmFactory), address(irmAdaptiveCurveFactory));
         utilsLens = new UtilsLens(address(oracleLens));
         vaultLens = new VaultLens(address(oracleLens), address(utilsLens), address(irmLens));
 

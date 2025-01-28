@@ -6,6 +6,7 @@ import {BatchBuilder, Vm, console} from "./utils/ScriptUtils.s.sol";
 import {ERC20BurnableMintableDeployer, RewardTokenDeployer} from "./00_ERC20.s.sol";
 import {Integrations} from "./01_Integrations.s.sol";
 import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
+import {AdaptiveCurveIRMDeployer} from "./04_IRM.s.sol";
 import {EVaultImplementation} from "./05_EVaultImplementation.s.sol";
 import {EVaultFactory} from "./06_EVaultFactory.s.sol";
 import {
@@ -22,7 +23,8 @@ import {
     EVKPerspectiveEscrowedCollateralDeployer,
     EVKPerspectiveEulerUngoverned0xDeployer,
     EVKPerspectiveEulerUngovernedNzxDeployer,
-    EulerEarnPerspectives
+    EulerEarnPerspectivesDeployer,
+    EdgePerspectivesDeployer
 } from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
@@ -33,12 +35,14 @@ import {
 } from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {NttManagerDeployer, WormholeTransceiverDeployer} from "./14_NTT.s.sol";
+import {EdgeFactoryDeployer} from "./15_EdgeFactory.s.sol";
 import {EulerEarnImplementation, IntegrationsParams} from "./20_EulerEarnImplementation.s.sol";
 import {EulerEarnFactory} from "./21_EulerEarnFactory.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {GovernorAccessControlEmergency} from "./../src/Governor/GovernorAccessControlEmergency.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
+import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
@@ -47,6 +51,30 @@ import {NttManager} from "native-token-transfers/NttManager/NttManager.sol";
 import {WormholeTransceiver} from "native-token-transfers/Transceiver/WormholeTransceiver/WormholeTransceiver.sol";
 
 contract CoreAndPeriphery is BatchBuilder {
+    struct Input {
+        address multisigDAO;
+        address multisigLabs;
+        address multisigSecurityCouncil;
+        address multisigSecurityPartnerA;
+        address multisigSecurityPartnerB;
+        address permit2;
+        address uniswapV2Router;
+        address uniswapV3Router;
+        address wormholeCoreBridge;
+        address wormholeRelayer;
+        address transceiverStructs;
+        uint256 feeFlowInitPrice;
+    }
+
+    struct AdaptiveCurveIRMParams {
+        int256 targetUtilization;
+        int256 initialRateAtTarget;
+        int256 minRateAtTarget;
+        int256 maxRateAtTarget;
+        int256 curveSteepness;
+        int256 adjustmentSpeed;
+    }
+
     mapping(uint256 chainId => bool isHarvestCoolDownCheckOn) internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON;
     uint256[1] internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS = [1];
 
@@ -71,25 +99,34 @@ contract CoreAndPeriphery is BatchBuilder {
     uint8 internal constant WORMHOLE_CONSISTENCY_LEVEL = 202;
     uint256 internal constant WORMHOLE_GAS_LIMIT = 500000;
 
-    struct Input {
-        address multisigDAO;
-        address multisigLabs;
-        address multisigSecurityCouncil;
-        address multisigSecurityPartnerA;
-        address multisigSecurityPartnerB;
-        address permit2;
-        address uniswapV2Router;
-        address uniswapV3Router;
-        address wormholeCoreBridge;
-        address wormholeRelayer;
-        address transceiverStructs;
-        uint256 feeFlowInitPrice;
-    }
+    AdaptiveCurveIRMParams[] internal DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS;
+
+    int256 internal constant YEAR = 365 days;
+    int256 internal constant IRM_TARGET_UTILIZATION = 0.9e18;
+    int256[5] internal IRM_INITIAL_RATES_AT_TARGET =
+        [0.01e18 / YEAR, 0.02e18 / YEAR, 0.04e18 / YEAR, 0.08e18 / YEAR, 0.16e18 / YEAR];
+    int256 internal constant IRM_MIN_RATE_AT_TARGET = 0.001e18 / YEAR;
+    int256 internal constant IRM_MAX_RATE_AT_TARGET = 2e18 / YEAR;
+    int256 internal constant IRM_CURVE_STEEPNESS = 4e18;
+    int256 internal constant IRM_ADJUSTMENT_SPEED = 50e18 / YEAR;
 
     constructor() {
         for (uint256 i = 0; i < EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS.length; ++i) {
             uint256 chainId = EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS[i];
             EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON[chainId] = true;
+        }
+
+        for (uint256 i = 0; i < IRM_INITIAL_RATES_AT_TARGET.length; ++i) {
+            DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.push(
+                AdaptiveCurveIRMParams({
+                    targetUtilization: IRM_TARGET_UTILIZATION,
+                    initialRateAtTarget: IRM_INITIAL_RATES_AT_TARGET[i],
+                    minRateAtTarget: IRM_MIN_RATE_AT_TARGET,
+                    maxRateAtTarget: IRM_MAX_RATE_AT_TARGET,
+                    curveSteepness: IRM_CURVE_STEEPNESS,
+                    adjustmentSpeed: IRM_ADJUSTMENT_SPEED
+                })
+            );
         }
     }
 
@@ -572,7 +609,7 @@ contract CoreAndPeriphery is BatchBuilder {
             peripheryAddresses.oracleRouterFactory == address(0)
                 && peripheryAddresses.oracleAdapterRegistry == address(0)
                 && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0)
-                && peripheryAddresses.irmRegistry == address(0)
+                && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
         ) {
             console.log("+ Deploying Periphery factories...");
             PeripheryFactories deployer = new PeripheryFactories();
@@ -581,6 +618,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 peripheryAddresses.oracleAdapterRegistry,
                 peripheryAddresses.externalVaultRegistry,
                 peripheryAddresses.kinkIRMFactory,
+                peripheryAddresses.adaptiveCurveIRMFactory,
                 peripheryAddresses.irmRegistry
             ) = deployer.deploy(coreAddresses.evc);
         } else {
@@ -588,36 +626,43 @@ contract CoreAndPeriphery is BatchBuilder {
         }
 
         if (peripheryAddresses.feeFlowController == address(0)) {
-            if (input.feeFlowInitPrice != 0) {
+            address paymentToken = nttAddresses.manager != address(0) && nttAddresses.transceiver != address(0)
+                ? tokenAddresses.EUL
+                : getWETHAddress();
+
+            if (input.feeFlowInitPrice != 0 && paymentToken != address(0)) {
                 console.log("+ Deploying FeeFlow...");
                 FeeFlow deployer = new FeeFlow();
                 peripheryAddresses.feeFlowController = deployer.deploy(
                     coreAddresses.evc,
                     input.feeFlowInitPrice,
-                    nttAddresses.manager != address(0) && nttAddresses.transceiver != address(0)
-                        ? tokenAddresses.EUL
-                        : getWETHAddress(),
+                    paymentToken,
                     multisigAddresses.DAO,
                     FEE_FLOW_EPOCH_PERIOD,
                     FEE_FLOW_PRICE_MULTIPLIER,
                     FEE_FLOW_MIN_INIT_PRICE
                 );
+            } else {
+                console.log("! feeFlowInitPrice or paymentToken is not set for FeeFlow deployment. Skipping...");
+            }
 
+            address feeReceiver = peripheryAddresses.feeFlowController == address(0)
+                ? multisigAddresses.DAO
+                : peripheryAddresses.feeFlowController;
+
+            if (ProtocolConfig(coreAddresses.protocolConfig).feeReceiver() != feeReceiver) {
                 if (ProtocolConfig(coreAddresses.protocolConfig).admin() == getDeployer()) {
                     startBroadcast();
-                    console.log(
-                        "    Setting ProtocolConfig fee receiver to the FeeFlowController address %s",
-                        peripheryAddresses.feeFlowController
-                    );
-                    ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(peripheryAddresses.feeFlowController);
+                    console.log("+ Setting ProtocolConfig fee receiver to the %s address", feeReceiver);
+                    ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(feeReceiver);
                     stopBroadcast();
                 } else {
                     console.log(
-                        "    ! The deployer no longer has the ProtocolConfig admin role to set the FeeFlowController address. This must be done manually. Skipping..."
+                        "! The deployer no longer has the ProtocolConfig admin role to set the fee receiver address. This must be done manually. Skipping..."
                     );
                 }
             } else {
-                console.log("! feeFlowInitPrice is not set for FeeFlow deployment. Skipping...");
+                console.log("- ProtocolConfig fee receiver is already set to the desired address. Skipping...");
             }
         } else {
             console.log("- FeeFlowController already deployed. Skipping...");
@@ -689,13 +734,33 @@ contract CoreAndPeriphery is BatchBuilder {
             peripheryAddresses.eulerEarnFactoryPerspective == address(0)
                 && peripheryAddresses.eulerEarnGovernedPerspective == address(0)
         ) {
-            console.log("+ Deploying EulerEarnFactoryPerspective and EulerEarn GovernedPerspective...");
-            EulerEarnPerspectives deployer = new EulerEarnPerspectives();
+            console.log("+ Deploying EulerEarnFactoryPerspective and Euler Earn GovernedPerspective...");
+            EulerEarnPerspectivesDeployer deployer = new EulerEarnPerspectivesDeployer();
             address[] memory perspectives = deployer.deploy(coreAddresses.eulerEarnFactory);
             peripheryAddresses.eulerEarnFactoryPerspective = perspectives[0];
             peripheryAddresses.eulerEarnGovernedPerspective = perspectives[1];
         } else {
-            console.log("- At least one of the EulerEarn perspectives is already deployed. Skipping...");
+            console.log("- At least one of the Euler Earn perspectives is already deployed. Skipping...");
+        }
+
+        if (peripheryAddresses.edgeFactory == address(0)) {
+            console.log("+ Deploying EdgeFactory...");
+            EdgeFactoryDeployer deployer = new EdgeFactoryDeployer();
+            peripheryAddresses.edgeFactory = deployer.deploy(
+                coreAddresses.eVaultFactory,
+                peripheryAddresses.oracleRouterFactory,
+                peripheryAddresses.escrowedCollateralPerspective
+            );
+        } else {
+            console.log("- EdgeFactory already deployed. Skipping...");
+        }
+
+        if (peripheryAddresses.edgeFactoryPerspective == address(0)) {
+            console.log("+ Deploying EdgeFactoryPerspective...");
+            EdgePerspectivesDeployer deployer = new EdgePerspectivesDeployer();
+            peripheryAddresses.edgeFactoryPerspective = deployer.deploy(peripheryAddresses.edgeFactory)[0];
+        } else {
+            console.log("- EdgeFactoryPerspective already deployed. Skipping...");
         }
 
         if (peripheryAddresses.termsOfUseSigner == address(0)) {
@@ -723,7 +788,8 @@ contract CoreAndPeriphery is BatchBuilder {
         if (lensAddresses.irmLens == address(0)) {
             console.log("+ Deploying LensIRM...");
             LensIRMDeployer deployer = new LensIRMDeployer();
-            lensAddresses.irmLens = deployer.deploy(peripheryAddresses.kinkIRMFactory);
+            lensAddresses.irmLens =
+                deployer.deploy(peripheryAddresses.kinkIRMFactory, peripheryAddresses.adaptiveCurveIRMFactory);
         } else {
             console.log("- LensIRM already deployed. Skipping...");
         }
@@ -748,6 +814,44 @@ contract CoreAndPeriphery is BatchBuilder {
             lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.oracleLens, lensAddresses.utilsLens);
         } else {
             console.log("- EulerEarnVaultLens already deployed. Skipping...");
+        }
+
+        if (peripheryAddresses.adaptiveCurveIRMFactory != address(0) && peripheryAddresses.irmRegistry != address(0)) {
+            if (
+                SnapshotRegistry(peripheryAddresses.irmRegistry).getValidAddresses(
+                    address(0), address(0), block.timestamp
+                ).length == 0
+            ) {
+                address owner = SnapshotRegistry(peripheryAddresses.irmRegistry).owner();
+                if (owner == getDeployer() || (owner == getSafe() && isBatchViaSafe())) {
+                    console.log("+ Deploying default Adaptive Curve IRMs and adding them to the IRM registry...");
+                    AdaptiveCurveIRMDeployer deployer = new AdaptiveCurveIRMDeployer();
+                    for (uint256 i = 0; i < DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.length; ++i) {
+                        add(
+                            peripheryAddresses.irmRegistry,
+                            deployer.deploy(
+                                peripheryAddresses.adaptiveCurveIRMFactory,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].targetUtilization,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].initialRateAtTarget,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].minRateAtTarget,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].maxRateAtTarget,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].curveSteepness,
+                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].adjustmentSpeed
+                            ),
+                            address(0),
+                            address(0)
+                        );
+                    }
+                } else {
+                    console.log(
+                        "    ! The deployer or specified Safe no longer has the IRM registry owner role to add the default IRMs. Skipping..."
+                    );
+                }
+            } else {
+                console.log("- Adaptive Curve IRMs already deployed and added to the IRM registry. Skipping...");
+            }
+        } else {
+            console.log("- Adaptive Curve IRM factory or IRM registry not deployed. Skipping...");
         }
 
         executeBatch();

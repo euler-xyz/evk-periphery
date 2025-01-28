@@ -11,8 +11,8 @@ import {BasePerspective} from "../implementation/BasePerspective.sol";
 /// @notice A contract that verifies whether a vault was deployed by the Edge Factory.
 contract EdgeFactoryPerspective is BasePerspective {
     /// @notice Creates a new EdgeFactoryPerspective instance.
-    /// @param vaultFactory_ The address of the GenericFactory contract.
-    constructor(address vaultFactory_) BasePerspective(vaultFactory_) {}
+    /// @param edgeFactory_ The address of the EdgeFactory contract.
+    constructor(address edgeFactory_) BasePerspective(edgeFactory_) {}
 
     /// @inheritdoc BasePerspective
     function name() public pure virtual override returns (string memory) {

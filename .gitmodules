@@ -28,6 +28,3 @@
 [submodule "lib/euler-earn"]
 	path = lib/euler-earn
 	url = https://github.com/euler-xyz/euler-earn
-[submodule "lib/morpho-blue-irm"]
-	path = lib/morpho-blue-irm
-	url = https://github.com/morpho-org/morpho-blue-irm
