@@ -328,6 +328,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(lzMetadata, block.chainid);
 
                 require(info.endpointV2 != address(0), "Failed to get OFT Adapter deployment info");
+                require(info.eid >= 30000 && info.eid < 40000, "eid must indicate mainnet");
 
                 if (block.chainid == EUL_HUB_CHAIN_ID) {
                     OFTAdapterUpgradeableDeployer deployer = new OFTAdapterUpgradeableDeployer();
