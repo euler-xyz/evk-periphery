@@ -50,6 +50,8 @@ import {TimelockController} from "openzeppelin-contracts/governance/TimelockCont
 import {NttManager} from "native-token-transfers/NttManager/NttManager.sol";
 import {WormholeTransceiver} from "native-token-transfers/Transceiver/WormholeTransceiver/WormholeTransceiver.sol";
 
+import {EulerIRMAdaptiveCurveFactory} from "../src/IRMFactory/EulerIRMAdaptiveCurveFactory.sol";
+
 contract CoreAndPeriphery is BatchBuilder {
     struct Input {
         address multisigDAO;
@@ -623,6 +625,13 @@ contract CoreAndPeriphery is BatchBuilder {
             ) = deployer.deploy(coreAddresses.evc);
         } else {
             console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
+        }
+
+        if (peripheryAddresses.adaptiveCurveIRMFactory == address(0)) {
+            startBroadcast();
+            console.log("+ Deploying EulerIRMAdaptiveCurveFactory...");
+            peripheryAddresses.adaptiveCurveIRMFactory = address(new EulerIRMAdaptiveCurveFactory());
+            stopBroadcast();
         }
 
         if (peripheryAddresses.feeFlowController == address(0)) {
