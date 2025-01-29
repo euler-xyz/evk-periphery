@@ -488,6 +488,17 @@ contract CoreAndPeriphery is BatchBuilder {
                         {
                             vm.startBroadcast();
                             console.log(
+                                "    Setting OFT Adapter peer on chain %s for chain %s", block.chainid, hubChainId
+                            );
+                            IOAppCore(bridgeAddresses.oftAdapter).setPeer(
+                                infoHub.eid, bytes32(uint256(uint160(bridgeAddressesHub.oftAdapter)))
+                            );
+                            vm.stopBroadcast();
+                        }
+
+                        {
+                            vm.startBroadcast();
+                            console.log(
                                 "    Setting OFT Adapter enforced options on chain %s for chain %s",
                                 block.chainid,
                                 hubChainId
@@ -641,6 +652,21 @@ contract CoreAndPeriphery is BatchBuilder {
                             vm.startBroadcast();
                             IMessageLibManager(info.endpointV2).setConfig(
                                 bridgeAddresses.oftAdapter, info.receiveUln302, params
+                            );
+                            vm.stopBroadcast();
+                        }
+                    }
+
+                    {
+                        console.log(
+                            "    Attempting to set OFT Adapter peer on chain %s for chain %s",
+                            block.chainid,
+                            chainIdOther
+                        );
+                        if (isDelegate) {
+                            vm.startBroadcast();
+                            IOAppCore(bridgeAddresses.oftAdapter).setPeer(
+                                infoOther.eid, bytes32(uint256(uint160(bridgeAddressesOther.oftAdapter)))
                             );
                             vm.stopBroadcast();
                         }
