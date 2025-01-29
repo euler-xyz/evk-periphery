@@ -46,6 +46,7 @@ import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
 import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
+import {Arrays} from "openzeppelin-contracts/utils/Arrays.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {ILayerZeroEndpointV2, IOAppCore} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
@@ -981,7 +982,7 @@ contract CoreAndPeriphery is BatchBuilder {
         assembly {
             mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
         }
-        return dvns;
+        return Arrays.sort(dvns);
     }
 
     function getEnforcedOptions(uint32 eid) internal pure returns (EnforcedOptionParam[] memory) {

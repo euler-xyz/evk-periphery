@@ -1281,7 +1281,7 @@ while true; do
             fi
 
             if [ -z "$oftAdapter" ] || [ "$oftAdapter" == "$addressZero" ]; then
-                read -p "Should deploy OFT Adapter? (y/n) (default: n): " deploy_oft
+                read -p "Should deploy and configure OFT Adapter? (y/n) (default: n): " deploy_oft
             fi
 
             multisig_dao=${multisig_dao:-$addressZero}
