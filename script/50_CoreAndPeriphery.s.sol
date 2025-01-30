@@ -68,6 +68,8 @@ interface IEndpointV2 is ILayerZeroEndpointV2 {
 }
 
 contract CoreAndPeriphery is BatchBuilder {
+    using OptionsBuilder for bytes;
+
     struct Input {
         address multisigDAO;
         address multisigLabs;
@@ -106,7 +108,8 @@ contract CoreAndPeriphery is BatchBuilder {
 
     uint16 internal constant OFT_MSG_TYPE_SEND = 1;
     uint16 internal constant OFT_MSG_TYPE_SEND_AND_CALL = 2;
-    uint128 internal constant OFT_ENFORCED_GAS_LIMIT = 100000;
+    uint128 internal constant OFT_ENFORCED_GAS_LIMIT_SEND = 100000;
+    uint128 internal constant OFT_ENFORCED_GAS_LIMIT_CALL = 100000;
     uint32 internal constant OFT_EXECUTOR_CONFIG_TYPE = 1;
     uint32 internal constant OFT_ULN_CONFIG_TYPE = 2;
     uint32 internal constant OFT_MAX_MESSAGE_SIZE = 10000;
@@ -1016,21 +1019,17 @@ contract CoreAndPeriphery is BatchBuilder {
     }
 
     function getEnforcedOptions(uint32 eid) internal pure returns (EnforcedOptionParam[] memory) {
-        EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](3);
+        EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](2);
         enforcedOptions[0] = EnforcedOptionParam({
             eid: eid,
             msgType: OFT_MSG_TYPE_SEND,
-            options: OptionsBuilder.addExecutorLzReceiveOption(OptionsBuilder.newOptions(), OFT_ENFORCED_GAS_LIMIT, 0)
+            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(OFT_ENFORCED_GAS_LIMIT_SEND, 0)
         });
         enforcedOptions[1] = EnforcedOptionParam({
             eid: eid,
             msgType: OFT_MSG_TYPE_SEND_AND_CALL,
-            options: OptionsBuilder.addExecutorLzReceiveOption(OptionsBuilder.newOptions(), OFT_ENFORCED_GAS_LIMIT, 0)
-        });
-        enforcedOptions[2] = EnforcedOptionParam({
-            eid: eid,
-            msgType: OFT_MSG_TYPE_SEND_AND_CALL,
-            options: OptionsBuilder.addExecutorLzComposeOption(OptionsBuilder.newOptions(), 0, OFT_ENFORCED_GAS_LIMIT, 0)
+            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(OFT_ENFORCED_GAS_LIMIT_SEND, 0)
+                .addExecutorLzComposeOption(0, OFT_ENFORCED_GAS_LIMIT_CALL, 0)
         });
         return enforcedOptions;
     }
