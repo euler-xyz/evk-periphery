@@ -26,26 +26,20 @@ contract Cluster is ManageCluster {
         cluster.oracleRoutersGovernor = getDeployer();
         cluster.vaultsGovernor = getDeployer();
 
-        // define whether the vaults are upgradable or not
-        cluster.vaultUpgradable = [
-            false,
-            false
-        ];
-
         // define unit of account here
         cluster.unitOfAccount = USD;
 
         // define fee receiver here and interest fee here. if needed to be defined per asset, populate the feeReceiverOverride and interestFeeOverride mappings
         cluster.feeReceiver = address(0);
         cluster.interestFee = 0.1e4;
-        //cluster.interestFeeOverride[USD0] = 0.04e4; // TODO
+        //cluster.interestFeeOverride[USD0] = 0.03e4; // TODO
 
         // define liquidation cool off time here. if needed to be defined per asset, populate the liquidationCoolOffTimeOverride mapping
         cluster.liquidationCoolOffTimeOverride[USD0] = 1;
 
         // define hook target and hooked ops here. if needed to be defined per asset, populate the hookTargetOverride and hookedOpsOverride mappings
         cluster.hookTargetOverride[USD0] = address(0); // TODO
-        cluster.hookedOpsOverride[USD0] = OP_DEPOSIT | OP_MINT | OP_SKIM | OP_LIQUIDATE | OP_VAULT_STATUS_CHECK;
+        cluster.hookedOpsOverride[USD0] = OP_DEPOSIT | OP_MINT | OP_SKIM | OP_LIQUIDATE | OP_FLASHLOAN | OP_VAULT_STATUS_CHECK;
 
         // define config flags here. if needed to be defined per asset, populate the configFlagsOverride mapping
         cluster.configFlagsOverride[USD0] = CFG_DONT_SOCIALIZE_DEBT;
