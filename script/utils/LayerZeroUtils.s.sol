@@ -282,26 +282,18 @@ contract LayerZeroReadConfig is ScriptUtils {
 contract LayerZeroSendEUL is ScriptUtils {
     function run(uint256 dstChainId, address dstAddress, uint256 amount)
         public
-        returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt)
+        returns (MessagingReceipt memory, OFTReceipt memory)
     {
         ERC20 eul = ERC20(tokenAddresses.EUL);
-        IOFT oftAdapter = IOFT(bridgeAddresses.oftAdapter);
-
-        SendParam memory sendParam = SendParam(
-            (new LayerZeroUtil()).getDeploymentInfo(dstChainId).eid,
-            bytes32(uint256(uint160(dstAddress))),
-            amount,
-            amount,
-            "",
-            "",
-            ""
-        );
-        MessagingFee memory fee = oftAdapter.quoteSend(sendParam, false);
+        (address oftAdapter, uint256 fee, bytes memory data) = getSendCalldata(dstChainId, dstAddress, amount);
 
         startBroadcast();
         eul.approve(address(oftAdapter), amount);
-        (msgReceipt, oftReceipt) = oftAdapter.send{value: fee.nativeFee}(sendParam, fee, payable(dstAddress));
+        (bool success, bytes memory result) = address(oftAdapter).call{value: fee}(data);
         stopBroadcast();
+
+        require(success && result.length > 0, "send failed");
+        return abi.decode(result, (MessagingReceipt, OFTReceipt));
     }
 
     function getSendCalldata(uint256 dstChainId, address dstAddress, uint256 amount)
