@@ -3,9 +3,12 @@
 pragma solidity ^0.8.0;
 
 import {Vm} from "forge-std/Vm.sol";
+import {stdJson} from "forge-std/StdJson.sol";
 import {console} from "forge-std/console.sol";
 import {ScriptExtended, console} from "./ScriptExtended.s.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
+import {Arrays} from "openzeppelin-contracts/utils/Arrays.sol";
+import {EnumerableMap, EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableMap.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
@@ -259,29 +262,73 @@ abstract contract MultisigAddressesLib is ScriptExtended {
     }
 }
 
-abstract contract NTTAddressesLib is ScriptExtended {
-    struct NTTAddresses {
-        address manager;
-        address transceiver;
+abstract contract BridgeAddressesLib is ScriptExtended {
+    struct BridgeAddresses {
+        address oftAdapter;
     }
 
-    function serializeNTTAddresses(NTTAddresses memory Addresses) internal returns (string memory result) {
-        result = vm.serializeAddress("nttAddresses", "manager", Addresses.manager);
-        result = vm.serializeAddress("nttAddresses", "transceiver", Addresses.transceiver);
+    function serializeBridgeAddresses(BridgeAddresses memory Addresses) internal returns (string memory result) {
+        result = vm.serializeAddress("bridgeAddresses", "oftAdapter", Addresses.oftAdapter);
     }
 
-    function deserializeNTTAddresses(string memory json) internal pure returns (NTTAddresses memory) {
-        return NTTAddresses({
-            manager: getAddressFromJson(json, ".manager"),
-            transceiver: getAddressFromJson(json, ".transceiver")
-        });
+    function deserializeBridgeAddresses(string memory json) internal pure returns (BridgeAddresses memory) {
+        return BridgeAddresses({oftAdapter: getAddressFromJson(json, ".oftAdapter")});
+    }
+}
+
+abstract contract BridgeConfigCache is ScriptExtended {
+    using stdJson for string;
+    using Arrays for uint256[];
+    using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableMap for EnumerableMap.UintToUintMap;
+
+    EnumerableSet.UintSet internal srcChainIds;
+    mapping(uint256 srcChainIds => EnumerableMap.UintToUintMap) internal config;
+
+    function addBridgeConfigCache(uint256 srcChainId, uint256 dstChainId) internal returns (bool) {
+        srcChainIds.add(srcChainId);
+        return config[srcChainId].set(dstChainId, 1);
     }
 
-    function verifyNTTAddresses(NTTAddresses memory Addresses) internal view {
-        require(Addresses.manager != address(0) && Addresses.manager.code.length != 0, "NTT manager is required");
-        require(
-            Addresses.transceiver != address(0) && Addresses.transceiver.code.length != 0, "NTT transceiver is required"
-        );
+    function removeBridgeConfigCache(uint256 srcChainId, uint256 dstChainId) internal returns (bool) {
+        if (config[srcChainId].length() == 1) {
+            srcChainIds.remove(srcChainId);
+        }
+        return config[srcChainId].remove(dstChainId);
+    }
+
+    function bridgeConfigCacheExists(uint256 srcChainId, uint256 dstChainId) internal view returns (bool) {
+        return config[srcChainId].contains(dstChainId);
+    }
+
+    function getBridgeConfigSrcChainIds() internal view returns (uint256[] memory) {
+        return srcChainIds.values();
+    }
+
+    function getBridgeConfigDstChainIds(uint256 srcChainId) internal view returns (uint256[] memory) {
+        return config[srcChainId].keys();
+    }
+
+    function serializeBridgeConfigCache() internal returns (string memory result) {
+        for (uint256 i = 0; i < srcChainIds.length(); ++i) {
+            uint256 srcChainId = srcChainIds.at(i);
+            result = vm.serializeUint("oft", vm.toString(srcChainId), config[srcChainId].keys().sort());
+        }
+        result = vm.serializeString("", "oft", bytes(result).length == 0 ? "{}" : result);
+    }
+
+    function deserializeBridgeConfigCache(string memory json) internal {
+        if (bytes(json).length == 0 || !vm.keyExists(json, ".oft")) return;
+
+        string[] memory keys = vm.parseJsonKeys(json, ".oft");
+
+        for (uint256 i = 0; i < keys.length; ++i) {
+            uint256[] memory values = json.readUintArrayOr(string.concat(".oft.", keys[i]), new uint256[](0));
+
+            for (uint256 j = 0; j < values.length; ++j) {
+                addBridgeConfigCache(vm.parseUint(keys[i]), values[j]);
+            }
+        }
     }
 }
 
@@ -290,15 +337,16 @@ abstract contract ScriptUtils is
     CoreAddressesLib,
     PeripheryAddressesLib,
     LensAddressesLib,
-    NTTAddressesLib,
+    BridgeAddressesLib,
     TokenAddressesLib,
-    GovernorAddressesLib
+    GovernorAddressesLib,
+    BridgeConfigCache
 {
     MultisigAddresses internal multisigAddresses;
     CoreAddresses internal coreAddresses;
     PeripheryAddresses internal peripheryAddresses;
     LensAddresses internal lensAddresses;
-    NTTAddresses internal nttAddresses;
+    BridgeAddresses internal bridgeAddresses;
     TokenAddresses internal tokenAddresses;
     GovernorAddresses internal governorAddresses;
 
@@ -307,9 +355,10 @@ abstract contract ScriptUtils is
         coreAddresses = deserializeCoreAddresses(getAddressesJson("CoreAddresses.json"));
         peripheryAddresses = deserializePeripheryAddresses(getAddressesJson("PeripheryAddresses.json"));
         lensAddresses = deserializeLensAddresses(getAddressesJson("LensAddresses.json"));
-        nttAddresses = deserializeNTTAddresses(getAddressesJson("NTTAddresses.json"));
+        bridgeAddresses = deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json"));
         tokenAddresses = deserializeTokenAddresses(getAddressesJson("TokenAddresses.json"));
         governorAddresses = deserializeGovernorAddresses(getAddressesJson("GovernorAddresses.json"));
+        deserializeBridgeConfigCache(getBridgeConfigCacheJson("BridgeConfigCache.json"));
     }
 
     modifier broadcast() {

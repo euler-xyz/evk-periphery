@@ -54,11 +54,13 @@ function verify_broadcast {
 
     local createVerified=false
     local eulerEarnIndex=0
-    local nttIndex=0
     for tx in $transactions; do
         local transactionType=$(echo $tx | jq -r '.transactionType')
         local contractAddress=$(echo $tx | jq -r '.contractAddress')
         local contractName=$(echo $tx | jq -r '.contractName')
+        local additionalContracts=$(echo $tx | jq -c '.additionalContracts[]')
+        local initCode=$(echo $tx | jq -r '.transaction.input')
+        local verificationSuccessful=false
 
         if [[ $transactionType == "CREATE" && $contractAddress != null && $contractName != null ]]; then
             if [ "$createVerified" = true ]; then
@@ -66,26 +68,31 @@ function verify_broadcast {
                 forge clean && forge compile
             fi
 
-            verify_contract $contractAddress $contractName --guess-constructor-args
+            constructorArgs="--guess-constructor-args"
 
-            if [[ $? -ne 0 ]]; then
-                local initCode=$(echo $tx | jq -r '.transaction.input')
-
-                if [[ $contractName == "ERC1967Proxy" ]]; then
-                    constructorBytesSize=64
-                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-                    verify_contract $contractAddress $contractName "$constructorArgs"
-                fi
+            if [[ $contractName == "ERC1967Proxy" ]]; then
+                constructorBytesSize=64
+                constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+            elif [[ $contractName == "TransparentUpgradeableProxy" ]]; then
+                constructorArgs="--constructor-args $(echo $initCode | sed 's/.*8180033//' | cut -c65-)"
+            elif [[ $contractName == "OFTAdapterUpgradeable" ]]; then
+                contractName="./src/OFT/OFTAdapterUpgradeable.sol:OFTAdapterUpgradeable"
+                constructorBytesSize=64
+                constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
             fi
 
-            continue
+            verify_contract $contractAddress $contractName "$constructorArgs"
+
+            if [ $? -eq 0 ]; then
+                verificationSuccessful=true
+            fi
         fi
 
         if [[ $contractAddress == null ]]; then
             continue
         fi
 
-        if [[ $transactionType == "CALL" ]]; then
+        if [[ $transactionType == "CALL" || ($transactionType == "CREATE" && $additionalContracts != "") ]]; then
             if [ "$createVerified" = true ]; then
                 createVerified=false
                 forge clean && forge compile
@@ -93,7 +100,6 @@ function verify_broadcast {
 
             local function=$(echo $tx | jq -r '.function')
             local arguments=$(echo $tx | jq -r '.arguments')
-            local additionalContracts=$(echo $tx | jq -c '.additionalContracts[]')
 
             index=0
             for contract in $additionalContracts; do
@@ -130,6 +136,10 @@ function verify_broadcast {
                         contractName=DToken
                         constructorArgs="--constructor-args 0x"
                     fi
+                elif [[ $contractName == "TransparentUpgradeableProxy" ]]; then
+                    contractName=ProxyAdmin
+                    constructorBytesSize=32
+                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 else
                     continue
                 fi
@@ -138,7 +148,7 @@ function verify_broadcast {
 
                 verify_contract $contractAddress $contractName "$constructorArgs"
             done
-        elif [[ $transactionType == "CREATE" ]]; then
+        elif [[ $transactionType == "CREATE" && $verificationSuccessful != true ]]; then
             local initCode=$(echo $tx | jq -r '.transaction.input')
 
             if [ -d "out-euler-earn" ]; then
@@ -211,50 +221,6 @@ function verify_broadcast {
                     ((eulerEarnIndex++))
                 done
             fi
-            
-            if [ "$createVerified" = false ] && [ -d "out-ntt" ]; then
-                # try to verify as NTT contracts
-                local src="lib/native-token-transfers/evm/src"
-                local library="$src/libraries/TransceiverStructs.sol:TransceiverStructs"
-                local transceiverStructs=$(cat "out-ntt/NttManager.sol/NttManager.json" | jq -r '.metadata.settings.libraries."'"$library"'"')
-                local verificationOptions="--num-of-optimizations 200 --compiler-version 0.8.19 --via-ir --libraries $library:$transceiverStructs"
-                local compilerOptions="--optimize --optimizer-runs 200 --use 0.8.19 --via-ir --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiverStructs"
-
-                if [ "$createVerified" = false ]; then
-                    forge clean && forge compile $src $compilerOptions
-                fi
-
-                while true; do
-                    case $nttIndex in
-                        0)
-                            # try to verify as NttManager
-                            contractName=NttManager
-                            constructorBytesSize=160
-                            ;;
-                        1)
-                            # try to verify as WormholeTransceiver
-                            contractName=WormholeTransceiver
-                            constructorBytesSize=192
-                            ;;
-                        *)
-                            break
-                            ;;
-                    esac
-
-                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-
-                    verify_contract $contractAddress $contractName "$constructorArgs" $verificationOptions
-
-                    if [ $? -eq 0 ]; then
-                        verify_contract $transceiverStructs TransceiverStructs "--constructor-args 0x" $verificationOptions
-                        createVerified=true
-                        ((nttIndex++))
-                        break
-                    fi
-
-                    ((nttIndex++))
-                done
-            fi
         fi
     done
 }
@@ -264,7 +230,7 @@ shift
 
 source .env
 eval "$(./script/utils/determineArgs.sh "$@")"
-eval "set -- $SCRIPT_ARGS"
+eval 'set -- $SCRIPT_ARGS'
 
 if [ -d "$input" ]; then
     for fileName in "$input"/*.json; do

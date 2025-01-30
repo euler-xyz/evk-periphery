@@ -10,7 +10,7 @@ clusterJson=$2
 
 source .env
 eval "$(./script/utils/determineArgs.sh "$@")"
-eval "set -- $SCRIPT_ARGS"
+eval 'set -- $SCRIPT_ARGS'
 
 # Validate inputs
 if [ ! -d "$safeFilesDir" ]; then

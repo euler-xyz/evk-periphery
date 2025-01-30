@@ -88,21 +88,19 @@ abstract contract SafeUtil is ScriptExtended {
         string memory endpoint = string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/");
         (uint256 status, bytes memory response) = endpoint.get();
 
-        if (status == 200) {
-            return Status({
-                safe: vm.parseJsonAddress(string(response), ".address"),
-                nonce: vm.parseJsonUint(string(response), ".nonce"),
-                threshold: vm.parseJsonUint(string(response), ".threshold"),
-                owners: vm.parseJsonAddressArray(string(response), ".owners"),
-                masterCopy: vm.parseJsonAddress(string(response), ".masterCopy"),
-                modules: vm.parseJsonAddressArray(string(response), ".modules"),
-                fallbackHandler: vm.parseJsonAddress(string(response), ".fallbackHandler"),
-                guard: vm.parseJsonAddress(string(response), ".guard"),
-                version: vm.parseJsonString(string(response), ".version")
-            });
-        } else {
-            revert("getSafes: Failed to get safes");
-        }
+        require(status == 200, "getSafes: Failed to get safes");
+
+        return Status({
+            safe: vm.parseJsonAddress(string(response), ".address"),
+            nonce: vm.parseJsonUint(string(response), ".nonce"),
+            threshold: vm.parseJsonUint(string(response), ".threshold"),
+            owners: vm.parseJsonAddressArray(string(response), ".owners"),
+            masterCopy: vm.parseJsonAddress(string(response), ".masterCopy"),
+            modules: vm.parseJsonAddressArray(string(response), ".modules"),
+            fallbackHandler: vm.parseJsonAddress(string(response), ".fallbackHandler"),
+            guard: vm.parseJsonAddress(string(response), ".guard"),
+            version: vm.parseJsonString(string(response), ".version")
+        });
     }
 
     function getNextNonce(address safe) public returns (uint256) {
@@ -113,7 +111,7 @@ abstract contract SafeUtil is ScriptExtended {
 
         uint256 lastPendingNonce = abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0
             ? 0
-            : vm.parseJsonUint(string(response), resultsIndexKey(0, "nonce"));
+            : vm.parseJsonUint(string(response), _indexedKey(".results", 0, ".nonce"));
 
         uint256 stateNextNonce = getStatus(safe).nonce;
 
@@ -140,29 +138,25 @@ abstract contract SafeUtil is ScriptExtended {
         string memory endpoint = string.concat(getOwnersAPIBaseURL(), vm.toString(owner), "/safes/");
         (uint256 status, bytes memory response) = endpoint.get();
 
-        if (status == 200) {
-            return vm.parseJsonAddressArray(string(response), ".safes");
-        } else {
-            revert("getSafes: Failed to get safes");
-        }
+        require(status == 200, "getSafes: Failed to get safes");
+
+        return vm.parseJsonAddressArray(string(response), ".safes");
     }
 
     function getDelegates(address safe) public returns (address[] memory) {
         string memory endpoint = string.concat(getDelegatesAPIBaseURL(), "?safe=", vm.toString(safe));
         (uint256 status, bytes memory response) = endpoint.get();
 
-        if (status == 200) {
-            uint256 count = vm.parseJsonUint(string(response), ".count");
-            address[] memory delegates = new address[](count);
+        require(status == 200, "getDelegates: Failed to get delegates");
 
-            for (uint256 i = 0; i < count; ++i) {
-                delegates[i] = vm.parseJsonAddress(string(response), resultsIndexKey(i, "delegate"));
-            }
+        uint256 count = vm.parseJsonUint(string(response), ".count");
+        address[] memory delegates = new address[](count);
 
-            return delegates;
-        } else {
-            revert("getDelegates: Failed to get delegates");
+        for (uint256 i = 0; i < count; ++i) {
+            delegates[i] = vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".delegate"));
         }
+
+        return delegates;
     }
 
     function getPendingTransactions(address safe) public returns (Transaction[] memory) {
@@ -170,53 +164,51 @@ abstract contract SafeUtil is ScriptExtended {
             string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false&limit=10");
         (uint256 status, bytes memory response) = endpoint.get();
 
-        if (status == 200) {
-            uint256 nonce = getStatus(safe).nonce;
-            uint256 length = abi.decode(vm.parseJson(string(response), ".results"), (string[])).length;
-            uint256 counter = 0;
+        require(status == 200, "getPendingTransactions: Failed to get pending transactions");
 
-            for (uint256 i = 0; i < length; ++i) {
-                if (vm.parseJsonUint(string(response), resultsIndexKey(i, "nonce")) >= nonce) {
-                    ++counter;
-                }
-            }
+        uint256 nonce = getStatus(safe).nonce;
+        uint256 length = abi.decode(vm.parseJson(string(response), ".results"), (string[])).length;
+        uint256 counter = 0;
 
-            Transaction[] memory transactions = new Transaction[](counter);
-            counter = 0;
-            for (int256 index = int256(length - 1); index >= 0; --index) {
-                uint256 i = uint256(index);
-                uint256 txNonce = vm.parseJsonUint(string(response), resultsIndexKey(i, "nonce"));
-
-                if (txNonce < nonce) continue;
-
-                transactions[counter] = Transaction({
-                    safe: vm.parseJsonAddress(string(response), resultsIndexKey(i, "safe")),
-                    sender: address(0),
-                    to: vm.parseJsonAddress(string(response), resultsIndexKey(i, "to")),
-                    value: vm.parseJsonUint(string(response), resultsIndexKey(i, "value")),
-                    data: "",
-                    operation: Operation(vm.parseJsonUint(string(response), resultsIndexKey(i, "operation"))),
-                    safeTxGas: vm.parseJsonUint(string(response), resultsIndexKey(i, "safeTxGas")),
-                    baseGas: vm.parseJsonUint(string(response), resultsIndexKey(i, "baseGas")),
-                    gasPrice: vm.parseJsonUint(string(response), resultsIndexKey(i, "gasPrice")),
-                    gasToken: vm.parseJsonAddress(string(response), resultsIndexKey(i, "gasToken")),
-                    refundReceiver: vm.parseJsonAddress(string(response), resultsIndexKey(i, "refundReceiver")),
-                    nonce: txNonce,
-                    hash: vm.parseJsonBytes32(string(response), resultsIndexKey(i, "safeTxHash")),
-                    signature: ""
-                });
-
-                try vm.parseJsonBytes(string(response), resultsIndexKey(i, "data")) returns (bytes memory data) {
-                    transactions[counter].data = data;
-                } catch {}
-
+        for (uint256 i = 0; i < length; ++i) {
+            if (vm.parseJsonUint(string(response), _indexedKey(".results", i, ".nonce")) >= nonce) {
                 ++counter;
             }
-
-            return transactions;
-        } else {
-            revert("getPendingTransactions: Failed to get pending transactions list");
         }
+
+        Transaction[] memory transactions = new Transaction[](counter);
+        counter = 0;
+        for (int256 index = int256(length - 1); index >= 0; --index) {
+            uint256 i = uint256(index);
+            uint256 txNonce = vm.parseJsonUint(string(response), _indexedKey(".results", i, ".nonce"));
+
+            if (txNonce < nonce) continue;
+
+            transactions[counter] = Transaction({
+                safe: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".safe")),
+                sender: address(0),
+                to: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".to")),
+                value: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".value")),
+                data: "",
+                operation: Operation(vm.parseJsonUint(string(response), _indexedKey(".results", i, ".operation"))),
+                safeTxGas: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".safeTxGas")),
+                baseGas: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".baseGas")),
+                gasPrice: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".gasPrice")),
+                gasToken: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".gasToken")),
+                refundReceiver: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".refundReceiver")),
+                nonce: txNonce,
+                hash: vm.parseJsonBytes32(string(response), _indexedKey(".results", i, ".safeTxHash")),
+                signature: ""
+            });
+
+            try vm.parseJsonBytes(string(response), _indexedKey(".results", i, ".data")) returns (bytes memory data) {
+                transactions[counter].data = data;
+            } catch {}
+
+            ++counter;
+        }
+
+        return transactions;
     }
 
     function getSafesAPIBaseURL() public view returns (string memory) {
@@ -265,10 +257,6 @@ abstract contract SafeUtil is ScriptExtended {
             headersString = string.concat(headersString, "-H \"", headers[i], "\" ");
         }
         return headersString;
-    }
-
-    function resultsIndexKey(uint256 i, string memory key) private pure returns (string memory) {
-        return string.concat(".results[", vm.toString(i), "].", key);
     }
 }
 
