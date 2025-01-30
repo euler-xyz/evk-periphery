@@ -2,7 +2,7 @@
 
 source .env
 eval "$(./script/utils/determineArgs.sh "$@")"
-eval "set -- $SCRIPT_ARGS"
+eval 'set -- $SCRIPT_ARGS'
 
 if ! script/utils/checkEnvironment.sh; then
     echo "Environment check failed. Exiting."

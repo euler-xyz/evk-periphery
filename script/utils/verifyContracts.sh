@@ -230,7 +230,7 @@ shift
 
 source .env
 eval "$(./script/utils/determineArgs.sh "$@")"
-eval "set -- $SCRIPT_ARGS"
+eval 'set -- $SCRIPT_ARGS'
 
 if [ -d "$input" ]; then
     for fileName in "$input"/*.json; do
