@@ -8,12 +8,14 @@ import {TimelockController} from "openzeppelin-contracts/governance/TimelockCont
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {FactoryGovernor} from "../../src/Governor/FactoryGovernor.sol";
 import {IEVault, IGovernance} from "evk/EVault/IEVault.sol";
+import {EulerRouter, Governable} from "euler-price-oracle/EulerRouter.sol";
 
 contract TestFactoryGovernor is ScriptUtils {
 
     address constant HYPERNATIVE = 0xff217004BdD3A6A592162380dc0E6BbF143291eB;
     address constant HEXAGATE = 0xcC6451385685721778E7Bd80B54F8c92b484F601;
-    address constant EUSDC2 = 0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9;
+    address constant EUSDC2 = 0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9; // prime
+    address constant EUSDC22 = 0xe0a80d35bB6618CBA260120b279d357978c42BCE; // yield
 
     function run() public {
         simulatePendingTransactions();
@@ -295,6 +297,32 @@ contract TestFactoryGovernor is ScriptUtils {
         require(success, "set admin");
 
         require(IEVault(EUSDC2).governorAdmin() == newAdmin);
+
+
+
+        // Routers
+
+        // Prime router 
+
+        address primeRouter = IEVault(EUSDC2).oracle();
+        console.log('primeRouter: ', primeRouter);
+        require(EulerRouter(primeRouter).governor() == governorAddresses.accessControlEmergencyGovernor, "prime governor");
+        // DAO can change the governor
+        vm.prank(multisigAddresses.DAO);
+        (success,) = governorAddresses.accessControlEmergencyGovernor
+            .call(abi.encodePacked(abi.encodeCall(Governable.transferGovernance, (newAdmin)), primeRouter));
+        require(EulerRouter(primeRouter).governor() == newAdmin, "prime governor transfer");
+
+        // Yield router 
+
+        address yieldRouter = IEVault(EUSDC22).oracle();
+        console.log('yieldRouter: ', yieldRouter);
+        require(EulerRouter(yieldRouter).governor() == governorAddresses.accessControlEmergencyGovernor, "yield governor");
+        // DAO can change the governor
+        vm.prank(multisigAddresses.DAO);
+        (success,) = governorAddresses.accessControlEmergencyGovernor
+            .call(abi.encodePacked(abi.encodeCall(Governable.transferGovernance, (newAdmin)), yieldRouter));
+        require(EulerRouter(yieldRouter).governor() == newAdmin, "yield governor transfer");
 
     }
 
