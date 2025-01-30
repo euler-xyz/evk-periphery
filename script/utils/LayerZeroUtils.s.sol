@@ -6,11 +6,13 @@ import {stdJson} from "forge-std/StdJson.sol";
 import {ScriptUtils, ScriptExtended, Vm, console} from "../utils/ScriptUtils.s.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 import {IOFT, SendParam, OFTReceipt} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
-import {ILayerZeroEndpointV2} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
+import {ILayerZeroEndpointV2, IOAppCore} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
 import {IMessageLibManager} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
+import {OAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {MessagingFee, MessagingReceipt} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
 import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
 import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 interface IEndpointV2 is ILayerZeroEndpointV2 {
     function eid() external view returns (uint32);
@@ -184,45 +186,92 @@ contract LayerZeroReadConfig is ScriptUtils {
                 uint256 chainIdOther = dstChainIds[j];
 
                 LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(lzMetadata, chainIdOther);
-                ExecutorConfig memory executorConfig = abi.decode(
-                    IMessageLibManager(info.endpointV2).getConfig(bridgeAddresses.oftAdapter, sendLib, infoOther.eid, 1),
-                    (ExecutorConfig)
-                );
-                UlnConfig memory sendUlnConfig = abi.decode(
-                    IMessageLibManager(info.endpointV2).getConfig(bridgeAddresses.oftAdapter, sendLib, infoOther.eid, 2),
-                    (UlnConfig)
-                );
-                UlnConfig memory receiveUlnConfig = abi.decode(
-                    IMessageLibManager(info.endpointV2).getConfig(
-                        bridgeAddresses.oftAdapter, receiveLib, infoOther.eid, 2
-                    ),
-                    (UlnConfig)
-                );
 
-                console.log("    send library config for chain id %s (eid %s):", chainIdOther, infoOther.eid);
-                console.log("        max message size: %s", executorConfig.maxMessageSize);
-                console.log("        executor: %s", executorConfig.executor);
-                console.log("        confirmations: %s", sendUlnConfig.confirmations);
-                console.log("        requiredDVNCount: %s", sendUlnConfig.requiredDVNCount);
-                console.log("        optionalDVNCount: %s", sendUlnConfig.optionalDVNCount);
-                console.log("        optionalDVNThreshold: %s", sendUlnConfig.optionalDVNThreshold);
-                for (uint256 k = 0; k < sendUlnConfig.requiredDVNCount; ++k) {
-                    console.log("        requiredDVNs[%s]: %s", k, sendUlnConfig.requiredDVNs[k]);
-                }
-                for (uint256 k = 0; k < sendUlnConfig.optionalDVNCount; ++k) {
-                    console.log("        optionalDVNs[%s]: %s", k, sendUlnConfig.optionalDVNs[k]);
+                {
+                    ExecutorConfig memory executorConfig = abi.decode(
+                        IMessageLibManager(info.endpointV2).getConfig(
+                            bridgeAddresses.oftAdapter, sendLib, infoOther.eid, 1
+                        ),
+                        (ExecutorConfig)
+                    );
+                    console.log("    send library config for chain id %s (eid %s):", chainIdOther, infoOther.eid);
+                    console.log("        max message size: %s", executorConfig.maxMessageSize);
+                    console.log("        executor: %s", executorConfig.executor);
                 }
 
-                console.log("    receive library config for chain id %s (eid %s):", chainIdOther, infoOther.eid);
-                console.log("        confirmations: %s", receiveUlnConfig.confirmations);
-                console.log("        requiredDVNCount: %s", receiveUlnConfig.requiredDVNCount);
-                console.log("        optionalDVNCount: %s", receiveUlnConfig.optionalDVNCount);
-                console.log("        optionalDVNThreshold: %s", receiveUlnConfig.optionalDVNThreshold);
-                for (uint256 k = 0; k < receiveUlnConfig.requiredDVNCount; ++k) {
-                    console.log("        requiredDVNs[%s]: %s", k, receiveUlnConfig.requiredDVNs[k]);
+                {
+                    UlnConfig memory sendUlnConfig = abi.decode(
+                        IMessageLibManager(info.endpointV2).getConfig(
+                            bridgeAddresses.oftAdapter, sendLib, infoOther.eid, 2
+                        ),
+                        (UlnConfig)
+                    );
+                    console.log("        confirmations: %s", sendUlnConfig.confirmations);
+                    console.log("        requiredDVNCount: %s", sendUlnConfig.requiredDVNCount);
+                    console.log("        optionalDVNCount: %s", sendUlnConfig.optionalDVNCount);
+                    console.log("        optionalDVNThreshold: %s", sendUlnConfig.optionalDVNThreshold);
+                    for (uint256 k = 0; k < sendUlnConfig.requiredDVNCount; ++k) {
+                        console.log("        requiredDVNs[%s]: %s", k, sendUlnConfig.requiredDVNs[k]);
+                    }
+                    for (uint256 k = 0; k < sendUlnConfig.optionalDVNCount; ++k) {
+                        console.log("        optionalDVNs[%s]: %s", k, sendUlnConfig.optionalDVNs[k]);
+                    }
                 }
-                for (uint256 k = 0; k < receiveUlnConfig.optionalDVNCount; ++k) {
-                    console.log("        optionalDVNs[%s]: %s", k, receiveUlnConfig.optionalDVNs[k]);
+
+                {
+                    UlnConfig memory receiveUlnConfig = abi.decode(
+                        IMessageLibManager(info.endpointV2).getConfig(
+                            bridgeAddresses.oftAdapter, receiveLib, infoOther.eid, 2
+                        ),
+                        (UlnConfig)
+                    );
+                    console.log("    receive library config for chain id %s (eid %s):", chainIdOther, infoOther.eid);
+                    console.log("        confirmations: %s", receiveUlnConfig.confirmations);
+                    console.log("        requiredDVNCount: %s", receiveUlnConfig.requiredDVNCount);
+                    console.log("        optionalDVNCount: %s", receiveUlnConfig.optionalDVNCount);
+                    console.log("        optionalDVNThreshold: %s", receiveUlnConfig.optionalDVNThreshold);
+                    for (uint256 k = 0; k < receiveUlnConfig.requiredDVNCount; ++k) {
+                        console.log("        requiredDVNs[%s]: %s", k, receiveUlnConfig.requiredDVNs[k]);
+                    }
+                    for (uint256 k = 0; k < receiveUlnConfig.optionalDVNCount; ++k) {
+                        console.log("        optionalDVNs[%s]: %s", k, receiveUlnConfig.optionalDVNs[k]);
+                    }
+                }
+
+                console.log(
+                    "    peer for chain id %s (eid %s): %s",
+                    chainIdOther,
+                    infoOther.eid,
+                    address(uint160(uint256(IOAppCore(bridgeAddresses.oftAdapter).peers(infoOther.eid))))
+                );
+
+                {
+                    bytes memory enforcedOptions =
+                        OAppOptionsType3(bridgeAddresses.oftAdapter).enforcedOptions(infoOther.eid, 1);
+                    console.log(
+                        string.concat(
+                            "    msgType 1 enforced options are ",
+                            enforcedOptions.length > 0 ? "SET" : "NOT SET",
+                            " for chain id ",
+                            vm.toString(chainIdOther),
+                            " (eid ",
+                            vm.toString(infoOther.eid),
+                            ")"
+                        )
+                    );
+
+                    enforcedOptions = OAppOptionsType3(bridgeAddresses.oftAdapter).enforcedOptions(infoOther.eid, 2);
+                    console.log(
+                        string.concat(
+                            "    msgType 2 enforced options are ",
+                            enforcedOptions.length > 0 ? "SET" : "NOT SET",
+                            " for chain id ",
+                            vm.toString(chainIdOther),
+                            " (eid ",
+                            vm.toString(infoOther.eid),
+                            ")"
+                        )
+                    );
                 }
             }
             console.log("--------------------------------");
