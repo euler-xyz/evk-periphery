@@ -279,7 +279,7 @@ contract LayerZeroReadConfig is ScriptUtils {
     }
 }
 
-contract LayerZeroSendTokens is ScriptUtils {
+contract LayerZeroSendEUL is ScriptUtils {
     function run(uint256 dstChainId, address dstAddress, uint256 amount)
         public
         returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt)
@@ -302,5 +302,27 @@ contract LayerZeroSendTokens is ScriptUtils {
         eul.approve(address(oftAdapter), amount);
         (msgReceipt, oftReceipt) = oftAdapter.send{value: fee.nativeFee}(sendParam, fee, payable(dstAddress));
         stopBroadcast();
+    }
+
+    function getSendCalldata(uint256 dstChainId, address dstAddress, uint256 amount)
+        public
+        returns (address to, uint256 value, bytes memory data)
+    {
+        IOFT oftAdapter = IOFT(bridgeAddresses.oftAdapter);
+
+        SendParam memory sendParam = SendParam(
+            (new LayerZeroUtil()).getDeploymentInfo(dstChainId).eid,
+            bytes32(uint256(uint160(dstAddress))),
+            amount,
+            amount,
+            "",
+            "",
+            ""
+        );
+        MessagingFee memory fee = oftAdapter.quoteSend(sendParam, false);
+
+        return (
+            bridgeAddresses.oftAdapter, fee.nativeFee, abi.encodeCall(IOFT.send, (sendParam, fee, payable(dstAddress)))
+        );
     }
 }
