@@ -414,7 +414,9 @@ contract CoreAndPeriphery is BatchBuilder {
                         params[0] = SetConfigParam({
                             eid: infoHub.eid,
                             configType: OFT_EXECUTOR_CONFIG_TYPE,
-                            config: abi.encode(ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor}))
+                            config: abi.encode(
+                                ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor})
+                            )
                         });
                         params[1] = SetConfigParam({
                             eid: infoHub.eid,
@@ -423,8 +425,12 @@ contract CoreAndPeriphery is BatchBuilder {
                         });
 
                         vm.startBroadcast();
-                        console.log("    Setting OFT Adapter send config on chain %s for chain %s", block.chainid, hubChainId);
-                        IMessageLibManager(info.endpointV2).setConfig(bridgeAddresses.oftAdapter, info.sendUln302, params);
+                        console.log(
+                            "    Setting OFT Adapter send config on chain %s for chain %s", block.chainid, hubChainId
+                        );
+                        IMessageLibManager(info.endpointV2).setConfig(
+                            bridgeAddresses.oftAdapter, info.sendUln302, params
+                        );
                         vm.stopBroadcast();
 
                         params = new SetConfigParam[](1);
@@ -438,11 +444,15 @@ contract CoreAndPeriphery is BatchBuilder {
                         console.log(
                             "    Setting OFT Adapter receive config on chain %s for chain %s", block.chainid, hubChainId
                         );
-                        IMessageLibManager(info.endpointV2).setConfig(bridgeAddresses.oftAdapter, info.receiveUln302, params);
+                        IMessageLibManager(info.endpointV2).setConfig(
+                            bridgeAddresses.oftAdapter, info.receiveUln302, params
+                        );
                         vm.stopBroadcast();
 
                         console.log(
-                            "    Sanity checking config compatibility on chain %s for chain %s", block.chainid, hubChainId
+                            "    Sanity checking config compatibility on chain %s for chain %s",
+                            block.chainid,
+                            hubChainId
                         );
                         getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddresses, infoHub, info, true);
                         getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddresses, infoHub, info, false);
