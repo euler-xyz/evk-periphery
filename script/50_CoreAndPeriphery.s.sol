@@ -410,104 +410,60 @@ contract CoreAndPeriphery is BatchBuilder {
 
                         addBridgeConfigCache(block.chainid, hubChainId);
 
-                        {
-                            SetConfigParam[] memory params = new SetConfigParam[](2);
-                            params[0] = SetConfigParam({
-                                eid: infoHub.eid,
-                                configType: OFT_EXECUTOR_CONFIG_TYPE,
-                                config: abi.encode(
-                                    ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor})
-                                )
-                            });
-                            params[1] = SetConfigParam({
-                                eid: infoHub.eid,
-                                configType: OFT_ULN_CONFIG_TYPE,
-                                config: abi.encode(
-                                    UlnConfig({
-                                        confirmations: abi.decode(
-                                            IMessageLibManager(info.endpointV2).getConfig(
-                                                bridgeAddresses.oftAdapter, info.sendUln302, infoHub.eid, OFT_ULN_CONFIG_TYPE
-                                            ),
-                                            (UlnConfig)
-                                        ).confirmations,
-                                        requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
-                                        optionalDVNCount: 0,
-                                        optionalDVNThreshold: 0,
-                                        requiredDVNs: getDVNAddresses(lzUtil, lzMetadata, info.chainKey),
-                                        optionalDVNs: new address[](0)
-                                    })
-                                )
-                            });
+                        SetConfigParam[] memory params = new SetConfigParam[](2);
+                        params[0] = SetConfigParam({
+                            eid: infoHub.eid,
+                            configType: OFT_EXECUTOR_CONFIG_TYPE,
+                            config: abi.encode(ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor}))
+                        });
+                        params[1] = SetConfigParam({
+                            eid: infoHub.eid,
+                            configType: OFT_ULN_CONFIG_TYPE,
+                            config: abi.encode(getUlnConfig(lzUtil, lzMetadata, bridgeAddresses, info, infoHub, true))
+                        });
 
-                            vm.startBroadcast();
-                            console.log(
-                                "    Setting OFT Adapter send config on chain %s for chain %s",
-                                block.chainid,
-                                hubChainId
-                            );
-                            IMessageLibManager(info.endpointV2).setConfig(
-                                bridgeAddresses.oftAdapter, info.sendUln302, params
-                            );
-                            vm.stopBroadcast();
-                        }
+                        vm.startBroadcast();
+                        console.log("    Setting OFT Adapter send config on chain %s for chain %s", block.chainid, hubChainId);
+                        IMessageLibManager(info.endpointV2).setConfig(bridgeAddresses.oftAdapter, info.sendUln302, params);
+                        vm.stopBroadcast();
 
-                        {
-                            SetConfigParam[] memory params = new SetConfigParam[](1);
-                            params[0] = SetConfigParam({
-                                eid: infoHub.eid,
-                                configType: OFT_ULN_CONFIG_TYPE,
-                                config: abi.encode(
-                                    UlnConfig({
-                                        confirmations: abi.decode(
-                                            IMessageLibManager(info.endpointV2).getConfig(
-                                                bridgeAddresses.oftAdapter, info.receiveUln302, infoHub.eid, OFT_ULN_CONFIG_TYPE
-                                            ),
-                                            (UlnConfig)
-                                        ).confirmations,
-                                        requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
-                                        optionalDVNCount: 0,
-                                        optionalDVNThreshold: 0,
-                                        requiredDVNs: getDVNAddresses(lzUtil, lzMetadata, infoHub.chainKey),
-                                        optionalDVNs: new address[](0)
-                                    })
-                                )
-                            });
+                        params = new SetConfigParam[](1);
+                        params[0] = SetConfigParam({
+                            eid: infoHub.eid,
+                            configType: OFT_ULN_CONFIG_TYPE,
+                            config: abi.encode(getUlnConfig(lzUtil, lzMetadata, bridgeAddresses, info, infoHub, false))
+                        });
 
-                            vm.startBroadcast();
-                            console.log(
-                                "    Setting OFT Adapter receive config on chain %s for chain %s",
-                                block.chainid,
-                                hubChainId
-                            );
-                            IMessageLibManager(info.endpointV2).setConfig(
-                                bridgeAddresses.oftAdapter, info.receiveUln302, params
-                            );
-                            vm.stopBroadcast();
-                        }
+                        vm.startBroadcast();
+                        console.log(
+                            "    Setting OFT Adapter receive config on chain %s for chain %s", block.chainid, hubChainId
+                        );
+                        IMessageLibManager(info.endpointV2).setConfig(bridgeAddresses.oftAdapter, info.receiveUln302, params);
+                        vm.stopBroadcast();
 
-                        {
-                            vm.startBroadcast();
-                            console.log(
-                                "    Setting OFT Adapter peer on chain %s for chain %s", block.chainid, hubChainId
-                            );
-                            IOAppCore(bridgeAddresses.oftAdapter).setPeer(
-                                infoHub.eid, bytes32(uint256(uint160(bridgeAddressesHub.oftAdapter)))
-                            );
-                            vm.stopBroadcast();
-                        }
+                        console.log(
+                            "    Sanity checking config compatibility on chain %s for chain %s", block.chainid, hubChainId
+                        );
+                        getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddresses, infoHub, info, true);
+                        getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddresses, infoHub, info, false);
 
-                        {
-                            vm.startBroadcast();
-                            console.log(
-                                "    Setting OFT Adapter enforced options on chain %s for chain %s",
-                                block.chainid,
-                                hubChainId
-                            );
-                            IOAppOptionsType3(bridgeAddresses.oftAdapter).setEnforcedOptions(
-                                getEnforcedOptions(infoHub.eid)
-                            );
-                            vm.stopBroadcast();
-                        }
+                        vm.startBroadcast();
+                        console.log("    Setting OFT Adapter peer on chain %s for chain %s", block.chainid, hubChainId);
+                        IOAppCore(bridgeAddresses.oftAdapter).setPeer(
+                            infoHub.eid, bytes32(uint256(uint160(bridgeAddressesHub.oftAdapter)))
+                        );
+                        vm.stopBroadcast();
+
+                        vm.startBroadcast();
+                        console.log(
+                            "    Setting OFT Adapter enforced options on chain %s for chain %s",
+                            block.chainid,
+                            hubChainId
+                        );
+                        IOAppOptionsType3(bridgeAddresses.oftAdapter).setEnforcedOptions(
+                            getEnforcedOptions(infoHub.eid)
+                        );
+                        vm.stopBroadcast();
                     }
                 }
 
@@ -565,126 +521,81 @@ contract CoreAndPeriphery is BatchBuilder {
                 }
 
                 if (addBridgeConfigCache(block.chainid, chainIdOther)) {
-                    if (!selectFork(chainIdOther)) {
-                        console.log("    ! Failed to select fork for chain %s. Skipping...", chainIdOther);
-                        removeBridgeConfigCache(block.chainid, chainIdOther);
-                        continue;
-                    }
-                    uint64 confirmationsSendOther = abi.decode(
-                        IMessageLibManager(infoOther.endpointV2).getConfig(
-                            bridgeAddressesOther.oftAdapter, infoOther.sendUln302, info.eid, OFT_ULN_CONFIG_TYPE
-                        ),
-                        (UlnConfig)
-                    ).confirmations;
-                    uint64 confirmationsReceiveOther = abi.decode(
-                        IMessageLibManager(infoOther.endpointV2).getConfig(
-                            bridgeAddressesOther.oftAdapter, infoOther.receiveUln302, info.eid, OFT_ULN_CONFIG_TYPE
-                        ),
-                        (UlnConfig)
-                    ).confirmations;
-                    selectFork(DEFAULT_FORK_CHAIN_ID);
+                    SetConfigParam[] memory params = new SetConfigParam[](2);
+                    params[0] = SetConfigParam({
+                        eid: infoOther.eid,
+                        configType: OFT_EXECUTOR_CONFIG_TYPE,
+                        config: abi.encode(ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor}))
+                    });
+                    params[1] = SetConfigParam({
+                        eid: infoOther.eid,
+                        configType: OFT_ULN_CONFIG_TYPE,
+                        config: abi.encode(
+                            bridgeConfigCacheExists(chainIdOther, block.chainid)
+                                ? getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddressesOther, info, infoOther, true)
+                                : getUlnConfig(lzUtil, lzMetadata, bridgeAddresses, info, infoOther, true)
+                        )
+                    });
 
-                    {
-                        address[] memory dvns = getDVNAddresses(lzUtil, lzMetadata, info.chainKey);
-                        SetConfigParam[] memory params = new SetConfigParam[](2);
-
-                        params[0] = SetConfigParam({
-                            eid: infoOther.eid,
-                            configType: OFT_EXECUTOR_CONFIG_TYPE,
-                            config: abi.encode(
-                                ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor})
-                            )
-                        });
-                        params[1] = SetConfigParam({
-                            eid: infoOther.eid,
-                            configType: OFT_ULN_CONFIG_TYPE,
-                            config: abi.encode(
-                                UlnConfig({
-                                    confirmations: confirmationsReceiveOther,
-                                    requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
-                                    optionalDVNCount: 0,
-                                    optionalDVNThreshold: 0,
-                                    requiredDVNs: dvns,
-                                    optionalDVNs: new address[](0)
-                                })
-                            )
-                        });
-
-                        console.log(
-                            "    Attempting to set OFT Adapter send config on chain %s for chain %s",
-                            block.chainid,
-                            chainIdOther
+                    console.log(
+                        "    Attempting to set OFT Adapter send config on chain %s for chain %s",
+                        block.chainid,
+                        chainIdOther
+                    );
+                    if (isDelegate) {
+                        vm.startBroadcast();
+                        IMessageLibManager(info.endpointV2).setConfig(
+                            bridgeAddresses.oftAdapter, info.sendUln302, params
                         );
-                        if (isDelegate) {
-                            vm.startBroadcast();
-                            IMessageLibManager(info.endpointV2).setConfig(
-                                bridgeAddresses.oftAdapter, info.sendUln302, params
-                            );
-                            vm.stopBroadcast();
-                        }
+                        vm.stopBroadcast();
                     }
 
-                    {
-                        address[] memory dvns = getDVNAddresses(lzUtil, lzMetadata, infoOther.chainKey);
-                        SetConfigParam[] memory params = new SetConfigParam[](1);
+                    params = new SetConfigParam[](1);
+                    params[0] = SetConfigParam({
+                        eid: infoOther.eid,
+                        configType: OFT_ULN_CONFIG_TYPE,
+                        config: abi.encode(
+                            bridgeConfigCacheExists(chainIdOther, block.chainid)
+                                ? getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddressesOther, info, infoOther, false)
+                                : getUlnConfig(lzUtil, lzMetadata, bridgeAddresses, info, infoOther, false)
+                        )
+                    });
 
-                        params[0] = SetConfigParam({
-                            eid: infoOther.eid,
-                            configType: OFT_ULN_CONFIG_TYPE,
-                            config: abi.encode(
-                                UlnConfig({
-                                    confirmations: confirmationsSendOther,
-                                    requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
-                                    optionalDVNCount: 0,
-                                    optionalDVNThreshold: 0,
-                                    requiredDVNs: dvns,
-                                    optionalDVNs: new address[](0)
-                                })
-                            )
-                        });
-
-                        console.log(
-                            "    Attempting to set OFT Adapter receive config on chain %s for chain %s",
-                            block.chainid,
-                            chainIdOther
+                    console.log(
+                        "    Attempting to set OFT Adapter receive config on chain %s for chain %s",
+                        block.chainid,
+                        chainIdOther
+                    );
+                    if (isDelegate) {
+                        vm.startBroadcast();
+                        IMessageLibManager(info.endpointV2).setConfig(
+                            bridgeAddresses.oftAdapter, info.receiveUln302, params
                         );
-                        if (isDelegate) {
-                            vm.startBroadcast();
-                            IMessageLibManager(info.endpointV2).setConfig(
-                                bridgeAddresses.oftAdapter, info.receiveUln302, params
-                            );
-                            vm.stopBroadcast();
-                        }
+                        vm.stopBroadcast();
                     }
 
-                    {
-                        console.log(
-                            "    Attempting to set OFT Adapter peer on chain %s for chain %s",
-                            block.chainid,
-                            chainIdOther
+                    console.log(
+                        "    Attempting to set OFT Adapter peer on chain %s for chain %s", block.chainid, chainIdOther
+                    );
+                    if (isDelegate) {
+                        vm.startBroadcast();
+                        IOAppCore(bridgeAddresses.oftAdapter).setPeer(
+                            infoOther.eid, bytes32(uint256(uint160(bridgeAddressesOther.oftAdapter)))
                         );
-                        if (isDelegate) {
-                            vm.startBroadcast();
-                            IOAppCore(bridgeAddresses.oftAdapter).setPeer(
-                                infoOther.eid, bytes32(uint256(uint160(bridgeAddressesOther.oftAdapter)))
-                            );
-                            vm.stopBroadcast();
-                        }
+                        vm.stopBroadcast();
                     }
 
-                    {
-                        console.log(
-                            "    Attempting to set OFT Adapter enforced options on chain %s for chain %s",
-                            block.chainid,
-                            chainIdOther
+                    console.log(
+                        "    Attempting to set OFT Adapter enforced options on chain %s for chain %s",
+                        block.chainid,
+                        chainIdOther
+                    );
+                    if (isDelegate) {
+                        vm.startBroadcast();
+                        IOAppOptionsType3(bridgeAddresses.oftAdapter).setEnforcedOptions(
+                            getEnforcedOptions(infoOther.eid)
                         );
-                        if (isDelegate) {
-                            vm.startBroadcast();
-                            IOAppOptionsType3(bridgeAddresses.oftAdapter).setEnforcedOptions(
-                                getEnforcedOptions(infoOther.eid)
-                            );
-                            vm.stopBroadcast();
-                        }
+                        vm.stopBroadcast();
                     }
                 } else {
                     console.log("    ! OFT Adapter already configured for chain %s. Skipping...", chainIdOther);
@@ -1009,6 +920,89 @@ contract CoreAndPeriphery is BatchBuilder {
             mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
         }
         return Arrays.sort(dvns);
+    }
+
+    function getUlnConfig(
+        LayerZeroUtil lzUtil,
+        string memory metadata,
+        BridgeAddresses memory bridgeAddresses,
+        LayerZeroUtil.DeploymentInfo memory info,
+        LayerZeroUtil.DeploymentInfo memory infoOther,
+        bool isSend
+    ) internal view returns (UlnConfig memory) {
+        return UlnConfig({
+            confirmations: abi.decode(
+                IMessageLibManager(info.endpointV2).getConfig(
+                    bridgeAddresses.oftAdapter,
+                    isSend ? info.sendUln302 : info.receiveUln302,
+                    infoOther.eid,
+                    OFT_ULN_CONFIG_TYPE
+                ),
+                (UlnConfig)
+            ).confirmations,
+            requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: getDVNAddresses(lzUtil, metadata, info.chainKey),
+            optionalDVNs: new address[](0)
+        });
+    }
+
+    function getCompatibleUlnConfig(
+        LayerZeroUtil lzUtil,
+        string memory metadata,
+        BridgeAddresses memory bridgeAddressesOther,
+        LayerZeroUtil.DeploymentInfo memory info,
+        LayerZeroUtil.DeploymentInfo memory infoOther,
+        bool isSend
+    ) internal returns (UlnConfig memory) {
+        (string[] memory dvnNames, address[] memory dvnAddresses) =
+            lzUtil.getDVNAddresses(metadata, getAcceptedDVNs(), infoOther.chainKey);
+
+        require(
+            selectFork(infoOther.chainId),
+            string.concat("Failed to select fork for chain ", vm.toString(infoOther.chainId))
+        );
+
+        UlnConfig memory ulnConfig = abi.decode(
+            IMessageLibManager(infoOther.endpointV2).getConfig(
+                bridgeAddressesOther.oftAdapter,
+                isSend ? infoOther.receiveUln302 : infoOther.sendUln302,
+                info.eid,
+                OFT_ULN_CONFIG_TYPE
+            ),
+            (UlnConfig)
+        );
+
+        selectFork(DEFAULT_FORK_CHAIN_ID);
+
+        string[] memory acceptedDVNs = new string[](ulnConfig.requiredDVNs.length);
+
+        for (uint256 i = 0; i < dvnAddresses.length; ++i) {
+            for (uint256 j = 0; j < ulnConfig.requiredDVNs.length; ++j) {
+                if (dvnAddresses[i] == ulnConfig.requiredDVNs[j]) {
+                    acceptedDVNs[j] = dvnNames[i];
+                    break;
+                }
+            }
+        }
+
+        (, address[] memory dvns) = lzUtil.getDVNAddresses(metadata, acceptedDVNs, info.chainKey);
+        dvns = Arrays.sort(dvns);
+
+        require(
+            dvns.length == OFT_REQUIRED_DVNS_COUNT,
+            string.concat("Failed to find compatible accepted DVNs for ", info.chainKey)
+        );
+
+        return UlnConfig({
+            confirmations: ulnConfig.confirmations,
+            requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: dvns,
+            optionalDVNs: new address[](0)
+        });
     }
 
     function getEnforcedOptions(uint32 eid) internal pure returns (EnforcedOptionParam[] memory) {

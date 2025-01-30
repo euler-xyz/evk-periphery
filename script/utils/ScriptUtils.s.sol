@@ -297,6 +297,18 @@ abstract contract BridgeConfigCache is ScriptExtended {
         return config[srcChainId].remove(dstChainId);
     }
 
+    function bridgeConfigCacheExists(uint256 srcChainId, uint256 dstChainId) internal view returns (bool) {
+        return config[srcChainId].contains(dstChainId);
+    }
+
+    function getBridgeConfigSrcChainIds() internal view returns (uint256[] memory) {
+        return srcChainIds.values();
+    }
+
+    function getBridgeConfigDstChainIds(uint256 srcChainId) internal view returns (uint256[] memory) {
+        return config[srcChainId].keys();
+    }
+
     function serializeBridgeConfigCache() internal returns (string memory result) {
         for (uint256 i = 0; i < srcChainIds.length(); ++i) {
             uint256 srcChainId = srcChainIds.at(i);
