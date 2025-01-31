@@ -277,6 +277,58 @@ contract LayerZeroReadConfig is ScriptUtils {
             console.log("--------------------------------");
         }
     }
+
+    function getStargateConfig() public {
+        LayerZeroUtil lzUtil = new LayerZeroUtil();
+        string memory lzMetadata = lzUtil.getRawMetadata();
+        vm.makePersistent(address(lzUtil));
+        uint256[] memory srcChainIds = getBridgeConfigSrcChainIds();
+        string memory globalConfig;
+
+        for (uint256 i = 0; i < srcChainIds.length; ++i) {
+            uint256 chainId = srcChainIds[i];
+            uint256[] memory dstChainIds = getBridgeConfigDstChainIds(chainId);
+
+            LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(lzMetadata, chainId);
+            string memory eid = vm.toString(info.eid);
+
+            vm.serializeString(eid, "chainKey", info.chainKey);
+            vm.serializeString(eid, "chainId", vm.toString(chainId));
+            vm.serializeAddress(
+                eid,
+                "oftAdapter",
+                deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", chainId)).oftAdapter
+            );
+            vm.serializeAddress(
+                eid, "eul", deserializeTokenAddresses(getAddressesJson("TokenAddresses.json", chainId)).EUL
+            );
+
+            string memory routes;
+            for (uint256 j = 0; j < dstChainIds.length; ++j) {
+                uint256 chainIdOther = dstChainIds[j];
+                LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(lzMetadata, chainIdOther);
+                string memory eidOther = vm.toString(infoOther.eid);
+                string memory key = string.concat("route.", eidOther);
+
+                vm.serializeString(key, "chainKey", infoOther.chainKey);
+                vm.serializeString(key, "chainId", vm.toString(chainIdOther));
+                vm.serializeAddress(
+                    key,
+                    "oftAdapter",
+                    deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", chainIdOther)).oftAdapter
+                );
+                string memory route = vm.serializeAddress(
+                    key, "eul", deserializeTokenAddresses(getAddressesJson("TokenAddresses.json", chainIdOther)).EUL
+                );
+                routes = vm.serializeString(string.concat("routes.", eid), eidOther, route);
+            }
+
+            string memory chainConfig = vm.serializeString(eid, "routes", routes);
+            globalConfig = vm.serializeString("globalConfig", eid, chainConfig);
+        }
+
+        vm.writeJson(globalConfig, string.concat(vm.projectRoot(), "/script/stargateConfig.json"));
+    }
 }
 
 contract LayerZeroSendEUL is ScriptUtils {
