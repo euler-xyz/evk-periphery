@@ -295,7 +295,12 @@ contract SafeTransaction is SafeUtil {
         );
         _dumpSafeTransaction(payloadFileName);
 
-        console.log("Sign the following hash:");
+        string memory batchBuilderFileName = string.concat(
+            "SafeBatchBuilder_", vm.toString(transaction.nonce), "_", vm.toString(transaction.safe), ".json"
+        );
+        _dumpBatchBuilderFile(batchBuilderFileName);
+
+        console.log("Use Transaction Builder and load the Batch Builder file or sign the following hash:");
         console.logBytes32(transaction.hash);
 
         console.log("");
@@ -382,6 +387,11 @@ contract SafeTransaction is SafeUtil {
         );
         _dumpSafeTransaction(payloadFileName);
 
+        string memory batchBuilderFileName = string.concat(
+            "SafeBatchBuilder_", vm.toString(transaction.nonce), "_", vm.toString(transaction.safe), ".json"
+        );
+        _dumpBatchBuilderFile(batchBuilderFileName);
+
         if (!isUseSafeApi()) {
             console.log("Send the following POST request:");
             console.log(_getCreateCurlCommand());
@@ -421,6 +431,26 @@ contract SafeTransaction is SafeUtil {
         return payload;
     }
 
+    function _getBatchBuilderFile() private returns (string memory) {
+        string memory content = "";
+        content = vm.serializeString("content", "chainId", vm.toString(block.chainid));
+        content = vm.serializeUint("content", "createdAt", block.timestamp);
+
+        string memory meta = "";
+        meta = vm.serializeString("meta", "name", "Safe Transaction");
+        meta = vm.serializeAddress("meta", "createdFromSafeAddress", transaction.safe);
+        meta = vm.serializeAddress("meta", "createdFromOwnerAddress", transaction.sender);
+        content = vm.serializeString("content", "meta", meta);
+
+        string[] memory transactions = new string[](1);
+        transactions[0] = vm.serializeAddress("transaction", "to", transaction.to);
+        transactions[0] = vm.serializeString("transaction", "value", vm.toString(transaction.value));
+        transactions[0] = vm.serializeBytes("transaction", "data", transaction.data);
+        content = vm.serializeString("content", "transactions", transactions);
+
+        return content;
+    }
+
     function _getHash() private view returns (bytes32) {
         return keccak256(
             abi.encodePacked(
@@ -456,6 +486,11 @@ contract SafeTransaction is SafeUtil {
     function _dumpSafeTransaction(string memory fileName) private {
         console.log("Safe transaction payload saved to %s\n", fileName);
         vm.writeJson(_getPayload(), string.concat(vm.projectRoot(), "/script/", fileName));
+    }
+
+    function _dumpBatchBuilderFile(string memory fileName) private {
+        console.log("Safe Batch Builder file saved to %s\n", fileName);
+        vm.writeJson(_getBatchBuilderFile(), string.concat(vm.projectRoot(), "/script/", fileName));
     }
 
     function _getCreateCurlCommand() internal view returns (string memory) {
