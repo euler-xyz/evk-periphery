@@ -5,8 +5,13 @@ pragma solidity ^0.8.0;
 import {BatchBuilder, console} from "./utils/ScriptUtils.s.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
+import {ILayerZeroEndpointV2, IOAppCore} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
+
+interface IEndpointV2 is ILayerZeroEndpointV2 {
+    function delegates(address oapp) external view returns (address);
+}
 
 contract OwnershipTransferCore is BatchBuilder {
     function run() public {
@@ -195,29 +200,70 @@ contract OwnershipTransferCore is BatchBuilder {
             console.log("- rEUL owner is already set to the desired address. Skipping...");
         }
 
-        if (nttAddresses.manager != address(0) && nttAddresses.transceiver != address(0)) {
-            privilegedAddress = Ownable(nttAddresses.manager).owner();
-            if (
-                privilegedAddress != multisigAddresses.DAO
-                    || Ownable(nttAddresses.transceiver).owner() != multisigAddresses.DAO
-            ) {
-                if (privilegedAddress == getDeployer()) {
+        if (bridgeAddresses.oftAdapter != address(0)) {
+            if (block.chainid == 1) {
+                address proxyAdmin = address(
+                    uint160(
+                        uint256(
+                            vm.load(
+                                bridgeAddresses.oftAdapter,
+                                0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103
+                            )
+                        )
+                    )
+                );
+                privilegedAddress = Ownable(proxyAdmin).owner();
+                if (privilegedAddress != multisigAddresses.DAO) {
+                    if (privilegedAddress == getDeployer()) {
+                        console.log(
+                            "+ Transferring ownership of OFTAdapterUpgradeable ProxyAdmin to %s", multisigAddresses.DAO
+                        );
+                        startBroadcast();
+                        Ownable(proxyAdmin).transferOwnership(multisigAddresses.DAO);
+                        stopBroadcast();
+                    } else {
+                        console.log(
+                            "! OFTAdapterUpgradeable ProxyAdmin owner is not the caller of this script. Skipping..."
+                        );
+                    }
+                } else {
                     console.log(
-                        "+ Transferring ownership of NttManager and WormholeTransceiver to %s", multisigAddresses.DAO
+                        "- OFTAdapterUpgradeable ProxyAdmin owner is already set to the desired address. Skipping..."
                     );
+                }
+            }
+
+            privilegedAddress = IEndpointV2(address(IOAppCore(bridgeAddresses.oftAdapter).endpoint())).delegates(
+                bridgeAddresses.oftAdapter
+            );
+            if (privilegedAddress != multisigAddresses.DAO) {
+                if (Ownable(bridgeAddresses.oftAdapter).owner() == getDeployer()) {
+                    console.log("+ Transferring delegate of OFT Adapter to %s", multisigAddresses.DAO);
                     startBroadcast();
-                    Ownable(nttAddresses.manager).transferOwnership(multisigAddresses.DAO);
+                    IOAppCore(bridgeAddresses.oftAdapter).setDelegate(multisigAddresses.DAO);
                     stopBroadcast();
                 } else {
-                    console.log("! NttManager owner is not the caller of this script. Skipping...");
+                    console.log("! OFT Adapter owner is not the caller of this script. Skipping...");
                 }
             } else {
-                console.log(
-                    "- NttManager owner and WormholeTransceiver owner are already set to the desired address. Skipping..."
-                );
+                console.log("- OFT Adapter delegate is already set to the desired address. Skipping...");
+            }
+
+            privilegedAddress = Ownable(bridgeAddresses.oftAdapter).owner();
+            if (privilegedAddress != multisigAddresses.DAO) {
+                if (privilegedAddress == getDeployer()) {
+                    console.log("+ Transferring ownership of OFT Adapter to %s", multisigAddresses.DAO);
+                    startBroadcast();
+                    Ownable(bridgeAddresses.oftAdapter).transferOwnership(multisigAddresses.DAO);
+                    stopBroadcast();
+                } else {
+                    console.log("! OFT Adapter owner is not the caller of this script. Skipping...");
+                }
+            } else {
+                console.log("- OFT Adapter owner is already set to the desired address. Skipping...");
             }
         } else {
-            console.log("! NttManager and WormholeTransceiver are not deployed yet. Skipping...");
+            console.log("! OFT Adapter is not deployed yet. Skipping...");
         }
 
         executeBatch();

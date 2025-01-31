@@ -13,9 +13,6 @@
 [submodule "lib/ethereum-vault-connector"]
 	path = lib/ethereum-vault-connector
 	url = https://github.com/euler-xyz/ethereum-vault-connector
-[submodule "lib/native-token-transfers"]
-	path = lib/native-token-transfers
-	url = https://github.com/wormhole-foundation/native-token-transfers
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
@@ -28,3 +25,12 @@
 [submodule "lib/euler-earn"]
 	path = lib/euler-earn
 	url = https://github.com/euler-xyz/euler-earn
+[submodule "lib/layerzero-devtools"]
+	path = lib/layerzero-devtools
+	url = https://github.com/LayerZero-Labs/devtools
+[submodule "lib/layerzero-v2"]
+	path = lib/layerzero-v2
+	url = https://github.com/LayerZero-Labs/layerzero-v2
+[submodule "lib/solidity-bytes-utils"]
+	path = lib/solidity-bytes-utils
+	url = https://github.com/GNSPS/solidity-bytes-utils

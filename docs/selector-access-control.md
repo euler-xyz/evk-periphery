@@ -1,6 +1,6 @@
 # Selector Access Control
 
-The EVK periphery includes two access control implementations that leverage the `SelectorAccessControl` contract to provide fine-grained control over function calls: `GovernorAccessControl` and `HookTargetAccessControl`. These contracts allow for selective permissioning of specific functions to authorized callers depending on the use case.
+The EVK periphery includes two access control implementations that leverage the `SelectorAccessControl` contract to provide fine-grained control over function calls in the following contracts: `GovernorAccessControl` and `HookTargetAccessControl`. These contracts allow for selective permissioning of specific functions to authorized callers depending on the use case.
 
 ## `SelectorAccessControl`
 

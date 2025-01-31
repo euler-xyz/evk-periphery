@@ -2,7 +2,7 @@
 
 source .env
 eval "$(./script/utils/determineArgs.sh "$@")"
-eval "set -- $SCRIPT_ARGS"
+eval 'set -- $SCRIPT_ARGS'
 
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
@@ -38,7 +38,6 @@ if ! script/utils/checkEnvironment.sh "$@"; then
 fi
 
 eulerEarnCompilerOptions="--optimize --optimizer-runs 800 --use 0.8.27 --out out-euler-earn"
-nttCompilerOptions="--optimize --optimizer-runs 200 --via-ir --use 0.8.19 --out out-ntt"
 
 while true; do
     echo ""
@@ -1254,7 +1253,7 @@ while true; do
                 multisig_security_partner_B=$(jq -r '.securityPartnerB' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
                 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
-                nttManager=$(jq -r '.manager' "$addresses_dir_path/NTTAddresses.json" 2>/dev/null)
+                oftAdapter=$(jq -r '.oftAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 eulerEarnFactory=${eulerEarnFactory:-$addressZero}
@@ -1277,13 +1276,12 @@ while true; do
                 read -p "Enter the Uniswap V3 Router address (default: address(0) or look up https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
             fi
             
-            if [ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]; then
-                read -p "Enter the Wormhole Core Bridge address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/core.ts or press ENTER to skip): " wormhole_core_bridge
-                read -p "Enter the Wormhole Relayer address (look up: https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/core/base/src/constants/contracts/relayer.ts or press ENTER to skip): " wormhole_relayer
-            fi
-            
             if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ]; then
                 read -p "Enter the EUL/WETH init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
+            fi
+
+            if [ -z "$oftAdapter" ] || [ "$oftAdapter" == "$addressZero" ]; then
+                read -p "Should deploy and configure OFT Adapter? (y/n) (default: n): " deploy_oft
             fi
 
             multisig_dao=${multisig_dao:-$addressZero}
@@ -1294,34 +1292,14 @@ while true; do
             permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
             uniswap_router_v2=${uniswap_router_v2:-$addressZero}
             uniswap_router_v3=${uniswap_router_v3:-$addressZero}
-            wormhole_core_bridge=${wormhole_core_bridge:-$addressZero}
-            wormhole_relayer=${wormhole_relayer:-$addressZero}
             init_price=${init_price:-1000000000000000000}
+            deploy_oft=${deploy_oft:-n}
 
             if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
             fi
-            
-            if ([ -z "$nttManager" ] || [ "$nttManager" == "$addressZero" ]) && ([ "$wormhole_core_bridge" != "$addressZero" ]); then
-                echo "Deploying TransceiverStructs library..."
-                result=$(forge create lib/native-token-transfers/evm/src/libraries/TransceiverStructs.sol:TransceiverStructs --rpc-url $DEPLOYMENT_RPC_URL --json $broadcast $nttCompilerOptions --force $@)
 
-                if [ "$broadcast" = "--broadcast" ]; then
-                    transceiver_structs=$(jq -r '.deployedTo' <<< "$result")
-                else
-                    deployerAddress=$(cast wallet address $@)
-                    transceiver_structs=$(cast compute-address $deployerAddress --rpc-url $DEPLOYMENT_RPC_URL | grep -oE '0x[a-fA-F0-9]{40}')
-                fi
-
-                if [ -z "$transceiver_structs" ] && [ "$broadcast" = "--broadcast" ]; then
-                    echo "Failed to deploy TransceiverStructs library. Exiting."
-                    exit 1
-                fi
-
-                forge compile lib/native-token-transfers/evm/src --libraries native-token-transfers/libraries/TransceiverStructs.sol:TransceiverStructs:$transceiver_structs $nttCompilerOptions
-            fi
-
-            transceiver_structs=${transceiver_structs:-$addressZero}
+            set -- "$@" --ffi
 
             jq -n \
                 --arg multisigDAO "$multisig_dao" \
@@ -1332,10 +1310,8 @@ while true; do
                 --arg permit2 "$permit2" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
-                --arg wormholeCoreBridge "$wormhole_core_bridge" \
-                --arg wormholeRelayer "$wormhole_relayer" \
-                --arg transceiverStructs "$transceiver_structs" \
                 --arg initPrice "$init_price" \
+                --argjson deployOFT "$(jq -n --argjson val \"$deploy_oft\" 'if $val == "y" then true else false end')" \
                 '{
                     multisigDAO: $multisigDAO,
                     multisigLabs: $multisigLabs,
@@ -1345,10 +1321,8 @@ while true; do
                     permit2: $permit2,
                     uniswapV2Router: $uniswapRouterV2,
                     uniswapV3Router: $uniswapRouterV3,
-                    wormholeCoreBridge: $wormholeCoreBridge,
-                    wormholeRelayer: $wormholeRelayer,
-                    transceiverStructs: $transceiverStructs,
-                    feeFlowInitPrice: $initPrice
+                    feeFlowInitPrice: $initPrice,
+                    deployOFT: $deployOFT
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         51)
@@ -1438,7 +1412,7 @@ while true; do
     if script/utils/executeForgeScript.sh $scriptName "$@" $verify $dry_run; then
         source .env
         eval "$(./script/utils/determineArgs.sh "$@")"
-        eval "set -- $SCRIPT_ARGS"
+        eval 'set -- $SCRIPT_ARGS'
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
         deployment_dir="script/deployments/$deployment_name/$chainId"
         broadcast_dir="broadcast/${scriptName%:*}/$chainId"

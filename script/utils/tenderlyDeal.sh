@@ -6,7 +6,7 @@ dealAmount=$3
 
 source .env
 eval "$(./script/utils/determineArgs.sh "$@")"
-eval "set -- $SCRIPT_ARGS"
+eval 'set -- $SCRIPT_ARGS'
 
 if [[ $asset == "ETH" ]]; then
     decimals=18

@@ -2,7 +2,7 @@
 
 source .env
 eval "$(./script/utils/determineArgs.sh "$@")"
-eval "set -- $SCRIPT_ARGS"
+eval 'set -- $SCRIPT_ARGS'
 
 chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
 
