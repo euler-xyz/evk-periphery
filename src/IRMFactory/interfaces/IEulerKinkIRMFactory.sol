@@ -15,5 +15,5 @@ interface IEulerKinkIRMFactory is IFactory {
     /// @param slope2 The slope of the IRM at the second kink.
     /// @param kink The kink of the IRM.
     /// @return The deployment address.
-    function deploy(uint256 baseRate, uint256 slope1, uint256 slope2, uint256 kink) external returns (address);
+    function deploy(uint256 baseRate, uint256 slope1, uint256 slope2, uint32 kink) external returns (address);
 }

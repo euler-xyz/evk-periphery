@@ -4,12 +4,13 @@ pragma solidity ^0.8.0;
 
 import {BaseFactory} from "../BaseFactory/BaseFactory.sol";
 import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
+import {IEulerKinkIRMFactory} from "./interfaces/IEulerKinkIRMFactory.sol";
 
 /// @title EulerKinkIRMFactory
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A minimal factory for Kink IRMs.
-contract EulerKinkIRMFactory is BaseFactory {
+contract EulerKinkIRMFactory is BaseFactory, IEulerKinkIRMFactory {
     // corresponds to 1000% APY
     uint256 internal constant MAX_ALLOWED_INTEREST_RATE = 75986279153383989049;
 
@@ -22,7 +23,11 @@ contract EulerKinkIRMFactory is BaseFactory {
     /// @param slope2 Slope of the function after the kink
     /// @param kink Utilization at which the slope of the interest rate function changes. In type(uint32).max scale
     /// @return The deployment address.
-    function deploy(uint256 baseRate, uint256 slope1, uint256 slope2, uint32 kink) external returns (address) {
+    function deploy(uint256 baseRate, uint256 slope1, uint256 slope2, uint32 kink)
+        external
+        override
+        returns (address)
+    {
         IRMLinearKink irm = new IRMLinearKink(baseRate, slope1, slope2, kink);
 
         // verify if the IRM is functional
