@@ -158,7 +158,9 @@ abstract contract ManageClusterBase is BatchBuilder {
             KinkIRMDeployer deployer = new KinkIRMDeployer();
             for (uint256 i = 0; i < cluster.assets.length; ++i) {
                 uint256[4] storage p = cluster.kinkIRMParams[cluster.assets[i]];
-                address irm = cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]];
+                address irm = p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0
+                    ? cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]]
+                    : cluster.irms[i];
 
                 // only deploy those IRMs that haven't been deployed or cached yet
                 if (irm == address(0) && (p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0)) {
@@ -417,7 +419,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             }
         }
 
-        return (base, adapter, useStub);
+        return (base, adapter, useStub && (block.chainid == 1 || block.chainid == 8453));
     }
 
     // sets LTVs for all passed collaterals of the vault
