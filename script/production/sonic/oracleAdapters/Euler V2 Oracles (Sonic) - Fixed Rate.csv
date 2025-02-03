@@ -1,0 +1,2 @@
+Asset,Quote,Provider,Deploy,Whitelist,Class,base,quote,rate
+OS,S,Fixed Rate,Yes,No,FixedRateOracle,0xb1e25689D55734FD3ffFc939c4C3Eb52DFf8A794,0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38,1000000000000000000
