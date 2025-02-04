@@ -19,7 +19,7 @@ function GRT_USDC_injectReceiver(address receiver) pure returns (bytes memory pa
     payload = GRT_USDC_PAYLOAD;
     assembly {
         mstore(0, receiver)
-        mcopy(add(add(payload, 32), RECEIVER_OFFSET), 12, 20)
+        //mcopy(add(add(payload, 32), RECEIVER_OFFSET), 12, 20)
     }
 }
 
@@ -37,6 +37,6 @@ function USDT_STETH_injectReceiver(address receiver) pure returns (bytes memory 
     payload = USDT_STETH_PAYLOAD;
     assembly {
         mstore(0, receiver)
-        mcopy(add(add(payload, 32), RECEIVER_OFFSET), 12, 20)
+        //mcopy(add(add(payload, 32), RECEIVER_OFFSET), 12, 20)
     }
 }
