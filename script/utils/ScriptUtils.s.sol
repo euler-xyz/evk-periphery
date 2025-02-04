@@ -383,6 +383,10 @@ abstract contract ScriptUtils is
                 || block.chainid == 60808
         ) {
             return 0x4200000000000000000000000000000000000006;
+        } else if (block.chainid == 56) {
+            return 0x2170Ed0880ac9A755fd29B2688956BD959F933F8;
+        } else if (block.chainid == 100) {
+            return 0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1;
         } else if (block.chainid == 137) {
             return 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619;
         } else if (block.chainid == 146) {
@@ -392,13 +396,30 @@ abstract contract ScriptUtils is
         } else if (block.chainid == 43114) {
             return 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB;
         } else {
-            // test networks
-            if (block.chainid == 10143 || block.chainid == 80084) {
+            // bitcoin-specific and test networks
+            if (block.chainid == 30 || block.chainid == 21000000 || block.chainid == 10143 || block.chainid == 80084) {
                 return address(0);
             }
         }
 
         revert("getWETHAddress: Unsupported chain");
+    }
+
+    function getRecognizedUnitsOfAccount() internal view returns (address[] memory recognizedUnitsOfAccount) {
+        address USD = address(840);
+        address WETH = getWETHAddress();
+        address BTC = 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB;
+
+        if (WETH == address(0)) {
+            recognizedUnitsOfAccount = new address[](2);
+            recognizedUnitsOfAccount[0] = USD;
+            recognizedUnitsOfAccount[1] = BTC;
+        } else {
+            recognizedUnitsOfAccount = new address[](3);
+            recognizedUnitsOfAccount[0] = USD;
+            recognizedUnitsOfAccount[1] = WETH;
+            recognizedUnitsOfAccount[2] = BTC;
+        }
     }
 
     function getValidAdapter(address base, address quote, string memory provider)
