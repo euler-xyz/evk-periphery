@@ -45,7 +45,7 @@ abstract contract BasePerspective is IPerspective, PerspectiveErrors {
             transientVerifiedHash := keccak256(0, 64)
 
             // if optimistically verified, return
-            if eq(tload(transientVerifiedHash), true) { return(0, 0) }
+            if eq(sload(transientVerifiedHash), true) { return(0, 0) }
         }
 
         // if already verified, return
@@ -54,13 +54,13 @@ abstract contract BasePerspective is IPerspective, PerspectiveErrors {
         address _vault;
         bool _failEarly;
         assembly {
-            _vault := tload(transientVault.slot)
-            _failEarly := tload(transientFailEarly.slot)
-            tstore(transientVault.slot, vault)
-            tstore(transientFailEarly.slot, failEarly)
+            _vault := sload(transientVault.slot)
+            _failEarly := sload(transientFailEarly.slot)
+            sstore(transientVault.slot, vault)
+            sstore(transientFailEarly.slot, failEarly)
 
             // optimistically assume that the vault is verified
-            tstore(transientVerifiedHash, true)
+            sstore(transientVerifiedHash, true)
         }
 
         // perform the perspective verification
@@ -69,10 +69,14 @@ abstract contract BasePerspective is IPerspective, PerspectiveErrors {
         uint256 errors;
         assembly {
             // restore the cached values
-            tstore(transientVault.slot, _vault)
-            tstore(transientFailEarly.slot, _failEarly)
+            sstore(transientVault.slot, _vault)
+            sstore(transientFailEarly.slot, _failEarly)
 
-            errors := tload(transientErrors.slot)
+            errors := sload(transientErrors.slot)
+
+            // clear the transient storage
+            sstore(transientErrors.slot, 0)
+            sstore(transientVerifiedHash, false)
         }
 
         // if early fail was not requested, we need to check for any property errors that may have occurred.
@@ -114,19 +118,19 @@ abstract contract BasePerspective is IPerspective, PerspectiveErrors {
 
         bool failEarly;
         assembly {
-            failEarly := tload(transientFailEarly.slot)
+            failEarly := sload(transientFailEarly.slot)
         }
 
         if (failEarly) {
             address vault;
             assembly {
-                vault := tload(transientVault.slot)
+                vault := sload(transientVault.slot)
             }
             revert PerspectiveError(address(this), vault, errorCode);
         } else {
             assembly {
-                let errors := tload(transientErrors.slot)
-                tstore(transientErrors.slot, or(errors, errorCode))
+                let errors := sload(transientErrors.slot)
+                sstore(transientErrors.slot, or(errors, errorCode))
             }
         }
     }

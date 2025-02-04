@@ -4,7 +4,7 @@ out = "out"
 libs = ["lib"]
 solc = "0.8.24"
 
-evm_version = "cancun"
+evm_version = "shanghai"
 optimizer = true
 optimizer_runs = 20_000
 
