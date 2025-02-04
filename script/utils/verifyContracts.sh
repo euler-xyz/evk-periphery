@@ -220,7 +220,7 @@ function verify_broadcast {
 
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
 
-                    verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
+                    verify_contract $contractAddress $contractName "$constructorArgs" $verificationOptions "$@"
 
                     if [ $? -eq 0 ]; then
                         createVerified=true
