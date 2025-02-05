@@ -312,7 +312,7 @@ abstract contract BridgeConfigCache is ScriptExtended {
     function serializeBridgeConfigCache() internal returns (string memory result) {
         for (uint256 i = 0; i < srcChainIds.length(); ++i) {
             uint256 srcChainId = srcChainIds.at(i);
-            result = vm.serializeUint("oft", vm.toString(srcChainId), config[srcChainId].keys().sort());
+            result = vm.serializeUint("bridgeConfigCache", vm.toString(srcChainId), config[srcChainId].keys().sort());
         }
         result = vm.serializeString("", "oft", bytes(result).length == 0 ? "{}" : result);
     }
