@@ -65,13 +65,14 @@ contract EulerEarnVaultLens is Utils {
         result.accessControlInfo = getVaultAccessControlInfo(vault);
 
         address[] memory withdrawalQueue = IEulerEarn(vault).withdrawalQueue();
-        result.strategies = new EulerEarnVaultStrategyInfo[](withdrawalQueue.length);
+        result.strategies = new EulerEarnVaultStrategyInfo[](withdrawalQueue.length + 1);
 
-        for (uint256 i; i < withdrawalQueue.length; i++) {
-            IEulerEarn.Strategy memory strategy = IEulerEarn(vault).getStrategy(withdrawalQueue[i]);
+        for (uint256 i; i < withdrawalQueue.length + 1; i++) {
+            address strategyAddress = i == 0 ? address(0) : withdrawalQueue[i - 1];
+            IEulerEarn.Strategy memory strategy = IEulerEarn(vault).getStrategy(strategyAddress);
 
             result.strategies[i] = EulerEarnVaultStrategyInfo({
-                strategy: withdrawalQueue[i],
+                strategy: strategyAddress,
                 assetsAllocated: strategy.allocated,
                 allocationPoints: strategy.allocationPoints,
                 allocationCap: AmountCapLib.resolve(strategy.cap),
