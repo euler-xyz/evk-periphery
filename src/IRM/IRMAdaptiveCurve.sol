@@ -168,7 +168,7 @@ contract IRMAdaptiveCurve is IIRM {
                 endRateAtTarget = _newRateAtTarget(startRateAtTarget, linearAdaptation);
             }
         }
-        
+
         // Use errNew for position on curve to get current interest rate
         return (uint256(_curve(endRateAtTarget, errNew)), uint256(endRateAtTarget));
     }
