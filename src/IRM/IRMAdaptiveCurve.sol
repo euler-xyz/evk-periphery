@@ -104,10 +104,7 @@ contract IRMAdaptiveCurve is IIRM {
         if (msg.sender != vault) revert E_IRMUpdateUnauthorized();
 
         int256 utilization = _calcUtilization(cash, borrows);
-
-        // If this is the first call then use the current utilization instead of the lastUtilization from storage.
-        int256 lastUtilization = irState[vault].lastUpdate == 0 ? utilization : irState[vault].lastUtilization;
-        (uint256 rate, uint256 rateAtTarget) = computeInterestRateInternal(vault, lastUtilization);
+        (uint256 rate, uint256 rateAtTarget) = computeInterestRateInternal(vault, utilization);
 
         irState[vault] = IRState(uint144(rateAtTarget), int64(utilization), uint48(block.timestamp));
         return rate * 1e9; // Extend rate to RAY/sec for EVK.
