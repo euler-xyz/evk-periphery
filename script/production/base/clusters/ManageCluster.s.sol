@@ -14,6 +14,8 @@ abstract contract Addresses {
     address internal constant ezETH = 0x2416092f143378750bb29b79eD961ab195CcEea5;
     address internal constant RETH = 0xB6fe221Fe9EeF5aBa221c348bA20A1Bf5e73624c;
     address internal constant USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+    address internal constant USDS = 0x820C137fa70C8691f0e44Dc420a5e53c168921Dc;
+    address internal constant SUSDS = 0x5875eEE11Cf8398102FdAd704C9E96607675467a;
     address internal constant EURC = 0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42;
     address internal constant cbBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
     address internal constant LBTC = 0xecAc9C5F704e954931349Da37F60E39f515c11c1;
