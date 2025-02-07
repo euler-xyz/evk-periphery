@@ -452,14 +452,6 @@ contract CoreAndPeriphery is BatchBuilder {
                         );
                         vm.stopBroadcast();
 
-                        console.log(
-                            "    Sanity checking config compatibility on chain %s for chain %s",
-                            block.chainid,
-                            hubChainId
-                        );
-                        getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddresses, infoHub, info, true);
-                        getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddresses, infoHub, info, false);
-
                         vm.startBroadcast();
                         console.log("    Setting OFT Adapter peer on chain %s for chain %s", block.chainid, hubChainId);
                         IOAppCore(bridgeAddresses.oftAdapter).setPeer(
@@ -477,6 +469,14 @@ contract CoreAndPeriphery is BatchBuilder {
                             getEnforcedOptions(infoHub.eid)
                         );
                         vm.stopBroadcast();
+
+                        console.log(
+                            "    Sanity checking config compatibility on chain %s for chain %s",
+                            block.chainid,
+                            hubChainId
+                        );
+                        getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddresses, infoHub, info, true);
+                        getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddresses, infoHub, info, false);
                     }
                 }
 

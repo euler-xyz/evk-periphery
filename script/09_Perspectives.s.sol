@@ -87,11 +87,7 @@ contract EVKPerspectives is ScriptUtils {
         address governedPerspective = address(new GovernedPerspective(evc, getDeployer()));
         address escrowedCollateralPerspective = address(new EscrowedCollateralPerspective(eVaultFactory));
 
-        address[] memory recognizedUnitOfAccounts = new address[](3);
-        recognizedUnitOfAccounts[0] = address(840);
-        recognizedUnitOfAccounts[1] = getWETHAddress();
-        recognizedUnitOfAccounts[2] = 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB;
-
+        address[] memory recognizedUnitOfAccounts = getRecognizedUnitsOfAccount();
         address[] memory recognizedPerspectives = new address[](2);
         recognizedPerspectives[0] = escrowedCollateralPerspective;
         recognizedPerspectives[1] = address(0);
@@ -284,11 +280,7 @@ contract EVKPerspectiveEulerUngoverned0xDeployer is ScriptUtils {
             );
         }
 
-        address[] memory recognizedUnitOfAccounts = new address[](3);
-        recognizedUnitOfAccounts[0] = address(840);
-        recognizedUnitOfAccounts[1] = getWETHAddress();
-        recognizedUnitOfAccounts[2] = 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB;
-
+        address[] memory recognizedUnitOfAccounts = getRecognizedUnitsOfAccount();
         address[] memory recognizedPerspectives = new address[](2);
         recognizedPerspectives[0] = escrowedCollateralPerspective;
         recognizedPerspectives[1] = address(0);
@@ -390,11 +382,7 @@ contract EVKPerspectiveEulerUngovernedNzxDeployer is ScriptUtils {
             );
         }
 
-        address[] memory recognizedUnitOfAccounts = new address[](3);
-        recognizedUnitOfAccounts[0] = address(840);
-        recognizedUnitOfAccounts[1] = getWETHAddress();
-        recognizedUnitOfAccounts[2] = 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB;
-
+        address[] memory recognizedUnitOfAccounts = getRecognizedUnitsOfAccount();
         address[] memory recognizedPerspectives = new address[](3);
         recognizedPerspectives[0] = governedPerspective;
         recognizedPerspectives[1] = escrowedCollateralPerspective;

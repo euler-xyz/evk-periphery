@@ -5,12 +5,20 @@ function verify_contract {
     local contractAddress=$1
     local contractName=$2
     local constructorArgs=$3
-    shift 3
+    shift 4
     
     local verifier_url_var="VERIFIER_URL_${chainId}"
     local verifier_api_key_var="VERIFIER_API_KEY_${chainId}"
     local verifier_url=${VERIFIER_URL:-${!verifier_url_var}}
     local verifier_api_key=""
+    local verifier=""
+
+    if [[ "$@" == *"--verifier"* ]]; then
+        verifier=$(echo "$@" | grep -o '\--verifier [^ ]*' | cut -d ' ' -f 2)
+        set -- $(echo "$@" | sed "s/--verifier $verifier//")
+    else
+        verifier="etherscan"
+    fi
 
     if [[ $VERIFIER_URL == "" ]]; then
         verifier_api_key=${!verifier_api_key_var}
@@ -19,19 +27,22 @@ function verify_contract {
     fi
 
     local verifierArgs="--verifier-url $verifier_url"
-    
-    if [[ $verifier_url == *"api."* ]]; then
-        verifierArgs="$verifierArgs --verifier-api-key $verifier_api_key --verifier=etherscan"
-    elif [[ $verifier_url == *"explorer."* || $verifier_url == *"blockscout."* ]]; then
+
+    if [[ $verifier == "blockscout" ]]; then
         verifierArgs="$verifierArgs --verifier-api-key \"\" --verifier=blockscout"
 
         if [[ $constructorArgs == "--guess-constructor-args" ]]; then
             constructorArgs=""
         fi
+    elif [[ $verifier == "custom" ]]; then
+        verifierArgs="$verifierArgs --verifier=$verifier"
+    else
+        verifierArgs="$verifierArgs --verifier-api-key $verifier_api_key --verifier=$verifier"
     fi
 
     echo "Verifying $contractName: $contractAddress"
-    forge verify-contract $contractAddress $contractName $constructorArgs --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId $verifierArgs --watch $@
+    env VERIFIER_API_KEY=$verifier_api_key ETHERSCAN_API_KEY=$verifier_api_key \
+        forge verify-contract $contractAddress $contractName $constructorArgs --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId $verifierArgs --watch $@
     result=$?
 
     if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan.io/api* ]]; then
@@ -81,7 +92,7 @@ function verify_broadcast {
                 constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
             fi
 
-            verify_contract $contractAddress $contractName "$constructorArgs"
+            verify_contract $contractAddress $contractName "$constructorArgs" "$@"
 
             if [ $? -eq 0 ]; then
                 verificationSuccessful=true
@@ -146,7 +157,7 @@ function verify_broadcast {
 
                 ((index++))
 
-                verify_contract $contractAddress $contractName "$constructorArgs"
+                verify_contract $contractAddress $contractName "$constructorArgs" "$@"
             done
         elif [[ $transactionType == "CREATE" && $verificationSuccessful != true ]]; then
             local initCode=$(echo $tx | jq -r '.transaction.input')
@@ -210,7 +221,7 @@ function verify_broadcast {
 
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
 
-                    verify_contract $contractAddress $contractName "$constructorArgs" $verificationOptions
+                    verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
 
                     if [ $? -eq 0 ]; then
                         createVerified=true
@@ -235,9 +246,9 @@ eval 'set -- $SCRIPT_ARGS'
 if [ -d "$input" ]; then
     for fileName in "$input"/*.json; do
         if [ -f "$fileName" ]; then
-            verify_broadcast $fileName
+            verify_broadcast $fileName "$@"
         fi
     done
 else
-    verify_broadcast $input
+    verify_broadcast $input "$@"
 fi

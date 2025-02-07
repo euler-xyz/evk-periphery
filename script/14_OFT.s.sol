@@ -18,7 +18,7 @@ contract OFTAdapterUpgradeableDeployer is ScriptUtils {
         adapter = execute(token, lzEndpoint);
 
         string memory object;
-        object = vm.serializeAddress("oft", "adapter", adapter);
+        object = vm.serializeAddress("oftDeployer", "adapter", adapter);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
@@ -48,7 +48,7 @@ contract MintBurnOFTAdapterDeployer is ScriptUtils {
         adapter = execute(token, lzEndpoint);
 
         string memory object;
-        object = vm.serializeAddress("oft", "adapter", adapter);
+        object = vm.serializeAddress("oftDeployer", "adapter", adapter);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 

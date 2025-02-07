@@ -104,10 +104,7 @@ contract IRMAdaptiveCurve is IIRM {
         if (msg.sender != vault) revert E_IRMUpdateUnauthorized();
 
         int256 utilization = _calcUtilization(cash, borrows);
-
-        // If this is the first call then use the current utilization instead of the lastUtilization from storage.
-        int256 lastUtilization = irState[vault].lastUpdate == 0 ? utilization : irState[vault].lastUtilization;
-        (uint256 rate, uint256 rateAtTarget) = computeInterestRateInternal(vault, lastUtilization);
+        (uint256 rate, uint256 rateAtTarget) = computeInterestRateInternal(vault, utilization);
 
         irState[vault] = IRState(uint144(rateAtTarget), int64(utilization), uint48(block.timestamp));
         return rate * 1e9; // Extend rate to RAY/sec for EVK.
@@ -143,10 +140,12 @@ contract IRMAdaptiveCurve is IIRM {
     /// @return The new interest rate at current utilization.
     /// @return The new interest rate at target utilization.
     function computeInterestRateInternal(address vault, int256 utilization) internal view returns (uint256, uint256) {
-        // Calculate the normalized distance between current utilization and target utilization.
-        // `err` is normalized to [-1, +1] where -1 is 0% util, 0 is at target and +1 is 100% util.
-        int256 errNormFactor = utilization > TARGET_UTILIZATION ? WAD - TARGET_UTILIZATION : TARGET_UTILIZATION;
-        int256 err = (utilization - TARGET_UTILIZATION) * WAD / errNormFactor;
+        // Calculate normalized distance using previous utilization for curve shifting
+        int256 lastUtilization = irState[vault].lastUpdate == 0 ? utilization : int256(irState[vault].lastUtilization);
+        int256 errOld = _calcErr(lastUtilization);
+
+        // Calculate normalized distance using current utilization for position on curve
+        int256 errNew = _calcErr(utilization);
 
         IRState memory state = irState[vault];
         int256 startRateAtTarget = int256(uint256(state.rateAtTarget));
@@ -156,9 +155,8 @@ contract IRMAdaptiveCurve is IIRM {
             // First interaction.
             endRateAtTarget = INITIAL_RATE_AT_TARGET;
         } else {
-            // The speed is assumed constant between two updates, but it is in fact not constant because of interest.
-            // So the rate is always underestimated.
-            int256 speed = ADJUSTMENT_SPEED * err / WAD;
+            // Use errOld for curve shifting
+            int256 speed = ADJUSTMENT_SPEED * errOld / WAD;
 
             // Calculate the adaptation parameter.
             int256 elapsed = int256(block.timestamp - state.lastUpdate);
@@ -170,7 +168,9 @@ contract IRMAdaptiveCurve is IIRM {
                 endRateAtTarget = _newRateAtTarget(startRateAtTarget, linearAdaptation);
             }
         }
-        return (uint256(_curve(endRateAtTarget, err)), uint256(endRateAtTarget));
+
+        // Use errNew for position on curve to get current interest rate
+        return (uint256(_curve(endRateAtTarget, errNew)), uint256(endRateAtTarget));
     }
 
     /// @notice Calculate the interest rate according to the linear kink model.
@@ -197,6 +197,14 @@ contract IRMAdaptiveCurve is IIRM {
         if (rateAtTarget < MIN_RATE_AT_TARGET) return MIN_RATE_AT_TARGET;
         if (rateAtTarget > MAX_RATE_AT_TARGET) return MAX_RATE_AT_TARGET;
         return rateAtTarget;
+    }
+
+    /// @notice Calculate the normalized distance between the utilization and target utilization.
+    /// @param utilization The utilization rate.
+    /// @return The normalized distance between the utilization and target utilization.
+    function _calcErr(int256 utilization) internal view returns (int256) {
+        int256 errNormFactor = utilization > TARGET_UTILIZATION ? WAD - TARGET_UTILIZATION : TARGET_UTILIZATION;
+        return (utilization - TARGET_UTILIZATION) * WAD / errNormFactor;
     }
 
     /// @notice Calculate the utilization rate, given cash and borrows from the vault.

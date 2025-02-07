@@ -1299,7 +1299,9 @@ while true; do
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
             fi
 
-            set -- "$@" --ffi
+            if [[ "$@" != *"--ffi"* ]]; then
+                set -- "$@" --ffi
+            fi
 
             jq -n \
                 --arg multisigDAO "$multisig_dao" \
