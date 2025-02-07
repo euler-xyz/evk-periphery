@@ -22,8 +22,8 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = getDeployer();
-        cluster.vaultsGovernor = getDeployer();
+        cluster.oracleRoutersGovernor = 0xB672Ea44A1EC692A9Baf851dC90a1Ee3DB25F1C4;
+        cluster.vaultsGovernor = 0xB672Ea44A1EC692A9Baf851dC90a1Ee3DB25F1C4;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -74,8 +74,8 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDC     ] = 5_000_000;
         cluster.supplyCaps[scETH    ] = 600;
         cluster.supplyCaps[scUSD    ] = 2_000_000;
-        cluster.supplyCaps[wstkscETH] = 0;
-        cluster.supplyCaps[wstkscUSD] = 0;
+        cluster.supplyCaps[wstkscETH] = 600;
+        cluster.supplyCaps[wstkscUSD] = 2_000_000;
         cluster.supplyCaps[wS       ] = 10_000_000;
         cluster.supplyCaps[stS      ] = 4_000_000;
         cluster.supplyCaps[wOS      ] = 0;
@@ -85,15 +85,15 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDC     ] = 4_250_000;
         cluster.borrowCaps[scETH    ] = 240;
         cluster.borrowCaps[scUSD    ] = 800_000;
-        cluster.borrowCaps[wstkscETH] = 0;
-        cluster.borrowCaps[wstkscUSD] = 0;
+        cluster.borrowCaps[wstkscETH] = 240;
+        cluster.borrowCaps[wstkscUSD] = 800_000;
         cluster.borrowCaps[wS       ] = 0;
         cluster.borrowCaps[stS      ] = 1_600_000;
         cluster.borrowCaps[wOS      ] = 0;
 
         // define IRMs
         for (uint256 i = 0; i < cluster.assets.length; i++) {
-            cluster.irms[i] = 0xB5d5332b82F5D11571c4666336C5b36b7a6F50cb;
+            cluster.irms[i] = 0x3009dB521e9B781637DA5C53323322dAa0B0bDE1;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
