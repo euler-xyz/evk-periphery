@@ -38,16 +38,19 @@ fi
 if [[ "$@" == *"--batch-via-safe"* ]]; then
     set -- "${@/--batch-via-safe/}"
     batch_via_safe="--batch-via-safe"
-    ffi="--ffi"
 
     if [[ "$@" == *"--use-safe-api"* ]]; then
         set -- "${@/--use-safe-api/}"
         use_safe_api="--use-safe-api"
     fi
+
+    if [[ "$@" != *"--ffi"* ]]; then
+        set -- "$@" --ffi
+    fi
 fi
 
 if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
-    forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
+    forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
     exit 1
 fi
 

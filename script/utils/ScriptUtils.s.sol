@@ -748,7 +748,7 @@ abstract contract BatchBuilder is ScriptUtils {
     function dumpBatch(address from) internal {
         string memory path = string.concat(vm.projectRoot(), "/script/Batches.json");
         string memory json = vm.exists(path) ? vm.readFile(path) : "{}";
-        string memory key = vm.toString(batchCounter++);
+        string memory key = string.concat("batch", vm.toString(batchCounter++));
 
         json = vm.serializeAddress(key, "from", from);
         json = vm.serializeAddress(key, "to", coreAddresses.evc);
@@ -796,6 +796,10 @@ abstract contract BatchBuilder is ScriptUtils {
 
     function add(address snapshotRegistry, address element, address base, address quote) internal {
         addBatchItem(snapshotRegistry, abi.encodeCall(SnapshotRegistry.add, (element, base, quote)));
+    }
+
+    function revoke(address snapshotRegistry, address element) internal {
+        addBatchItem(snapshotRegistry, abi.encodeCall(SnapshotRegistry.revoke, (element)));
     }
 
     function setGovernorAdmin(address vault, address newGovernorAdmin) internal {
