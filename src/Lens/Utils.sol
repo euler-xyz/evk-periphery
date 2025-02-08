@@ -21,8 +21,8 @@ abstract contract Utils {
         if (block.chainid == 1) {
             return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
         } else if (
-            block.chainid == 10 || block.chainid == 8453 || block.chainid == 1923 || block.chainid == 57073
-                || block.chainid == 60808
+            block.chainid == 10 || block.chainid == 8453 || block.chainid == 1923 || block.chainid == 480
+                || block.chainid == 57073 || block.chainid == 60808
         ) {
             return 0x4200000000000000000000000000000000000006;
         } else if (block.chainid == 56) {
