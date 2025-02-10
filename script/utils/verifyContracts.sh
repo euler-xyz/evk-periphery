@@ -168,10 +168,6 @@ function verify_broadcast {
                 local verificationOptions="--num-of-optimizations 800 --compiler-version 0.8.27 --root lib/euler-earn"
                 local compilerOptions="--optimize --optimizer-runs 800 --use 0.8.27"
 
-                if [ "$createVerified" = false ]; then
-                    forge clean && forge compile $src $compilerOptions
-                fi
-
                 while true; do
                     case $eulerEarnIndex in
                         0)
@@ -220,6 +216,10 @@ function verify_broadcast {
                     esac
 
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+
+                    if [ "$createVerified" = false ]; then
+                        forge clean && forge compile $src $compilerOptions
+                    fi
 
                     verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
 
