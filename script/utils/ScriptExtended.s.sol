@@ -15,13 +15,16 @@ abstract contract ScriptExtended is Script {
     constructor() {
         vm.pauseGasMetering();
 
-        forks[DEFAULT_FORK_CHAIN_ID] = vm.activeFork();
+        string memory deploymentRpcUrl = getDeploymentRpcUrl();
+        if (bytes(deploymentRpcUrl).length != 0) {
+            forks[DEFAULT_FORK_CHAIN_ID] = vm.activeFork();
 
-        if (forks[DEFAULT_FORK_CHAIN_ID] == 0) {
-            forks[DEFAULT_FORK_CHAIN_ID] = vm.createSelectFork(getDeploymentRpcUrl());
+            if (forks[DEFAULT_FORK_CHAIN_ID] == 0) {
+                forks[DEFAULT_FORK_CHAIN_ID] = vm.createSelectFork(deploymentRpcUrl);
+            }
+
+            forks[block.chainid] = forks[DEFAULT_FORK_CHAIN_ID];
         }
-
-        forks[block.chainid] = forks[DEFAULT_FORK_CHAIN_ID];
 
         uint256 deployerPK = vm.envOr("DEPLOYER_KEY", uint256(0));
         uint256 safeSignerPK = vm.envOr("SAFE_KEY", uint256(0));
@@ -88,7 +91,7 @@ abstract contract ScriptExtended is Script {
     }
 
     function getDeploymentRpcUrl() internal view returns (string memory) {
-        return vm.envString("DEPLOYMENT_RPC_URL");
+        return vm.envOr("DEPLOYMENT_RPC_URL", string(""));
     }
 
     function getRpcUrl(uint256 chainId, bool failOnNotFound) internal view returns (string memory) {
