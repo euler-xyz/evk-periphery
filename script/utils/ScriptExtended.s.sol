@@ -45,14 +45,6 @@ abstract contract ScriptExtended is Script {
                 ? wallets[rememberSafeSignerLength - 1]
                 : rememberDeployerLength > 0 ? wallets[0] : wallets.length > 1 ? wallets[1] : wallets[0];
         }
-
-        if (!vm.envOr("FORCE_NO_KEY", false)) {
-            require(deployerAddress != address(0), "Cannot retrieve the deployer address from the private key config");
-            require(
-                !isBatchViaSafe() || safeSignerAddress != address(0),
-                "Cannot retrieve the safe signer address from the private key config"
-            );
-        }
     }
 
     function getDeployer() internal view returns (address) {
@@ -64,20 +56,24 @@ abstract contract ScriptExtended is Script {
     }
 
     function getSafe() internal view returns (address) {
+        return getSafe(true);
+    }
+
+    function getSafe(bool failOnNotFound) internal view returns (address) {
         string memory safeAddress = vm.envOr("SAFE_ADDRESS", string(""));
         address safe;
 
         if (_strEq(safeAddress, string(""))) {
             safeAddress = vm.envOr("safe_address", string(""));
 
-            if (bytes(safeAddress).length > 0) {
+            if (bytes(safeAddress).length > 0 && bytes(safeAddress).length < 42) {
                 safe = getAddressFromJson(getAddressesJson("MultisigAddresses.json"), string.concat(".", safeAddress));
             }
         }
 
-        if (safe == address(0)) safe = _toAddress(safeAddress);
+        if (safe == address(0) && bytes(safeAddress).length == 42) safe = _toAddress(safeAddress);
 
-        require(safe != address(0), "getSafe: Cannot retrieve the Safe address");
+        require(!failOnNotFound || safe != address(0), "getSafe: Cannot retrieve the Safe address");
         return safe;
     }
 

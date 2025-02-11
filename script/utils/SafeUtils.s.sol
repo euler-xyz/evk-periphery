@@ -295,10 +295,12 @@ contract SafeTransaction is SafeUtil {
         );
         _dumpSafeTransaction(payloadFileName);
 
-        string memory batchBuilderFileName = string.concat(
-            "SafeBatchBuilder_", vm.toString(transaction.nonce), "_", vm.toString(transaction.safe), ".json"
-        );
-        _dumpBatchBuilderFile(batchBuilderFileName);
+        if (transaction.operation == Operation.CALL) {
+            string memory batchBuilderFileName = string.concat(
+                "SafeBatchBuilder_", vm.toString(transaction.nonce), "_", vm.toString(transaction.safe), ".json"
+            );
+            _dumpBatchBuilderFile(batchBuilderFileName);
+        }
 
         console.log("Use Transaction Builder and load the Batch Builder file or sign the following hash:");
         console.logBytes32(transaction.hash);
@@ -374,11 +376,11 @@ contract SafeTransaction is SafeUtil {
             revert("Not authorized");
         }
 
-        vm.prank(transaction.safe, transaction.operation == Operation.CALL ? false : true);
-        (bool success, bytes memory result) = transaction.operation == Operation.CALL
-            ? transaction.to.call{value: transaction.value}(transaction.data)
-            : transaction.to.delegatecall(transaction.data);
-        require(success, string(result));
+        if (transaction.operation == Operation.CALL) {
+            vm.prank(transaction.safe);
+            (bool success, bytes memory result) = transaction.to.call{value: transaction.value}(transaction.data);
+            require(success, string(result));
+        }
     }
 
     function _create() private {
@@ -387,13 +389,15 @@ contract SafeTransaction is SafeUtil {
         );
         _dumpSafeTransaction(payloadFileName);
 
-        string memory batchBuilderFileName = string.concat(
-            "SafeBatchBuilder_", vm.toString(transaction.nonce), "_", vm.toString(transaction.safe), ".json"
-        );
-        _dumpBatchBuilderFile(batchBuilderFileName);
+        if (transaction.operation == Operation.CALL) {
+            string memory batchBuilderFileName = string.concat(
+                "SafeBatchBuilder_", vm.toString(transaction.nonce), "_", vm.toString(transaction.safe), ".json"
+            );
+            _dumpBatchBuilderFile(batchBuilderFileName);
+        }
 
         if (!isUseSafeApi()) {
-            console.log("Send the following POST request:");
+            console.log("\nSend the following POST request:");
             console.log(_getCreateCurlCommand());
             return;
         } else if (!isBroadcast()) {
@@ -446,9 +450,8 @@ contract SafeTransaction is SafeUtil {
         transactions[0] = vm.serializeAddress("transaction", "to", transaction.to);
         transactions[0] = vm.serializeString("transaction", "value", vm.toString(transaction.value));
         transactions[0] = vm.serializeBytes("transaction", "data", transaction.data);
-        content = vm.serializeString("content", "transactions", transactions);
 
-        return content;
+        return vm.serializeString("content", "transactions", transactions);
     }
 
     function _getHash() private view returns (bytes32) {
@@ -484,12 +487,12 @@ contract SafeTransaction is SafeUtil {
     }
 
     function _dumpSafeTransaction(string memory fileName) private {
-        console.log("Safe transaction payload saved to %s\n", fileName);
+        console.log("Safe transaction payload saved to %s", fileName);
         vm.writeJson(_getPayload(), string.concat(vm.projectRoot(), "/script/", fileName));
     }
 
     function _dumpBatchBuilderFile(string memory fileName) private {
-        console.log("Safe Batch Builder file saved to %s\n", fileName);
+        console.log("Safe Batch Builder file saved to %s", fileName);
         vm.writeJson(_getBatchBuilderFile(), string.concat(vm.projectRoot(), "/script/", fileName));
     }
 
@@ -506,6 +509,104 @@ contract SafeTransaction is SafeUtil {
         } else {
             return "Transaction service API is not available. Transaction must be created manually via Safe UI.";
         }
+    }
+}
+
+contract SafeMultisendBuilder is SafeUtil {
+    struct MultisendItem {
+        address targetContract;
+        uint256 value;
+        bytes data;
+    }
+
+    MultisendItem[] internal multisendItems;
+
+    function addMultisendItem(address targetContract, bytes memory data) public {
+        addMultisendItem(targetContract, 0, data);
+    }
+
+    function addMultisendItem(address targetContract, uint256 value, bytes memory data) public {
+        multisendItems.push(MultisendItem({targetContract: targetContract, value: value, data: data}));
+    }
+
+    function multisendItemExists() public view returns (bool) {
+        return multisendItems.length > 0;
+    }
+
+    function clearMultisendItems() public {
+        delete multisendItems;
+    }
+
+    function getMultisendCalldata() public view returns (bytes memory) {
+        bytes memory data;
+        for (uint256 i = 0; i < multisendItems.length; ++i) {
+            data = bytes.concat(
+                data,
+                abi.encodePacked(
+                    Operation.CALL,
+                    multisendItems[i].targetContract,
+                    multisendItems[i].value,
+                    multisendItems[i].data.length,
+                    multisendItems[i].data
+                )
+            );
+        }
+        return abi.encodeWithSignature("multiSend(bytes)", data);
+    }
+
+    function getMultisendValue() public view returns (uint256 value) {
+        for (uint256 i = 0; i < multisendItems.length; ++i) {
+            value += multisendItems[i].value;
+        }
+    }
+
+    function getMultisendAddress(uint256 chainId) public pure returns (address) {
+        if (chainId == 1 || chainId == 5 || chainId == 8453 || chainId == 42161 || chainId == 43114) {
+            return 0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761;
+        } else {
+            revert("getMultisendAddress: Unsupported chain");
+        }
+    }
+
+    function simulateMultisend(address caller) public {
+        if (!multisendItemExists()) return;
+
+        console.log("Simulating the multisend call execution as %s", caller);
+
+        vm.startPrank(caller);
+        for (uint256 i = 0; i < multisendItems.length; ++i) {
+            (bool success, bytes memory result) =
+                multisendItems[i].targetContract.call{value: multisendItems[i].value}(multisendItems[i].data);
+
+            require(success, string.concat("Multisend item ", vm.toString(i), " failed: ", string(result)));
+        }
+        vm.stopPrank();
+    }
+
+    function dumpMultisendBatchBuilderFile(address safe, string memory fileName) public {
+        console.log("Safe Batch Builder file saved to %s", fileName);
+        vm.writeJson(_getBatchBuilderFile(safe), string.concat(vm.projectRoot(), "/script/", fileName));
+    }
+
+    function _getBatchBuilderFile(address safe) private returns (string memory) {
+        string memory content = "";
+        content = vm.serializeString("content", "chainId", vm.toString(block.chainid));
+        content = vm.serializeUint("content", "createdAt", block.timestamp);
+
+        string memory meta = "";
+        meta = vm.serializeString("meta", "name", "Safe Transaction");
+        meta = vm.serializeAddress("meta", "createdFromSafeAddress", safe);
+        content = vm.serializeString("content", "meta", meta);
+
+        string[] memory transactions = new string[](multisendItems.length);
+
+        for (uint256 i = 0; i < multisendItems.length; ++i) {
+            transactions[i] = vm.serializeAddress("transaction", "to", multisendItems[i].targetContract);
+            transactions[i] = vm.serializeString("transaction", "value", vm.toString(multisendItems[i].value));
+            transactions[i] = vm.serializeBytes("transaction", "data", multisendItems[i].data);
+        }
+
+        return vm.serializeString("content", "transactions", transactions);
     }
 }
 

@@ -32,6 +32,8 @@ contract LayerZeroUtil is ScriptExtended {
         address receiveUln302;
     }
 
+    uint256 internal constant MAX_DEPLOYMENTS = 10;
+
     function getRawMetadata() public returns (string memory) {
         string[] memory inputs = new string[](3);
         inputs[0] = "curl";
@@ -64,9 +66,7 @@ contract LayerZeroUtil is ScriptExtended {
                     || !vm.keyExists(metadata, deploymentsKey)
             ) continue;
 
-            uint256 deploymentsLength = abi.decode(vm.parseJson(metadata, deploymentsKey), (string[])).length;
-
-            for (uint256 j = 0; j < deploymentsLength; ++j) {
+            for (uint256 j = 0; j < MAX_DEPLOYMENTS; ++j) {
                 if (!vm.keyExists(metadata, _indexedKey(deploymentsKey, j, ".endpointV2"))) {
                     continue;
                 }

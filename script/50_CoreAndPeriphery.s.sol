@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {BatchBuilder, Vm, console} from "./utils/ScriptUtils.s.sol";
+import {SafeMultisendBuilder, SafeTransaction} from "./utils/SafeUtils.s.sol";
 import {LayerZeroUtil} from "./utils/LayerZeroUtils.s.sol";
 import {ERC20BurnableMintableDeployer, RewardTokenDeployer} from "./00_ERC20.s.sol";
 import {Integrations} from "./01_Integrations.s.sol";
@@ -67,7 +68,7 @@ interface IEndpointV2 is ILayerZeroEndpointV2 {
     function delegates(address oapp) external view returns (address);
 }
 
-contract CoreAndPeriphery is BatchBuilder {
+contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     using OptionsBuilder for bytes;
 
     struct Input {
@@ -482,15 +483,24 @@ contract CoreAndPeriphery is BatchBuilder {
 
                 if (block.chainid != EUL_HUB_CHAIN_ID) {
                     bytes32 defaultAdminRole = ERC20BurnableMintable(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
+                    bytes32 minterRole = ERC20BurnableMintable(tokenAddresses.EUL).MINTER_ROLE();
                     if (ERC20BurnableMintable(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
                         vm.startBroadcast();
                         console.log("    Granting EUL minter role to the OFT Adapter %s", bridgeAddresses.oftAdapter);
-                        bytes32 minterRole = ERC20BurnableMintable(tokenAddresses.EUL).MINTER_ROLE();
                         AccessControl(tokenAddresses.EUL).grantRole(minterRole, bridgeAddresses.oftAdapter);
                         stopBroadcast();
+                    } else if (ERC20BurnableMintable(tokenAddresses.EUL).hasRole(defaultAdminRole, getSafe(false))) {
+                        console.log(
+                            "    Adding multisend item to grant EUL minter role to the OFT Adapter %s",
+                            bridgeAddresses.oftAdapter
+                        );
+                        addMultisendItem(
+                            tokenAddresses.EUL,
+                            abi.encodeCall(AccessControl.grantRole, (minterRole, bridgeAddresses.oftAdapter))
+                        );
                     } else {
                         console.log(
-                            "    ! The deployer no longer has the EUL default admin role to grant the minter role to the OFT Adapter. This must be done manually. Skipping..."
+                            "    ! The deployer or designated safe no longer has the EUL default admin role to grant the minter role to the OFT Adapter. This must be done manually. Skipping..."
                         );
                     }
                 }
@@ -508,13 +518,7 @@ contract CoreAndPeriphery is BatchBuilder {
             string memory lzMetadata = lzUtil.getRawMetadata();
             LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(lzMetadata, block.chainid);
             Vm.DirEntry[] memory entries = vm.readDir(getAddressesDirPath(), 1);
-            bool isDelegate = IEndpointV2(info.endpointV2).delegates(bridgeAddresses.oftAdapter) == getDeployer();
-
-            if (!isDelegate) {
-                console.log(
-                    "    ! The caller of this script is not the OFT Adapter delegate. Below OFT Adapter configuration must be done manually."
-                );
-            }
+            address delegate = IEndpointV2(info.endpointV2).delegates(bridgeAddresses.oftAdapter);
 
             for (uint256 i = 0; i < entries.length; ++i) {
                 if (!entries[i].isDir) continue;
@@ -550,17 +554,35 @@ contract CoreAndPeriphery is BatchBuilder {
                         )
                     });
 
-                    console.log(
-                        "    Attempting to set OFT Adapter send config on chain %s for chain %s",
-                        block.chainid,
-                        chainIdOther
-                    );
-                    if (isDelegate) {
+                    if (delegate == getDeployer()) {
                         vm.startBroadcast();
+                        console.log(
+                            "    + Setting OFT Adapter send config on chain %s for chain %s",
+                            block.chainid,
+                            chainIdOther
+                        );
                         IMessageLibManager(info.endpointV2).setConfig(
                             bridgeAddresses.oftAdapter, info.sendUln302, params
                         );
                         vm.stopBroadcast();
+                    } else if (delegate == getSafe(false)) {
+                        console.log(
+                            "    + Adding multisend item to set OFT Adapter send config on chain %s for chain %s",
+                            block.chainid,
+                            chainIdOther
+                        );
+                        addMultisendItem(
+                            info.endpointV2,
+                            abi.encodeCall(
+                                IMessageLibManager.setConfig, (bridgeAddresses.oftAdapter, info.sendUln302, params)
+                            )
+                        );
+                    } else {
+                        console.log(
+                            "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter send config on chain %s for chain %s must be set manually.",
+                            block.chainid,
+                            chainIdOther
+                        );
                     }
 
                     params = new SetConfigParam[](1);
@@ -574,44 +596,97 @@ contract CoreAndPeriphery is BatchBuilder {
                         )
                     });
 
-                    console.log(
-                        "    Attempting to set OFT Adapter receive config on chain %s for chain %s",
-                        block.chainid,
-                        chainIdOther
-                    );
-                    if (isDelegate) {
+                    if (delegate == getDeployer()) {
                         vm.startBroadcast();
+                        console.log(
+                            "    + Setting OFT Adapter receive config on chain %s for chain %s",
+                            block.chainid,
+                            chainIdOther
+                        );
                         IMessageLibManager(info.endpointV2).setConfig(
                             bridgeAddresses.oftAdapter, info.receiveUln302, params
                         );
                         vm.stopBroadcast();
+                    } else if (delegate == getSafe(false)) {
+                        console.log(
+                            "    + Adding multisend item to set OFT Adapter receive config on chain %s for chain %s",
+                            block.chainid,
+                            chainIdOther
+                        );
+                        addMultisendItem(
+                            info.endpointV2,
+                            abi.encodeCall(
+                                IMessageLibManager.setConfig, (bridgeAddresses.oftAdapter, info.receiveUln302, params)
+                            )
+                        );
+                    } else {
+                        console.log(
+                            "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter receive config on chain %s for chain %s must be set manually.",
+                            block.chainid,
+                            chainIdOther
+                        );
                     }
 
-                    console.log(
-                        "    Attempting to set OFT Adapter peer on chain %s for chain %s", block.chainid, chainIdOther
-                    );
-                    if (isDelegate) {
+                    if (delegate == getDeployer()) {
                         vm.startBroadcast();
+                        console.log(
+                            "    + Setting OFT Adapter peer on chain %s for chain %s", block.chainid, chainIdOther
+                        );
                         IOAppCore(bridgeAddresses.oftAdapter).setPeer(
                             infoOther.eid, bytes32(uint256(uint160(bridgeAddressesOther.oftAdapter)))
                         );
                         vm.stopBroadcast();
+                    } else if (delegate == getSafe(false)) {
+                        console.log(
+                            "    + Adding multisend item to set OFT Adapter peer on chain %s for chain %s",
+                            block.chainid,
+                            chainIdOther
+                        );
+                        addMultisendItem(
+                            bridgeAddresses.oftAdapter,
+                            abi.encodeCall(
+                                IOAppCore.setPeer,
+                                (infoOther.eid, bytes32(uint256(uint160(bridgeAddressesOther.oftAdapter))))
+                            )
+                        );
+                    } else {
+                        console.log(
+                            "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter peer on chain %s for chain %s must be set manually.",
+                            block.chainid,
+                            chainIdOther
+                        );
                     }
 
-                    console.log(
-                        "    Attempting to set OFT Adapter enforced options on chain %s for chain %s",
-                        block.chainid,
-                        chainIdOther
-                    );
-                    if (isDelegate) {
+                    if (delegate == getDeployer()) {
                         vm.startBroadcast();
+                        console.log(
+                            "    + Setting OFT Adapter enforced options on chain %s for chain %s",
+                            block.chainid,
+                            chainIdOther
+                        );
                         IOAppOptionsType3(bridgeAddresses.oftAdapter).setEnforcedOptions(
                             getEnforcedOptions(infoOther.eid)
                         );
                         vm.stopBroadcast();
+                    } else if (delegate == getSafe(false)) {
+                        console.log(
+                            "    + Adding multisend item to set OFT Adapter enforced options on chain %s for chain %s",
+                            block.chainid,
+                            chainIdOther
+                        );
+                        addMultisendItem(
+                            bridgeAddresses.oftAdapter,
+                            abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (getEnforcedOptions(infoOther.eid)))
+                        );
+                    } else {
+                        console.log(
+                            "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter enforced options on chain %s for chain %s must be set manually.",
+                            block.chainid,
+                            chainIdOther
+                        );
                     }
                 } else {
-                    console.log("    ! OFT Adapter already configured for chain %s. Skipping...", chainIdOther);
+                    console.log("    - OFT Adapter already configured for chain %s. Skipping...", chainIdOther);
                 }
             }
         }
@@ -665,9 +740,13 @@ contract CoreAndPeriphery is BatchBuilder {
                     console.log("+ Setting ProtocolConfig fee receiver to the %s address", feeReceiver);
                     ProtocolConfig(coreAddresses.protocolConfig).setFeeReceiver(feeReceiver);
                     stopBroadcast();
+                } else if (ProtocolConfig(coreAddresses.protocolConfig).admin() == getSafe(false)) {
+                    addMultisendItem(
+                        coreAddresses.protocolConfig, abi.encodeCall(ProtocolConfig.setFeeReceiver, (feeReceiver))
+                    );
                 } else {
                     console.log(
-                        "! The deployer no longer has the ProtocolConfig admin role to set the fee receiver address. This must be done manually. Skipping..."
+                        "! The deployer or designated Safe no longer has the ProtocolConfig admin role to set the fee receiver address. This must be done manually. Skipping..."
                     );
                 }
             } else {
@@ -832,7 +911,7 @@ contract CoreAndPeriphery is BatchBuilder {
                 ).length == 0
             ) {
                 address owner = SnapshotRegistry(peripheryAddresses.irmRegistry).owner();
-                if (owner == getDeployer() || (owner == getSafe() && isBatchViaSafe())) {
+                if (owner == getDeployer() || owner == getSafe(false)) {
                     console.log("+ Deploying default Adaptive Curve IRMs and adding them to the IRM registry...");
                     AdaptiveCurveIRMDeployer deployer = new AdaptiveCurveIRMDeployer();
                     for (uint256 i = 0; i < DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.length; ++i) {
@@ -864,6 +943,31 @@ contract CoreAndPeriphery is BatchBuilder {
         }
 
         executeBatch();
+
+        if (multisendItemExists()) {
+            address safe = getSafe();
+            console.log("\nExecuting the multicall via Safe (%s)", safe);
+
+            simulateMultisend(safe);
+
+            SafeTransaction transaction = new SafeTransaction();
+            safeNonce = safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce;
+
+            dumpMultisendBatchBuilderFile(
+                safe, string.concat("SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), ".json")
+            );
+
+            transaction.create(
+                false,
+                safe,
+                getMultisendAddress(block.chainid),
+                getMultisendValue(),
+                getMultisendCalldata(),
+                safeNonce++
+            );
+
+            clearMultisendItems();
+        }
 
         // save results
         vm.writeJson(serializeMultisigAddresses(multisigAddresses), getScriptFilePath("MultisigAddresses_output.json"));
