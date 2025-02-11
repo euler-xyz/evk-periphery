@@ -109,9 +109,9 @@ abstract contract SafeUtil is ScriptExtended {
         (uint256 status, bytes memory response) = endpoint.get();
         require(status == 200, "getNextNonce: Failed to get last pending transaction");
 
-        uint256 lastPendingNonce = abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0
-            ? 0
-            : vm.parseJsonUint(string(response), _indexedKey(".results", 0, ".nonce"));
+        uint256 lastPendingNonce = vm.keyExists(string(response), _indexedKey(".results", 0, ".nonce"))
+            ? vm.parseJsonUint(string(response), _indexedKey(".results", 0, ".nonce"))
+            : 0;
 
         uint256 stateNextNonce = getStatus(safe).nonce;
 
@@ -128,7 +128,7 @@ abstract contract SafeUtil is ScriptExtended {
             (status, response) = endpoint.get();
             require(status == 200, "getNextNonce: Failed to get pending transaction");
 
-            if (abi.decode(vm.parseJson(string(response), ".results"), (string[])).length == 0) return nonce;
+            if (!vm.keyExists(string(response), _indexedKey(".results", 0, ".nonce"))) return nonce;
         }
 
         return ++lastPendingNonce;
@@ -167,7 +167,7 @@ abstract contract SafeUtil is ScriptExtended {
         require(status == 200, "getPendingTransactions: Failed to get pending transactions");
 
         uint256 nonce = getStatus(safe).nonce;
-        uint256 length = abi.decode(vm.parseJson(string(response), ".results"), (string[])).length;
+        uint256 length = vm.parseJsonUint(string(response), ".count");
         uint256 counter = 0;
 
         for (uint256 i = 0; i < length; ++i) {
@@ -178,7 +178,7 @@ abstract contract SafeUtil is ScriptExtended {
 
         Transaction[] memory transactions = new Transaction[](counter);
         counter = 0;
-        for (int256 index = int256(length - 1); index >= 0; --index) {
+        for (int256 index = int256(length) - 1; index >= 0; --index) {
             uint256 i = uint256(index);
             uint256 txNonce = vm.parseJsonUint(string(response), _indexedKey(".results", i, ".nonce"));
 
