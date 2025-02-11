@@ -15,13 +15,16 @@ abstract contract ScriptExtended is Script {
     constructor() {
         vm.pauseGasMetering();
 
-        forks[DEFAULT_FORK_CHAIN_ID] = vm.activeFork();
+        string memory deploymentRpcUrl = getDeploymentRpcUrl();
+        if (bytes(deploymentRpcUrl).length != 0) {
+            forks[DEFAULT_FORK_CHAIN_ID] = vm.activeFork();
 
-        if (forks[DEFAULT_FORK_CHAIN_ID] == 0) {
-            forks[DEFAULT_FORK_CHAIN_ID] = vm.createSelectFork(getDeploymentRpcUrl());
+            if (forks[DEFAULT_FORK_CHAIN_ID] == 0) {
+                forks[DEFAULT_FORK_CHAIN_ID] = vm.createSelectFork(deploymentRpcUrl);
+            }
+
+            forks[block.chainid] = forks[DEFAULT_FORK_CHAIN_ID];
         }
-
-        forks[block.chainid] = forks[DEFAULT_FORK_CHAIN_ID];
 
         uint256 deployerPK = vm.envOr("DEPLOYER_KEY", uint256(0));
         uint256 safeSignerPK = vm.envOr("SAFE_KEY", uint256(0));
@@ -45,14 +48,6 @@ abstract contract ScriptExtended is Script {
                 ? wallets[rememberSafeSignerLength - 1]
                 : rememberDeployerLength > 0 ? wallets[0] : wallets.length > 1 ? wallets[1] : wallets[0];
         }
-
-        if (!vm.envOr("FORCE_NO_KEY", false)) {
-            require(deployerAddress != address(0), "Cannot retrieve the deployer address from the private key config");
-            require(
-                !isBatchViaSafe() || safeSignerAddress != address(0),
-                "Cannot retrieve the safe signer address from the private key config"
-            );
-        }
     }
 
     function getDeployer() internal view returns (address) {
@@ -64,20 +59,24 @@ abstract contract ScriptExtended is Script {
     }
 
     function getSafe() internal view returns (address) {
+        return getSafe(true);
+    }
+
+    function getSafe(bool failOnNotFound) internal view returns (address) {
         string memory safeAddress = vm.envOr("SAFE_ADDRESS", string(""));
         address safe;
 
         if (_strEq(safeAddress, string(""))) {
             safeAddress = vm.envOr("safe_address", string(""));
 
-            if (bytes(safeAddress).length > 0) {
+            if (bytes(safeAddress).length > 0 && bytes(safeAddress).length < 42) {
                 safe = getAddressFromJson(getAddressesJson("MultisigAddresses.json"), string.concat(".", safeAddress));
             }
         }
 
-        if (safe == address(0)) safe = _toAddress(safeAddress);
+        if (safe == address(0) && bytes(safeAddress).length == 42) safe = _toAddress(safeAddress);
 
-        require(safe != address(0), "getSafe: Cannot retrieve the Safe address");
+        require(!failOnNotFound || safe != address(0), "getSafe: Cannot retrieve the Safe address");
         return safe;
     }
 
@@ -92,7 +91,7 @@ abstract contract ScriptExtended is Script {
     }
 
     function getDeploymentRpcUrl() internal view returns (string memory) {
-        return vm.envString("DEPLOYMENT_RPC_URL");
+        return vm.envOr("DEPLOYMENT_RPC_URL", string(""));
     }
 
     function getRpcUrl(uint256 chainId, bool failOnNotFound) internal view returns (string memory) {

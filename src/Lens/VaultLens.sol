@@ -22,7 +22,11 @@ contract VaultLens is Utils {
         oracleLens = OracleLens(_oracleLens);
         utilsLens = UtilsLens(_utilsLens);
         irmLens = IRMLens(_irmLens);
-        backupUnitOfAccounts = [address(840), getWETHAddress(), 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB];
+
+        address WETH = getWETHAddress();
+        backupUnitOfAccounts.push(address(840));
+        if (WETH != address(0)) backupUnitOfAccounts.push(WETH);
+        backupUnitOfAccounts.push(0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB);
     }
 
     function getVaultInfoFull(address vault) public view returns (VaultInfoFull memory) {

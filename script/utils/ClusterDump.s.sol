@@ -4,8 +4,11 @@ pragma solidity ^0.8.0;
 
 import {ScriptUtils, console} from "./ScriptUtils.s.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
+import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {EulerRouter, IPriceOracle} from "euler-price-oracle/EulerRouter.sol";
 import {Lenses} from "../08_Lenses.s.sol";
+import {IRMAdaptiveCurve} from "../../src/IRM/IRMAdaptiveCurve.sol";
+import {IRMLens} from "../../src/Lens/IRMLens.sol";
 import {VaultLens} from "../../src/Lens/VaultLens.sol";
 import "../../src/Lens/LensTypes.sol";
 
@@ -253,10 +256,34 @@ contract ClusterDump is ScriptUtils {
         vm.writeLine(outputScriptFileName, string.concat("\nTable 3. Interest Rate Model Parameters:"));
         vm.writeLine(outputScriptFileName, header);
 
+        uint256[] memory cash = new uint256[](3);
+        uint256[] memory borrows = new uint256[](3);
+        cash[0] = type(uint32).max;
+        borrows[2] = type(uint32).max;
         for (uint256 i = 0; i < vaultInfo.length; ++i) {
+            InterestRateModelDetailedInfo memory detailedIRMInfo =
+                IRMLens(lensAddresses.irmLens).getInterestRateModelInfo(IEVault(vaultInfo[i].vault).interestRateModel());
+
+            if (detailedIRMInfo.interestRateModelType == InterestRateModelType.KINK) {
+                uint256 kink = IRMLinearKink(detailedIRMInfo.interestRateModel).kink();
+                cash[1] = type(uint32).max - kink;
+                borrows[1] = kink;
+            } else {
+                uint256 targetUtilization =
+                    uint256(IRMAdaptiveCurve(detailedIRMInfo.interestRateModel).TARGET_UTILIZATION());
+                cash[1] = (1e18 - targetUtilization) * type(uint32).max / 1e18;
+                borrows[1] = targetUtilization * type(uint32).max / 1e18;
+            }
+
             VaultInterestRateModelInfo memory irmInfo =
-                VaultLens(vaultLens).getVaultKinkInterestRateModelInfo(vaultInfo[i].vault);
-            line = string.concat(vaultInfo[i].assetSymbol, ",");
+                VaultLens(vaultLens).getVaultInterestRateModelInfo(vaultInfo[i].vault, cash, borrows);
+
+            line = string.concat(vaultInfo[i].assetSymbol);
+            line = string.concat(
+                line,
+                ",",
+                detailedIRMInfo.interestRateModelType == InterestRateModelType.KINK ? "Kink IRM" : "Adaptive Curve IRM"
+            );
             line = string.concat(
                 line,
                 ",",

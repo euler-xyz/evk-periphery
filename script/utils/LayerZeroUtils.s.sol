@@ -32,6 +32,8 @@ contract LayerZeroUtil is ScriptExtended {
         address receiveUln302;
     }
 
+    uint256 internal constant MAX_DEPLOYMENTS = 10;
+
     function getRawMetadata() public returns (string memory) {
         string[] memory inputs = new string[](3);
         inputs[0] = "curl";
@@ -64,9 +66,7 @@ contract LayerZeroUtil is ScriptExtended {
                     || !vm.keyExists(metadata, deploymentsKey)
             ) continue;
 
-            uint256 deploymentsLength = abi.decode(vm.parseJson(metadata, deploymentsKey), (string[])).length;
-
-            for (uint256 j = 0; j < deploymentsLength; ++j) {
+            for (uint256 j = 0; j < MAX_DEPLOYMENTS; ++j) {
                 if (!vm.keyExists(metadata, _indexedKey(deploymentsKey, j, ".endpointV2"))) {
                     continue;
                 }
@@ -337,7 +337,7 @@ contract LayerZeroSendEUL is ScriptUtils {
         returns (MessagingReceipt memory, OFTReceipt memory)
     {
         ERC20 eul = ERC20(tokenAddresses.EUL);
-        (address oftAdapter, uint256 fee, bytes memory data) = getSendCalldata(dstChainId, dstAddress, amount);
+        (address oftAdapter, uint256 fee, bytes memory data) = getSendCalldata(dstChainId, dstAddress, amount, 0);
 
         startBroadcast();
         eul.approve(address(oftAdapter), amount);
@@ -348,7 +348,7 @@ contract LayerZeroSendEUL is ScriptUtils {
         return abi.decode(result, (MessagingReceipt, OFTReceipt));
     }
 
-    function getSendCalldata(uint256 dstChainId, address dstAddress, uint256 amount)
+    function getSendCalldata(uint256 dstChainId, address dstAddress, uint256 amount, uint256 nativeFeeMultiplierBps)
         public
         returns (address to, uint256 value, bytes memory data)
     {
@@ -364,9 +364,8 @@ contract LayerZeroSendEUL is ScriptUtils {
             ""
         );
         MessagingFee memory fee = oftAdapter.quoteSend(sendParam, false);
+        fee.nativeFee = fee.nativeFee * ((1e4 + nativeFeeMultiplierBps) / 1e4);
 
-        return (
-            bridgeAddresses.oftAdapter, fee.nativeFee, abi.encodeCall(IOFT.send, (sendParam, fee, payable(dstAddress)))
-        );
+        return (bridgeAddresses.oftAdapter, fee.nativeFee, abi.encodeCall(IOFT.send, (sendParam, fee, dstAddress)));
     }
 }

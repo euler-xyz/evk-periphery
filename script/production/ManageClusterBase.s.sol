@@ -91,7 +91,7 @@ abstract contract ManageClusterBase is BatchBuilder {
 
     function run() public initialize {
         // deploy the stub oracle (needed in case pull oracle is meant to be used as it might be stale)
-        if (cluster.stubOracle == address(0)) {
+        if (cluster.stubOracle == address(0) && (block.chainid == 1 || block.chainid == 8453)) {
             startBroadcast();
             cluster.stubOracle = address(new StubOracle());
             stopBroadcast();
@@ -545,9 +545,10 @@ abstract contract ManageClusterBase is BatchBuilder {
         }
 
         cluster.vaultUpgradable = new bool[](cluster.assets.length);
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            cluster.vaultUpgradable[i] =
-                GenericFactory(coreAddresses.eVaultFactory).getProxyConfig(cluster.vaults[i]).upgradeable;
+        for (uint256 i = 0; i < cluster.assets.length; ++i) {
+            cluster.vaultUpgradable[i] = cluster.vaults.length == 0 || cluster.vaults[i] == address(0)
+                ? true
+                : GenericFactory(coreAddresses.eVaultFactory).getProxyConfig(cluster.vaults[i]).upgradeable;
         }
 
         for (uint256 i = 0; i < cluster.irms.length; ++i) {
@@ -563,13 +564,6 @@ abstract contract ManageClusterBase is BatchBuilder {
 
         if (cluster.vaults.length == 0) {
             cluster.vaults = new address[](cluster.assets.length);
-        }
-
-        if (cluster.vaultUpgradable.length == 0) {
-            cluster.vaultUpgradable = new bool[](cluster.assets.length);
-            for (uint256 i = 0; i < cluster.vaultUpgradable.length; ++i) {
-                cluster.vaultUpgradable[i] = true;
-            }
         }
 
         if (cluster.oracleRouters.length == 0) {

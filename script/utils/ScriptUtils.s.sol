@@ -312,9 +312,9 @@ abstract contract BridgeConfigCache is ScriptExtended {
     function serializeBridgeConfigCache() internal returns (string memory result) {
         for (uint256 i = 0; i < srcChainIds.length(); ++i) {
             uint256 srcChainId = srcChainIds.at(i);
-            result = vm.serializeUint("oft", vm.toString(srcChainId), config[srcChainId].keys().sort());
+            result = vm.serializeUint("bridgeConfigCache", vm.toString(srcChainId), config[srcChainId].keys().sort());
         }
-        result = vm.serializeString("", "oft", bytes(result).length == 0 ? "{}" : result);
+        return vm.serializeString("bridgeConfig", "oft", bytes(result).length == 0 ? "{}" : result);
     }
 
     function deserializeBridgeConfigCache(string memory json) internal {
@@ -349,6 +349,7 @@ abstract contract ScriptUtils is
     BridgeAddresses internal bridgeAddresses;
     TokenAddresses internal tokenAddresses;
     GovernorAddresses internal governorAddresses;
+    uint256 internal safeNonce = getSafeNonce();
 
     constructor() {
         multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
@@ -379,10 +380,14 @@ abstract contract ScriptUtils is
         if (block.chainid == 1) {
             return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
         } else if (
-            block.chainid == 10 || block.chainid == 8453 || block.chainid == 1923 || block.chainid == 57073
-                || block.chainid == 60808
+            block.chainid == 10 || block.chainid == 130 || block.chainid == 8453 || block.chainid == 1923
+                || block.chainid == 480 || block.chainid == 57073 || block.chainid == 60808
         ) {
             return 0x4200000000000000000000000000000000000006;
+        } else if (block.chainid == 56) {
+            return 0x2170Ed0880ac9A755fd29B2688956BD959F933F8;
+        } else if (block.chainid == 100) {
+            return 0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1;
         } else if (block.chainid == 137) {
             return 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619;
         } else if (block.chainid == 146) {
@@ -391,14 +396,33 @@ abstract contract ScriptUtils is
             return 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
         } else if (block.chainid == 43114) {
             return 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB;
+        } else if (block.chainid == 80094) {
+            return 0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590;
         } else {
-            // test networks
-            if (block.chainid == 10143 || block.chainid == 80084) {
+            // bitcoin-specific and test networks
+            if (block.chainid == 30 || block.chainid == 21000000 || block.chainid == 10143 || block.chainid == 80084) {
                 return address(0);
             }
         }
 
         revert("getWETHAddress: Unsupported chain");
+    }
+
+    function getRecognizedUnitsOfAccount() internal view returns (address[] memory recognizedUnitsOfAccount) {
+        address USD = address(840);
+        address WETH = getWETHAddress();
+        address BTC = 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB;
+
+        if (WETH == address(0)) {
+            recognizedUnitsOfAccount = new address[](2);
+            recognizedUnitsOfAccount[0] = USD;
+            recognizedUnitsOfAccount[1] = BTC;
+        } else {
+            recognizedUnitsOfAccount = new address[](3);
+            recognizedUnitsOfAccount[0] = USD;
+            recognizedUnitsOfAccount[1] = WETH;
+            recognizedUnitsOfAccount[2] = BTC;
+        }
     }
 
     function getValidAdapter(address base, address quote, string memory provider)
@@ -574,7 +598,6 @@ abstract contract BatchBuilder is ScriptUtils {
     IEVC.BatchItem[] internal batchItems;
     IEVC.BatchItem[] internal criticalItems;
     uint256 internal batchCounter;
-    uint256 internal safeNonce = getSafeNonce();
 
     function addBatchItem(address targetContract, bytes memory data) internal {
         address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
@@ -711,7 +734,7 @@ abstract contract BatchBuilder is ScriptUtils {
         if (batchItems.length == 0) return;
 
         address safe = getSafe();
-        console.log("Executing the batch via the Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
+        console.log("Executing the batch via Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
         dumpBatch(safe);
 
         SafeTransaction transaction = new SafeTransaction();
@@ -725,14 +748,14 @@ abstract contract BatchBuilder is ScriptUtils {
     function dumpBatch(address from) internal {
         string memory path = string.concat(vm.projectRoot(), "/script/Batches.json");
         string memory json = vm.exists(path) ? vm.readFile(path) : "{}";
-        string memory key = vm.toString(batchCounter++);
+        string memory key = string.concat("batch", vm.toString(batchCounter));
 
         json = vm.serializeAddress(key, "from", from);
         json = vm.serializeAddress(key, "to", coreAddresses.evc);
         json = vm.serializeUint(key, "value", getBatchValue());
         json = vm.serializeBytes(key, "data", getBatchCalldata());
 
-        vm.writeJson(vm.serializeString("", key, json), path);
+        vm.writeJson(vm.serializeString("batches", vm.toString(batchCounter++), json), path);
     }
 
     function grantRole(address accessController, bytes32 role, address account) internal {
@@ -773,6 +796,10 @@ abstract contract BatchBuilder is ScriptUtils {
 
     function add(address snapshotRegistry, address element, address base, address quote) internal {
         addBatchItem(snapshotRegistry, abi.encodeCall(SnapshotRegistry.add, (element, base, quote)));
+    }
+
+    function revoke(address snapshotRegistry, address element) internal {
+        addBatchItem(snapshotRegistry, abi.encodeCall(SnapshotRegistry.revoke, (element)));
     }
 
     function setGovernorAdmin(address vault, address newGovernorAdmin) internal {
