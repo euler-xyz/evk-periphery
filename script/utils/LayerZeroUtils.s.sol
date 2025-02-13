@@ -278,7 +278,7 @@ contract LayerZeroReadConfig is ScriptUtils {
         }
     }
 
-    function getStargateConfig() public {
+    function getLayerZeroConfig() public {
         LayerZeroUtil lzUtil = new LayerZeroUtil();
         string memory lzMetadata = lzUtil.getRawMetadata();
         vm.makePersistent(address(lzUtil));
@@ -327,7 +327,7 @@ contract LayerZeroReadConfig is ScriptUtils {
             globalConfig = vm.serializeString("globalConfig", eid, chainConfig);
         }
 
-        vm.writeJson(globalConfig, string.concat(vm.projectRoot(), "/script/stargateConfig.json"));
+        vm.writeJson(globalConfig, string.concat(vm.projectRoot(), "/script/layerZeroConfig.json"));
     }
 }
 
@@ -340,8 +340,8 @@ contract LayerZeroSendEUL is ScriptUtils {
         (address oftAdapter, uint256 fee, bytes memory data) = getSendCalldata(dstChainId, dstAddress, amount, 0);
 
         startBroadcast();
-        eul.approve(address(oftAdapter), amount);
-        (bool success, bytes memory result) = address(oftAdapter).call{value: fee}(data);
+        eul.approve(oftAdapter, amount);
+        (bool success, bytes memory result) = oftAdapter.call{value: fee}(data);
         stopBroadcast();
 
         require(success && result.length > 0, "send failed");
