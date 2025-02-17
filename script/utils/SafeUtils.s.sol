@@ -167,13 +167,14 @@ abstract contract SafeUtil is ScriptExtended {
         require(status == 200, "getPendingTransactions: Failed to get pending transactions");
 
         uint256 nonce = getStatus(safe).nonce;
-        uint256 length = vm.parseJsonUint(string(response), ".count");
+        uint256 length = 0;
         uint256 counter = 0;
 
-        for (uint256 i = 0; i < length; ++i) {
-            if (vm.parseJsonUint(string(response), _indexedKey(".results", i, ".nonce")) >= nonce) {
+        while (vm.keyExists(string(response), _indexedKey(".results", length, ".nonce"))) {
+            if (vm.parseJsonUint(string(response), _indexedKey(".results", length, ".nonce")) >= nonce) {
                 ++counter;
             }
+            ++length;
         }
 
         Transaction[] memory transactions = new Transaction[](counter);
