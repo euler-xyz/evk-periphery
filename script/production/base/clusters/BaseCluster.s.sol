@@ -86,33 +86,33 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[SUSDS ] = "0xdbcC3537800134A316f8D01eDa38d07c8d34174c";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[WETH  ] = 5_000;
+        cluster.supplyCaps[WETH  ] = 15_000;
         cluster.supplyCaps[wstETH] = 5_000;
         cluster.supplyCaps[cbETH ] = 5_000;
         cluster.supplyCaps[weETH ] = 5_000;
         cluster.supplyCaps[ezETH ] = 5_000;
         cluster.supplyCaps[RETH  ] = 5_000;
-        cluster.supplyCaps[USDC  ] = 20_000_000;
+        cluster.supplyCaps[USDC  ] = 60_000_000;
         cluster.supplyCaps[EURC  ] = 20_000_000;
         cluster.supplyCaps[cbBTC ] = 250;
         cluster.supplyCaps[LBTC  ] = 250;
         cluster.supplyCaps[AERO  ] = 2_000_000;
-        cluster.supplyCaps[USDS  ] = 20_000_000;
+        cluster.supplyCaps[USDS  ] = 40_000_000;
         cluster.supplyCaps[SUSDS ] = 20_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WETH  ] = 4_250;
+        cluster.borrowCaps[WETH  ] = 12_700;
         cluster.borrowCaps[wstETH] = 2_000;
         cluster.borrowCaps[cbETH ] = 2_000;
         cluster.borrowCaps[weETH ] = 1_250;
         cluster.borrowCaps[ezETH ] = 1_250;
         cluster.borrowCaps[RETH  ] = 2_000;
-        cluster.borrowCaps[USDC  ] = 18_000_000;
+        cluster.borrowCaps[USDC  ] = 54_000_000;
         cluster.borrowCaps[EURC  ] = 18_000_000;
         cluster.borrowCaps[cbBTC ] = 213;
         cluster.borrowCaps[LBTC  ] = 63;
         cluster.borrowCaps[AERO  ] = 1_600_000;
-        cluster.borrowCaps[USDS  ] = 18_000_000;
+        cluster.borrowCaps[USDS  ] = 36_000_000;
         cluster.borrowCaps[SUSDS ] = 18_000_000;
 
         // define IRM classes here and assign them to the assets
