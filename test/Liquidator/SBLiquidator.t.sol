@@ -32,10 +32,9 @@ contract SBLiquidatorTests is EVaultTestBase {
     function setUp() public override {
         super.setUp();
 
-        if (bytes(FORK_RPC_URL).length != 0) {
-            mainnetFork = vm.createSelectFork(FORK_RPC_URL);
-            vm.rollFork(blockNumber);
-        }
+        vm.skip(bytes(FORK_RPC_URL).length == 0);
+        mainnetFork = vm.createSelectFork(FORK_RPC_URL);
+        vm.rollFork(blockNumber);
 
         esBToken =
             IEVault(factory.createProxy(address(0), true, abi.encodePacked(SB_TOKEN, address(oracle), unitOfAccount)));
