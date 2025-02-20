@@ -15,7 +15,7 @@ contract MockVaultAndOperations is ScriptUtils {
 
         MockERC20Mintable mockERC20 = MockERC20Mintable(mockERC20MintableDeployer.deploy("MockERC20", "MOCK", 18));
         IEVault eVault = IEVault(eVaultDeployer.deploy(coreAddresses.eVaultFactory, true, address(mockERC20)));
-        
+
         vm.startBroadcast();
         address deployer = getDeployer();
         mockERC20.mint(deployer, AMOUNT);
