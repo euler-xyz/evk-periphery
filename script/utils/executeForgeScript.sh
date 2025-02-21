@@ -19,6 +19,13 @@ if [[ "$@" == *"--verify"* ]]; then
     verify="--verify"
 fi
 
+if [[ "$@" == *"--verifier"* ]]; then
+    verifier=$(echo "$@" | grep -o '\--verifier [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--verifier $verifier//")
+else
+    verifier="etherscan"
+fi
+
 broadcast="--broadcast"
 if [[ "$@" == *"--dry-run"* ]]; then
     set -- "${@/--dry-run/}"
@@ -57,5 +64,5 @@ fi
 if [[ "$verify" == "--verify" && "$broadcast" == "--broadcast" ]]; then
     broadcastFileName=$(basename "${scriptPath%%:*}")
 
-    script/utils/verifyContracts.sh "broadcast/$broadcastFileName/$chainId/run-latest.json"
+    script/utils/verifyContracts.sh "broadcast/$broadcastFileName/$chainId/run-latest.json" --verifier $verifier
 fi
