@@ -43,6 +43,7 @@ interface IOracle is IPriceOracle {
     function pendleMarket() external view returns (address);
     function safeguardPool() external view returns (address);
     function poolId() external view returns (bytes32);
+    function priceOracleIndex() external view returns (uint256);
 }
 
 contract OracleLens is Utils {
@@ -169,6 +170,24 @@ contract OracleLens is Utils {
                     quote: IOracle(oracleAddress).quote(),
                     pendleMarket: IOracle(oracleAddress).pendleMarket(),
                     twapWindow: IOracle(oracleAddress).twapWindow()
+                })
+            );
+        } else if (_strEq(name, "PendleUniversalOracle")) {
+            oracleInfo = abi.encode(
+                PendleUniversalOracleInfo({
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    pendleMarket: IOracle(oracleAddress).pendleMarket(),
+                    twapWindow: IOracle(oracleAddress).twapWindow()
+                })
+            );
+        } else if (_strEq(name, "CurveEMAOracle")) {
+            oracleInfo = abi.encode(
+                CurveEMAOracleInfo({
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    pool: IOracle(oracleAddress).pool(),
+                    priceOracleIndex: IOracle(oracleAddress).priceOracleIndex()
                 })
             );
         } else if (_strEq(name, "SwaapSafeguardOracle")) {
