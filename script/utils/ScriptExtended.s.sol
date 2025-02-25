@@ -55,6 +55,10 @@ abstract contract ScriptExtended is Script {
     }
 
     function getSafeSigner() internal view returns (address) {
+        if (vm.envOr("FORCE_SAFE_SIGNER_ZERO", false)) {
+            return address(0);
+        }
+
         return safeSignerAddress;
     }
 
