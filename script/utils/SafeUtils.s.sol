@@ -56,14 +56,12 @@ abstract contract SafeUtil is ScriptExtended {
     }
 
     mapping(uint256 => bool) private transactionServiceAPIAvailable;
+    uint256[12] private transactionServiceAPIAvailableChainIds = [1, 10, 100, 130, 137, 146, 8453, 42161, 43114, 480, 56, 57073];
 
     constructor() {
-        transactionServiceAPIAvailable[1] = true;
-        transactionServiceAPIAvailable[10] = true;
-        transactionServiceAPIAvailable[137] = true;
-        transactionServiceAPIAvailable[8453] = true;
-        transactionServiceAPIAvailable[42161] = true;
-        transactionServiceAPIAvailable[43114] = true;
+        for (uint256 i = 0; i < transactionServiceAPIAvailableChainIds.length; i++) {
+            transactionServiceAPIAvailable[transactionServiceAPIAvailableChainIds[i]] = true;
+        }
     }
 
     function isTransactionServiceAPIAvailable() public view returns (bool) {
