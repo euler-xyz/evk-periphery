@@ -32,6 +32,8 @@ contract LayerZeroUtil is ScriptExtended {
         address receiveUln302;
     }
 
+    uint256 internal constant MAX_DEPLOYMENTS = 10;
+
     function getRawMetadata() public returns (string memory) {
         string[] memory inputs = new string[](3);
         inputs[0] = "curl";
@@ -64,9 +66,7 @@ contract LayerZeroUtil is ScriptExtended {
                     || !vm.keyExists(metadata, deploymentsKey)
             ) continue;
 
-            uint256 deploymentsLength = abi.decode(vm.parseJson(metadata, deploymentsKey), (string[])).length;
-
-            for (uint256 j = 0; j < deploymentsLength; ++j) {
+            for (uint256 j = 0; j < MAX_DEPLOYMENTS; ++j) {
                 if (!vm.keyExists(metadata, _indexedKey(deploymentsKey, j, ".endpointV2"))) {
                     continue;
                 }
@@ -278,7 +278,7 @@ contract LayerZeroReadConfig is ScriptUtils {
         }
     }
 
-    function getStargateConfig() public {
+    function getLayerZeroConfig() public {
         LayerZeroUtil lzUtil = new LayerZeroUtil();
         string memory lzMetadata = lzUtil.getRawMetadata();
         vm.makePersistent(address(lzUtil));
@@ -327,7 +327,7 @@ contract LayerZeroReadConfig is ScriptUtils {
             globalConfig = vm.serializeString("globalConfig", eid, chainConfig);
         }
 
-        vm.writeJson(globalConfig, string.concat(vm.projectRoot(), "/script/stargateConfig.json"));
+        vm.writeJson(globalConfig, string.concat(vm.projectRoot(), "/script/layerZeroConfig.json"));
     }
 }
 
@@ -340,8 +340,8 @@ contract LayerZeroSendEUL is ScriptUtils {
         (address oftAdapter, uint256 fee, bytes memory data) = getSendCalldata(dstChainId, dstAddress, amount, 0);
 
         startBroadcast();
-        eul.approve(address(oftAdapter), amount);
-        (bool success, bytes memory result) = address(oftAdapter).call{value: fee}(data);
+        eul.approve(oftAdapter, amount);
+        (bool success, bytes memory result) = oftAdapter.call{value: fee}(data);
         stopBroadcast();
 
         require(success && result.length > 0, "send failed");

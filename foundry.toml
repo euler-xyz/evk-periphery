@@ -47,5 +47,6 @@ runs = 1000
 [etherscan]
 sonic = { chain = "146", key = "${VERIFIER_API_KEY_146}", url = "${VERIFIER_URL_146}" }
 berachain = { chain = "80094", key = "${VERIFIER_API_KEY_80094}", url = "${VERIFIER_URL_80094}" }
+unichain = { chain = "130", key = "${VERIFIER_API_KEY_130}", url = "${VERIFIER_URL_130}" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

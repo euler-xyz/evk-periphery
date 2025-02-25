@@ -314,7 +314,7 @@ abstract contract BridgeConfigCache is ScriptExtended {
             uint256 srcChainId = srcChainIds.at(i);
             result = vm.serializeUint("bridgeConfigCache", vm.toString(srcChainId), config[srcChainId].keys().sort());
         }
-        result = vm.serializeString("", "oft", bytes(result).length == 0 ? "{}" : result);
+        return vm.serializeString("bridgeConfig", "oft", bytes(result).length == 0 ? "{}" : result);
     }
 
     function deserializeBridgeConfigCache(string memory json) internal {
@@ -349,6 +349,7 @@ abstract contract ScriptUtils is
     BridgeAddresses internal bridgeAddresses;
     TokenAddresses internal tokenAddresses;
     GovernorAddresses internal governorAddresses;
+    uint256 internal safeNonce = getSafeNonce();
 
     constructor() {
         multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
@@ -379,8 +380,8 @@ abstract contract ScriptUtils is
         if (block.chainid == 1) {
             return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
         } else if (
-            block.chainid == 10 || block.chainid == 8453 || block.chainid == 1923 || block.chainid == 57073
-                || block.chainid == 60808
+            block.chainid == 10 || block.chainid == 130 || block.chainid == 8453 || block.chainid == 1923
+                || block.chainid == 480 || block.chainid == 57073 || block.chainid == 60808
         ) {
             return 0x4200000000000000000000000000000000000006;
         } else if (block.chainid == 56) {
@@ -597,7 +598,6 @@ abstract contract BatchBuilder is ScriptUtils {
     IEVC.BatchItem[] internal batchItems;
     IEVC.BatchItem[] internal criticalItems;
     uint256 internal batchCounter;
-    uint256 internal safeNonce = getSafeNonce();
 
     function addBatchItem(address targetContract, bytes memory data) internal {
         address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
@@ -734,7 +734,7 @@ abstract contract BatchBuilder is ScriptUtils {
         if (batchItems.length == 0) return;
 
         address safe = getSafe();
-        console.log("Executing the batch via the Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
+        console.log("Executing the batch via Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
         dumpBatch(safe);
 
         SafeTransaction transaction = new SafeTransaction();
@@ -748,14 +748,14 @@ abstract contract BatchBuilder is ScriptUtils {
     function dumpBatch(address from) internal {
         string memory path = string.concat(vm.projectRoot(), "/script/Batches.json");
         string memory json = vm.exists(path) ? vm.readFile(path) : "{}";
-        string memory key = string.concat("batch", vm.toString(batchCounter++));
+        string memory key = string.concat("batch", vm.toString(batchCounter));
 
         json = vm.serializeAddress(key, "from", from);
         json = vm.serializeAddress(key, "to", coreAddresses.evc);
         json = vm.serializeUint(key, "value", getBatchValue());
         json = vm.serializeBytes(key, "data", getBatchCalldata());
 
-        vm.writeJson(vm.serializeString("", key, json), path);
+        vm.writeJson(vm.serializeString("batches", vm.toString(batchCounter++), json), path);
     }
 
     function grantRole(address accessController, bytes32 role, address account) internal {
