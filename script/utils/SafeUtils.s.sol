@@ -18,13 +18,11 @@ abstract contract SafeUtil is ScriptExtended {
 
     struct Status {
         address safe;
+        uint256 chainId;
         uint256 nonce;
         uint256 threshold;
         address[] owners;
-        address masterCopy;
-        address[] modules;
-        address fallbackHandler;
-        address guard;
+        address implementation;
         string version;
     }
 
@@ -55,17 +53,8 @@ abstract contract SafeUtil is ScriptExtended {
         bytes signature;
     }
 
-    mapping(uint256 => bool) private transactionServiceAPIAvailable;
-    uint256[12] private transactionServiceAPIAvailableChainIds = [1, 10, 100, 130, 137, 146, 8453, 42161, 43114, 480, 56, 57073];
-
-    constructor() {
-        for (uint256 i = 0; i < transactionServiceAPIAvailableChainIds.length; i++) {
-            transactionServiceAPIAvailable[transactionServiceAPIAvailableChainIds[i]] = true;
-        }
-    }
-
     function isTransactionServiceAPIAvailable() public view returns (bool) {
-        return transactionServiceAPIAvailable[block.chainid];
+        return !_strEq(getSafeBaseURL(), "");
     }
 
     function isSafeOwnerOrDelegate(address safe, address account) public returns (bool) {
@@ -89,14 +78,12 @@ abstract contract SafeUtil is ScriptExtended {
         require(status == 200, "getSafes: Failed to get safes");
 
         return Status({
-            safe: vm.parseJsonAddress(string(response), ".address"),
+            safe: vm.parseJsonAddress(string(response), ".address.value"),
+            chainId: vm.parseJsonUint(string(response), ".chainId"),
             nonce: vm.parseJsonUint(string(response), ".nonce"),
             threshold: vm.parseJsonUint(string(response), ".threshold"),
-            owners: vm.parseJsonAddressArray(string(response), ".owners"),
-            masterCopy: vm.parseJsonAddress(string(response), ".masterCopy"),
-            modules: vm.parseJsonAddressArray(string(response), ".modules"),
-            fallbackHandler: vm.parseJsonAddress(string(response), ".fallbackHandler"),
-            guard: vm.parseJsonAddress(string(response), ".guard"),
+            owners: parseJsonAddressesFromValueKeys(string(response), ".owners"),
+            implementation: vm.parseJsonAddress(string(response), ".implementation.value"),
             version: vm.parseJsonString(string(response), ".version")
         });
     }
@@ -211,35 +198,31 @@ abstract contract SafeUtil is ScriptExtended {
     }
 
     function getSafesAPIBaseURL() public view returns (string memory) {
-        return string.concat(getSafeBaseURL(), "api/v1/safes/");
+        return string.concat(getSafeBaseAPIURL("v1"), "safes/");
     }
 
     function getOwnersAPIBaseURL() public view returns (string memory) {
-        return string.concat(getSafeBaseURL(), "api/v1/owners/");
+        return string.concat(getSafeBaseAPIURL("v1"), "owners/");
     }
 
     function getDelegatesAPIBaseURL() public view returns (string memory) {
-        return string.concat(getSafeBaseURL(), "api/v2/delegates/");
+        return string.concat(getSafeBaseAPIURL("v2"), "delegates/");
     }
 
     function getSafeBaseURL() public view returns (string memory) {
-        require(isTransactionServiceAPIAvailable(), "Transaction service API is not available");
-
-        if (block.chainid == 1) {
-            return "https://safe-transaction-mainnet.safe.global/";
-        } else if (block.chainid == 10) {
-            return "https://safe-transaction-optimism.safe.global/";
-        } else if (block.chainid == 137) {
-            return "https://safe-transaction-polygon.safe.global/";
-        } else if (block.chainid == 8453) {
-            return "https://safe-transaction-base.safe.global/";
-        } else if (block.chainid == 42161) {
-            return "https://safe-transaction-arbitrum.safe.global/";
-        } else if (block.chainid == 43114) {
-            return "https://safe-transaction-avalanche.safe.global/";
+        if (
+            block.chainid == 1 || block.chainid == 10 || block.chainid == 100 || block.chainid == 130
+                || block.chainid == 137 || block.chainid == 146 || block.chainid == 42161 || block.chainid == 43114
+                || block.chainid == 480 || block.chainid == 56 || block.chainid == 57073 || block.chainid == 8453
+        ) {
+            return "https://safe-client.safe.global/";
         } else {
             return "";
         }
+    }
+
+    function getSafeBaseAPIURL(string memory version) public view returns (string memory) {
+        return string.concat(getSafeBaseURL(), version, "/chains/", vm.toString(block.chainid), "/");
     }
 
     function getHeaders() internal pure returns (string[] memory) {
@@ -256,6 +239,21 @@ abstract contract SafeUtil is ScriptExtended {
             headersString = string.concat(headersString, "-H \"", headers[i], "\" ");
         }
         return headersString;
+    }
+
+    function parseJsonAddressesFromValueKeys(string memory response, string memory key) internal view returns (address[] memory) {
+        uint256 length = 0;
+
+        while (vm.keyExists(string(response), _indexedKey(key, length, ".value"))) {
+            ++length;
+        }
+
+        address[] memory addresses = new address[](length);
+        for (uint256 i = 0; i < length; ++i) {
+            addresses[i] = vm.parseJsonAddress(string(response), _indexedKey(key, i, ".value"));
+        }
+
+        return addresses;
     }
 }
 
