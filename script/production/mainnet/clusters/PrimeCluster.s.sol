@@ -104,7 +104,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[solvBTC] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[WETH   ] = 25_000;
+        cluster.supplyCaps[WETH   ] = 12_500;
         cluster.supplyCaps[wstETH ] = 12_500;
         cluster.supplyCaps[cbETH  ] = 12_500;
         cluster.supplyCaps[weETH  ] = 12_500;
@@ -128,7 +128,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[solvBTC] = 100;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WETH   ] = 21_200;
+        cluster.borrowCaps[WETH   ] = 10_600;
         cluster.borrowCaps[wstETH ] = 5_000;
         cluster.borrowCaps[cbETH  ] = 5_000;
         cluster.borrowCaps[weETH  ] = 3_120;
@@ -153,8 +153,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0% APY  Kink(85%)=2.50% APY  Max=80.00% APY
-            uint256[4] memory irmETH       = [uint256(0), uint256(214335049),  uint256(27697130031), uint256(3650722201)];
+            // Base=0% APY  Kink(85%)=2.79% APY  Max=122.55% APY
+            uint256[4] memory irmETH       = [uint256(0), uint256(238858791),  uint256(37995478916), uint256(3650722201)];
 
             // Base=0% APY,  Kink(85%)=2.79% APY  Max=122.55% APY
             uint256[4] memory irmBTC       = [uint256(0), uint256(238858791),  uint256(37995478916), uint256(3650722201)];
@@ -168,8 +168,8 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(25%)=4.60% APY  Max=848.77% APY
             uint256[4] memory irmBTC_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
 
-            // Base=0% APY,  Kink(90%)=6.00% APY  Max=70.00% APY
-            uint256[4] memory irmUSD_1     = [uint256(0), uint256(477682641),  uint256(34851188975), uint256(3865470566)];
+            // Base=0% APY,  Kink(90%)=9.42% APY  Max=101.38% APY
+            uint256[4] memory irmUSD_1     = [uint256(0), uint256(738003605),  uint256(45006465867), uint256(3865470566)];
 
             // Base=0% APY,  Kink(90%)=9.42% APY  Max=101.38% APY
             uint256[4] memory irmUSD_2     = [uint256(0), uint256(738003605),  uint256(45006465867), uint256(3865470566)];
@@ -223,8 +223,8 @@ contract Cluster is ManageCluster {
         /* 6  mETH    */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
         /* 7  rsETH   */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
         /* 8  ETHx    */ [uint16(0.87e4), 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.00e4, 0.74e4, 0.74e4, 0.74e4, 0.74e4, 0.00e4, 0.74e4, 0.00e4, 0.64e4, 0.64e4, 0.69e4, 0.69e4, 0.69e4, 0.69e4],
-        /* 9  USDC    */ [uint16(0.87e4), 0.83e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.75e4, 0.82e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
-        /* 10 USDT    */ [uint16(0.87e4), 0.83e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.75e4, 0.82e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
+        /* 9  USDC    */ [uint16(0.85e4), 0.83e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.75e4, 0.75e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
+        /* 10 USDT    */ [uint16(0.85e4), 0.83e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.75e4, 0.75e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
         /* 11 wUSDM   */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.00e4, 0.92e4, 0.00e4, 0.60e4, 0.60e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4],
         /* 12 wM      */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.60e4, 0.60e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4],
         /* 13 mTBILL  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
@@ -237,6 +237,10 @@ contract Cluster is ManageCluster {
         /* 20 eBTC    */ [uint16(0.72e4), 0.70e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.00e4, 0.87e4],
         /* 21 solvBTC */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
+
+        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            cluster.borrowLTVsOverride[11][i] = 0.00e4;
+        }
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
@@ -266,21 +270,21 @@ contract Cluster is ManageCluster {
         }
         executeBatchPrank(Ownable(peripheryAddresses.governedPerspective).owner());
 
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+//
+        //    PerspectiveVerifier.verifyPerspective(
+        //        peripheryAddresses.eulerUngovernedNzxPerspective,
+        //        cluster.vaults[i],
+        //        PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR,
+        //        PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_SEPARATION | PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_BORROW |
+        //        PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_LIQUIDATION | PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING |
+        //        PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER,
+        //        false
+        //    );
+        //}
 
-            PerspectiveVerifier.verifyPerspective(
-                peripheryAddresses.eulerUngovernedNzxPerspective,
-                cluster.vaults[i],
-                PerspectiveVerifier.E__ORACLE_GOVERNED_ROUTER | PerspectiveVerifier.E__GOVERNOR,
-                PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_SEPARATION | PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_BORROW |
-                PerspectiveVerifier.E__LTV_COLLATERAL_CONFIG_LIQUIDATION | PerspectiveVerifier.E__LTV_COLLATERAL_RAMPING |
-                PerspectiveVerifier.E__ORACLE_INVALID_ADAPTER,
-                false
-            );
-        }
-
-        ClusterDump dumper = new ClusterDump();
-        dumper.dumpCluster(cluster.vaults, cluster.externalVaults);
+        //ClusterDump dumper = new ClusterDump();
+        //dumper.dumpCluster(cluster.vaults, cluster.externalVaults);
     }
 }

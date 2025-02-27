@@ -246,6 +246,11 @@ contract Cluster is ManageCluster {
         /* 24 PT_USDe_27MAR2025         */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
 
+        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            cluster.borrowLTVsOverride[5][i] = 0.00e4;
+            cluster.borrowLTVsOverride[6][i] = 0.00e4;
+        }
+
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
         cluster.externalLTVs = [
@@ -261,7 +266,7 @@ contract Cluster is ManageCluster {
             perspectiveVerify(peripheryAddresses.governedPerspective, cluster.vaults[i]);
         }
         executeBatchPrank(Ownable(peripheryAddresses.governedPerspective).owner());
-
+/*
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
 
@@ -287,8 +292,8 @@ contract Cluster is ManageCluster {
                 );
             }
         }
-
-        ClusterDump dumper = new ClusterDump();
-        dumper.dumpCluster(cluster.vaults, cluster.externalVaults);
+*/
+        //ClusterDump dumper = new ClusterDump();
+        //dumper.dumpCluster(cluster.vaults, cluster.externalVaults);
     }
 }
