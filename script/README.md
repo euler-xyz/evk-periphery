@@ -154,7 +154,7 @@ If `SAFE_KEY` is not defined in the `.env` file, you can add i.e. `--ledger` or 
 Or sign and send the request manually:
 
 ```bash
-source .env && env FORCE_NO_KEY=true forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "createManually(address,address,string,int256)" $SAFE_ADDRESS <delegate> <label> <nonce> --rpc-url $DEPLOYMENT_RPC_URL
+source .env forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "createManually(address,address,string,int256)" $SAFE_ADDRESS <delegate> <label> <nonce> --rpc-url $DEPLOYMENT_RPC_URL
 ```
 
 Replace `<delegate>` with the desired delegate address and `<label>` with the label of the delegate. Label must be enclosed in quotes. Replace `<nonce>` with the nonce intended to be used for the transaction. Use 0 to automatically fetch the nonce from the Safe API.
@@ -170,7 +170,7 @@ If `SAFE_KEY` is not defined in the `.env` file, you can add i.e. `--ledger` or 
 Or sign and send the request manually:
 
 ```bash
-source .env && env FORCE_NO_KEY=true forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "removeManually(address,address)" $SAFE_ADDRESS <delegate> --rpc-url $DEPLOYMENT_RPC_URL
+source .env forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "removeManually(address,address)" $SAFE_ADDRESS <delegate> --rpc-url $DEPLOYMENT_RPC_URL
 ```
 
 Replace `<delegate>` with the delegate address to remove.

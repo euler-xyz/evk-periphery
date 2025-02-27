@@ -47,8 +47,6 @@ contract EscrowedCollateralPerspectiveTest is EVaultTestBase, PerspectiveErrors 
             factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(0), address(0)));
         address vault3 =
             factory.createProxy(address(0), false, abi.encodePacked(address(assetTST), address(1), address(2)));
-        address vault4 =
-            factory.createProxy(address(0), true, abi.encodePacked(address(assetTST), address(0), address(0)));
 
         IEVault(vault1).setHookConfig(address(0), 0);
         IEVault(vault1).setGovernorAdmin(address(0));
@@ -61,11 +59,6 @@ contract EscrowedCollateralPerspectiveTest is EVaultTestBase, PerspectiveErrors 
         IEVault(vault3).setHookConfig(address(0), 1);
         IEVault(vault3).setLTV(address(0), 0, 0, 0);
         IEVault(vault3).setCaps(1, 0);
-
-        // this vault will be okay because it has greater than zero supply cap, but zero borrow cap
-        IEVault(vault4).setCaps(1, 0);
-        IEVault(vault4).setHookConfig(address(0), 0);
-        IEVault(vault4).setGovernorAdmin(address(0));
 
         // verification of the first vault is successful
         vm.expectEmit(true, false, false, false, address(perspective));
@@ -89,20 +82,15 @@ contract EscrowedCollateralPerspectiveTest is EVaultTestBase, PerspectiveErrors 
         );
         perspective.perspectiveVerify(vault3, true);
 
-        // verification of the fourth vault is successful
-        vm.expectEmit(true, false, false, false, address(perspective));
-        emit PerspectiveVerified(vault4);
-        perspective.perspectiveVerify(vault4, true);
-        assertEq(perspective.singletonLookup(address(assetTST)), vault1); // no override
-
         // if fail early not requested, the third vault verification will collect all the errors and fail at the end
         vm.expectRevert(
             abi.encodeWithSelector(
                 IPerspective.PerspectiveError.selector,
                 address(perspective),
                 vault3,
-                ERROR__UPGRADABILITY | ERROR__ORACLE_INVALID_ROUTER | ERROR__UNIT_OF_ACCOUNT | ERROR__GOVERNOR
-                    | ERROR__HOOKED_OPS | ERROR__LIQUIDATION_DISCOUNT | ERROR__LTV_COLLATERAL_CONFIG_LENGTH
+                ERROR__UPGRADABILITY | ERROR__SINGLETON | ERROR__ORACLE_INVALID_ROUTER | ERROR__UNIT_OF_ACCOUNT
+                    | ERROR__GOVERNOR | ERROR__HOOKED_OPS | ERROR__LIQUIDATION_DISCOUNT
+                    | ERROR__LTV_COLLATERAL_CONFIG_LENGTH | ERROR__SUPPLY_CAP
             )
         );
         perspective.perspectiveVerify(vault3, false);

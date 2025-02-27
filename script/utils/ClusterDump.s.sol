@@ -268,7 +268,7 @@ contract ClusterDump is ScriptUtils {
                 uint256 kink = IRMLinearKink(detailedIRMInfo.interestRateModel).kink();
                 cash[1] = type(uint32).max - kink;
                 borrows[1] = kink;
-            } else {
+            } else if (detailedIRMInfo.interestRateModelType == InterestRateModelType.ADAPTIVE_CURVE) {
                 uint256 targetUtilization =
                     uint256(IRMAdaptiveCurve(detailedIRMInfo.interestRateModel).TARGET_UTILIZATION());
                 cash[1] = (1e18 - targetUtilization) * type(uint32).max / 1e18;

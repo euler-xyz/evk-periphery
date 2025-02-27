@@ -12,7 +12,7 @@ import {BasePerspective} from "../implementation/BasePerspective.sol";
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A contract that verifies whether a vault has properties of an escrow vault. It allows only one escrow vault
-/// per asset if the vault has no supply cap configured.
+/// per asset.
 contract EscrowedCollateralPerspective is BasePerspective {
     /// @notice A mapping to look up the vault associated with a given asset.
     mapping(address => address) public singletonLookup;
@@ -42,6 +42,9 @@ contract EscrowedCollateralPerspective is BasePerspective {
         testProperty(IEVault(vault).oracle() == address(0), ERROR__ORACLE_INVALID_ROUTER);
         testProperty(IEVault(vault).unitOfAccount() == address(0), ERROR__UNIT_OF_ACCOUNT);
 
+        // escrow vaults must be singletons
+        testProperty(singletonLookup[asset] == address(0), ERROR__SINGLETON);
+
         // verify vault configuration at the governance level.
         // escrow vaults must not have a governor admin, fee receiver, or interest rate model
         testProperty(IEVault(vault).governorAdmin() == address(0), ERROR__GOVERNOR);
@@ -49,9 +52,10 @@ contract EscrowedCollateralPerspective is BasePerspective {
         testProperty(IEVault(vault).interestRateModel() == address(0), ERROR__INTEREST_RATE_MODEL);
 
         {
-            // escrow vaults must be singletons if they do not have a supply cap configured
             (uint32 supplyCap, uint32 borrowCap) = IEVault(vault).caps();
-            testProperty(supplyCap != 0 || singletonLookup[asset] == address(0), ERROR__SINGLETON);
+
+            // escrow vaults must not have supply cap
+            testProperty(supplyCap == 0, ERROR__SUPPLY_CAP);
 
             // escrow vaults must not have borrow cap
             testProperty(borrowCap == 0, ERROR__BORROW_CAP);
@@ -72,7 +76,7 @@ contract EscrowedCollateralPerspective is BasePerspective {
         // escrow vaults must not have any collateral set up
         testProperty(IEVault(vault).LTVList().length == 0, ERROR__LTV_COLLATERAL_CONFIG_LENGTH);
 
-        // store in mapping so that, if the vault has no supply cap, one escrow vault per asset can be achieved
+        // store in mapping so that there's only one escrow vault per asset
         if (singletonLookup[asset] == address(0)) {
             singletonLookup[asset] = vault;
         }
