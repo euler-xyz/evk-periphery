@@ -15,6 +15,12 @@ contract GovernorAccessControlEmergencyFactory is BaseFactory, IGovernorAccessCo
     /// @notice The minimum delay that can be set for a timelock controller
     uint256 public constant MIN_MIN_DELAY = 1 days;
 
+    event GovernorAccessControlEmergencySuiteDeployed(
+        address indexed adminTimelockController,
+        address indexed wildcardTimelockController,
+        address indexed governorAccessControlEmergency
+    );
+
     /// @notice Thrown when the provided minimum delay is less than the required minimum delay or when the admin
     /// timelock delay is less than the wildcard timelock delay
     error InvalidMinDelay();
@@ -116,6 +122,12 @@ contract GovernorAccessControlEmergencyFactory is BaseFactory, IGovernorAccessCo
                 governorAccessControlEmergency.DEFAULT_ADMIN_ROLE(), address(this)
             );
         }
+
+        emit GovernorAccessControlEmergencySuiteDeployed(
+            address(adminTimelockController),
+            address(wildcardTimelockController),
+            address(governorAccessControlEmergency)
+        );
 
         deploymentInfo[address(governorAccessControlEmergency)] = DeploymentInfo(msg.sender, uint96(block.timestamp));
         deployments.push(address(governorAccessControlEmergency));
