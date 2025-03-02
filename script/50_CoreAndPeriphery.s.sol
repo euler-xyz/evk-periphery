@@ -523,7 +523,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             for (uint256 i = 0; i < entries.length; ++i) {
                 if (!entries[i].isDir) continue;
 
-                uint256 chainIdOther = getChainIdFromAddressessDirPath(entries[i].path);
+                uint256 chainIdOther = getChainIdFromAddressesDirPath(entries[i].path);
 
                 if (chainIdOther == 0 || block.chainid == chainIdOther) continue;
 
