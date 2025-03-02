@@ -241,7 +241,11 @@ abstract contract SafeUtil is ScriptExtended {
         return headersString;
     }
 
-    function parseJsonAddressesFromValueKeys(string memory response, string memory key) internal view returns (address[] memory) {
+    function parseJsonAddressesFromValueKeys(string memory response, string memory key)
+        internal
+        view
+        returns (address[] memory)
+    {
         uint256 length = 0;
 
         while (vm.keyExists(string(response), _indexedKey(key, length, ".value"))) {
