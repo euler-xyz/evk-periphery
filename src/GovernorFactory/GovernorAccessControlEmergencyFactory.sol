@@ -34,6 +34,9 @@ contract GovernorAccessControlEmergencyFactory is BaseFactory, IGovernorAccessCo
     /// @notice Thrown when no proposers are provided for a timelock controller
     error InvalidProposers();
 
+    /// @notice Thrown when no executors are provided for a timelock controller
+    error InvalidExecutors();
+
     /// @notice Initializes the factory with the EVC address
     /// @param _evc The address of the Ethereum Vault Connector (EVC) contract
     constructor(address _evc) {
@@ -63,6 +66,11 @@ contract GovernorAccessControlEmergencyFactory is BaseFactory, IGovernorAccessCo
             adminTimelockControllerParams.proposers.length == 0
                 || wildcardTimelockControllerParams.proposers.length == 0
         ) revert InvalidProposers();
+
+        if (
+            adminTimelockControllerParams.executors.length == 0
+                || wildcardTimelockControllerParams.executors.length == 0
+        ) revert InvalidExecutors();
 
         TimelockController adminTimelockController = new TimelockController(
             adminTimelockControllerParams.minDelay, new address[](0), new address[](0), address(this)
