@@ -53,10 +53,10 @@ contract PeripheryFactories is ScriptUtils {
 
     function execute(address evc) public returns (PeripheryContracts memory deployedContracts) {
         deployedContracts = PeripheryContracts({
-            oracleRouterFactory: address(new EulerRouterFactory(evc)),
-            oracleAdapterRegistry: address(new SnapshotRegistry(evc, getDeployer())),
-            externalVaultRegistry: address(new SnapshotRegistry(evc, getDeployer())),
-            kinkIRMFactory: address(new EulerKinkIRMFactory()),
+            oracleRouterFactory: address(0), //address(new EulerRouterFactory(evc)),
+            oracleAdapterRegistry: address(0), //address(new SnapshotRegistry(evc, getDeployer())),
+            externalVaultRegistry: address(0), //address(new SnapshotRegistry(evc, getDeployer())),
+            kinkIRMFactory: address(0), //address(new EulerKinkIRMFactory()),
             adaptiveCurveIRMFactory: address(new EulerIRMAdaptiveCurveFactory()),
             irmRegistry: address(new SnapshotRegistry(evc, getDeployer())),
             governorAccessControlEmergencyFactory: address(new GovernorAccessControlEmergencyFactory(evc))

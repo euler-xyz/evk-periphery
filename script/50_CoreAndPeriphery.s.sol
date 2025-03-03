@@ -663,27 +663,29 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             }
         }
 
-        if (
-            peripheryAddresses.oracleRouterFactory == address(0)
-                && peripheryAddresses.oracleAdapterRegistry == address(0)
-                && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0)
-                && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
-        ) {
-            console.log("+ Deploying Periphery factories...");
-            PeripheryFactories deployer = new PeripheryFactories();
-            PeripheryFactories.PeripheryContracts memory peripheryContracts = deployer.deploy(coreAddresses.evc);
+        //if (
+        //    peripheryAddresses.oracleRouterFactory == address(0)
+        //        && peripheryAddresses.oracleAdapterRegistry == address(0)
+        //        && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory ==
+        // address(0)
+        //        && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry ==
+        // address(0)
+        //) {
+        console.log("+ Deploying Periphery factories...");
+        PeripheryFactories deployer = new PeripheryFactories();
+        PeripheryFactories.PeripheryContracts memory peripheryContracts = deployer.deploy(coreAddresses.evc);
 
-            peripheryAddresses.oracleRouterFactory = peripheryContracts.oracleRouterFactory;
-            peripheryAddresses.oracleAdapterRegistry = peripheryContracts.oracleAdapterRegistry;
-            peripheryAddresses.externalVaultRegistry = peripheryContracts.externalVaultRegistry;
-            peripheryAddresses.kinkIRMFactory = peripheryContracts.kinkIRMFactory;
-            peripheryAddresses.adaptiveCurveIRMFactory = peripheryContracts.adaptiveCurveIRMFactory;
-            peripheryAddresses.irmRegistry = peripheryContracts.irmRegistry;
-            peripheryAddresses.governorAccessControlEmergencyFactory =
-                peripheryContracts.governorAccessControlEmergencyFactory;
-        } else {
-            console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
-        }
+        //peripheryAddresses.oracleRouterFactory = peripheryContracts.oracleRouterFactory;
+        //peripheryAddresses.oracleAdapterRegistry = peripheryContracts.oracleAdapterRegistry;
+        //peripheryAddresses.externalVaultRegistry = peripheryContracts.externalVaultRegistry;
+        //peripheryAddresses.kinkIRMFactory = peripheryContracts.kinkIRMFactory;
+        peripheryAddresses.adaptiveCurveIRMFactory = peripheryContracts.adaptiveCurveIRMFactory;
+        peripheryAddresses.irmRegistry = peripheryContracts.irmRegistry;
+        peripheryAddresses.governorAccessControlEmergencyFactory =
+            peripheryContracts.governorAccessControlEmergencyFactory;
+        //} else {
+        //    console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
+        //}
 
         if (peripheryAddresses.feeFlowController == address(0)) {
             address paymentToken = bridgeAddresses.oftAdapter == address(0) ? getWETHAddress() : tokenAddresses.EUL;
@@ -778,6 +780,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 "    Granting emergency access control governor guardian role to address %s", multisigAddresses.labs
             );
 
+            startBroadcast();
             (
                 governorAddresses.accessControlEmergencyGovernorAdminTimelockController,
                 governorAddresses.accessControlEmergencyGovernorWildcardTimelockController,
@@ -785,6 +788,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             ) = GovernorAccessControlEmergencyFactory(peripheryAddresses.governorAccessControlEmergencyFactory).deploy(
                 adminTimelockControllerParams, wildcardTimelockControllerParams, governorAccessControlEmergencyGuardians
             );
+            stopBroadcast();
         } else {
             console.log("- GovernorAccessControlEmergency contracts suite already deployed. Skipping...");
         }
