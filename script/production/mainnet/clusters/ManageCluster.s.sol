@@ -46,6 +46,8 @@ abstract contract Addresses {
     address internal constant deUSD = 0x15700B564Ca08D9439C58cA5053166E8317aa138;
     address internal constant sdeUSD = 0x5C5b196aBE0d54485975D1Ec29617D42D9198326;
     address internal constant mBASIS = 0x2a8c22E3b10036f3AEF5875d04f8441d4188b656;
+    address internal constant mEDGE = 0xbB51E2a15A9158EBE2b0Ceb8678511e063AB7a55;
+    address internal constant mMEV = 0x030b69280892c888670EDCDCD8B69Fd8026A0BF3;
     address internal constant tBTC = 0x18084fbA666a33d37592fA2633fD49a74DD93a88;
     address internal constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
     address internal constant cbBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;

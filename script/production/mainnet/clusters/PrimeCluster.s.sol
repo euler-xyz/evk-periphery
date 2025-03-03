@@ -238,6 +238,10 @@ contract Cluster is ManageCluster {
         /* 21 solvBTC */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
 
+        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            cluster.borrowLTVsOverride[11][i] = 0.00e4; // wUSDM
+        }
+
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
         cluster.externalLTVs = [

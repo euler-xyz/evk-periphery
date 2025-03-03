@@ -12,6 +12,7 @@ import {EnumerableMap, EnumerableSet} from "openzeppelin-contracts/utils/structs
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
+import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
@@ -86,6 +87,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address edgeFactory;
         address edgeFactoryPerspective;
         address termsOfUseSigner;
+        address governorAccessControlEmergencyFactory;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -118,6 +120,11 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "edgeFactory", Addresses.edgeFactory);
         result = vm.serializeAddress("peripheryAddresses", "edgeFactoryPerspective", Addresses.edgeFactoryPerspective);
         result = vm.serializeAddress("peripheryAddresses", "termsOfUseSigner", Addresses.termsOfUseSigner);
+        result = vm.serializeAddress(
+            "peripheryAddresses",
+            "governorAccessControlEmergencyFactory",
+            Addresses.governorAccessControlEmergencyFactory
+        );
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -140,7 +147,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             eulerEarnGovernedPerspective: getAddressFromJson(json, ".eulerEarnGovernedPerspective"),
             edgeFactory: getAddressFromJson(json, ".edgeFactory"),
             edgeFactoryPerspective: getAddressFromJson(json, ".edgeFactoryPerspective"),
-            termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner")
+            termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner"),
+            governorAccessControlEmergencyFactory: getAddressFromJson(json, ".governorAccessControlEmergencyFactory")
         });
     }
 }
@@ -181,6 +189,8 @@ abstract contract GovernorAddressesLib is ScriptExtended {
         address eVaultFactoryGovernor;
         address eVaultFactoryTimelockController;
         address accessControlEmergencyGovernor;
+        address accessControlEmergencyGovernorAdminTimelockController;
+        address accessControlEmergencyGovernorWildcardTimelockController;
     }
 
     function serializeGovernorAddresses(GovernorAddresses memory Addresses) internal returns (string memory result) {
@@ -191,13 +201,29 @@ abstract contract GovernorAddressesLib is ScriptExtended {
         result = vm.serializeAddress(
             "governorAddresses", "accessControlEmergencyGovernor", Addresses.accessControlEmergencyGovernor
         );
+        result = vm.serializeAddress(
+            "governorAddresses",
+            "accessControlEmergencyGovernorAdminTimelockController",
+            Addresses.accessControlEmergencyGovernorAdminTimelockController
+        );
+        result = vm.serializeAddress(
+            "governorAddresses",
+            "accessControlEmergencyGovernorWildcardTimelockController",
+            Addresses.accessControlEmergencyGovernorWildcardTimelockController
+        );
     }
 
     function deserializeGovernorAddresses(string memory json) internal pure returns (GovernorAddresses memory) {
         return GovernorAddresses({
             eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor"),
             eVaultFactoryTimelockController: getAddressFromJson(json, ".eVaultFactoryTimelockController"),
-            accessControlEmergencyGovernor: getAddressFromJson(json, ".accessControlEmergencyGovernor")
+            accessControlEmergencyGovernor: getAddressFromJson(json, ".accessControlEmergencyGovernor"),
+            accessControlEmergencyGovernorAdminTimelockController: getAddressFromJson(
+                json, ".accessControlEmergencyGovernorAdminTimelockController"
+            ),
+            accessControlEmergencyGovernorWildcardTimelockController: getAddressFromJson(
+                json, ".accessControlEmergencyGovernorWildcardTimelockController"
+            )
         });
     }
 }
@@ -600,10 +626,22 @@ abstract contract BatchBuilder is ScriptUtils {
     IEVC.BatchItem[] internal batchItems;
     IEVC.BatchItem[] internal criticalItems;
     uint256 internal batchCounter;
+    bytes32 internal timelockPredecessor;
+
+    function getAppropriateOnBehalfOfAccount() internal view returns (address) {
+        address timelock = getTimelock(false);
+
+        if (timelock != address(0)) {
+            return timelock;
+        } else if (isBatchViaSafe()) {
+            return getSafe();
+        } else {
+            return getDeployer();
+        }
+    }
 
     function addBatchItem(address targetContract, bytes memory data) internal {
-        address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
-        addBatchItem(targetContract, onBehalfOfAccount, data);
+        addBatchItem(targetContract, getAppropriateOnBehalfOfAccount(), data);
     }
 
     function addBatchItem(address targetContract, address onBehalfOfAccount, bytes memory data) internal {
@@ -617,8 +655,7 @@ abstract contract BatchBuilder is ScriptUtils {
     }
 
     function addCriticalItem(address targetContract, bytes memory data) internal {
-        address onBehalfOfAccount = isBatchViaSafe() ? getSafe() : getDeployer();
-        addCriticalItem(targetContract, onBehalfOfAccount, data);
+        addCriticalItem(targetContract, getAppropriateOnBehalfOfAccount(), data);
     }
 
     function addCriticalItem(address targetContract, address onBehalfOfAccount, bytes memory data) internal {
@@ -720,29 +757,76 @@ abstract contract BatchBuilder is ScriptUtils {
     function executeBatch() internal {
         if (isBatchViaSafe()) executeBatchViaSafe();
         else executeBatchDirectly();
+        batchCounter++;
     }
 
     function executeBatchDirectly() internal broadcast {
         if (batchItems.length == 0) return;
 
-        console.log("Executing the batch directly on the EVC (%s)\n", coreAddresses.evc);
         dumpBatch(getDeployer());
 
-        IEVC(coreAddresses.evc).batch{value: getBatchValue()}(batchItems);
+        address payable timelock = payable(getTimelock(false));
+        if (timelock == address(0)) {
+            console.log("Executing the batch directly on the EVC (%s)\n", coreAddresses.evc);
+            IEVC(coreAddresses.evc).batch{value: getBatchValue()}(batchItems);
+        } else {
+            uint256 delay = TimelockController(timelock).getMinDelay();
+            uint256 batchValue = getBatchValue();
+            bytes memory batchCalldata = getBatchCalldata();
+            bytes32 id = TimelockController(timelock).hashOperation(
+                coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0)
+            );
+
+            console.log("Executing the batch directly on the EVC (%s) via Timelock (%s)\n", coreAddresses.evc, timelock);
+            TimelockController(timelock).schedule(coreAddresses.evc, batchValue, batchCalldata, id, bytes32(0), delay);
+            timelockPredecessor = id;
+        }
+
         clearBatchItems();
     }
 
     function executeBatchViaSafe() internal {
         if (batchItems.length == 0) return;
 
+        SafeTransaction transaction = new SafeTransaction();
         address safe = getSafe();
-        console.log("Executing the batch via Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
+        address payable timelock = payable(getTimelock(false));
+
         dumpBatch(safe);
 
-        SafeTransaction transaction = new SafeTransaction();
         safeNonce = safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce;
 
-        transaction.create(true, safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), safeNonce++);
+        if (timelock == address(0)) {
+            console.log("Executing the batch via Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
+            transaction.create(true, safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), safeNonce++);
+        } else {
+            uint256 delay = TimelockController(timelock).getMinDelay();
+            uint256 batchValue = getBatchValue();
+            bytes memory batchCalldata = getBatchCalldata();
+            bytes32 id = TimelockController(timelock).hashOperation(
+                coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0)
+            );
+
+            console.log(
+                "Executing the batch via Safe (%s) using the Timelock (%s) on the EVC (%s)\n",
+                safe,
+                timelock,
+                coreAddresses.evc
+            );
+
+            transaction.create(
+                true,
+                safe,
+                timelock,
+                batchValue,
+                abi.encodeCall(
+                    TimelockController.schedule, (coreAddresses.evc, batchValue, batchCalldata, id, bytes32(0), delay)
+                ),
+                safeNonce++
+            );
+
+            timelockPredecessor = id;
+        }
 
         clearBatchItems();
     }
@@ -757,7 +841,7 @@ abstract contract BatchBuilder is ScriptUtils {
         json = vm.serializeUint(key, "value", getBatchValue());
         json = vm.serializeBytes(key, "data", getBatchCalldata());
 
-        vm.writeJson(vm.serializeString("batches", vm.toString(batchCounter++), json), path);
+        vm.writeJson(vm.serializeString("batches", vm.toString(batchCounter), json), path);
     }
 
     function grantRole(address accessController, bytes32 role, address account) internal {
