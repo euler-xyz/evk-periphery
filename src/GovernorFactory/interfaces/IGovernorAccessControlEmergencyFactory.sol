@@ -21,24 +21,16 @@ interface IGovernorAccessControlEmergencyFactory is IFactory {
         address[] executors;
     }
 
-    /// @notice Parameters for deploying a GovernorAccessControlEmergency contract
-    /// @param evc The address of the EVC (Euler Vault Controller)
-    /// @param guardians The addresses that will be granted emergency roles
-    struct GovernorAccessControlEmergencyParams {
-        address evc;
-        address[] guardians;
-    }
-
     /// @notice Deploys a new governor contracts suite.
     /// @param adminTimelockControllerParams The parameters for the admin timelock controller.
     /// @param wildcardTimelockControllerParams The parameters for the wildcard timelock controller.
-    /// @param governorParams The parameters for the governor access control emergency contract.
+    /// @param governorAccessControlEmergencyGuardians The addresses that will be granted emergency roles
     /// @return adminTimelockController The address of the admin timelock controller.
     /// @return wildcardTimelockController The address of the wildcard timelock controller.
     /// @return governorAccessControlEmergency The address of the governor access control emergency contract.
     function deploy(
         TimelockControllerParams memory adminTimelockControllerParams,
         TimelockControllerParams memory wildcardTimelockControllerParams,
-        GovernorAccessControlEmergencyParams memory governorParams
+        address[] memory governorAccessControlEmergencyGuardians
     ) external returns (address, address, address);
 }

@@ -18,11 +18,17 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
     address user3;
 
     function setUp() public {
-        governorAccessControlEmergencyFactory = new GovernorAccessControlEmergencyFactory();
         evc = makeAddr("evc");
+        governorAccessControlEmergencyFactory = new GovernorAccessControlEmergencyFactory(evc);
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
         user3 = makeAddr("user3");
+    }
+
+    // Test function to verify that the factory reverts when a zero address is passed for EVC
+    function test_revert_zeroEVCAddress() external {
+        vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidAddress.selector);
+        new GovernorAccessControlEmergencyFactory(address(0));
     }
 
     // Test admin minDelay too low
@@ -52,12 +58,9 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
             executors: emptyArray
         });
 
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams memory governorParams =
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams({evc: evc, guardians: guardians});
-
         vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidMinDelay.selector);
         governorAccessControlEmergencyFactory.deploy(
-            adminTimelockControllerParams, wildcardTimelockControllerParams, governorParams
+            adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
     }
 
@@ -88,12 +91,9 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
             executors: emptyArray
         });
 
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams memory governorParams =
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams({evc: evc, guardians: guardians});
-
         vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidMinDelay.selector);
         governorAccessControlEmergencyFactory.deploy(
-            adminTimelockControllerParams, wildcardTimelockControllerParams, governorParams
+            adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
     }
 
@@ -124,12 +124,9 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
             executors: emptyArray
         });
 
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams memory governorParams =
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams({evc: evc, guardians: guardians});
-
         vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidMinDelay.selector);
         governorAccessControlEmergencyFactory.deploy(
-            adminTimelockControllerParams, wildcardTimelockControllerParams, governorParams
+            adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
     }
 
@@ -157,12 +154,9 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
             executors: emptyArray
         });
 
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams memory governorParams =
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams({evc: evc, guardians: guardians});
-
         vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidProposers.selector);
         governorAccessControlEmergencyFactory.deploy(
-            adminTimelockControllerParams, wildcardTimelockControllerParams, governorParams
+            adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
     }
 
@@ -190,12 +184,9 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
             executors: emptyArray
         });
 
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams memory governorParams =
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams({evc: evc, guardians: guardians});
-
         vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidProposers.selector);
         governorAccessControlEmergencyFactory.deploy(
-            adminTimelockControllerParams, wildcardTimelockControllerParams, governorParams
+            adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
     }
 
@@ -228,13 +219,13 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
             executors: executors
         });
 
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams memory governorParams =
-        IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams({evc: evc, guardians: guardians});
-
         (address adminTimelockAddr, address wildcardTimelockAddr, address governorAddr) =
         governorAccessControlEmergencyFactory.deploy(
-            adminTimelockControllerParams, wildcardTimelockControllerParams, governorParams
+            adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
+
+        // Verify EVC was correctly set
+        assertEq(governorAccessControlEmergencyFactory.evc(), evc, "EVC address mismatch");
 
         // Verify contracts were deployed
         assertTrue(adminTimelockAddr != address(0), "Admin timelock not deployed");
@@ -357,11 +348,8 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
                 executors: executors
             });
 
-            IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams memory governorParams =
-            IGovernorAccessControlEmergencyFactory.GovernorAccessControlEmergencyParams({evc: evc, guardians: guardians});
-
             (adminTimelockAddr, wildcardTimelockAddr, governorAddr) = governorAccessControlEmergencyFactory.deploy(
-                adminTimelockControllerParams, wildcardTimelockControllerParams, governorParams
+                adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
             );
         }
 
