@@ -13,7 +13,7 @@ interface IERC1271 {
 /// @title Permit2Adapter
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice Untrusted helper contract for swaps on EVK with providers requiring Permit2 support
+/// @notice Untrusted helper contract for EVK swaps with providers requiring Permit2 support
 contract Permit2Adapter {
     address public immutable PERMIT2;
 
@@ -29,6 +29,7 @@ contract Permit2Adapter {
         address tokenOut,
         uint256 amount,
         address receiver,
+        uint256 sweepMinAmount,
         bytes calldata data
     ) external {
         setMaxAllowance(tokenIn, PERMIT2);
@@ -40,7 +41,8 @@ contract Permit2Adapter {
         (success, result) = target.call(data);
         if (!success) RevertBytes.revertBytes(result);
 
-        sweep(tokenOut, 0, receiver);
+        sweep(tokenIn, sweepMinAmount, msg.sender);
+        sweep(tokenOut, sweepMinAmount, receiver);
     }
 
     function sweep(address token, uint256 amountMin, address to) public {
