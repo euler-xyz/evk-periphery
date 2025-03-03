@@ -778,6 +778,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 "    Granting emergency access control governor guardian role to address %s", multisigAddresses.labs
             );
 
+            startBroadcast();
             (
                 governorAddresses.accessControlEmergencyGovernorAdminTimelockController,
                 governorAddresses.accessControlEmergencyGovernorWildcardTimelockController,
@@ -785,6 +786,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             ) = GovernorAccessControlEmergencyFactory(peripheryAddresses.governorAccessControlEmergencyFactory).deploy(
                 adminTimelockControllerParams, wildcardTimelockControllerParams, governorAccessControlEmergencyGuardians
             );
+            stopBroadcast();
         } else {
             console.log("- GovernorAccessControlEmergency contracts suite already deployed. Skipping...");
         }
