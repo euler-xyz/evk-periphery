@@ -190,6 +190,70 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         );
     }
 
+    // Test empty admin executors array
+    function test_deployEmptyAdminExecutors() external {
+        address[] memory emptyArray = new address[](0);
+        address[] memory proposers = new address[](1);
+        proposers[0] = user1;
+        address[] memory executors = new address[](1);
+        executors[0] = user1;
+        address[] memory guardians = new address[](1);
+        guardians[0] = user3;
+
+        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+            minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
+            proposers: proposers,
+            cancellers: emptyArray,
+            executors: emptyArray // Empty executors array
+        });
+
+        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+            minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
+            proposers: proposers,
+            cancellers: emptyArray,
+            executors: executors
+        });
+
+        vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidExecutors.selector);
+        governorAccessControlEmergencyFactory.deploy(
+            adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
+        );
+    }
+
+    // Test empty wildcard executors array
+    function test_deployEmptyWildcardExecutors() external {
+        address[] memory emptyArray = new address[](0);
+        address[] memory proposers = new address[](1);
+        proposers[0] = user1;
+        address[] memory executors = new address[](1);
+        executors[0] = user1;
+        address[] memory guardians = new address[](1);
+        guardians[0] = user3;
+
+        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+            minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
+            proposers: proposers,
+            cancellers: emptyArray,
+            executors: executors
+        });
+
+        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+            minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
+            proposers: proposers,
+            cancellers: emptyArray,
+            executors: emptyArray // Empty executors array
+        });
+
+        vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidExecutors.selector);
+        governorAccessControlEmergencyFactory.deploy(
+            adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
+        );
+    }
+
     // Test successful deployment with basic validation of roles
     function test_deploySuccess() external {
         vm.warp(1);
