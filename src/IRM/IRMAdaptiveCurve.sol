@@ -103,6 +103,11 @@ contract IRMAdaptiveCurve is IIRM {
     function computeInterestRate(address vault, uint256 cash, uint256 borrows) external returns (uint256) {
         if (msg.sender != vault) revert E_IRMUpdateUnauthorized();
 
+        // Do not update state until the first borrow.
+        if (borrows == 0 && irState[vault].lastUpdate == 0) {
+            return uint256(_curve(INITIAL_RATE_AT_TARGET, _calcErr(0))) * 1e9;
+        }
+
         int256 utilization = _calcUtilization(cash, borrows);
         (uint256 rate, uint256 rateAtTarget) = computeInterestRateInternal(vault, utilization);
 
