@@ -15,11 +15,17 @@ contract GovernorAccessControlEmergencyFactory is BaseFactory, IGovernorAccessCo
     /// @notice The minimum delay that can be set for a timelock controller
     uint256 public constant MIN_MIN_DELAY = 1 days;
 
+    /// @notice The EVC address used to deploy the governor access control emergency contract
+    address public immutable evc;
+
     event GovernorAccessControlEmergencySuiteDeployed(
         address indexed adminTimelockController,
         address indexed wildcardTimelockController,
         address indexed governorAccessControlEmergency
     );
+
+    /// @notice Thrown when a critical address parameter is zero
+    error InvalidAddress();
 
     /// @notice Thrown when the provided minimum delay is less than the required minimum delay or when the admin
     /// timelock delay is less than the wildcard timelock delay
@@ -28,17 +34,24 @@ contract GovernorAccessControlEmergencyFactory is BaseFactory, IGovernorAccessCo
     /// @notice Thrown when no proposers are provided for a timelock controller
     error InvalidProposers();
 
+    /// @notice Initializes the factory with the EVC address
+    /// @param _evc The address of the Ethereum Vault Connector (EVC) contract
+    constructor(address _evc) {
+        if (_evc == address(0)) revert InvalidAddress();
+        evc = _evc;
+    }
+
     /// @notice Deploys a new governor contracts suite.
     /// @param adminTimelockControllerParams The parameters for the admin timelock controller.
     /// @param wildcardTimelockControllerParams The parameters for the wildcard timelock controller.
-    /// @param governorParams The parameters for the governor access control emergency contract.
+    /// @param governorAccessControlEmergencyGuardians The addresses that will be granted emergency roles
     /// @return adminTimelockController The address of the admin timelock controller.
     /// @return wildcardTimelockController The address of the wildcard timelock controller.
     /// @return governorAccessControlEmergency The address of the governor access control emergency contract.
     function deploy(
         TimelockControllerParams memory adminTimelockControllerParams,
         TimelockControllerParams memory wildcardTimelockControllerParams,
-        GovernorAccessControlEmergencyParams memory governorParams
+        address[] memory governorAccessControlEmergencyGuardians
     ) external override returns (address, address, address) {
         if (
             adminTimelockControllerParams.minDelay < MIN_MIN_DELAY
@@ -60,7 +73,7 @@ contract GovernorAccessControlEmergencyFactory is BaseFactory, IGovernorAccessCo
         );
 
         GovernorAccessControlEmergency governorAccessControlEmergency =
-            new GovernorAccessControlEmergency(governorParams.evc, address(this));
+            new GovernorAccessControlEmergency(evc, address(this));
 
         {
             bytes32 proposerRole = adminTimelockController.PROPOSER_ROLE();
@@ -112,10 +125,10 @@ contract GovernorAccessControlEmergencyFactory is BaseFactory, IGovernorAccessCo
             bytes32 hookEmergencyRole = governorAccessControlEmergency.HOOK_EMERGENCY_ROLE();
             bytes32 capsEmergencyRole = governorAccessControlEmergency.CAPS_EMERGENCY_ROLE();
 
-            for (uint256 i = 0; i < governorParams.guardians.length; ++i) {
-                governorAccessControlEmergency.grantRole(ltvEmergencyRole, governorParams.guardians[i]);
-                governorAccessControlEmergency.grantRole(hookEmergencyRole, governorParams.guardians[i]);
-                governorAccessControlEmergency.grantRole(capsEmergencyRole, governorParams.guardians[i]);
+            for (uint256 i = 0; i < governorAccessControlEmergencyGuardians.length; ++i) {
+                governorAccessControlEmergency.grantRole(ltvEmergencyRole, governorAccessControlEmergencyGuardians[i]);
+                governorAccessControlEmergency.grantRole(hookEmergencyRole, governorAccessControlEmergencyGuardians[i]);
+                governorAccessControlEmergency.grantRole(capsEmergencyRole, governorAccessControlEmergencyGuardians[i]);
             }
 
             governorAccessControlEmergency.renounceRole(
