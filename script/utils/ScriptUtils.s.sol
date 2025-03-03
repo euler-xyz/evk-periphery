@@ -86,6 +86,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address edgeFactory;
         address edgeFactoryPerspective;
         address termsOfUseSigner;
+        address governorAccessControlEmergencyFactory;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -118,6 +119,11 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "edgeFactory", Addresses.edgeFactory);
         result = vm.serializeAddress("peripheryAddresses", "edgeFactoryPerspective", Addresses.edgeFactoryPerspective);
         result = vm.serializeAddress("peripheryAddresses", "termsOfUseSigner", Addresses.termsOfUseSigner);
+        result = vm.serializeAddress(
+            "peripheryAddresses",
+            "governorAccessControlEmergencyFactory",
+            Addresses.governorAccessControlEmergencyFactory
+        );
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -140,7 +146,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             eulerEarnGovernedPerspective: getAddressFromJson(json, ".eulerEarnGovernedPerspective"),
             edgeFactory: getAddressFromJson(json, ".edgeFactory"),
             edgeFactoryPerspective: getAddressFromJson(json, ".edgeFactoryPerspective"),
-            termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner")
+            termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner"),
+            governorAccessControlEmergencyFactory: getAddressFromJson(json, ".governorAccessControlEmergencyFactory")
         });
     }
 }
@@ -181,6 +188,8 @@ abstract contract GovernorAddressesLib is ScriptExtended {
         address eVaultFactoryGovernor;
         address eVaultFactoryTimelockController;
         address accessControlEmergencyGovernor;
+        address accessControlEmergencyGovernorAdminTimelockController;
+        address accessControlEmergencyGovernorWildcardTimelockController;
     }
 
     function serializeGovernorAddresses(GovernorAddresses memory Addresses) internal returns (string memory result) {
@@ -191,13 +200,29 @@ abstract contract GovernorAddressesLib is ScriptExtended {
         result = vm.serializeAddress(
             "governorAddresses", "accessControlEmergencyGovernor", Addresses.accessControlEmergencyGovernor
         );
+        result = vm.serializeAddress(
+            "governorAddresses",
+            "accessControlEmergencyGovernorAdminTimelockController",
+            Addresses.accessControlEmergencyGovernorAdminTimelockController
+        );
+        result = vm.serializeAddress(
+            "governorAddresses",
+            "accessControlEmergencyGovernorWildcardTimelockController",
+            Addresses.accessControlEmergencyGovernorWildcardTimelockController
+        );
     }
 
     function deserializeGovernorAddresses(string memory json) internal pure returns (GovernorAddresses memory) {
         return GovernorAddresses({
             eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor"),
             eVaultFactoryTimelockController: getAddressFromJson(json, ".eVaultFactoryTimelockController"),
-            accessControlEmergencyGovernor: getAddressFromJson(json, ".accessControlEmergencyGovernor")
+            accessControlEmergencyGovernor: getAddressFromJson(json, ".accessControlEmergencyGovernor"),
+            accessControlEmergencyGovernorAdminTimelockController: getAddressFromJson(
+                json, ".accessControlEmergencyGovernorAdminTimelockController"
+            ),
+            accessControlEmergencyGovernorWildcardTimelockController: getAddressFromJson(
+                json, ".accessControlEmergencyGovernorWildcardTimelockController"
+            )
         });
     }
 }

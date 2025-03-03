@@ -48,7 +48,7 @@ contract OwnershipTransferCore is BatchBuilder {
                 )
             ) {
                 console.log(
-                    "+ Renouncing TimelockController default admin role from the caller of this script %s",
+                    "+ Renouncing EVaultFactoryTimelockController default admin role from the caller of this script %s",
                     getDeployer()
                 );
                 startBroadcast();
@@ -58,7 +58,7 @@ contract OwnershipTransferCore is BatchBuilder {
                 stopBroadcast();
             } else {
                 console.log(
-                    "- The caller of this script is no longer the default admin of the TimelockController. Skipping..."
+                    "- The caller of this script is no longer the default admin of the EVaultFactoryTimelockController. Skipping..."
                 );
             }
         }
@@ -117,51 +117,6 @@ contract OwnershipTransferCore is BatchBuilder {
             }
         } else {
             console.log("- EVaultFactory upgrade admin is already set to the desired address. Skipping...");
-        }
-
-        {
-            bytes32 defaultAdminRole =
-                AccessControl(governorAddresses.accessControlEmergencyGovernor).DEFAULT_ADMIN_ROLE();
-
-            if (
-                !AccessControl(governorAddresses.accessControlEmergencyGovernor).hasRole(
-                    defaultAdminRole, multisigAddresses.DAO
-                )
-            ) {
-                if (
-                    AccessControl(governorAddresses.accessControlEmergencyGovernor).hasRole(
-                        defaultAdminRole, getDeployer()
-                    )
-                ) {
-                    console.log(
-                        "+ Granting GovernorAccessControlEmergency default admin role to address %s",
-                        multisigAddresses.DAO
-                    );
-                    grantRole(governorAddresses.accessControlEmergencyGovernor, defaultAdminRole, multisigAddresses.DAO);
-                } else {
-                    console.log(
-                        "! GovernorAccessControlEmergency default admin role is not the caller of this script. Skipping..."
-                    );
-                }
-            } else {
-                console.log(
-                    "- GovernorAccessControlEmergency default admin role is already set to the desired address. Skipping..."
-                );
-            }
-
-            if (
-                AccessControl(governorAddresses.accessControlEmergencyGovernor).hasRole(defaultAdminRole, getDeployer())
-            ) {
-                console.log(
-                    "+ Renouncing GovernorAccessControlEmergency default admin role from the caller of this script %s",
-                    getDeployer()
-                );
-                renounceRole(governorAddresses.accessControlEmergencyGovernor, defaultAdminRole, getDeployer());
-            } else {
-                console.log(
-                    "- The caller of this script is no longer the default admin of the GovernorAccessControlEmergency. Skipping..."
-                );
-            }
         }
 
         if (block.chainid != 1) {
