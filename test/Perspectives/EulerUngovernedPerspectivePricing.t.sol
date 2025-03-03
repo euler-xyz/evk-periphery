@@ -115,7 +115,7 @@ contract EulerUngovernedPerspectivePricingTest is Test {
         vm.expectRevert();
         perspective.verifyCollateralPricingHarness(address(router), exUSD, USD);
 
-        // Bad: exUSD is resolved. xUSD is resolved but not valid in the external vault regisry.
+        // Bad: exUSD is resolved. xUSD is resolved but not valid in the external vault registry.
         vm.revertTo(snapshot);
         router.govSetResolvedVault(exUSD, true);
         router.govSetResolvedVault(xUSD, true);

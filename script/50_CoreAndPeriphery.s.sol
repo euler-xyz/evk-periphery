@@ -126,7 +126,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     int256 internal constant IRM_MIN_RATE_AT_TARGET = 0.001e18 / YEAR;
     int256 internal constant IRM_MAX_RATE_AT_TARGET = 2e18 / YEAR;
     int256 internal constant IRM_CURVE_STEEPNESS = 4e18;
-    int256 internal constant IRM_ADJUSTMENT_SPEED = 50e18 / YEAR;
+    int256 internal constant IRM_ADJUSTMENT_SPEED = 100e18 / YEAR;
 
     AdaptiveCurveIRMParams[] internal DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS;
 
@@ -495,7 +495,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             for (uint256 i = 0; i < entries.length; ++i) {
                 if (!entries[i].isDir) continue;
 
-                uint256 chainIdOther = getChainIdFromAddressessDirPath(entries[i].path);
+                uint256 chainIdOther = getChainIdFromAddressesDirPath(entries[i].path);
 
                 if (chainIdOther == 0 || block.chainid == chainIdOther) continue;
 

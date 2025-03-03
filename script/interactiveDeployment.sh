@@ -159,7 +159,7 @@ while true; do
             esac
             ;;
         1)
-            echo "Deploying intergrations..."
+            echo "Deploying integrations..."
         
             baseName=01_Integrations
             scriptName=${baseName}.s.sol

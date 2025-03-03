@@ -198,7 +198,7 @@ abstract contract ScriptExtended is Script {
         return getAddressesJson(jsonFile, block.chainid);
     }
 
-    function getChainIdFromAddressessDirPath(string memory path) internal pure returns (uint256) {
+    function getChainIdFromAddressesDirPath(string memory path) internal pure returns (uint256) {
         bytes memory pathBytes = bytes(path);
         if (pathBytes.length == 0) return 0;
 
