@@ -79,7 +79,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[RETH  ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
         cluster.oracleProviders[USDC  ] = "ChainlinkOracle";
         cluster.oracleProviders[EURC  ] = "ChainlinkOracle";
-        cluster.oracleProviders[cbBTC ] = "CrossAdapter=ChronicleOracle+ChronicleOracle";
+        cluster.oracleProviders[cbBTC ] = "ChainlinkOracle";
         cluster.oracleProviders[LBTC  ] = "CrossAdapter=RedstoneClassicOracle+ChainlinkOracle";
         cluster.oracleProviders[AERO  ] = "ChainlinkOracle";
         cluster.oracleProviders[USDS  ] = "0x847BD1550634c35Ea5d6528B0414e0BE69584010";
