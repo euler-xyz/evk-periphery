@@ -337,24 +337,23 @@ contract LayerZeroSendEUL is ScriptUtils {
         returns (MessagingReceipt memory, OFTReceipt memory)
     {
         ERC20 eul = ERC20(tokenAddresses.EUL);
-        (address oftAdapter, uint256 fee, bytes memory data) = getSendCalldata(dstChainId, dstAddress, amount, 0);
+        (address oftAdapter, uint256 value, SendParam memory sendParam, MessagingFee memory fee, address refundAddress)
+        = getSendInputs(dstChainId, dstAddress, amount, 0);
 
         startBroadcast();
         eul.approve(oftAdapter, amount);
-        (bool success, bytes memory result) = oftAdapter.call{value: fee}(data);
+        (MessagingReceipt memory receipt, OFTReceipt memory oftReceipt) =
+            IOFT(oftAdapter).send{value: value}(sendParam, fee, refundAddress);
         stopBroadcast();
 
-        require(success && result.length > 0, "send failed");
-        return abi.decode(result, (MessagingReceipt, OFTReceipt));
+        return (receipt, oftReceipt);
     }
 
-    function getSendCalldata(uint256 dstChainId, address dstAddress, uint256 amount, uint256 nativeFeeMultiplierBps)
+    function getSendInputs(uint256 dstChainId, address dstAddress, uint256 amount, uint256 nativeFeeMultiplierBps)
         public
-        returns (address to, uint256 value, bytes memory data)
+        returns (address to, uint256 value, SendParam memory sendParam, MessagingFee memory fee, address refundAddress)
     {
-        IOFT oftAdapter = IOFT(bridgeAddresses.oftAdapter);
-
-        SendParam memory sendParam = SendParam(
+        sendParam = SendParam(
             (new LayerZeroUtil()).getDeploymentInfo(dstChainId).eid,
             bytes32(uint256(uint160(dstAddress))),
             amount,
@@ -363,9 +362,22 @@ contract LayerZeroSendEUL is ScriptUtils {
             "",
             ""
         );
-        MessagingFee memory fee = oftAdapter.quoteSend(sendParam, false);
+        fee = IOFT(bridgeAddresses.oftAdapter).quoteSend(sendParam, false);
         fee.nativeFee = fee.nativeFee * ((1e4 + nativeFeeMultiplierBps) / 1e4);
 
-        return (bridgeAddresses.oftAdapter, fee.nativeFee, abi.encodeCall(IOFT.send, (sendParam, fee, dstAddress)));
+        return (bridgeAddresses.oftAdapter, fee.nativeFee, sendParam, fee, dstAddress);
+    }
+
+    function getSendCalldata(uint256 dstChainId, address dstAddress, uint256 amount, uint256 nativeFeeMultiplierBps)
+        public
+        returns (address to, uint256 value, bytes memory rawCalldata)
+    {
+        SendParam memory sendParam;
+        MessagingFee memory fee;
+        address refundAddress;
+
+        (to, value, sendParam, fee, refundAddress) =
+            getSendInputs(dstChainId, dstAddress, amount, nativeFeeMultiplierBps);
+        rawCalldata = abi.encodeCall(IOFT.send, (sendParam, fee, refundAddress));
     }
 }
