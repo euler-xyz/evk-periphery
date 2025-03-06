@@ -107,13 +107,16 @@ abstract contract ManageClusterBase is BatchBuilder {
                     if (oracleRouter == address(0)) {
                         oracleRouter = deployer.deploy(peripheryAddresses.oracleRouterFactory);
 
-                        // if the rest of the configuration will be carried out through safe,
-                        // immediately transfer the governance over this router from the deployer to the safe
+                        // if the rest of the configuration will be carried out through safe, immediately transfer the
+                        // governance over this router from the deployer to the safe or the final governor
                         if (isBatchViaSafe()) {
                             addBatchItem(
                                 oracleRouter,
                                 getDeployer(),
-                                abi.encodeCall(EulerRouter(oracleRouter).transferGovernance, (getSafe()))
+                                abi.encodeCall(
+                                    EulerRouter(oracleRouter).transferGovernance,
+                                    (getTimelock(false) == address(0) ? getSafe() : cluster.oracleRoutersGovernor)
+                                )
                             );
                         }
                     }
@@ -137,13 +140,16 @@ abstract contract ManageClusterBase is BatchBuilder {
                         cluster.unitOfAccount
                     );
 
-                    // if the rest of the configuration will be carried out through safe,
-                    // immediately transfer the governance over this vault from the deployer to the safe
+                    // if the rest of the configuration will be carried out through safe, immediately transfer the
+                    // governance over this vault from the deployer to the safe or the final governor
                     if (isBatchViaSafe()) {
                         addBatchItem(
                             cluster.vaults[i],
                             getDeployer(),
-                            abi.encodeCall(IEVault(cluster.vaults[i]).setGovernorAdmin, (getSafe()))
+                            abi.encodeCall(
+                                IEVault(cluster.vaults[i]).setGovernorAdmin,
+                                (getTimelock(false) == address(0) ? getSafe() : cluster.vaultsGovernor)
+                            )
                         );
                     }
                 }
@@ -151,7 +157,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         }
 
         // execute the EVC batch as the deployer to transfer the governance
-        executeBatchDirectly();
+        executeBatchDirectly(false);
 
         // deploy the IRMs
         {

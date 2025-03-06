@@ -14,7 +14,7 @@ fi
 read -p "Provide the directory name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-if CLUSTER_ADDRESSES_PATH=$CLUSTER_ADDRESSES_PATH FORCE_NO_KEY=true forge script script/utils/ClusterDump.s.sol --rpc-url $DEPLOYMENT_RPC_URL; then
+if CLUSTER_ADDRESSES_PATH=$CLUSTER_ADDRESSES_PATH forge script script/utils/ClusterDump.s.sol --rpc-url $DEPLOYMENT_RPC_URL; then
     chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
     deployment_dir="script/deployments/$deployment_name/$chainId"
 

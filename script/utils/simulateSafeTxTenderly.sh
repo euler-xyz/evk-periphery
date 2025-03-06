@@ -101,5 +101,4 @@ else
     echo "No Safe transaction files found matching pattern ${safeFilesDir}/${safeFilesPrefix}*.json"
 fi
 
-CLUSTER_ADDRESSES_PATH=$clusterJson TENDERLY_RPC_URL=$TENDERLY_RPC_URL FORCE_NO_KEY=true \
-    forge script script/utils/SimulateSafeTxTenderly.s.sol --rpc-url $TENDERLY_RPC_URL --ffi
+CLUSTER_ADDRESSES_PATH=$clusterJson TENDERLY_RPC_URL=$TENDERLY_RPC_URL forge script script/utils/SimulateSafeTxTenderly.s.sol --rpc-url $TENDERLY_RPC_URL --ffi

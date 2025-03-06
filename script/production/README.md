@@ -30,7 +30,9 @@ Options:
 
 `--dry-run`: Simulates the deployment without actually executing transactions.
 
-You can pass `--batch-via-safe` option to the deployment script in order to create the a batch transaction in the Safe UI. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file or provide a different option to derive the Safe signer key instead, i.e. `--ledger` or `--account ACC_NAME`. The address associated must either be a signer or a delegate of the Safe in order to be able to send the transactions. You can also provide the `--safe-address` option to the command instead of `SAFE_ADDRESS`.
+`--batch-via-safe`: Creates a batch payload file that can be used to create a batch transaction in the Safe UI. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file or provide a different option to derive the Safe signer key instead, i.e. `--ledger` or `--account ACC_NAME`. The address associated must either be a signer or a delegate of the Safe in order to be able to send the transactions. You can also provide the `--safe-address` option to the command instead of `SAFE_ADDRESS`.
+
+`--timelock-address`: Schedules the transactions in the timelock controller provided instead of trying to execute them immediately. This option must be used in case the timelock controller is installed as part of the governor contracts suite.
 
 `--use-safe-api`: Uses the Safe API to create the transactions in the Safe UI. This option is only valid if the `--batch-via-safe` option is also used. If `--batch-via-safe` is used, but `--use-safe-api` is not used, the script will only create payload dump files that can be used to create the transactions in the Safe UI.
 
@@ -79,7 +81,7 @@ forge install
 
 4. Do necessary changes in the dedicated cluster script file (e.g. `./script/production/mainnet/clusters/PrimeCluster.s.sol`).
 
-- to reduce the LTVs, search for `cluster.ltvs` and `cluster.externalLTVs` and edit the matrix values accordingly
+- to reduce the LTVs, search for `cluster.ltvs` and `cluster.externalLTVs` and edit the matrix values accordingly. If only borrow LTVs need to be reduced, search for `cluster.borrowLTVsOverride` and `cluster.externalBorrowLTVsOverride` and define the matrices accordingly.
 
 - to pause vault operations, search for `cluster.hookedOps` and edit it in the following way:
   - to pause all operations for all the vaults in the cluster, use the following value: `32767`
