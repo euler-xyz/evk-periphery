@@ -753,18 +753,18 @@ abstract contract BatchBuilder is ScriptUtils {
     }
 
     function executeBatch() internal {
-        if (isBatchViaSafe()) executeBatchViaSafe();
-        else executeBatchDirectly();
+        if (isBatchViaSafe()) executeBatchViaSafe(true);
+        else executeBatchDirectly(false);
         batchCounter++;
     }
 
-    function executeBatchDirectly() internal broadcast {
+    function executeBatchDirectly(bool allowTimelock) internal broadcast {
         if (batchItems.length == 0) return;
 
         dumpBatch(getDeployer());
 
         address payable timelock = payable(getTimelock(false));
-        if (timelock == address(0)) {
+        if (timelock == address(0) || !allowTimelock) {
             console.log("Executing the batch directly on the EVC (%s)\n", coreAddresses.evc);
             IEVC(coreAddresses.evc).batch{value: getBatchValue()}(batchItems);
         } else {
@@ -776,14 +776,21 @@ abstract contract BatchBuilder is ScriptUtils {
             );
 
             console.log("Executing the batch directly on the EVC (%s) via Timelock (%s)\n", coreAddresses.evc, timelock);
-            TimelockController(timelock).schedule(coreAddresses.evc, batchValue, batchCalldata, id, bytes32(0), delay);
+            TimelockController(timelock).schedule(
+                coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0), delay
+            );
             timelockPredecessor = id;
+
+            // simulate timelock execution
+            vm.prank(timelock);
+            (bool success,) = coreAddresses.evc.call{value: batchValue}(batchCalldata);
+            require(success, "executeBatchDirectly: timelock execution simulation failed");
         }
 
         clearBatchItems();
     }
 
-    function executeBatchViaSafe() internal {
+    function executeBatchViaSafe(bool allowTimelock) internal {
         if (batchItems.length == 0) return;
 
         SafeTransaction transaction = new SafeTransaction();
@@ -794,7 +801,7 @@ abstract contract BatchBuilder is ScriptUtils {
 
         safeNonce = safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce;
 
-        if (timelock == address(0)) {
+        if (timelock == address(0) || !allowTimelock) {
             console.log("Executing the batch via Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
             transaction.create(true, safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), safeNonce++);
         } else {
@@ -818,12 +825,18 @@ abstract contract BatchBuilder is ScriptUtils {
                 timelock,
                 batchValue,
                 abi.encodeCall(
-                    TimelockController.schedule, (coreAddresses.evc, batchValue, batchCalldata, id, bytes32(0), delay)
+                    TimelockController.schedule,
+                    (coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0), delay)
                 ),
                 safeNonce++
             );
 
             timelockPredecessor = id;
+
+            // simulate timelock execution
+            vm.prank(timelock);
+            (bool success,) = coreAddresses.evc.call{value: batchValue}(batchCalldata);
+            require(success, "executeBatchViaSafe: timelock execution simulation failed");
         }
 
         clearBatchItems();

@@ -121,8 +121,8 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[deUSD                    ] = "PythOracle";
         cluster.oracleProviders[sdeUSD                   ] = "ExternalVault|PythOracle";
         cluster.oracleProviders[mBASIS                   ] = "0xfd63eED8Db6F5Bae46B2860C4B8a8a07eD8BF8bb";
-        //cluster.oracleProviders[mEDGE                    ] = "";
-        //cluster.oracleProviders[mMEV                     ] = "";
+        cluster.oracleProviders[mEDGE                    ] = "0xc8228b83f1d97a431a48bd9bc3e971c8b418d889";
+        cluster.oracleProviders[mMEV                     ] = "0xf5c2dfd1740d18ad7cf23fba76cc11d877802937";
         cluster.oracleProviders[PT_USD0PlusPlus_30JAN2025] = "CrossAdapter=PendleOracle+PythOracle";
         cluster.oracleProviders[PT_USD0PlusPlus_27MAR2025] = "CrossAdapter=PendleOracle+PythOracle";
         cluster.oracleProviders[PT_USD0PlusPlus_26JUN2025] = "CrossAdapter=PendleOracle+PythOracle";
