@@ -24,7 +24,7 @@ The general steps to use the `Swapper` contract are following:
 
 - call `SwapVerifier` to make sure the results are within accepted bounds.
 
-  The verifiaction should be taking into account any expected slippage and price impact. This step is an essential security measure.
+  The verification should be taking into account any expected slippage and price impact. This step is an essential security measure.
 
   For regular swaps, `SwapVerifier` assumes that any token balance present in the output vault after the swap is the result of the swap. For this reason the bought token is not deposited for the user automatically by the `Swapper`. It is the verifier that checks slippage and then skims the available assets for the user.
 

@@ -30,18 +30,17 @@ import {
 } from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
-import {
-    EVaultFactoryGovernorDeployer,
-    TimelockControllerDeployer,
-    GovernorAccessControlEmergencyDeployer
-} from "./12_Governor.s.sol";
+import {EVaultFactoryGovernorDeployer, TimelockControllerDeployer} from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {OFTAdapterUpgradeableDeployer, MintBurnOFTAdapterDeployer} from "./14_OFT.s.sol";
 import {EdgeFactoryDeployer} from "./15_EdgeFactory.s.sol";
 import {EulerEarnImplementation, IntegrationsParams} from "./20_EulerEarnImplementation.s.sol";
 import {EulerEarnFactory} from "./21_EulerEarnFactory.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
-import {GovernorAccessControlEmergency} from "./../src/Governor/GovernorAccessControlEmergency.sol";
+import {
+    IGovernorAccessControlEmergencyFactory,
+    GovernorAccessControlEmergencyFactory
+} from "./../src/GovernorFactory/GovernorAccessControlEmergencyFactory.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
 import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
@@ -99,7 +98,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     address internal constant BURN_ADDRESS = address(0xdead);
     uint256 internal constant EUL_HUB_CHAIN_ID = 1;
     uint8 internal constant EUL_DECIMALS = 18;
-    uint256 internal constant TIMELOCK_MIN_DELAY = 4 days;
+    uint256 internal constant EVAULT_FACTORY_TIMELOCK_MIN_DELAY = 4 days;
+    uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
+    uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_WILDCARD_TIMELOCK_MIN_DELAY = 2 days;
     address[2] internal EVAULT_FACTORY_GOVERNOR_PAUSERS =
         [0xff217004BdD3A6A592162380dc0E6BbF143291eB, 0xcC6451385685721778E7Bd80B54F8c92b484F601];
 
@@ -125,7 +126,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     int256 internal constant IRM_MIN_RATE_AT_TARGET = 0.001e18 / YEAR;
     int256 internal constant IRM_MAX_RATE_AT_TARGET = 2e18 / YEAR;
     int256 internal constant IRM_CURVE_STEEPNESS = 4e18;
-    int256 internal constant IRM_ADJUSTMENT_SPEED = 50e18 / YEAR;
+    int256 internal constant IRM_ADJUSTMENT_SPEED = 100e18 / YEAR;
 
     AdaptiveCurveIRMParams[] internal DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS;
 
@@ -287,7 +288,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             proposers[0] = multisigAddresses.DAO;
             executors[0] = address(0);
             governorAddresses.eVaultFactoryTimelockController =
-                deployer.deploy(TIMELOCK_MIN_DELAY, proposers, executors);
+                deployer.deploy(EVAULT_FACTORY_TIMELOCK_MIN_DELAY, proposers, executors);
 
             console.log("    Granting proposer role to address %s", multisigAddresses.DAO);
             console.log("    Granting canceller role to address %s", multisigAddresses.DAO);
@@ -303,35 +304,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             stopBroadcast();
         } else {
             console.log("- EVault factory timelock controller already deployed. Skipping...");
-        }
-
-        if (governorAddresses.accessControlEmergencyGovernor == address(0)) {
-            console.log("+ Deploying Emergency Access Control Governor...");
-            GovernorAccessControlEmergencyDeployer deployer = new GovernorAccessControlEmergencyDeployer();
-            governorAddresses.accessControlEmergencyGovernor = deployer.deploy(coreAddresses.evc);
-
-            bytes32 wildCardRole =
-                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).WILD_CARD();
-            bytes32 ltvEmergencyRole =
-                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).LTV_EMERGENCY_ROLE();
-            bytes32 hookEmergencyRole =
-                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).HOOK_EMERGENCY_ROLE();
-            bytes32 capsEmergencyRole =
-                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).CAPS_EMERGENCY_ROLE();
-
-            console.log("    Granting wild card role to address %s", multisigAddresses.DAO);
-            grantRole(governorAddresses.accessControlEmergencyGovernor, wildCardRole, multisigAddresses.DAO);
-
-            console.log("    Granting LTV emergency role to address %s", multisigAddresses.labs);
-            grantRole(governorAddresses.accessControlEmergencyGovernor, ltvEmergencyRole, multisigAddresses.labs);
-
-            console.log("    Granting hook emergency role to address %s", multisigAddresses.labs);
-            grantRole(governorAddresses.accessControlEmergencyGovernor, hookEmergencyRole, multisigAddresses.labs);
-
-            console.log("    Granting caps emergency role to address %s", multisigAddresses.labs);
-            grantRole(governorAddresses.accessControlEmergencyGovernor, capsEmergencyRole, multisigAddresses.labs);
-        } else {
-            console.log("- Vault Access Control Emergency Governor already deployed. Skipping...");
         }
 
         if (tokenAddresses.EUL == address(0) && block.chainid != EUL_HUB_CHAIN_ID) {
@@ -523,7 +495,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             for (uint256 i = 0; i < entries.length; ++i) {
                 if (!entries[i].isDir) continue;
 
-                uint256 chainIdOther = getChainIdFromAddressessDirPath(entries[i].path);
+                uint256 chainIdOther = getChainIdFromAddressesDirPath(entries[i].path);
 
                 if (chainIdOther == 0 || block.chainid == chainIdOther) continue;
 
@@ -699,14 +671,16 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         ) {
             console.log("+ Deploying Periphery factories...");
             PeripheryFactories deployer = new PeripheryFactories();
-            (
-                peripheryAddresses.oracleRouterFactory,
-                peripheryAddresses.oracleAdapterRegistry,
-                peripheryAddresses.externalVaultRegistry,
-                peripheryAddresses.kinkIRMFactory,
-                peripheryAddresses.adaptiveCurveIRMFactory,
-                peripheryAddresses.irmRegistry
-            ) = deployer.deploy(coreAddresses.evc);
+            PeripheryFactories.PeripheryContracts memory peripheryContracts = deployer.deploy(coreAddresses.evc);
+
+            peripheryAddresses.oracleRouterFactory = peripheryContracts.oracleRouterFactory;
+            peripheryAddresses.oracleAdapterRegistry = peripheryContracts.oracleAdapterRegistry;
+            peripheryAddresses.externalVaultRegistry = peripheryContracts.externalVaultRegistry;
+            peripheryAddresses.kinkIRMFactory = peripheryContracts.kinkIRMFactory;
+            peripheryAddresses.adaptiveCurveIRMFactory = peripheryContracts.adaptiveCurveIRMFactory;
+            peripheryAddresses.irmRegistry = peripheryContracts.irmRegistry;
+            peripheryAddresses.governorAccessControlEmergencyFactory =
+                peripheryContracts.governorAccessControlEmergencyFactory;
         } else {
             console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
         }
@@ -754,6 +728,67 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             }
         } else {
             console.log("- FeeFlowController already deployed. Skipping...");
+        }
+
+        if (
+            governorAddresses.accessControlEmergencyGovernorAdminTimelockController == address(0)
+                && governorAddresses.accessControlEmergencyGovernorWildcardTimelockController == address(0)
+                && governorAddresses.accessControlEmergencyGovernor == address(0)
+        ) {
+            console.log("+ Deploying GovernorAccessControlEmergency contracts suite...");
+
+            IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams;
+            IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams;
+            address[] memory governorAccessControlEmergencyGuardians;
+
+            adminTimelockControllerParams.minDelay = ACCESS_CONTROL_EMERGENCY_GOVERNOR_ADMIN_TIMELOCK_MIN_DELAY;
+            adminTimelockControllerParams.proposers = new address[](1);
+            adminTimelockControllerParams.proposers[0] = multisigAddresses.DAO;
+            adminTimelockControllerParams.cancellers = new address[](2);
+            adminTimelockControllerParams.cancellers[0] = multisigAddresses.DAO;
+            adminTimelockControllerParams.cancellers[1] = multisigAddresses.labs;
+            adminTimelockControllerParams.executors = new address[](1);
+            adminTimelockControllerParams.executors[0] = address(0);
+
+            console.log("    Granting admin timelock controller proposer role to address %s", multisigAddresses.DAO);
+            console.log("    Granting admin timelock controller canceller role to address %s", multisigAddresses.DAO);
+            console.log("    Granting admin timelock controller canceller role to address %s", multisigAddresses.labs);
+            console.log("    Granting admin timelock controller executor role to anyone");
+
+            wildcardTimelockControllerParams.minDelay = ACCESS_CONTROL_EMERGENCY_GOVERNOR_WILDCARD_TIMELOCK_MIN_DELAY;
+            wildcardTimelockControllerParams.proposers = new address[](1);
+            wildcardTimelockControllerParams.proposers[0] = multisigAddresses.DAO;
+            wildcardTimelockControllerParams.cancellers = new address[](2);
+            wildcardTimelockControllerParams.cancellers[0] = multisigAddresses.DAO;
+            wildcardTimelockControllerParams.cancellers[1] = multisigAddresses.labs;
+            wildcardTimelockControllerParams.executors = new address[](1);
+            wildcardTimelockControllerParams.executors[0] = address(0);
+
+            console.log("    Granting wildcard timelock controller proposer role to address %s", multisigAddresses.DAO);
+            console.log("    Granting wildcard timelock controller canceller role to address %s", multisigAddresses.DAO);
+            console.log(
+                "    Granting wildcard timelock controller canceller role to address %s", multisigAddresses.labs
+            );
+            console.log("    Granting wildcard timelock controller executor role to anyone");
+
+            governorAccessControlEmergencyGuardians = new address[](1);
+            governorAccessControlEmergencyGuardians[0] = multisigAddresses.labs;
+
+            console.log(
+                "    Granting emergency access control governor guardian role to address %s", multisigAddresses.labs
+            );
+
+            startBroadcast();
+            (
+                governorAddresses.accessControlEmergencyGovernorAdminTimelockController,
+                governorAddresses.accessControlEmergencyGovernorWildcardTimelockController,
+                governorAddresses.accessControlEmergencyGovernor
+            ) = GovernorAccessControlEmergencyFactory(peripheryAddresses.governorAccessControlEmergencyFactory).deploy(
+                adminTimelockControllerParams, wildcardTimelockControllerParams, governorAccessControlEmergencyGuardians
+            );
+            stopBroadcast();
+        } else {
+            console.log("- GovernorAccessControlEmergency contracts suite already deployed. Skipping...");
         }
 
         if (peripheryAddresses.swapper == address(0) && peripheryAddresses.swapVerifier == address(0)) {
