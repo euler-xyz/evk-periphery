@@ -81,7 +81,7 @@ contract Cluster is ManageCluster {
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[WETH   ] = "ChainlinkOracle";
-        cluster.oracleProviders[wstETH ] = "CrossAdapter=LidoOracle+ChainlinkOracle";
+        cluster.oracleProviders[wstETH ] = "CrossAdapter=LidoFundamentalOracle+ChainlinkOracle";
         cluster.oracleProviders[cbETH  ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
         cluster.oracleProviders[weETH  ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
         cluster.oracleProviders[ezETH  ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
@@ -94,8 +94,8 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[wUSDM  ] = "ExternalVault|FixedRateOracle";
         cluster.oracleProviders[wM     ] = "FixedRateOracle";
         cluster.oracleProviders[mTBILL ] = "0x256f8fA018e8e6F5B54b1fF708efd5ec73E20AC6";
-        cluster.oracleProviders[USDS   ] = "ChronicleOracle";
-        cluster.oracleProviders[sUSDS  ] = "ExternalVault|ChronicleOracle";
+        cluster.oracleProviders[USDS   ] = "ChainlinkOracle";
+        cluster.oracleProviders[sUSDS  ] = "ExternalVault|ChainlinkOracle";
         cluster.oracleProviders[tBTC   ] = "ChainlinkOracle";
         cluster.oracleProviders[WBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
         cluster.oracleProviders[cbBTC  ] = "ChainlinkOracle";
