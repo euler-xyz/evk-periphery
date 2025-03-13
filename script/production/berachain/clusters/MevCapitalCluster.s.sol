@@ -22,15 +22,15 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = getDeployer();
-        cluster.vaultsGovernor = getDeployer();
+        cluster.oracleRoutersGovernor = 0xB672Ea44A1EC692A9Baf851dC90a1Ee3DB25F1C4;
+        cluster.vaultsGovernor = 0xB672Ea44A1EC692A9Baf851dC90a1Ee3DB25F1C4;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
 
         // define fee receiver here and interest fee here. if needed to be defined per asset, populate the
         // feeReceiverOverride and interestFeeOverride mappings
-        cluster.feeReceiver = address(0); // TODO
+        cluster.feeReceiver = 0xB672Ea44A1EC692A9Baf851dC90a1Ee3DB25F1C4;
         cluster.interestFee = 0.1e4;
 
         // define max liquidation discount here. if needed to be defined per asset, populate the
