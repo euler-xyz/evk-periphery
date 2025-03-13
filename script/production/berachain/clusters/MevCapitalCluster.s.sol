@@ -65,7 +65,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[HONEY    ] = "0x997d72fb46690f304C7DB92df9AA823323fb23B2";
         cluster.oracleProviders[USDC     ] = "0x5ad9C6117ceB1981CfCB89BEb6Bd29c9157aB5b3";
         cluster.oracleProviders[STONE    ] = "0x255Bee201D2526BBf2753DF6A6057f23431A3E1C";
-        cluster.oracleProviders[BYUSD    ] = "0x63ee8491f9ca4826d70196AF16F25199d211EA48";
+        cluster.oracleProviders[BYUSD    ] = "0xe5908cbd7b3bc2648b32ce3dc8dfad4d83afd1b4";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WBERA    ] = 5_000_000;
