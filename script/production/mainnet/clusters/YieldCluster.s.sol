@@ -226,6 +226,10 @@ contract Cluster is ManageCluster {
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
+
+        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            cluster.spreadLTVOverride[15][i] = 0.04e4; // eUSDe as collateral
+        }
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
@@ -262,8 +266,8 @@ contract Cluster is ManageCluster {
         ];
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            cluster.borrowLTVsOverride[5][i] = 0.00e4; // wUSDM
-            cluster.borrowLTVsOverride[6][i] = 0.00e4; // wUSDL
+            cluster.borrowLTVsOverride[5][i] = 0.00e4; // wUSDM as collateral
+            cluster.borrowLTVsOverride[6][i] = 0.00e4; // wUSDL as collateral
         }
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
