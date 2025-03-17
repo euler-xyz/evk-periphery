@@ -25,6 +25,7 @@ abstract contract Addresses {
     address internal constant wM = 0x437cc33344a0B27A429f795ff6B469C72698B291;
     address internal constant mTBILL = 0xDD629E5241CbC5919847783e6C96B2De4754e438;
     address internal constant USDe = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
+    address internal constant eUSDe = 0x90D2af7d622ca3141efA4d8f1F24d86E5974Cc8F;
     address internal constant wUSDM = 0x57F5E098CaD7A3D1Eed53991D4d66C45C9AF7812;
     address internal constant EURC = 0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c;
     address internal constant sUSDe = 0x9D39A5DE30e57443BfF2A8307A4256c8797A3497;
