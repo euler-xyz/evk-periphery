@@ -18,6 +18,7 @@ abstract contract Addresses {
     address internal constant sfrxETH = 0xac3E018457B222d93114458476f3E3416Abbe38F;
     address internal constant ETHx = 0xA35b1B31Ce002FBF2058D22F30f95D405200A15b;
     address internal constant rswETH = 0xFAe103DC9cf190eD75350761e95403b7b8aFa6c0;
+    address internal constant tETH = 0xD11c452fc99cF405034ee446803b6F6c1F6d5ED8;
     address internal constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address internal constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address internal constant PYUSD = 0x6c3ea9036406852006290770BEdFcAbA0e23A0e8;
