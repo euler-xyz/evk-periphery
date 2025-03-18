@@ -7,6 +7,8 @@ Security is a top priority at Euler, and we engage in regular security reviews a
 To report a vulnerability, **please submit it through our bug bounty program**:  
 [Euler Bug Bounty](https://euler.finance/bug-bounty)  
 
+**Important**: Although this repository is **not** in scope of the bug bounty program, we encourage the submissions to be made via the bug bounty page. Please refer to this page for eligible targets.
+
 **Reports sent via email will not be accepted.** Email should only be used for general security inquiries.
 
 ## Security Team Contact Details
