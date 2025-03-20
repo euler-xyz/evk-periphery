@@ -154,7 +154,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[sdeUSD                   ] = 0;
         cluster.supplyCaps[mBASIS                   ] = 6_000_000;
         cluster.supplyCaps[mEDGE                    ] = 3_000_000;
-        cluster.supplyCaps[mMEV                     ] = 3_000_000;
+        cluster.supplyCaps[mMEV                     ] = 6_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_30JAN2025] = 0;
         cluster.supplyCaps[PT_USD0PlusPlus_27MAR2025] = 4_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 4_000_000;
@@ -194,8 +194,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0% APY,  Kink(90%)=8.00% APY  Max=80.00% APY
-            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(0), uint256(630918865), uint256(37689273186), uint256(3865470566)];
+            // Base=0% APY,  Kink(90%)=7.50% APY  Max=80.00% APY
+            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(0), uint256(592877497), uint256(38031645498), uint256(3865470566)];
 
             // Base=0% APY,  Kink(90%)=16.18% APY  Max=101.38% APY
             uint256[4] memory irm_USD_1_MEGA_YIELD_OLD = [uint256(0), uint256(1229443272), uint256(40583508868), uint256(3865470566)];
