@@ -99,9 +99,23 @@ contract AccountLens is Utils {
 
         result.asset = abi.decode(data, (address));
 
-        result.assetsAccount = IEVault(result.asset).balanceOf(account);
-        result.shares = IEVault(vault).balanceOf(account);
-        result.assets = IEVault(vault).convertToAssets(result.shares);
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(result.asset).balanceOf, (account)));
+
+        if (success && data.length >= 32) {
+            result.assetsAccount = abi.decode(data, (uint256));
+        }
+
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).balanceOf, (account)));
+
+        if (success && data.length >= 32) {
+            result.shares = abi.decode(data, (uint256));
+        }
+
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).convertToAssets, (result.shares)));
+
+        if (success && data.length >= 32) {
+            result.assets = abi.decode(data, (uint256));
+        }
 
         (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).debtOf, (account)));
 
@@ -109,9 +123,19 @@ contract AccountLens is Utils {
             result.borrowed = abi.decode(data, (uint256));
         }
 
-        result.assetAllowanceVault = IEVault(result.asset).allowance(account, vault);
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(result.asset).allowance, (account, vault)));
 
-        address permit2 = IEVault(vault).permit2Address();
+        if (success && data.length >= 32) {
+            result.assetAllowanceVault = abi.decode(data, (uint256));
+        }
+
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).permit2Address, ()));
+
+        address permit2;
+        if (success && data.length >= 32) {
+            permit2 = abi.decode(data, (address));
+        }
+
         if (permit2 != address(0)) {
             (result.assetAllowanceVaultPermit2, result.assetAllowanceExpirationVaultPermit2,) =
                 IAllowanceTransfer(permit2).allowance(account, result.asset, vault);
@@ -119,9 +143,19 @@ contract AccountLens is Utils {
             result.assetAllowancePermit2 = IEVault(result.asset).allowance(account, permit2);
         }
 
-        result.balanceForwarderEnabled = IEVault(vault).balanceForwarderEnabled(account);
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).balanceForwarderEnabled, (account)));
 
-        address evc = IEVault(vault).EVC();
+        if (success && data.length >= 32) {
+            result.balanceForwarderEnabled = abi.decode(data, (bool));
+        }
+
+        (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).EVC, ()));
+
+        address evc;
+        if (success && data.length >= 32) {
+            evc = abi.decode(data, (address));
+        }
+
         result.isController = IEVC(evc).isControllerEnabled(account, vault);
         result.isCollateral = IEVC(evc).isCollateralEnabled(account, vault);
 
@@ -233,7 +267,13 @@ contract AccountLens is Utils {
         result.account = account;
         result.vault = vault;
 
-        result.balanceTracker = IEVault(vault).balanceTrackerAddress();
+        (bool success, bytes memory data) = vault.staticcall(abi.encodeCall(IEVault(vault).balanceTrackerAddress, ()));
+
+        if (!success || data.length < 32) {
+            return result;
+        }
+
+        result.balanceTracker = abi.decode(data, (address));
         result.balanceForwarderEnabled = IEVault(vault).balanceForwarderEnabled(account);
 
         if (result.balanceTracker == address(0)) return result;

@@ -30,6 +30,8 @@ abstract contract ManageClusterBase is BatchBuilder {
         uint16[][] externalLTVs;
         uint16[][] externalBorrowLTVsOverride;
         uint16 spreadLTV;
+        uint16[][] spreadLTVOverride;
+        uint16[][] externalSpreadLTVsOverride;
         address unitOfAccount;
         address feeReceiver;
         uint16 interestFee;
@@ -63,6 +65,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         address[] collaterals;
         uint16[] liquidationLTVs;
         uint16[] borrowLTVsOverride;
+        uint16[] spreadLTVs;
     }
 
     Cluster internal cluster;
@@ -107,13 +110,16 @@ abstract contract ManageClusterBase is BatchBuilder {
                     if (oracleRouter == address(0)) {
                         oracleRouter = deployer.deploy(peripheryAddresses.oracleRouterFactory);
 
-                        // if the rest of the configuration will be carried out through safe,
-                        // immediately transfer the governance over this router from the deployer to the safe
+                        // if the rest of the configuration will be carried out through safe, immediately transfer the
+                        // governance over this router from the deployer to the safe or the final governor
                         if (isBatchViaSafe()) {
                             addBatchItem(
                                 oracleRouter,
                                 getDeployer(),
-                                abi.encodeCall(EulerRouter(oracleRouter).transferGovernance, (getSafe()))
+                                abi.encodeCall(
+                                    EulerRouter(oracleRouter).transferGovernance,
+                                    (getTimelock(false) == address(0) ? getSafe() : cluster.oracleRoutersGovernor)
+                                )
                             );
                         }
                     }
@@ -137,13 +143,16 @@ abstract contract ManageClusterBase is BatchBuilder {
                         cluster.unitOfAccount
                     );
 
-                    // if the rest of the configuration will be carried out through safe,
-                    // immediately transfer the governance over this vault from the deployer to the safe
+                    // if the rest of the configuration will be carried out through safe, immediately transfer the
+                    // governance over this vault from the deployer to the safe or the final governor
                     if (isBatchViaSafe()) {
                         addBatchItem(
                             cluster.vaults[i],
                             getDeployer(),
-                            abi.encodeCall(IEVault(cluster.vaults[i]).setGovernorAdmin, (getSafe()))
+                            abi.encodeCall(
+                                IEVault(cluster.vaults[i]).setGovernorAdmin,
+                                (getTimelock(false) == address(0) ? getSafe() : cluster.vaultsGovernor)
+                            )
                         );
                     }
                 }
@@ -151,7 +160,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         }
 
         // execute the EVC batch as the deployer to transfer the governance
-        executeBatchDirectly();
+        executeBatchDirectly(false);
 
         // deploy the IRMs
         {
@@ -293,7 +302,8 @@ abstract contract ManageClusterBase is BatchBuilder {
                     vault: vault,
                     collaterals: cluster.vaults,
                     liquidationLTVs: getLTVs(cluster.ltvs, i),
-                    borrowLTVsOverride: getLTVs(cluster.borrowLTVsOverride, i)
+                    borrowLTVsOverride: getLTVs(cluster.borrowLTVsOverride, i),
+                    spreadLTVs: getSpreadLTVs(cluster.spreadLTVOverride, cluster.spreadLTV, i)
                 })
             );
 
@@ -302,7 +312,8 @@ abstract contract ManageClusterBase is BatchBuilder {
                     vault: vault,
                     collaterals: cluster.externalVaults,
                     liquidationLTVs: getLTVs(cluster.externalLTVs, i),
-                    borrowLTVsOverride: getLTVs(cluster.externalBorrowLTVsOverride, i)
+                    borrowLTVsOverride: getLTVs(cluster.externalBorrowLTVsOverride, i),
+                    spreadLTVs: getSpreadLTVs(cluster.externalSpreadLTVsOverride, cluster.spreadLTV, i)
                 })
             );
 
@@ -435,7 +446,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             if (p.borrowLTVsOverride[i] != type(uint16).max) {
                 borrowLTV = liquidationLTV < p.borrowLTVsOverride[i] ? liquidationLTV : p.borrowLTVsOverride[i];
             } else {
-                borrowLTV = liquidationLTV > cluster.spreadLTV ? liquidationLTV - cluster.spreadLTV : 0;
+                borrowLTV = liquidationLTV > p.spreadLTVs[i] ? liquidationLTV - p.spreadLTVs[i] : 0;
             }
 
             (uint16 currentBorrowLTV, uint16 targetLiquidationLTV,,,) = IEVault(p.vault).LTVFull(collateral);
@@ -504,13 +515,27 @@ abstract contract ManageClusterBase is BatchBuilder {
 
     // extracts LTVs column for a given vault from the LTVs matrix
     function getLTVs(uint16[][] memory ltvs, uint256 vaultIndex) private pure returns (uint16[] memory) {
-        require(ltvs.length == 0 || ltvs[0].length > vaultIndex, "Invalid vault index");
+        require(ltvs.length == 0 || ltvs[0].length > vaultIndex, "getLTVs: Invalid vault index");
 
         uint16[] memory vaultLTVs = new uint16[](ltvs.length);
         for (uint256 i = 0; i < ltvs.length; ++i) {
             vaultLTVs[i] = ltvs[i][vaultIndex];
         }
         return vaultLTVs;
+    }
+
+    function getSpreadLTVs(uint16[][] memory spreadLTVs, uint16 spreadLTV, uint256 vaultIndex)
+        private
+        pure
+        returns (uint16[] memory)
+    {
+        require(spreadLTVs.length == 0 || spreadLTVs[0].length > vaultIndex, "getSpreadLTVs: Invalid vault index");
+
+        uint16[] memory vaultSpreadLTVs = new uint16[](spreadLTVs.length);
+        for (uint256 i = 0; i < spreadLTVs.length; ++i) {
+            vaultSpreadLTVs[i] = spreadLTVs[i][vaultIndex] == type(uint16).max ? spreadLTV : spreadLTVs[i][vaultIndex];
+        }
+        return vaultSpreadLTVs;
     }
 
     function dumpCluster() private {
@@ -598,6 +623,22 @@ abstract contract ManageClusterBase is BatchBuilder {
             cluster.externalBorrowLTVsOverride[i] = new uint16[](cluster.assets.length);
             for (uint256 j = 0; j < cluster.externalBorrowLTVsOverride[i].length; ++j) {
                 cluster.externalBorrowLTVsOverride[i][j] = type(uint16).max;
+            }
+        }
+
+        cluster.spreadLTVOverride = new uint16[][](cluster.assets.length);
+        for (uint256 i = 0; i < cluster.spreadLTVOverride.length; ++i) {
+            cluster.spreadLTVOverride[i] = new uint16[](cluster.assets.length);
+            for (uint256 j = 0; j < cluster.spreadLTVOverride[i].length; ++j) {
+                cluster.spreadLTVOverride[i][j] = type(uint16).max;
+            }
+        }
+
+        cluster.externalSpreadLTVsOverride = new uint16[][](cluster.externalVaults.length);
+        for (uint256 i = 0; i < cluster.externalSpreadLTVsOverride.length; ++i) {
+            cluster.externalSpreadLTVsOverride[i] = new uint16[](cluster.assets.length);
+            for (uint256 j = 0; j < cluster.externalSpreadLTVsOverride[i].length; ++j) {
+                cluster.externalSpreadLTVsOverride[i][j] = type(uint16).max;
             }
         }
     }
