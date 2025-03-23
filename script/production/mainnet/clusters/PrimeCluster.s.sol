@@ -106,14 +106,14 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[solvBTC] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[WETH   ] = 25_000;
+        cluster.supplyCaps[WETH   ] = 50_000;
         cluster.supplyCaps[wstETH ] = 12_500;
         cluster.supplyCaps[cbETH  ] = 12_500;
-        cluster.supplyCaps[weETH  ] = 12_500;
-        cluster.supplyCaps[ezETH  ] = 6_250;
+        cluster.supplyCaps[weETH  ] = 13_000;
+        cluster.supplyCaps[ezETH  ] = 13_000;
         cluster.supplyCaps[RETH   ] = 6_250;
         cluster.supplyCaps[mETH   ] = 6_250;
-        cluster.supplyCaps[rsETH  ] = 6_250;
+        cluster.supplyCaps[rsETH  ] = 13_000;
         cluster.supplyCaps[ETHx   ] = 2_500;
         cluster.supplyCaps[tETH   ] = 8_000;
         cluster.supplyCaps[USDC   ] = 50_000_000;
@@ -124,21 +124,21 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDS   ] = 10_000_000;
         cluster.supplyCaps[sUSDS  ] = 8_000_000;
         cluster.supplyCaps[tBTC   ] = 100;
-        cluster.supplyCaps[WBTC   ] = 500;
+        cluster.supplyCaps[WBTC   ] = 600;
         cluster.supplyCaps[cbBTC  ] = 500;
         cluster.supplyCaps[LBTC   ] = 500;
         cluster.supplyCaps[eBTC   ] = 100;
         cluster.supplyCaps[solvBTC] = 100;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WETH   ] = 21_200;
+        cluster.borrowCaps[WETH   ] = 45_000;
         cluster.borrowCaps[wstETH ] = 5_000;
         cluster.borrowCaps[cbETH  ] = 5_000;
         cluster.borrowCaps[weETH  ] = 3_120;
-        cluster.borrowCaps[ezETH  ] = 1_560;
+        cluster.borrowCaps[ezETH  ] = 3_120;
         cluster.borrowCaps[RETH   ] = 2_500;
         cluster.borrowCaps[mETH   ] = 2_500;
-        cluster.borrowCaps[rsETH  ] = 1_560;
+        cluster.borrowCaps[rsETH  ] = 3_120;
         cluster.borrowCaps[ETHx   ] = 1_000;
         cluster.borrowCaps[tETH   ] = 2_000;
         cluster.borrowCaps[USDC   ] = 45_000_000;
@@ -149,7 +149,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDS   ] = 9_000_000;
         cluster.borrowCaps[sUSDS  ] = 3_200_000;
         cluster.borrowCaps[tBTC   ] = 85;
-        cluster.borrowCaps[WBTC   ] = 425;
+        cluster.borrowCaps[WBTC   ] = 510;
         cluster.borrowCaps[cbBTC  ] = 425;
         cluster.borrowCaps[LBTC   ] = 125;
         cluster.borrowCaps[eBTC   ] = 25;
@@ -157,11 +157,17 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets
         {
+            // Base=0% APY  Kink(90%)=2.70% APY  Max=80.00% APY
+            uint256[4] memory irmETH       = [uint256(0), uint256(218407859),  uint256(41401872233), uint256(3865470566)];
+
             // Base=0% APY  Kink(85%)=2.50% APY  Max=80.00% APY
-            uint256[4] memory irmETH       = [uint256(0), uint256(214335049),  uint256(27697130031), uint256(3650722201)];
+            uint256[4] memory irmWSTETH    = [uint256(0), uint256(214335049),  uint256(27697130031), uint256(3650722201)];
+
+            // Base=0% APY,  Kink(85%)=1.00% APY  Max=100.00% APY
+            uint256[4] memory irmBTC       = [uint256(0), uint256(86370144),  uint256(33604673898), uint256(3650722201)];
 
             // Base=0% APY,  Kink(85%)=2.79% APY  Max=122.55% APY
-            uint256[4] memory irmBTC       = [uint256(0), uint256(238858791),  uint256(37995478916), uint256(3650722201)];
+            uint256[4] memory irmBTC_OLD   = [uint256(0), uint256(238858791),  uint256(37995478916), uint256(3650722201)];
 
             // Base=0% APY,  Kink(40%)=4.60% APY  Max=145.96% APY
             uint256[4] memory irmETH_LST   = [uint256(0), uint256(829546015),  uint256(10514117840), uint256(1717986918)];
@@ -172,8 +178,8 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(25%)=4.60% APY  Max=848.77% APY
             uint256[4] memory irmBTC_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
 
-            // Base=0% APY,  Kink(90%)=6.00% APY  Max=70.00% APY
-            uint256[4] memory irmUSD_1     = [uint256(0), uint256(477682641),  uint256(34851188975), uint256(3865470566)];
+            // Base=0% APY,  Kink(90%)=6.00% APY  Max=80.00% APY
+            uint256[4] memory irmUSD_1     = [uint256(0), uint256(477682641),  uint256(39068399204), uint256(3865470566)];
 
             // Base=0% APY,  Kink(90%)=9.42% APY  Max=101.38% APY
             uint256[4] memory irmUSD_2     = [uint256(0), uint256(738003605),  uint256(45006465867), uint256(3865470566)];
@@ -185,7 +191,7 @@ contract Cluster is ManageCluster {
             uint256[4] memory irmRWA_YLD_1 = [uint256(0), uint256(507574932),  uint256(10728765229), uint256(1717986918)];
 
             cluster.kinkIRMParams[WETH   ] = irmETH;
-            cluster.kinkIRMParams[wstETH ] = irmETH_LST;
+            cluster.kinkIRMParams[wstETH ] = irmWSTETH;
             cluster.kinkIRMParams[cbETH  ] = irmETH_LST;
             cluster.kinkIRMParams[weETH  ] = irmETH_LRT;
             cluster.kinkIRMParams[ezETH  ] = irmETH_LRT;
@@ -199,9 +205,9 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[wUSDM  ] = irmRWA_2;
             cluster.kinkIRMParams[wM     ] = irmUSD_2;
             cluster.kinkIRMParams[mTBILL ] = irmRWA_YLD_1;
-            cluster.kinkIRMParams[USDS   ] = irmUSD_2;
+            cluster.kinkIRMParams[USDS   ] = irmUSD_1;
             cluster.kinkIRMParams[sUSDS  ] = irmRWA_YLD_1;
-            cluster.kinkIRMParams[tBTC   ] = irmBTC;
+            cluster.kinkIRMParams[tBTC   ] = irmBTC_OLD;
             cluster.kinkIRMParams[WBTC   ] = irmBTC;
             cluster.kinkIRMParams[cbBTC  ] = irmBTC;
             cluster.kinkIRMParams[LBTC   ] = irmBTC_LRT;
@@ -220,14 +226,14 @@ contract Cluster is ManageCluster {
         //                0               1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22
         //                WETH            wstETH  cbETH   weETH   ezETH   RETH    mETH    rsETH   ETHx    tETH    USDC    USDT    wUSDM   wM      mTBILL  USDS    sUSDS   tBTC    WBTC    cbBTC   LBTC    eBTC    solvBTC
         /* 0  WETH    */ [uint16(0.00e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.00e4, 0.85e4, 0.00e4, 0.73e4, 0.73e4, 0.78e4, 0.78e4, 0.78e4, 0.78e4],
-        /* 1  wstETH  */ [uint16(0.93e4), 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.00e4, 0.83e4, 0.00e4, 0.72e4, 0.72e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4],
+        /* 1  wstETH  */ [uint16(0.95e4), 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.00e4, 0.83e4, 0.00e4, 0.72e4, 0.72e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4],
         /* 2  cbETH   */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.92e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.70e4, 0.70e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
         /* 3  weETH   */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.70e4, 0.70e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
-        /* 4  ezETH   */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
-        /* 5  RETH    */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
-        /* 6  mETH    */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
-        /* 7  rsETH   */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
-        /* 8  ETHx    */ [uint16(0.87e4), 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.00e4, 0.87e4, 0.74e4, 0.74e4, 0.74e4, 0.74e4, 0.00e4, 0.74e4, 0.00e4, 0.64e4, 0.64e4, 0.69e4, 0.69e4, 0.69e4, 0.69e4],
+        /* 4  ezETH   */ [uint16(0.93e4), 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
+        /* 5  RETH    */ [uint16(0.95e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
+        /* 6  mETH    */ [uint16(0.93e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
+        /* 7  rsETH   */ [uint16(0.93e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
+        /* 8  ETHx    */ [uint16(0.93e4), 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.00e4, 0.87e4, 0.74e4, 0.74e4, 0.74e4, 0.74e4, 0.00e4, 0.74e4, 0.00e4, 0.64e4, 0.64e4, 0.69e4, 0.69e4, 0.69e4, 0.69e4],
         /* 9  tETH    */ [uint16(0.93e4), 0.93e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
         /* 10 USDC    */ [uint16(0.87e4), 0.83e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.75e4, 0.82e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
         /* 11 USDT    */ [uint16(0.87e4), 0.83e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.75e4, 0.82e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
