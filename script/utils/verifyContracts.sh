@@ -128,7 +128,7 @@ function verify_broadcast {
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $contractName == "EulerRouterFactory" || $function == "deploy(address)" ]]; then
                     contractName=EulerRouter
-                    constructorBytesSize=32
+                    constructorBytesSize=64
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $contractName == "GovernorAccessControlEmergencyFactory" || $function == "deploy((uint256,address[],address[],address[]),(uint256,address[],address[],address[]),address[])" ]]; then
                     if [[ $index -eq 0 ]]; then
