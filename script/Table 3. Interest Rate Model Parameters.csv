@@ -1,0 +1,33 @@
+
+Table 3. Interest Rate Model Parameters:
+Asset,Class,Target utilisation,Reserve factor,Target Supply APR,Target Borrow APR,Max APR,Target Supply APY,Target Borrow APY,Max APY
+WBERA,Kink IRM,75.00%,10.00%,,,,16.87%,24.99%,99.99%
+WETH,Kink IRM,90.00%,10.00%,,,,2.42%,2.99%,149.99%
+WBTC,Kink IRM,90.00%,10.00%,,,,2.42%,2.99%,149.99%
+HONEY,Kink IRM,90.00%,10.00%,,,,8.09%,9.99%,49.49%
+USDC.e,Kink IRM,90.00%,10.00%,,,,8.09%,9.99%,49.49%
+STONE,Kink IRM,90.00%,10.00%,,,,2.42%,2.99%,149.99%
+BYUSD,Kink IRM,90.00%,10.00%,,,,8.09%,9.99%,49.49%
+NECT,Adaptive Curve IRM,,10.00%,,,,,,
+
+Table 3. Interest Rate Model Parameters:
+Asset,Class,Target utilisation,Reserve factor,Target Supply APR,Target Borrow APR,Max APR,Target Supply APY,Target Borrow APY,Max APY
+WBERA,Kink IRM,75.00%,10.00%,,,,16.87%,24.99%,99.99%
+WETH,Kink IRM,90.00%,10.00%,,,,2.42%,2.99%,149.99%
+WBTC,Kink IRM,90.00%,10.00%,,,,2.42%,2.99%,149.99%
+HONEY,Kink IRM,90.00%,10.00%,,,,8.09%,9.99%,49.49%
+USDC.e,Kink IRM,90.00%,10.00%,,,,8.09%,9.99%,49.49%
+STONE,Kink IRM,90.00%,10.00%,,,,2.42%,2.99%,149.99%
+BYUSD,Kink IRM,90.00%,10.00%,,,,8.09%,9.99%,49.49%
+NECT,Adaptive Curve IRM,,10.00%,,,,,,
+
+Table 3. Interest Rate Model Parameters:
+Asset,Class,Target utilisation,Reserve factor,Target Supply APR,Target Borrow APR,Max APR,Target Supply APY,Target Borrow APY,Max APY
+WBERA,Kink IRM,75.00%,10.00%,,,,16.87%,24.99%,99.99%
+WETH,Kink IRM,90.00%,10.00%,,,,2.42%,2.99%,149.99%
+WBTC,Kink IRM,90.00%,10.00%,,,,2.42%,2.99%,149.99%
+HONEY,Kink IRM,90.00%,10.00%,,,,8.09%,9.99%,49.49%
+USDC.e,Kink IRM,90.00%,10.00%,,,,8.09%,9.99%,49.49%
+STONE,Kink IRM,90.00%,10.00%,,,,2.42%,2.99%,149.99%
+BYUSD,Kink IRM,90.00%,10.00%,,,,8.09%,9.99%,49.49%
+NECT,Adaptive Curve IRM,,10.00%,,,,,,

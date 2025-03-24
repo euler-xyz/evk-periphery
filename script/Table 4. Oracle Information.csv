@@ -1,0 +1,33 @@
+
+Table 4. Oracle Information:
+Asset,Quote,Adapter,Name,Methodology,Link
+WBERA,USD,0xe6D9C66C0416C1c88Ca5F777D81a7F424D4Fa87b,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xe6D9C66C0416C1c88Ca5F777D81a7F424D4Fa87b
+WETH,USD,0xf7129a6280DCFfF6149792186b54C818ea4D80D6,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xf7129a6280DCFfF6149792186b54C818ea4D80D6
+WBTC,USD,0xF2b8616744502851343c52DA76e9adFb97f08b91,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xF2b8616744502851343c52DA76e9adFb97f08b91
+HONEY,USD,0x997d72fb46690f304C7DB92df9AA823323fb23B2,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0x997d72fb46690f304C7DB92df9AA823323fb23B2
+USDC.e,USD,0x5ad9C6117ceB1981CfCB89BEb6Bd29c9157aB5b3,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0x5ad9C6117ceB1981CfCB89BEb6Bd29c9157aB5b3
+STONE,USD,0x255Bee201D2526BBf2753DF6A6057f23431A3E1C,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0x255Bee201D2526BBf2753DF6A6057f23431A3E1C
+BYUSD,USD,0xe5908cBd7B3bc2648B32cE3dc8DfAd4d83AFD1b4,PythOracle,,https://oracles.euler.finance/80094/adapter/0xe5908cBd7B3bc2648B32cE3dc8DfAd4d83AFD1b4
+NECT,USD,0xA5D8658e0Aee09A93206478B2FaDFD0929B431af,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xA5D8658e0Aee09A93206478B2FaDFD0929B431af
+
+Table 4. Oracle Information:
+Asset,Quote,Adapter,Name,Methodology,Link
+WBERA,USD,0xe6D9C66C0416C1c88Ca5F777D81a7F424D4Fa87b,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xe6D9C66C0416C1c88Ca5F777D81a7F424D4Fa87b
+WETH,USD,0xf7129a6280DCFfF6149792186b54C818ea4D80D6,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xf7129a6280DCFfF6149792186b54C818ea4D80D6
+WBTC,USD,0xF2b8616744502851343c52DA76e9adFb97f08b91,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xF2b8616744502851343c52DA76e9adFb97f08b91
+HONEY,USD,0x997d72fb46690f304C7DB92df9AA823323fb23B2,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0x997d72fb46690f304C7DB92df9AA823323fb23B2
+USDC.e,USD,0x5ad9C6117ceB1981CfCB89BEb6Bd29c9157aB5b3,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0x5ad9C6117ceB1981CfCB89BEb6Bd29c9157aB5b3
+STONE,USD,0x255Bee201D2526BBf2753DF6A6057f23431A3E1C,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0x255Bee201D2526BBf2753DF6A6057f23431A3E1C
+BYUSD,USD,0xe5908cBd7B3bc2648B32cE3dc8DfAd4d83AFD1b4,PythOracle,,https://oracles.euler.finance/80094/adapter/0xe5908cBd7B3bc2648B32cE3dc8DfAd4d83AFD1b4
+NECT,USD,0xA5D8658e0Aee09A93206478B2FaDFD0929B431af,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xA5D8658e0Aee09A93206478B2FaDFD0929B431af
+
+Table 4. Oracle Information:
+Asset,Quote,Adapter,Name,Methodology,Link
+WBERA,USD,0xe6D9C66C0416C1c88Ca5F777D81a7F424D4Fa87b,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xe6D9C66C0416C1c88Ca5F777D81a7F424D4Fa87b
+WETH,USD,0xf7129a6280DCFfF6149792186b54C818ea4D80D6,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xf7129a6280DCFfF6149792186b54C818ea4D80D6
+WBTC,USD,0xF2b8616744502851343c52DA76e9adFb97f08b91,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xF2b8616744502851343c52DA76e9adFb97f08b91
+HONEY,USD,0x997d72fb46690f304C7DB92df9AA823323fb23B2,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0x997d72fb46690f304C7DB92df9AA823323fb23B2
+USDC.e,USD,0x5ad9C6117ceB1981CfCB89BEb6Bd29c9157aB5b3,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0x5ad9C6117ceB1981CfCB89BEb6Bd29c9157aB5b3
+STONE,USD,0x255Bee201D2526BBf2753DF6A6057f23431A3E1C,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0x255Bee201D2526BBf2753DF6A6057f23431A3E1C
+BYUSD,USD,0xe5908cBd7B3bc2648B32cE3dc8DfAd4d83AFD1b4,PythOracle,,https://oracles.euler.finance/80094/adapter/0xe5908cBd7B3bc2648B32cE3dc8DfAd4d83AFD1b4
+NECT,USD,0xA5D8658e0Aee09A93206478B2FaDFD0929B431af,ChainlinkOracle,,https://oracles.euler.finance/80094/adapter/0xA5D8658e0Aee09A93206478B2FaDFD0929B431af

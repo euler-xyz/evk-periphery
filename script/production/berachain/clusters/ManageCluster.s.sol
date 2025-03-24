@@ -15,6 +15,7 @@ abstract contract Addresses {
     address internal constant USDC = 0x549943e04f40284185054145c6E4e9568C1D3241;
     address internal constant STONE = 0xEc901DA9c68E90798BbBb74c11406A32A70652C3;
     address internal constant BYUSD = 0x688e72142674041f8f6Af4c808a4045cA1D6aC82;
+    address internal constant NECT = 0x1cE0a25D13CE4d52071aE7e02Cf1F6606F4C79d3;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}

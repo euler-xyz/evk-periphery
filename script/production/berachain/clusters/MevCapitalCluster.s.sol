@@ -17,7 +17,7 @@ contract Cluster is ManageCluster {
         // arrays the ltvs matrix. if more than one vauls has to be deployed for the same asset, it can be added in the
         // array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [WBERA, WETH, WBTC, HONEY, USDC, STONE, BYUSD];
+        cluster.assets = [WBERA, WETH, WBTC, HONEY, USDC, STONE, BYUSD, NECT];
     }
 
     function configureCluster() internal override {
@@ -66,6 +66,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[USDC     ] = "0x5ad9C6117ceB1981CfCB89BEb6Bd29c9157aB5b3";
         cluster.oracleProviders[STONE    ] = "0x255Bee201D2526BBf2753DF6A6057f23431A3E1C";
         cluster.oracleProviders[BYUSD    ] = "0xe5908cbd7b3bc2648b32ce3dc8dfad4d83afd1b4";
+        cluster.oracleProviders[NECT    ] = "0xA5D8658e0Aee09A93206478B2FaDFD0929B431af";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WBERA    ] = 5_000_000;
@@ -75,6 +76,8 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDC     ] = 100_000_000;
         cluster.supplyCaps[STONE    ] = 10_000;
         cluster.supplyCaps[BYUSD    ] = 100_000_000;
+        cluster.supplyCaps[NECT    ] = 2_000_000;
+
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[WBERA    ] = 4_500_000;
@@ -84,6 +87,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDC     ] = 92_000_000;
         cluster.borrowCaps[STONE    ] = 9_200;
         cluster.borrowCaps[BYUSD    ] = 92_000_000;
+        cluster.borrowCaps[NECT    ] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
         {
@@ -113,15 +117,16 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //                  0                1        2        3        4        5        6     
-            //                  WBERA            WETH     WBTC     HONEY    USDC     STONE    BYUSD    
-            /* 0  WBERA     */ [uint16(0.000e4), 0.700e4, 0.700e4, 0.700e4, 0.700e4, 0.700e4, 0.700e4],
-            /* 1  WETH      */ [uint16(0.800e4), 0.000e4, 0.850e4, 0.780e4, 0.780e4, 0.915e4, 0.780e4],
-            /* 2  WBTC      */ [uint16(0.800e4), 0.850e4, 0.000e4, 0.780e4, 0.780e4, 0.800e4, 0.780e4],
-            /* 3  HONEY     */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.000e4, 0.965e4, 0.800e4, 0.965e4],
-            /* 4  USDC      */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.965e4, 0.000e4, 0.800e4, 0.965e4],
-            /* 5  STONE     */ [uint16(0.800e4), 0.850e4, 0.850e4, 0.780e4, 0.780e4, 0.000e4, 0.780e4],
-            /* 6  BYUSD     */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.000e4, 0.000e4, 0.800e4, 0.000e4]
+            //                  0                1        2        3        4        5        6        7
+            //                  WBERA            WETH     WBTC     HONEY    USDC     STONE    BYUSD    NECT  
+            /* 0  WBERA     */ [uint16(0.000e4), 0.700e4, 0.700e4, 0.700e4, 0.700e4, 0.700e4, 0.700e4, 0.000e4],
+            /* 1  WETH      */ [uint16(0.800e4), 0.000e4, 0.850e4, 0.780e4, 0.780e4, 0.915e4, 0.780e4, 0.000e4],
+            /* 2  WBTC      */ [uint16(0.800e4), 0.850e4, 0.000e4, 0.780e4, 0.780e4, 0.800e4, 0.780e4, 0.000e4],
+            /* 3  HONEY     */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.000e4, 0.965e4, 0.800e4, 0.965e4, 0.000e4],
+            /* 4  USDC      */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.965e4, 0.000e4, 0.800e4, 0.965e4, 0.000e4],
+            /* 5  STONE     */ [uint16(0.800e4), 0.850e4, 0.850e4, 0.780e4, 0.780e4, 0.000e4, 0.780e4, 0.000e4],
+            /* 6  BYUSD     */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.000e4, 0.000e4, 0.800e4, 0.000e4, 0.000e4],
+            /* 7  NECT      */ [uint16(0.915e4), 0.000e4, 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.915e4, 0.000e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults.
