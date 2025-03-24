@@ -17,7 +17,7 @@ contract Cluster is ManageCluster {
         // arrays the ltvs matrix. if more than one vauls has to be deployed for the same asset, it can be added in the
         // array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [WBERA, WETH, WBTC, HONEY, USDC, STONE, BYUSD, NECT];
+        cluster.assets = [WBERA, WETH, WBTC, HONEY, USDC, STONE, BYUSD, NECT, beraETH, USDe, sUSDe];
     }
 
     function configureCluster() internal override {
@@ -67,9 +67,9 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[STONE    ] = "0x255Bee201D2526BBf2753DF6A6057f23431A3E1C";
         cluster.oracleProviders[BYUSD    ] = "0xe5908cbd7b3bc2648b32ce3dc8dfad4d83afd1b4";
         cluster.oracleProviders[NECT    ] = "0xA5D8658e0Aee09A93206478B2FaDFD0929B431af";
-        cluster.oracleProviders[beraETH    ] = "0x6fc6545d5cDE268D5C7f1e476D444F39c995120d";
-        cluster.oracleProviders[USDe    ] = "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34";
-        cluster.oracleProviders[sUSDe    ] = "0x211Cc4DD073734dA055fbF44a2b4667d5E5fE5d2";
+        cluster.oracleProviders[beraETH    ] = "0x8582eF5CE2D82Bfa0779ee0d49a849b8f4070CAf";
+        cluster.oracleProviders[USDe    ] = "0x7e940d9618753f2Cb816C14b05e5Da969A617490";
+        cluster.oracleProviders[sUSDe    ] = "0xFC8a6E73DBCBAb3456E024ddeab59e095792D2eD";
 
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
@@ -102,7 +102,7 @@ contract Cluster is ManageCluster {
         // define IRM classes here and assign them to the assets
         {
             // Base=0% APY  Kink(75%)=50.00% APY  Max=175.00% APY
-            uint256[4] memory irmBERA  = [uint256(0), uint256(3221225472), uint256(3988753494), uint256(17888521323)];
+            uint256[4] memory irmBERA  = [uint256(0), uint256(3988753494), uint256(17888521323), uint256(3221225472)];
 
             // Base=0% APY,  Kink(90%)=3.00% APY  Max=150.00% APY
             uint256[4] memory irmMajor = [uint256(0), uint256(242320082), uint256(65424051595), uint256(3865470566)];
