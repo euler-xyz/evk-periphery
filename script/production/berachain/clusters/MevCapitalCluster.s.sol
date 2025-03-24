@@ -67,6 +67,10 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[STONE    ] = "0x255Bee201D2526BBf2753DF6A6057f23431A3E1C";
         cluster.oracleProviders[BYUSD    ] = "0xe5908cbd7b3bc2648b32ce3dc8dfad4d83afd1b4";
         cluster.oracleProviders[NECT    ] = "0xA5D8658e0Aee09A93206478B2FaDFD0929B431af";
+        cluster.oracleProviders[beraETH    ] = "0x6fc6545d5cDE268D5C7f1e476D444F39c995120d";
+        cluster.oracleProviders[USDe    ] = "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34";
+        cluster.oracleProviders[sUSDe    ] = "0x211Cc4DD073734dA055fbF44a2b4667d5E5fE5d2";
+
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WBERA    ] = 5_000_000;
@@ -77,6 +81,9 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[STONE    ] = 10_000;
         cluster.supplyCaps[BYUSD    ] = 100_000_000;
         cluster.supplyCaps[NECT    ] = 2_000_000;
+        cluster.supplyCaps[beraETH    ] = 10_000;
+        cluster.supplyCaps[USDe    ] = 5_000_000;
+        cluster.supplyCaps[sUSDe    ] = 5_000_000;
 
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
@@ -88,11 +95,14 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[STONE    ] = 9_200;
         cluster.borrowCaps[BYUSD    ] = 92_000_000;
         cluster.borrowCaps[NECT    ] = type(uint256).max;
+        cluster.borrowCaps[beraETH    ] = type(uint256).max;
+        cluster.borrowCaps[USDe    ] = 4_000_000;
+        cluster.borrowCaps[sUSDe    ] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0% APY  Kink(75%)=25.00% APY  Max=100.00% APY
-            uint256[4] memory irmBERA  = [uint256(0), uint256(2195170036), uint256(13870952740), uint256(3221225472)];
+            // Base=0% APY  Kink(75%)=50.00% APY  Max=175.00% APY
+            uint256[4] memory irmBERA  = [uint256(0), uint256(3221225472), uint256(3988753494), uint256(17888521323)];
 
             // Base=0% APY,  Kink(90%)=3.00% APY  Max=150.00% APY
             uint256[4] memory irmMajor = [uint256(0), uint256(242320082), uint256(65424051595), uint256(3865470566)];
@@ -107,6 +117,7 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[USDC     ] = irmMinor;
             cluster.kinkIRMParams[STONE    ] = irmMajor;
             cluster.kinkIRMParams[BYUSD    ] = irmMinor;
+            cluster.kinkIRMParams[USDe    ] = irmMinor;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -117,16 +128,19 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //                  0                1        2        3        4        5        6        7
-            //                  WBERA            WETH     WBTC     HONEY    USDC     STONE    BYUSD    NECT  
-            /* 0  WBERA     */ [uint16(0.000e4), 0.700e4, 0.700e4, 0.700e4, 0.700e4, 0.700e4, 0.700e4, 0.000e4],
-            /* 1  WETH      */ [uint16(0.800e4), 0.000e4, 0.850e4, 0.780e4, 0.780e4, 0.915e4, 0.780e4, 0.000e4],
-            /* 2  WBTC      */ [uint16(0.800e4), 0.850e4, 0.000e4, 0.780e4, 0.780e4, 0.800e4, 0.780e4, 0.000e4],
-            /* 3  HONEY     */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.000e4, 0.965e4, 0.800e4, 0.965e4, 0.000e4],
-            /* 4  USDC      */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.965e4, 0.000e4, 0.800e4, 0.965e4, 0.000e4],
-            /* 5  STONE     */ [uint16(0.800e4), 0.850e4, 0.850e4, 0.780e4, 0.780e4, 0.000e4, 0.780e4, 0.000e4],
-            /* 6  BYUSD     */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.000e4, 0.000e4, 0.800e4, 0.000e4, 0.000e4],
-            /* 7  NECT      */ [uint16(0.915e4), 0.000e4, 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.915e4, 0.000e4]
+            //                  0                1        2        3        4        5        6        7        8        9        10
+            //                  WBERA            WETH     WBTC     HONEY    USDC     STONE    BYUSD    NECT     beraETH  USDe     sUSDe
+            /* 0  WBERA     */ [uint16(0.000e4), 0.700e4, 0.700e4, 0.700e4, 0.700e4, 0.700e4, 0.700e4, 0.000e4, 0.000e4, 0.700e4, 0.000e4],
+            /* 1  WETH      */ [uint16(0.800e4), 0.000e4, 0.850e4, 0.780e4, 0.780e4, 0.915e4, 0.780e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
+            /* 2  WBTC      */ [uint16(0.800e4), 0.850e4, 0.000e4, 0.780e4, 0.780e4, 0.800e4, 0.780e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
+            /* 3  HONEY     */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.000e4, 0.965e4, 0.800e4, 0.965e4, 0.000e4, 0.000e4, 0.915e4, 0.000e4],
+            /* 4  USDC      */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.965e4, 0.000e4, 0.800e4, 0.965e4, 0.000e4, 0.000e4, 0.915e4, 0.000e4],
+            /* 5  STONE     */ [uint16(0.800e4), 0.850e4, 0.850e4, 0.780e4, 0.780e4, 0.000e4, 0.780e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
+            /* 6  BYUSD     */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.000e4, 0.000e4, 0.800e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
+            /* 7  NECT      */ [uint16(0.915e4), 0.000e4, 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.915e4, 0.000e4, 0.000e4, 0.915e4, 0.000e4],
+            /* 8  beraETH   */ [uint16(0.915e4), 0.000e4, 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.915e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
+            /* 9  USDe      */ [uint16(0.915e4), 0.000e4, 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.915e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
+            /* 10  sUSDe    */ [uint16(0.915e4), 0.000e4, 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.915e4, 0.000e4, 0.000e4, 0.915e4, 0.000e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults.
