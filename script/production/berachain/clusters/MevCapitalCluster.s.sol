@@ -101,8 +101,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0% APY  Kink(75%)=50.00% APY  Max=175.00% APY
-            uint256[4] memory irmBERA  = [uint256(0), uint256(3988753494), uint256(17888521323), uint256(3221225472)];
+            // Base=0% APY  Kink(75%)=150.00% APY  Max=300.00% APY
+            uint256[4] memory irmBERA  = [uint256(0), uint256(3221225472), uint256(9013983795), uint256(13870963690)];
 
             // Base=0% APY,  Kink(90%)=3.00% APY  Max=150.00% APY
             uint256[4] memory irmMajor = [uint256(0), uint256(242320082), uint256(65424051595), uint256(3865470566)];
@@ -138,7 +138,7 @@ contract Cluster is ManageCluster {
             /* 5  STONE     */ [uint16(0.800e4), 0.850e4, 0.850e4, 0.780e4, 0.780e4, 0.000e4, 0.780e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
             /* 6  BYUSD     */ [uint16(0.915e4), 0.800e4, 0.800e4, 0.000e4, 0.000e4, 0.800e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
             /* 7  NECT      */ [uint16(0.915e4), 0.000e4, 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.915e4, 0.000e4, 0.000e4, 0.915e4, 0.000e4],
-            /* 8  beraETH   */ [uint16(0.915e4), 0.000e4, 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.915e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
+            /* 8  beraETH   */ [uint16(0.800e4), 0.915e4, 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.915e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
             /* 9  USDe      */ [uint16(0.915e4), 0.000e4, 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.915e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
             /* 10  sUSDe    */ [uint16(0.915e4), 0.000e4, 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.915e4, 0.000e4, 0.000e4, 0.915e4, 0.000e4]
         ];

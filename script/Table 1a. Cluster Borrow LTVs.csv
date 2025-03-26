@@ -1,0 +1,18 @@
+Table 1. Liquidation loan-to-value (LTV) parameters: collateral (row), debt (column):
+Table 1a. Cluster Borrow LTVs:
+Asset,WAVAX,BTC.b,WETH.e,USDC,sAVAX,ggAVAX
+WAVAX,0.00,0.68,0.68,0.68,0.00,0.00
+BTC.b,0.78,0.00,0.83,0.78,0.00,0.00
+WETH.e,0.78,0.78,0.00,0.78,0.00,0.00
+USDC,0.895,0.78,0.78,0.00,0.00,0.00
+sAVAX,0.895,0.78,0.78,0.78,0.00,0.00
+ggAVAX,0.83,0.78,0.78,0.78,0.00,0.00
+Table 1. Liquidation loan-to-value (LTV) parameters: collateral (row), debt (column):
+Table 1a. Cluster Borrow LTVs:
+Asset,WAVAX,BTC.b,WETH.e,USDC,sAVAX,ggAVAX
+WAVAX,0.00,0.68,0.68,0.68,0.00,0.00
+BTC.b,0.78,0.00,0.83,0.78,0.00,0.00
+WETH.e,0.78,0.78,0.00,0.78,0.00,0.00
+USDC,0.895,0.78,0.78,0.00,0.00,0.00
+sAVAX,0.895,0.78,0.78,0.78,0.00,0.00
+ggAVAX,0.83,0.78,0.78,0.78,0.00,0.00

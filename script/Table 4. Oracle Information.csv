@@ -1,0 +1,18 @@
+
+Table 4. Oracle Information:
+Asset,Quote,Adapter,Name,Methodology,Link
+WAVAX,USD,0xFaAF6eD6dCD936dA3F4EF105d326D6464529206f,ChainlinkOracle,,https://oracles.euler.finance/43114/adapter/0xFaAF6eD6dCD936dA3F4EF105d326D6464529206f
+BTC.b,USD,0xA436dF7C3a77D88D1eC9275B5744BdCC187982f2,ChainlinkOracle,,https://oracles.euler.finance/43114/adapter/0xA436dF7C3a77D88D1eC9275B5744BdCC187982f2
+WETH.e,USD,0x0505C3f2B1c74ad84f4556a0b5a73386E6286d4E,ChainlinkOracle,,https://oracles.euler.finance/43114/adapter/0x0505C3f2B1c74ad84f4556a0b5a73386E6286d4E
+USDC,USD,0x997d72fb46690f304C7DB92df9AA823323fb23B2,ChainlinkOracle,,https://oracles.euler.finance/43114/adapter/0x997d72fb46690f304C7DB92df9AA823323fb23B2
+sAVAX,USD,0x74B221fAC3000e94A3618357ddA27d8333f3FC1e,ChainlinkOracle,,https://oracles.euler.finance/43114/adapter/0x74B221fAC3000e94A3618357ddA27d8333f3FC1e
+ggAVAX,USD,0x73BF80c6E9812F8Ebc3dc4cBE45247e631d8c44c,CrossAdapter,,https://oracles.euler.finance/43114/adapter/0x73BF80c6E9812F8Ebc3dc4cBE45247e631d8c44c
+
+Table 4. Oracle Information:
+Asset,Quote,Adapter,Name,Methodology,Link
+WAVAX,USD,0xFaAF6eD6dCD936dA3F4EF105d326D6464529206f,ChainlinkOracle,,https://oracles.euler.finance/43114/adapter/0xFaAF6eD6dCD936dA3F4EF105d326D6464529206f
+BTC.b,USD,0xA436dF7C3a77D88D1eC9275B5744BdCC187982f2,ChainlinkOracle,,https://oracles.euler.finance/43114/adapter/0xA436dF7C3a77D88D1eC9275B5744BdCC187982f2
+WETH.e,USD,0x0505C3f2B1c74ad84f4556a0b5a73386E6286d4E,ChainlinkOracle,,https://oracles.euler.finance/43114/adapter/0x0505C3f2B1c74ad84f4556a0b5a73386E6286d4E
+USDC,USD,0x997d72fb46690f304C7DB92df9AA823323fb23B2,ChainlinkOracle,,https://oracles.euler.finance/43114/adapter/0x997d72fb46690f304C7DB92df9AA823323fb23B2
+sAVAX,USD,0x74B221fAC3000e94A3618357ddA27d8333f3FC1e,ChainlinkOracle,,https://oracles.euler.finance/43114/adapter/0x74B221fAC3000e94A3618357ddA27d8333f3FC1e
+ggAVAX,USD,0x73BF80c6E9812F8Ebc3dc4cBE45247e631d8c44c,CrossAdapter,,https://oracles.euler.finance/43114/adapter/0x73BF80c6E9812F8Ebc3dc4cBE45247e631d8c44c

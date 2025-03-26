@@ -1,0 +1,20 @@
+
+Table 1. Liquidation loan-to-value (LTV) parameters: collateral (row), debt (column):
+Table 1e. Cluster LTV Ramping:
+Asset,WAVAX,BTC.b,WETH.e,USDC,sAVAX,ggAVAX
+WAVAX,0,0,0,0,0,0
+BTC.b,0,0,0,0,0,0
+WETH.e,0,0,0,0,0,0
+USDC,0,0,0,0,0,0
+sAVAX,0,0,0,0,0,0
+ggAVAX,0,0,0,0,0,0
+
+Table 1. Liquidation loan-to-value (LTV) parameters: collateral (row), debt (column):
+Table 1e. Cluster LTV Ramping:
+Asset,WAVAX,BTC.b,WETH.e,USDC,sAVAX,ggAVAX
+WAVAX,0,0,0,0,0,0
+BTC.b,0,0,0,0,0,0
+WETH.e,0,0,0,0,0,0
+USDC,0,0,0,0,0,0
+sAVAX,0,0,0,0,0,0
+ggAVAX,0,0,0,0,0,0
