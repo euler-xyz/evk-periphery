@@ -53,10 +53,7 @@ contract CapRiskSteward is SelectorAccessControl {
     /// @param borrowCap The new borrow cap value to set
     function setCaps(uint16 supplyCap, uint16 borrowCap) external onlyEVCAccountOwner {
         _authenticateCaller();
-<<<<<<< HEAD
 
-=======
->>>>>>> 5276a964db7a3dc58fd9d7161da60b3cd61b6569
         // Fetch current caps
         address vault = _targetContract();
         (uint16 currentSupplyCap, uint16 currentBorrowCap) = IGovernance(vault).caps();
