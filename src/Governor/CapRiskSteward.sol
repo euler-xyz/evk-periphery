@@ -53,6 +53,7 @@ contract CapRiskSteward is SelectorAccessControl {
     /// @param borrowCap The new borrow cap value to set
     function setCaps(uint16 supplyCap, uint16 borrowCap) external onlyEVCAccountOwner {
         _authenticateCaller();
+
         // Fetch current caps
         address vault = _targetContract();
         (uint16 currentSupplyCap, uint16 currentBorrowCap) = IGovernance(vault).caps();
@@ -78,9 +79,9 @@ contract CapRiskSteward is SelectorAccessControl {
         _call();
     }
 
-    /// @notice Returns the selector of this function to identify this contract as a RiskSteward contract instance
-    function isRiskSteward() external pure returns (bytes4) {
-        return this.isRiskSteward.selector;
+    /// @notice Returns the selector of this function to identify this contract as a CapRiskSteward contract instance
+    function isCapRiskSteward() external pure returns (bytes4) {
+        return this.isCapRiskSteward.selector;
     }
 
     /// @notice Forwards the current call to the governor contract

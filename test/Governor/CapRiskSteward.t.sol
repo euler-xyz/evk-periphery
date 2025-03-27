@@ -137,7 +137,7 @@ contract CapRiskStewardTest is EVaultTestBase {
     }
 
     function test_reflection() public view {
-        assertEq(capRiskSteward.isRiskSteward(), CapRiskSteward.isRiskSteward.selector);
+        assertEq(capRiskSteward.isCapRiskSteward(), CapRiskSteward.isCapRiskSteward.selector);
     }
 
     function _encodeCap(uint256 value) internal pure returns (uint16) {
