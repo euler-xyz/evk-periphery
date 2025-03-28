@@ -2,13 +2,14 @@
 
 pragma solidity ^0.8.0;
 
-import {ERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import {Context, ERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {BaseHookTarget, GenericFactory} from "./BaseHookTarget.sol";
+import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-contract ERC20POL is ERC20 {
+contract ERC20POL is EVCUtil, ERC20 {
     address public immutable hookTarget;
 
     error NotHookTarget();
@@ -18,7 +19,8 @@ contract ERC20POL is ERC20 {
         _;
     }
 
-    constructor(address _hookTarget, address _eVault)
+    constructor(address _evc, address _hookTarget, address _eVault)
+        EVCUtil(_evc)
         ERC20(
             string(abi.encodePacked(ERC20(_eVault).name(), "-POL")),
             string(abi.encodePacked(ERC20(_eVault).symbol(), "-POL"))
@@ -33,6 +35,10 @@ contract ERC20POL is ERC20 {
 
     function burn(address _account, uint256 _amount) external onlyHookTarget {
         _burn(_account, _amount);
+    }
+
+    function _msgSender() internal view virtual override (EVCUtil, Context) returns (address) {
+        return EVCUtil._msgSender();
     }
 }
 
@@ -53,7 +59,7 @@ contract HookTargetPOL is BaseHookTarget {
         if (!GenericFactory(_eVaultFactory).isProxy(_eVault)) revert NotEVault();
 
         eVault = _eVault;
-        erc20 = new ERC20POL(address(this), _eVault);
+        erc20 = new ERC20POL(IEVault(eVault).EVC(), address(this), _eVault);
     }
 
     function deposit(uint256 amount, address receiver) external onlyEVault returns (uint256) {
