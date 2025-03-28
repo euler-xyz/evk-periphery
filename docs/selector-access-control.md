@@ -89,7 +89,7 @@ This contract is a specialized risk management contract that combines `SelectorA
 
 `CapRiskSteward` allows autorized users to increase/decrease supply and borrow caps by up to 50% over 3 days. The maximum readjustment factor recharges over time. 
 
-`CapRiskSteward` allows autorized users to freely substitute the interest rate model.
+`CapRiskSteward` allows autorized users to substitute the interest rate model for an interest model deployed by the recognized factory.
 
 ### Usage
 

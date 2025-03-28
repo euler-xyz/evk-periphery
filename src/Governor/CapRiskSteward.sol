@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {SelectorAccessControl} from "../AccessControl/SelectorAccessControl.sol";
+import {BaseFactory} from "../BaseFactory/BaseFactory.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IGovernance} from "evk/EVault/IEVault.sol";
@@ -12,8 +13,8 @@ import {IGovernance} from "evk/EVault/IEVault.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A risk management contract that allows controlled adjustments to vault parameters within predefined safety
 /// limits. This contract enables authorized users to modify supply and borrow caps with restricted adjustment ranges
-/// and time-based cooldowns. It also provides functionality to update interest rate models while enforcing access
-/// control checks.
+/// and time-based cooldowns. It also provides functionality to update interest rate models accepting only the models
+/// deployed by the recognized factory.
 contract CapRiskSteward is SelectorAccessControl {
     using AmountCapLib for AmountCap;
 
@@ -26,12 +27,19 @@ contract CapRiskSteward is SelectorAccessControl {
     /// @notice The address of the governor contract that will execute the actual parameter changes
     address public immutable governor;
 
+    /// @notice The address of the recognized IRM factory
+    address public immutable irmFactory;
+
     /// @notice Tracks the last time caps were updated for each vault
     mapping(address vault => uint256 timestamp) public lastCapUpdate;
 
     /// @notice Error thrown when a cap adjustment is outside the allowed range
     /// @param vault The address of the vault for which the invalid cap adjustment was attempted
     error CapAdjustmentInvalid(address vault);
+
+    /// @notice Error thrown when the IRM is not deployed by the recognized factory
+    /// @param irm The address of the IRM that is not deployed by the recognized factory
+    error IRMInvalid(address irm);
 
     /// @notice Error thrown when the message data is invalid
     error MsgDataInvalid();
@@ -41,11 +49,13 @@ contract CapRiskSteward is SelectorAccessControl {
 
     /// @notice Initializes the RiskSteward contract
     /// @param governorAccessControl The address of the governor contract that will execute parameter changes
+    /// @param IRMFactory The address of the recognized IRM factory
     /// @param admin The address to be granted admin privileges in the SelectorAccessControl contract
-    constructor(address governorAccessControl, address admin)
+    constructor(address governorAccessControl, address IRMFactory, address admin)
         SelectorAccessControl(EVCUtil(governorAccessControl).EVC(), admin)
     {
         governor = governorAccessControl;
+        irmFactory = IRMFactory;
     }
 
     /// @notice Adjusts the supply and borrow caps for a vault within limited bounds
@@ -74,8 +84,11 @@ contract CapRiskSteward is SelectorAccessControl {
     }
 
     /// @notice Updates the interest rate model for a vault
-    function setInterestRateModel(address) external onlyEVCAccountOwner {
+    function setInterestRateModel(address newModel) external onlyEVCAccountOwner {
         _authenticateCaller();
+
+        if (!BaseFactory(irmFactory).isValidDeployment(newModel)) revert IRMInvalid(newModel);
+
         _call();
     }
 

@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {CapRiskSteward} from "../../src/Governor/CapRiskSteward.sol";
 import {GovernorAccessControl} from "../../src/Governor/GovernorAccessControl.sol";
+import {EulerKinkIRMFactory, IRMLinearKink} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {IGovernance} from "evk/EVault/IEVault.sol";
 import {AmountCap} from "evk/EVault/shared/types/Types.sol";
@@ -22,6 +23,7 @@ contract MockTarget {
 
 contract CapRiskStewardTest is EVaultTestBase {
     MockTarget public mockTarget;
+    EulerKinkIRMFactory public irmFactory;
     GovernorAccessControl public governorAccessControl;
     CapRiskSteward public capRiskSteward;
     address public steward;
@@ -33,8 +35,9 @@ contract CapRiskStewardTest is EVaultTestBase {
         steward = makeAddr("steward");
         otherUser = makeAddr("otherUser");
         mockTarget = new MockTarget();
+        irmFactory = new EulerKinkIRMFactory();
         governorAccessControl = new GovernorAccessControl(address(evc), admin);
-        capRiskSteward = new CapRiskSteward(address(governorAccessControl), admin);
+        capRiskSteward = new CapRiskSteward(address(governorAccessControl), address(irmFactory), admin);
 
         eTST.setCaps(_encodeCap(6000e18), _encodeCap(600e18));
         eTST.setGovernorAdmin(address(governorAccessControl));
@@ -42,6 +45,7 @@ contract CapRiskStewardTest is EVaultTestBase {
         vm.startPrank(admin);
         governorAccessControl.grantRole(governorAccessControl.WILD_CARD(), address(capRiskSteward));
         capRiskSteward.grantRole(IGovernance.setCaps.selector, steward);
+        capRiskSteward.grantRole(IGovernance.setInterestRateModel.selector, steward);
         vm.stopPrank();
     }
 
@@ -134,6 +138,27 @@ contract CapRiskStewardTest is EVaultTestBase {
             )
         );
         assertFalse(success);
+    }
+
+    function test_setIRM_invalidIRM() public {
+        vm.startPrank(steward);
+        (bool success,) = address(capRiskSteward).call(
+            abi.encodePacked(
+                abi.encodeCall(IGovernance.setInterestRateModel, (address(new IRMLinearKink(0, 0, 0, 0)))),
+                address(eTST)
+            )
+        );
+        assertFalse(success);
+    }
+
+    function test_setIRM_validIRM() public {
+        vm.startPrank(steward);
+        (bool success,) = address(capRiskSteward).call(
+            abi.encodePacked(
+                abi.encodeCall(IGovernance.setInterestRateModel, (irmFactory.deploy(0, 0, 0, 0))), address(eTST)
+            )
+        );
+        assertTrue(success);
     }
 
     function test_reflection() public view {
