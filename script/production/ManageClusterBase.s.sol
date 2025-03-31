@@ -56,7 +56,8 @@ abstract contract ManageClusterBase is BatchBuilder {
             uint256 baseRate
                 => mapping(uint256 slope1 => mapping(uint256 slope2 => mapping(uint256 kink => address irm)))
         ) kinkIRMMap;
-        address[] irms;
+        mapping(address asset => address irm) irms;
+        address[] irmsArr;
         address stubOracle;
     }
 
@@ -167,7 +168,9 @@ abstract contract ManageClusterBase is BatchBuilder {
             KinkIRMDeployer deployer = new KinkIRMDeployer();
             for (uint256 i = 0; i < cluster.assets.length; ++i) {
                 uint256[4] storage p = cluster.kinkIRMParams[cluster.assets[i]];
-                address irm = cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]];
+                address irm = p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0
+                    ? cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]]
+                    : cluster.irmsArr[i];
 
                 // only deploy those IRMs that haven't been deployed or cached yet
                 if (irm == address(0) && (p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0)) {
@@ -175,7 +178,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                     cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]] = irm;
                 }
 
-                cluster.irms[i] = irm;
+                cluster.irms[cluster.assets[i]] = cluster.irmsArr[i] = irm;
             }
         }
 
@@ -293,8 +296,8 @@ abstract contract ManageClusterBase is BatchBuilder {
                 }
             }
 
-            if (IEVault(vault).interestRateModel() != cluster.irms[i]) {
-                setInterestRateModel(vault, cluster.irms[i]);
+            if (IEVault(vault).interestRateModel() != cluster.irms[asset]) {
+                setInterestRateModel(vault, cluster.irms[asset]);
             }
 
             setLTVs(
@@ -542,7 +545,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         string memory result = "";
         result = vm.serializeAddress("cluster", "oracleRouters", cluster.oracleRouters);
         result = vm.serializeAddress("cluster", "vaults", cluster.vaults);
-        result = vm.serializeAddress("cluster", "irms", cluster.irms);
+        result = vm.serializeAddress("cluster", "irms", cluster.irmsArr);
         result = vm.serializeAddress("cluster", "externalVaults", cluster.externalVaults);
         result = vm.serializeAddress("cluster", "stubOracle", cluster.stubOracle);
 
@@ -563,7 +566,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                 string memory json = vm.readFile(cluster.clusterAddressesPath);
                 cluster.oracleRouters = getAddressesFromJson(json, ".oracleRouters");
                 cluster.vaults = getAddressesFromJson(json, ".vaults");
-                cluster.irms = getAddressesFromJson(json, ".irms");
+                cluster.irmsArr = getAddressesFromJson(json, ".irms");
                 cluster.externalVaults = getAddressesFromJson(json, ".externalVaults");
                 cluster.stubOracle = getAddressFromJson(json, ".stubOracle");
             }
@@ -576,14 +579,14 @@ abstract contract ManageClusterBase is BatchBuilder {
                 : GenericFactory(coreAddresses.eVaultFactory).getProxyConfig(cluster.vaults[i]).upgradeable;
         }
 
-        for (uint256 i = 0; i < cluster.irms.length; ++i) {
+        for (uint256 i = 0; i < cluster.irmsArr.length; ++i) {
             InterestRateModelDetailedInfo memory irmInfo =
-                IRMLens(lensAddresses.irmLens).getInterestRateModelInfo(cluster.irms[i]);
+                IRMLens(lensAddresses.irmLens).getInterestRateModelInfo(cluster.irmsArr[i]);
 
             if (irmInfo.interestRateModelType == InterestRateModelType.KINK) {
                 KinkIRMInfo memory kinkIRMInfo = abi.decode(irmInfo.interestRateModelParams, (KinkIRMInfo));
                 cluster.kinkIRMMap[kinkIRMInfo.baseRate][kinkIRMInfo.slope1][kinkIRMInfo.slope2][kinkIRMInfo.kink] =
-                    cluster.irms[i];
+                    cluster.irmsArr[i];
             }
         }
 
@@ -595,8 +598,8 @@ abstract contract ManageClusterBase is BatchBuilder {
             cluster.oracleRouters = new address[](cluster.assets.length);
         }
 
-        if (cluster.irms.length == 0) {
-            cluster.irms = new address[](cluster.assets.length);
+        if (cluster.irmsArr.length == 0) {
+            cluster.irmsArr = new address[](cluster.assets.length);
         }
 
         for (uint256 i = 0; i < cluster.assets.length; ++i) {
@@ -650,7 +653,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             "Vaults upgradable array and assets length mismatch"
         );
         require(cluster.oracleRouters.length == cluster.assets.length, "OracleRouters and assets length mismatch");
-        require(cluster.irms.length == cluster.assets.length, "IRMs and assets length mismatch");
+        require(cluster.irmsArr.length == cluster.assets.length, "IRMs and assets length mismatch");
         require(cluster.ltvs.length == cluster.assets.length, "LTVs and assets length mismatch");
         require(
             cluster.externalLTVs.length == cluster.externalVaults.length,
