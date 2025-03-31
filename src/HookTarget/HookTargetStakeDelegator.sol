@@ -4,11 +4,11 @@ pragma solidity ^0.8.0;
 
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {IHookTarget} from "evk/interfaces/IHookTarget.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IEVC} from "evc/interfaces/IEthereumVaultConnector.sol";
-import "evk/EVault/shared/Constants.sol";
 
 /// @title IRewardVaultFactory Interface
 /// @dev Based on https://github.com/berachain/contracts/blob/main/src/pol/interfaces/IRewardVaultFactory.sol
@@ -63,7 +63,6 @@ contract ERC20ShareRepresentation is Ownable, ERC20 {
     /// @dev Only callable by the owner (HookTarget contract)
     /// @param _amount Amount of tokens to mint
     function mint(uint256 _amount) external onlyOwner {
-        if (_amount == 0) return;
         _mint(owner(), _amount);
     }
 
@@ -71,7 +70,6 @@ contract ERC20ShareRepresentation is Ownable, ERC20 {
     /// @dev Only callable by the owner (HookTarget contract)
     /// @param _amount Amount of tokens to burn
     function burn(uint256 _amount) external onlyOwner {
-        if (_amount == 0) return;
         _burn(owner(), _amount);
     }
 }
@@ -80,12 +78,14 @@ contract ERC20ShareRepresentation is Ownable, ERC20 {
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Hook target that automatically delegate stakes representation of EVault shares in Berachain's reward vault
-/// system. This hook target intercepts EVault share operations (i.e. deposit, mint, withdraw, redeem) and automatically
-/// delegate stakes the shares in a Berachain reward vault. This allows EVault users to participate in Berachain's Proof
-/// of Liquidity (POL) system while still being able to use their shares as collateral.
+/// system. This hook target uses a batched processing approach where it:
+/// 1. Tracks accounts affected by EVault operations by snapshotting their initial share balances
+/// 2. Processes all balance changes at the end of the EVC checks deferred context
+/// 3. Mints/burns share representation tokens and updates stake delegations based on the net balance changes
+/// This allows EVault users to participate in Berachain's Proof of Liquidity (POL) system while still being able
+/// to use their shares as collateral.
 contract HookTargetStakeDelegator is Ownable, IHookTarget {
-    /// @notice Maximum protocol fee share as defined in the EVault GovernanceModule
-    uint16 internal constant MAX_PROTOCOL_FEE_SHARE = 0.5e4;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     /// @notice Reference to the Ethereum Vault Connector contract
     /// @dev Used to resolve account ownership for proper reward delegation
@@ -103,6 +103,14 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
     /// @dev Handles the actual staking of shares and reward distribution
     IRewardVault public immutable rewardVault;
 
+    /// @notice Set of accounts that have been affected by operations in the current EVC checks deferred context
+    /// @dev Used to track which accounts need their balances processed in the checkVaultStatus hook
+    EnumerableSet.AddressSet internal touchedAccounts;
+
+    /// @notice Mapping of initial share balances for accounts affected in the current EVC checks deferred context
+    /// @dev Used to calculate net balance changes when processing the EVC checks deferred context
+    mapping(address account => uint256 amount) internal initialBalances;
+
     /// @notice Creates a new HookTargetStakeDelegator
     /// @param _eVault The EVault this hook target will be attached to
     /// @param _rewardVaultFactory Factory contract that creates reward vaults for stake tokens
@@ -114,154 +122,121 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
         erc20.approve(address(rewardVault), type(uint256).max);
     }
 
-    /// @notice Intercepts EVault deposit operations to handle creation of share representation tokens and stake
-    /// delegation. Called by EVault when a user deposits assets
-    /// @param amount The amount of assets being deposited, or type(uint256).max to deposit the caller's entire balance
-    /// @param receiver The address who's EVC owner will receive the delegated stake
+    /// @notice Intercepts EVault deposit operations to track affected accounts
+    /// @param receiver The address that will receive shares and needs balance tracking
     /// @return Always returns 0 (irrelevant for hook targets)
-    function deposit(uint256 amount, address receiver) external onlyOwner returns (uint256) {
-        if (amount == type(uint256).max) {
-            amount = ERC20(eVault.asset()).balanceOf(_eVaultCaller());
-        }
-
-        amount = eVault.previewDeposit(amount);
-
-        erc20.mint(amount);
-        _delegateStake(receiver, amount);
+    function deposit(uint256, address receiver) external onlyOwner returns (uint256) {
+        _snapshotAccount(receiver);
         return 0;
     }
 
-    /// @notice Intercepts EVault mint operations to handle creation of share representation tokens and stake
-    /// delegation.
-    /// Called by EVault when a user mints shares
-    /// @param amount The exact amount of shares being minted
-    /// @param receiver The address who's EVC owner will receive the delegated stake
+    /// @notice Intercepts EVault mint operations to track affected accounts
+    /// @param receiver The address that will receive shares and needs balance tracking
     /// @return Always returns 0 (irrelevant for hook targets)
-    function mint(uint256 amount, address receiver) external onlyOwner returns (uint256) {
-        erc20.mint(amount);
-        _delegateStake(receiver, amount);
+    function mint(uint256, address receiver) external onlyOwner returns (uint256) {
+        _snapshotAccount(receiver);
         return 0;
     }
 
-    /// @notice Intercepts EVault withdraw operations to handle undelegation of stake and burning of share
-    /// representation tokens. Called by EVault when a user withdraws assets.
-    /// @param amount The amount of assets being withdrawn
-    /// @param owner The address whose delegated stake will be withdrawn
+    /// @notice Intercepts EVault withdraw operations to track affected accounts
+    /// @param owner The address whose balance will change and needs tracking
     /// @return Always returns 0 (irrelevant for hook targets)
-    function withdraw(uint256 amount, address, address owner) external onlyOwner returns (uint256) {
-        amount = eVault.previewWithdraw(amount);
-
-        erc20.burn(_delegateWithdraw(owner, amount));
+    function withdraw(uint256, address, address owner) external onlyOwner returns (uint256) {
+        _snapshotAccount(owner);
         return 0;
     }
 
-    /// @notice Intercepts EVault redeem operations to handle undelegation of stake and burning of share representation
-    /// tokens. Called by EVault when a user redeems shares
-    /// @param amount The amount of shares being redeemed, or type(uint256).max to redeem all shares
-    /// @param owner The address whose delegated stake will be withdrawn
+    /// @notice Intercepts EVault redeem operations to track affected accounts
+    /// @param owner The address whose balance will change and needs tracking
     /// @return Always returns 0 (irrelevant for hook targets)
-    function redeem(uint256 amount, address, address owner) external onlyOwner returns (uint256) {
-        if (amount == type(uint256).max) {
-            amount = eVault.balanceOf(owner);
-        }
-
-        erc20.burn(_delegateWithdraw(owner, amount));
+    function redeem(uint256, address, address owner) external onlyOwner returns (uint256) {
+        _snapshotAccount(owner);
         return 0;
     }
 
-    /// @notice Intercepts EVault skim operations to handle creation of share representation tokens and stake
-    /// delegation. Called by EVault when a user skims excess asset
-    /// @param amount The amount of excess assets to convert to shares, or type(uint256).max to convert all excess
-    /// @param receiver The address who's EVC owner will receive the delegated stake
+    /// @notice Intercepts EVault skim operations to track affected accounts
+    /// @param receiver The address that will receive shares and needs balance tracking
     /// @return Always returns 0 (irrelevant for hook targets)
-    function skim(uint256 amount, address receiver) external onlyOwner returns (uint256) {
-        if (amount == type(uint256).max) {
-            uint256 balance = ERC20(eVault.asset()).balanceOf(address(eVault));
-            uint256 cash = eVault.cash();
-            amount = balance > cash ? balance - cash : 0;
-        }
-
-        amount = eVault.previewDeposit(amount);
-
-        erc20.mint(amount);
-        _delegateStake(receiver, amount);
+    function skim(uint256, address receiver) external onlyOwner returns (uint256) {
+        _snapshotAccount(receiver);
         return 0;
     }
 
-    /// @notice Intercepts EVault repayWithShares operations to handle undelegation of stake and burning of share
-    /// representation tokens. Called by EVault when a user repays debt using their shares
-    /// @param amount The amount of shares to use for repayment, or type(uint256).max to use all shares
+    /// @notice Intercepts EVault repayWithShares operations to track affected accounts
     /// @return shares Always returns 0 (irrelevant for hook targets)
     /// @return debt Always returns 0 (irrelevant for hook targets)
-    function repayWithShares(uint256 amount, address) external onlyOwner returns (uint256 shares, uint256 debt) {
-        address owner = _eVaultCaller();
-
-        if (amount == type(uint256).max) {
-            amount = eVault.balanceOf(owner);
-        }
-
-        amount = eVault.previewWithdraw(amount);
-
-        erc20.burn(_delegateWithdraw(owner, amount));
+    function repayWithShares(uint256, address) external onlyOwner returns (uint256 shares, uint256 debt) {
+        _snapshotAccount(_eVaultCaller());
         return (0, 0);
     }
 
-    /// @notice Intercepts EVault transfer operations to handle delegation of stake between accounts. Called by EVault
-    /// when a user transfers shares
-    /// @param to The address who's EVC owner will receive the delegated stake
-    /// @param amount The amount of shares being transferred
+    /// @notice Intercepts EVault transfer operations to track affected accounts
+    /// @param to The address receiving shares that needs balance tracking
     /// @return Always returns false (irrelevant for hook targets)
-    function transfer(address to, uint256 amount) external onlyOwner returns (bool) {
-        _delegateStake(to, _delegateWithdraw(_eVaultCaller(), amount));
+    function transfer(address to, uint256) external onlyOwner returns (bool) {
+        _snapshotAccount(_eVaultCaller());
+        _snapshotAccount(to);
         return false;
     }
 
-    /// @notice Intercepts EVault transferFrom operations to handle delegation of stake between accounts. Called by
-    /// EVault
-    /// when a user transfers shares on behalf of another
-    /// @param from The address whose delegated stake will be withdrawn
-    /// @param to The address who's EVC owner will receive the delegated stake
-    /// @param amount The amount of shares being transferred
+    /// @notice Intercepts EVault transferFrom operations to track affected accounts
+    /// @param from The address sending shares that needs balance tracking
+    /// @param to The address receiving shares that needs balance tracking
     /// @return Always returns false (irrelevant for hook targets)
-    function transferFrom(address from, address to, uint256 amount) external onlyOwner returns (bool) {
-        _delegateStake(to, _delegateWithdraw(from, amount));
+    function transferFrom(address from, address to, uint256) external onlyOwner returns (bool) {
+        _snapshotAccount(from);
+        _snapshotAccount(to);
         return false;
     }
 
-    /// @notice Intercepts EVault transferFromMax operations to handle delegation of stake between accounts. Called by
-    /// EVault when a user transfers all shares from another account
-    /// @param from The address whose delegated stake will be withdrawn
-    /// @param to The address who's EVC owner will receive the delegated stake
+    /// @notice Intercepts EVault transferFromMax operations to track affected accounts
+    /// @param from The address sending shares that needs balance tracking
+    /// @param to The address receiving shares that needs balance tracking
     /// @return Always returns false (irrelevant for hook targets)
     function transferFromMax(address from, address to) external onlyOwner returns (bool) {
-        uint256 amount = eVault.balanceOf(from);
-
-        _delegateStake(to, _delegateWithdraw(from, amount));
+        _snapshotAccount(from);
+        _snapshotAccount(to);
         return false;
     }
 
-    /// @notice Intercepts EVault convertFees operations to handle creation and delegation of share representation
-    /// tokens when accumulated fees are converted to shares. Called by EVault when converting accumulated fees to
-    /// shares
-    /// @dev The algorithm follows the same logic as the EVault's convertFees function.
+    /// @notice Intercepts EVault convertFees operations to track affected accounts
     function convertFees() external onlyOwner {
-        (address protocolReceiver, uint16 protocolFee) =
-            ProtocolConfig(eVault.protocolConfigAddress()).protocolFeeConfig(address(eVault));
+        (address protocolReceiver,) = ProtocolConfig(eVault.protocolConfigAddress()).protocolFeeConfig(address(eVault));
         address governorReceiver = eVault.feeReceiver();
 
-        if (governorReceiver == address(0)) {
-            protocolFee = CONFIG_SCALE;
-        } else if (protocolFee > MAX_PROTOCOL_FEE_SHARE) {
-            protocolFee = MAX_PROTOCOL_FEE_SHARE;
+        _snapshotAccount(protocolReceiver);
+        _snapshotAccount(governorReceiver);
+    }
+
+    /// @notice Processes all balance changes for accounts affected in the current EVC checks deferred context
+    /// @dev Called at the end of the EVC checks deferred context to:
+    /// 1. Calculate net balance changes for all affected accounts
+    /// 2. Mint share representation tokens and delegate stake for balance increases
+    /// 3. Withdraw delegated stake and burn tokens for balance decreases
+    /// 4. Reset tracking state for the next EVC checks deferred context
+    /// @return Always returns 0 (irrelevant for hook targets)
+    function checkVaultStatus() external onlyOwner returns (bytes4) {
+        address[] memory accounts = touchedAccounts.values();
+
+        for (uint256 i = 0; i < accounts.length; ++i) {
+            address account = accounts[i];
+            uint256 initialBalance = initialBalances[account];
+            uint256 currentBalance = eVault.balanceOf(account);
+
+            if (currentBalance > initialBalance) {
+                uint256 amount = currentBalance - initialBalance;
+                erc20.mint(amount);
+                _delegateStake(account, amount);
+            } else if (currentBalance < initialBalance) {
+                uint256 amount = initialBalance - currentBalance;
+                erc20.burn(_delegateWithdraw(account, amount));
+            }
+
+            initialBalances[account] = 0;
+            touchedAccounts.remove(account);
         }
 
-        uint256 accumulatedFees = eVault.accumulatedFees();
-        uint256 governorShares = accumulatedFees * (CONFIG_SCALE - protocolFee) / CONFIG_SCALE;
-        uint256 protocolShares = accumulatedFees - governorShares;
-
-        erc20.mint(governorShares + protocolShares);
-        _delegateStake(governorReceiver, governorShares);
-        _delegateStake(protocolReceiver, protocolShares);
+        return 0;
     }
 
     /// @inheritdoc IHookTarget
@@ -277,6 +252,15 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
         }
     }
 
+    /// @notice Records an account's current balance before it's affected by an operation
+    /// @dev Only snapshots the first time an account is touched in an EVC checks deferred context
+    /// @param account The account to snapshot
+    function _snapshotAccount(address account) internal {
+        if (touchedAccounts.add(account)) {
+            initialBalances[account] = eVault.balanceOf(account);
+        }
+    }
+
     /// @notice Delegates stake to an account's EVC owner
     /// @dev Stakes are always delegated to the EVC owner of the account, not the account itself. If the account has no
     /// registered EVC owner (owner is address(0)), the stake is delegated to the account directly, assuming it is its
@@ -284,8 +268,6 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
     /// @param account The account whose EVC owner will receive the delegated stake
     /// @param amount The amount of shares to delegate stake
     function _delegateStake(address account, uint256 amount) internal {
-        if (amount == 0) return;
-
         address owner = evc.getAccountOwner(account);
         rewardVault.delegateStake(owner == address(0) ? account : owner, amount);
     }
@@ -306,27 +288,28 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
         // If account has a registered owner different from itself, migrate any stake that was delegated directly to the
         // account (from before owner registration)
         if (owner != address(0) && owner != account) {
-            uint256 delegateStakeAccount = rewardVault.getDelegateStake(account, address(this));
+            uint256 delegatedStakeAccount = rewardVault.getDelegateStake(account, address(this));
 
-            if (delegateStakeAccount > 0) {
-                rewardVault.delegateWithdraw(account, delegateStakeAccount);
-                rewardVault.delegateStake(owner, delegateStakeAccount);
+            if (delegatedStakeAccount > 0) {
+                rewardVault.delegateWithdraw(account, delegatedStakeAccount);
+                rewardVault.delegateStake(owner, delegatedStakeAccount);
             }
         }
 
         if (owner == address(0)) owner = account;
 
-        uint256 delegateStakeOwner = rewardVault.getDelegateStake(owner, address(this));
+        uint256 delegatedStakeOwner = rewardVault.getDelegateStake(owner, address(this));
 
         // Cap withdrawal at available stake (might be less than shares if hook target wasn't installed from EVault
         // creation)
-        if (amount > delegateStakeOwner) {
-            amount = delegateStakeOwner;
+        if (amount > delegatedStakeOwner) {
+            amount = delegatedStakeOwner;
         }
 
-        if (amount == 0) return 0;
+        if (amount > 0) {
+            rewardVault.delegateWithdraw(owner, amount);
+        }
 
-        rewardVault.delegateWithdraw(owner, amount);
         return amount;
     }
 }
