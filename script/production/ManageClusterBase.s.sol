@@ -200,7 +200,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                 // in case the vault asset is a valid external vault, resolve it in the router
                 if (
                     asset != base && !pendingResolvedVaults[oracleRouter][asset][base]
-                        && EulerRouter(oracleRouter).resolvedVaults(asset) != base
+                        && isValidOracleRouter(oracleRouter) && EulerRouter(oracleRouter).resolvedVaults(asset) != base
                 ) {
                     govSetResolvedVault(oracleRouter, asset, true);
                     pendingResolvedVaults[oracleRouter][asset][base] = true;
@@ -208,7 +208,7 @@ abstract contract ManageClusterBase is BatchBuilder {
 
                 // configure the oracle for the vault asset or the asset of the vault asset
                 if (
-                    !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount]
+                    !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] && isValidOracleRouter(oracleRouter)
                         && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
                 ) {
                     govSetConfig(oracleRouter, base, unitOfAccount, adapter);
@@ -469,6 +469,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             // in case the collateral vault asset is a valid external vault, resolve it in the router
             if (
                 collateralAsset != base && !pendingResolvedVaults[oracleRouter][collateralAsset][base]
+                    && isValidOracleRouter(oracleRouter)
                     && EulerRouter(oracleRouter).resolvedVaults(collateralAsset) != base
             ) {
                 govSetResolvedVault(oracleRouter, collateralAsset, true);
@@ -477,7 +478,7 @@ abstract contract ManageClusterBase is BatchBuilder {
 
             // configure the oracle for the collateral vault asset or the asset of the collateral vault asset
             if (
-                !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount]
+                !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] && isValidOracleRouter(oracleRouter)
                     && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
             ) {
                 govSetConfig(oracleRouter, base, unitOfAccount, adapter);
@@ -489,7 +490,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             if (currentBorrowLTV != borrowLTV || targetLiquidationLTV != liquidationLTV) {
                 // in case the stub oracle has to be used, append the following batch critical section:
                 // configure the stub oracle, set LTV, configure the desired oracle
-                if (useStub && liquidationLTV != 0) {
+                if (useStub && liquidationLTV != 0 && isValidOracleRouter(oracleRouter)) {
                     govSetConfig_critical(oracleRouter, base, unitOfAccount, cluster.stubOracle);
 
                     setLTV_critical(
@@ -539,6 +540,10 @@ abstract contract ManageClusterBase is BatchBuilder {
             vaultSpreadLTVs[i] = spreadLTVs[i][vaultIndex] == type(uint16).max ? spreadLTV : spreadLTVs[i][vaultIndex];
         }
         return vaultSpreadLTVs;
+    }
+
+    function isValidOracleRouter(address oracleRouter) private view returns (bool) {
+        return _strEq(EulerRouter(oracleRouter).name(), "EulerRouter");
     }
 
     function dumpCluster() private {
