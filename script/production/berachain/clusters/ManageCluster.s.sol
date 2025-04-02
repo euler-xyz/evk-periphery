@@ -18,6 +18,11 @@ abstract contract Addresses {
     address internal constant NECT = 0x1cE0a25D13CE4d52071aE7e02Cf1F6606F4C79d3;
     address internal constant USDe = 0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34;
     address internal constant sUSDe = 0x211Cc4DD073734dA055fbF44a2b4667d5E5fE5d2;
+    address internal constant rUSD = 0x09D4214C03D01F49544C0448DBE3A27f768F2b34;
+    address internal constant srUSD = 0x5475611Dffb8ef4d697Ae39df9395513b6E947d7;
+    address internal constant PT_sUSDE = 0x2719e657ec3B3CbE521a18E640CA55799836376f;
+    address internal constant iBERA = 0x9b6761bf2397Bb5a6624a856cC84A3A14Dcd3fe5;
+
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}

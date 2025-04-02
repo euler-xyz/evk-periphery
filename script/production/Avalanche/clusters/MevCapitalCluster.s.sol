@@ -22,15 +22,15 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = getDeployer();
-        cluster.vaultsGovernor = getDeployer();
+        cluster.oracleRoutersGovernor = 0xB672Ea44A1EC692A9Baf851dC90a1Ee3DB25F1C4;
+        cluster.vaultsGovernor = 0xB672Ea44A1EC692A9Baf851dC90a1Ee3DB25F1C4;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
 
         // define fee receiver here and interest fee here. if needed to be defined per asset, populate the
         // feeReceiverOverride and interestFeeOverride mappings
-        cluster.feeReceiver = getDeployer();
+        cluster.feeReceiver = 0x50dE2Fb5cd259c1b99DBD3Bb4E7Aac76BE7288fC;
         cluster.interestFee = 0.1e4;
 
         // define max liquidation discount here. if needed to be defined per asset, populate the
@@ -86,16 +86,17 @@ contract Cluster is ManageCluster {
 
 
 
-        // define IRM classes here and assign them to the assets
+        // define IRM classes here and assign them to the assets 
+        // Slope 1 - Slope 2 - Kink 
         {
-            // Base=0% APY  Kink(75%)=4,50% APY  Max=120.00% APY
-            uint256[4] memory irmAVAX  = [uint256(0), uint256(3221225472), uint256(433006483), uint256(21970268509)];
+            // Base=0% APY  Kink(75%)=4,50% APY  Max=120.00% APY 
+            uint256[4] memory irmAVAX  = [uint256(0), uint256(433006483), uint256(21970268509), uint256(3221225472)];
 
             // Base=0% APY,  Kink(90%)=2,7% APY  Max=120.00% APY
-            uint256[4] memory irmVolat = [uint256(0), uint256(3865470566), uint256(218400235), uint256(56207617725)];
+            uint256[4] memory irmVolat = [uint256(0), uint256(218400235), uint256(56207617725), uint256(3865470566)];
 
             // Base=0% APY,  Kink(90%)=12,000% APY  Max=120.00% APY
-            uint256[4] memory irmStable = [uint256(0), uint256(3865470566), uint256(929051533), uint256(49811756050)];
+            uint256[4] memory irmStable = [uint256(0), uint256(929051533), uint256(49811756050), uint256(3865470566)];
 
             cluster.kinkIRMParams[AVAX    ] = irmAVAX;
             cluster.kinkIRMParams[BTC_b    ] = irmVolat;

@@ -11,13 +11,13 @@ import {ClusterDump} from "../../../utils/ClusterDump.s.sol";
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/BNB/clusters/MevCapitalCluster.json";
+        cluster.clusterAddressesPath = "/script/production/berachain/clusters/MevCapitalCluster.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other
         // arrays the ltvs matrix. if more than one vauls has to be deployed for the same asset, it can be added in the
         // array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [WBNB, slisBNB, ETH, USDT, lisUSD, USDC, BTCB];
+        cluster.assets = [WBERA];
     }
 
     function configureCluster() internal override {
@@ -59,53 +59,25 @@ contract Cluster is ManageCluster {
         // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[WBNB    ] = "0xC8228b83F1d97a431A48bd9Bc3e971c8b418d889";
-        cluster.oracleProviders[slisBNB    ] = "0x53Bc50E69f9ca3f006D1b182fADa23B743120C12";
-        cluster.oracleProviders[ETH    ] = "0xD0dAb9eDb2b1909802B03090eFBF14743E7Ff967";
-        cluster.oracleProviders[USDT    ] = "0x7e262cD6226328AaF4eA5C993a952E18Dd633Bc8";
-        cluster.oracleProviders[lisUSD    ] = "0xdEDE2bDf14FE1beea7e15fbe220e5a67D744b30f";
-        cluster.oracleProviders[USDC    ] = "0xD544CcB6f2231bd1cCAC0258cbA89E8A13D4a421";
-        cluster.oracleProviders[BTCB    ] = "0x5939Ee098eB6d411C3727b78Ee665771F5cB0501";
+        cluster.oracleProviders[WBERA    ] = "0xe6D9C66C0416C1c88Ca5F777D81a7F424D4Fa87b";
+
 
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[WBNB    ] = 41_500;
-        cluster.supplyCaps[slisBNB    ] = 16_500;
-        cluster.supplyCaps[ETH    ] = 12_500;
-        cluster.supplyCaps[USDT    ] = 100_0000_000;
-        cluster.supplyCaps[lisUSD    ] = 10_000_000;
-        cluster.supplyCaps[USDC    ] = 100_000_000;
-        cluster.supplyCaps[BTCB    ] = 300;
+        cluster.supplyCaps[WBERA    ] = 5_000_000;
+
 
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WBNB    ] = 37_500;
-        cluster.borrowCaps[slisBNB    ] = type(uint256).max;
-        cluster.borrowCaps[ETH    ] = 11_200;
-        cluster.borrowCaps[USDT    ] = 90_000_000;
-        cluster.borrowCaps[lisUSD    ] = type(uint256).max;
-        cluster.borrowCaps[USDC    ] = 90_000_000;
-        cluster.borrowCaps[BTCB    ] = 265;
-
+        cluster.borrowCaps[WBERA    ] = 4_500_000;
 
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0% APY  Kink(90%)=3.50% APY  Max=75.00% APY
-            uint256[4] memory irmBNB  = [uint256(0), uint256(282015934), uint256(38750863379), uint256(3865470566)];
+            // Base=0% APY  Kink(75%)=175.00% APY  Max=375.00% APY
+            uint256[4] memory irmBERA  = [uint256(0), uint256(9951593935), uint256(16129845658), uint256(3221225472)];
 
-            // Base=0% APY,  Kink(90%)=2,7% APY  Max=120.00% APY
-            uint256[4] memory irmVolat = [uint256(0), uint256(218400235), uint256(56207617725), uint256(3865470566)];
-
-            // Base=0% APY,  Kink(90%)=12,000% APY  Max=120.00% APY
-            uint256[4] memory irmStable = [uint256(0), uint256(929051533), uint256(49811756050), uint256(3865470566)];
-
-
-            cluster.kinkIRMParams[WBNB    ] = irmBNB;
-            cluster.kinkIRMParams[ETH    ] = irmVolat;
-            cluster.kinkIRMParams[USDT    ] = irmStable;
-            cluster.kinkIRMParams[USDC    ] = irmStable;
-            cluster.kinkIRMParams[BTCB    ] = irmVolat;
+            cluster.kinkIRMParams[WBERA    ] = irmBERA;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -116,16 +88,10 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //                  0               1        2        3        4        5        6
-            //                  WBNB            slisBNB  ETH      USDT     lisUSD   USDC     BTCB
-            /* 0  WBTC     */ [uint16(0.000e4), 0.000e4, 0.750e4, 0.750e4, 0.000e4, 0.750e4, 0.750e4],
-            /* 1  slisBNB  */ [uint16(0.915e4), 0.000e4, 0.750e4, 0.750e4, 0.000e4, 0.750e4, 0.750e4],
-            /* 2  ETH      */ [uint16(0.850e4), 0.000e4, 0.000e4, 0.850e4, 0.000e4, 0.850e4, 0.850e4],
-            /* 3  USDT     */ [uint16(0.915e4), 0.000e4, 0.915e4, 0.000e4, 0.000e4, 0.915e4, 0.915e4],
-            /* 4  lisUSD   */ [uint16(0.750e4), 0.000e4, 0.750e4, 0.915e4, 0.000e4, 0.915e4, 0.750e4],
-            /* 5  USDC     */ [uint16(0.915e4), 0.000e4, 0.915e4, 0.915e4, 0.000e4, 0.000e4, 0.915e4],
-            /* 6  BTCB     */ [uint16(0.850e4), 0.000e4, 0.850e4, 0.850e4, 0.000e4, 0.850e4, 0.000e4]
-
+            //                  0                1       
+            //                  WBERA            XXX     
+            /* 0  WBERA     */ [uint16(0.000e4),  0.000e4],
+            /* 1  XXX      */ [uint16(0.800e4), 0.000e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults.

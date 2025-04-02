@@ -22,8 +22,8 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = 0x6293e97900aA987Cf3Cbd419e0D5Ba43ebfA91c1;
-        cluster.vaultsGovernor = 0x6293e97900aA987Cf3Cbd419e0D5Ba43ebfA91c1;
+        cluster.oracleRoutersGovernor = 0xF9686A9Eef4a771Ea7D209766A4165d59dAA6C20;
+        cluster.vaultsGovernor = 0xF9686A9Eef4a771Ea7D209766A4165d59dAA6C20;
 
         // define unit of account here
         cluster.unitOfAccount = USD;

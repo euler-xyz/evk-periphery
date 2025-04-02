@@ -19,6 +19,10 @@ abstract contract Addresses {
     address internal constant wOS = 0x9F0dF7799f6FDAd409300080cfF680f5A23df4b1;
     address internal constant solvBTC = 0x541FD749419CA806a8bc7da8ac23D346f2dF8B77;
     address internal constant solvBTC_BBN = 0xCC0966D8418d412c599A6421b760a847eB169A8c;
+    address internal constant PT_wstkscETH = 0xa2161E75EDf50d70544e6588788A5732A3105c00;
+    address internal constant PT_wstkscUSD = 0xBe27993204Ec64238F71A527B4c4D5F4949034C3;
+    address internal constant PT_wOS = 0x46eb02b9F47634c4fab3110CC7ADc1C6311DfAC1;
+    address internal constant PT_stS = 0x420df605D062F8611EFb3F203BF258159b8FfFdE;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}
