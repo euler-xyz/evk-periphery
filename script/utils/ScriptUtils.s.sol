@@ -426,7 +426,14 @@ abstract contract ScriptUtils is
             return 0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590;
         } else {
             // bitcoin-specific and test networks
-            if (block.chainid == 30 || block.chainid == 21000000 || block.chainid == 10143 || block.chainid == 80084) {
+            if (
+                block.chainid == 30 || block.chainid == 21000000 || block.chainid == 10143 || block.chainid == 80084
+                    || block.chainid == 2390
+            ) {
+                return address(0);
+            }
+            // hyperEVM
+            if (block.chainid == 999) {
                 return address(0);
             }
         }
@@ -489,6 +496,10 @@ abstract contract ScriptUtils is
             if (adapter == address(0)) revert("getValidAdapters: Adapter not found");
             if (counter > 1) revert("getValidAdapters: Multiple adapters found");
         }
+    }
+
+    function isValidOracleRouter(address oracleRouter) internal view returns (bool) {
+        return _strEq(EulerRouter(oracleRouter).name(), "EulerRouter");
     }
 
     function isValidExternalVault(address vault) internal view returns (bool) {
@@ -620,11 +631,21 @@ abstract contract BatchBuilder is ScriptUtils {
         CRITICAL
     }
 
+    struct TimelockCall {
+        bytes32 id;
+        address target;
+        uint256 value;
+        bytes data;
+        bytes32 predecessor;
+        bytes32 salt;
+        uint256 delay;
+    }
+
     uint256 internal constant TRIGGER_EXECUTE_BATCH_AT_SIZE = 250;
     IEVC.BatchItem[] internal batchItems;
     IEVC.BatchItem[] internal criticalItems;
     uint256 internal batchCounter;
-    bytes32 internal timelockPredecessor;
+    TimelockCall[] internal timelockCalls;
 
     function getAppropriateOnBehalfOfAccount() internal view returns (address) {
         address timelock = getTimelock(false);
@@ -737,6 +758,10 @@ abstract contract BatchBuilder is ScriptUtils {
         }
     }
 
+    function getTimelockPredecessor() internal view returns (bytes32) {
+        return timelockCalls.length == 0 ? bytes32(0) : timelockCalls[timelockCalls.length - 1].id;
+    }
+
     function executeBatchPrank(address caller) internal {
         if (batchItems.length == 0) return;
 
@@ -771,19 +796,36 @@ abstract contract BatchBuilder is ScriptUtils {
             uint256 delay = TimelockController(timelock).getMinDelay();
             uint256 batchValue = getBatchValue();
             bytes memory batchCalldata = getBatchCalldata();
+            bytes32 timelockPredecessor = getTimelockPredecessor();
             bytes32 id = TimelockController(timelock).hashOperation(
                 coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0)
             );
+            bytes memory data = abi.encodeCall(
+                TimelockController.schedule,
+                (coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0), delay)
+            );
 
             console.log("Executing the batch directly on the EVC (%s) via Timelock (%s)\n", coreAddresses.evc, timelock);
-            TimelockController(timelock).schedule(
-                coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0), delay
+            (bool success,) = timelock.call(data);
+            require(success, "executeBatchDirectly: timelock execution failed");
+
+            timelockCalls.push(
+                TimelockCall({
+                    id: id,
+                    target: timelock,
+                    value: batchValue,
+                    data: data,
+                    predecessor: timelockPredecessor,
+                    salt: bytes32(0),
+                    delay: delay
+                })
             );
-            timelockPredecessor = id;
+
+            dumpTimelockCall(timelockCalls.length - 1);
 
             // simulate timelock execution
             vm.prank(timelock);
-            (bool success,) = coreAddresses.evc.call{value: batchValue}(batchCalldata);
+            (success,) = coreAddresses.evc.call{value: batchValue}(batchCalldata);
             require(success, "executeBatchDirectly: timelock execution simulation failed");
         }
 
@@ -808,8 +850,13 @@ abstract contract BatchBuilder is ScriptUtils {
             uint256 delay = TimelockController(timelock).getMinDelay();
             uint256 batchValue = getBatchValue();
             bytes memory batchCalldata = getBatchCalldata();
+            bytes32 timelockPredecessor = getTimelockPredecessor();
             bytes32 id = TimelockController(timelock).hashOperation(
                 coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0)
+            );
+            bytes memory data = abi.encodeCall(
+                TimelockController.schedule,
+                (coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0), delay)
             );
 
             console.log(
@@ -819,19 +866,21 @@ abstract contract BatchBuilder is ScriptUtils {
                 coreAddresses.evc
             );
 
-            transaction.create(
-                true,
-                safe,
-                timelock,
-                batchValue,
-                abi.encodeCall(
-                    TimelockController.schedule,
-                    (coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0), delay)
-                ),
-                safeNonce++
+            transaction.create(true, safe, timelock, batchValue, data, safeNonce++);
+
+            timelockCalls.push(
+                TimelockCall({
+                    id: id,
+                    target: timelock,
+                    value: batchValue,
+                    data: data,
+                    predecessor: timelockPredecessor,
+                    salt: bytes32(0),
+                    delay: delay
+                })
             );
 
-            timelockPredecessor = id;
+            dumpTimelockCall(timelockCalls.length - 1);
 
             // simulate timelock execution
             vm.prank(timelock);
@@ -853,6 +902,24 @@ abstract contract BatchBuilder is ScriptUtils {
         json = vm.serializeBytes(key, "data", getBatchCalldata());
 
         vm.writeJson(vm.serializeString("batches", vm.toString(batchCounter), json), path);
+    }
+
+    function dumpTimelockCall(uint256 i) internal {
+        require(i < timelockCalls.length, "dumpTimelockCall: incorrect index");
+
+        string memory path = string.concat(vm.projectRoot(), "/script/TimelockCalls.json");
+        string memory json = vm.exists(path) ? vm.readFile(path) : "{}";
+        string memory key = vm.toString(timelockCalls[i].id);
+
+        json = vm.serializeBytes32(key, "id", timelockCalls[i].id);
+        json = vm.serializeAddress(key, "target", timelockCalls[i].target);
+        json = vm.serializeUint(key, "value", timelockCalls[i].value);
+        json = vm.serializeBytes(key, "data", timelockCalls[i].data);
+        json = vm.serializeBytes32(key, "predecessor", timelockCalls[i].predecessor);
+        json = vm.serializeBytes32(key, "salt", timelockCalls[i].salt);
+        json = vm.serializeUint(key, "delay", timelockCalls[i].delay);
+
+        vm.writeJson(vm.serializeString("timelockCalls", key, json), path);
     }
 
     function grantRole(address accessController, bytes32 role, address account) internal {

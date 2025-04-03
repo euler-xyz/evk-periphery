@@ -75,6 +75,7 @@ abstract contract ManageClusterBase is BatchBuilder {
     mapping(address router => mapping(address base => mapping(address quote => bool set))) internal
         pendingConfiguredAdapters;
     mapping(address router => bool transferred) internal pendingGovernanceTransfer;
+    TimelockCall[] internal pendingTimelockCalls;
 
     modifier initialize() {
         defineCluster();
@@ -364,7 +365,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         for (uint256 i = 0; i < cluster.oracleRouters.length; ++i) {
             address oracleRouter = cluster.oracleRouters[i];
             if (
-                !pendingGovernanceTransfer[oracleRouter]
+                !pendingGovernanceTransfer[oracleRouter] && isValidOracleRouter(oracleRouter)
                     && EulerRouter(oracleRouter).governor() != cluster.oracleRoutersGovernor
             ) {
                 transferGovernance(oracleRouter, cluster.oracleRoutersGovernor);
@@ -373,25 +374,6 @@ abstract contract ManageClusterBase is BatchBuilder {
         }
 
         executeBatch();
-    }
-
-    function simulatePendingTransactions() internal virtual {
-        if (!isBatchViaSafe()) return;
-
-        SafeTransaction safeUtil = new SafeTransaction();
-        if (!safeUtil.isTransactionServiceAPIAvailable()) return;
-
-        SafeTransaction.Transaction[] memory transactions = safeUtil.getPendingTransactions(getSafe());
-
-        for (uint256 i = 0; i < transactions.length; ++i) {
-            try safeUtil.simulate(
-                transactions[i].operation == SafeUtil.Operation.CALL,
-                transactions[i].safe,
-                transactions[i].to,
-                transactions[i].value,
-                transactions[i].data
-            ) {} catch {}
-        }
     }
 
     function defineCluster() internal virtual;
@@ -459,7 +441,7 @@ abstract contract ManageClusterBase is BatchBuilder {
 
             // resolve the collateral vault in the router to be able to convert shares to assets
             if (
-                !pendingResolvedVaults[oracleRouter][collateral][collateralAsset]
+                !pendingResolvedVaults[oracleRouter][collateral][collateralAsset] && isValidOracleRouter(oracleRouter)
                     && EulerRouter(oracleRouter).resolvedVaults(collateral) != collateralAsset
             ) {
                 govSetResolvedVault(oracleRouter, collateral, true);
@@ -542,10 +524,6 @@ abstract contract ManageClusterBase is BatchBuilder {
         return vaultSpreadLTVs;
     }
 
-    function isValidOracleRouter(address oracleRouter) private view returns (bool) {
-        return _strEq(EulerRouter(oracleRouter).name(), "EulerRouter");
-    }
-
     function dumpCluster() private {
         string memory result = "";
         result = vm.serializeAddress("cluster", "oracleRouters", cluster.oracleRouters);
@@ -562,6 +540,8 @@ abstract contract ManageClusterBase is BatchBuilder {
     }
 
     function loadDefaults() private {}
+
+    function loadTimelockCalls() internal {}
 
     function loadCluster() private {
         if (!_strEq(cluster.clusterAddressesPath, "")) {
@@ -726,5 +706,26 @@ abstract contract ManageClusterBase is BatchBuilder {
             "Invalid governors"
         );
         require(cluster.unitOfAccount != address(0), "Invalid unit of account");
+    }
+
+    function simulatePendingTransactions() internal {
+        if (isBatchViaSafe()) {
+            SafeTransaction safeUtil = new SafeTransaction();
+            if (!safeUtil.isTransactionServiceAPIAvailable()) return;
+
+            SafeTransaction.Transaction[] memory transactions = safeUtil.getPendingTransactions(getSafe());
+
+            for (uint256 i = 0; i < transactions.length; ++i) {
+                try safeUtil.simulate(
+                    transactions[i].operation == SafeUtil.Operation.CALL,
+                    transactions[i].safe,
+                    transactions[i].to,
+                    transactions[i].value,
+                    transactions[i].data
+                ) {} catch {}
+            }
+        }
+
+        if (getTimelock(false) != address(0)) {}
     }
 }
