@@ -413,7 +413,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             }
         }
 
-        return (base, adapter, useStub);
+        return (base, adapter, useStub && !isNoStubOracle());
     }
 
     // sets LTVs for all passed collaterals of the vault

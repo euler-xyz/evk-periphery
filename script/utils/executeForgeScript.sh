@@ -61,7 +61,12 @@ if [[ "$@" == *"--timelock-address"* ]]; then
     set -- $(echo "$@" | sed "s/--timelock-address $timelock_address//")
 fi
 
-if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api timelock_address=$timelock_address \
+if [[ "$@" == *"--no-stub-oracle"* ]]; then
+    set -- "${@/--no-stub-oracle/}"
+    no_stub_oracle="--no-stub-oracle"
+fi
+
+if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api timelock_address=$timelock_address no_stub_oracle=$no_stub_oracle \
     forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
     exit 1
 fi
