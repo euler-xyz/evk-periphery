@@ -34,6 +34,8 @@ function verify_contract {
         if [[ $constructorArgs == "--guess-constructor-args" ]]; then
             constructorArgs=""
         fi
+    elif [[ $verifier == "sourcify" ]]; then
+        verifierArgs="$verifierArgs --verifier=$verifier --retries 1"
     elif [[ $verifier == "custom" ]]; then
         verifierArgs="$verifierArgs --verifier=$verifier"
     else
@@ -41,9 +43,16 @@ function verify_contract {
     fi
 
     echo "Verifying $contractName: $contractAddress"
-    env VERIFIER_API_KEY=$verifier_api_key ETHERSCAN_API_KEY=$verifier_api_key \
-        forge verify-contract $contractAddress $contractName $constructorArgs --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId $verifierArgs --watch $@ #--show-standard-json-input > $contractAddress.json
+
+    output=$(env VERIFIER_API_KEY=$verifier_api_key ETHERSCAN_API_KEY=$verifier_api_key \
+        forge verify-contract $contractAddress $contractName $constructorArgs --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId $verifierArgs --watch $@ 2>&1 | tee /dev/tty) #--show-standard-json-input > $contractAddress.json
+
     result=$?
+
+    if [[ $verifier == "sourcify" ]] && echo "$output" | grep -q "is already partially verified"; then
+        echo "Contract already partially verified, continuing..."
+        result=0
+    fi
 
     if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan.io/api* ]]; then
         curl -d "address=$contractAddress" "$verifier_url?module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
