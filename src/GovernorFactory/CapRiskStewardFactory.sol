@@ -11,6 +11,9 @@ import {ICapRiskStewardFactory} from "./interfaces/ICapRiskStewardFactory.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A factory for cap risk steward contract.
 contract CapRiskStewardFactory is BaseFactory, ICapRiskStewardFactory {
+    /// @notice The address of the governor access control factory
+    address public immutable governorAccessControlFactory;
+
     /// @notice The address of the recognized IRM factory
     address public immutable irmFactory;
 
@@ -18,9 +21,11 @@ contract CapRiskStewardFactory is BaseFactory, ICapRiskStewardFactory {
     error InvalidAddress();
 
     /// @notice Initializes the factory with the IRM factory address
+    /// @param _governorAccessControlFactory The address of the governor access control factory
     /// @param _irmFactory The address of the recognized IRM factory
-    constructor(address _irmFactory) {
-        if (_irmFactory == address(0)) revert InvalidAddress();
+    constructor(address _governorAccessControlFactory, address _irmFactory) {
+        if (_governorAccessControlFactory == address(0) || _irmFactory == address(0)) revert InvalidAddress();
+        governorAccessControlFactory = _governorAccessControlFactory;
         irmFactory = _irmFactory;
     }
 
@@ -30,7 +35,12 @@ contract CapRiskStewardFactory is BaseFactory, ICapRiskStewardFactory {
         override
         returns (address)
     {
-        if (IRMFactory != irmFactory) revert InvalidAddress();
+        if (
+            BaseFactory(governorAccessControlFactory).isValidDeployment(governorAccessControl)
+                || IRMFactory != irmFactory
+        ) {
+            revert InvalidAddress();
+        }
 
         address capRiskSteward = address(new CapRiskSteward(governorAccessControl, IRMFactory, admin));
         deploymentInfo[capRiskSteward] = DeploymentInfo(msg.sender, uint96(block.timestamp));
