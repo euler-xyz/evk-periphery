@@ -139,12 +139,17 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("batch_via_safe", string("")), "--batch-via-safe");
     }
 
+    function isSafeOwnerSimulate() internal view returns (bool) {
+        return _strEq(vm.envOr("safe_owner_simulate", string("")), "--safe-owner-simulate");
+    }
+
     function isUseSafeApi() internal view returns (bool) {
         return _strEq(vm.envOr("use_safe_api", string("")), "--use-safe-api");
     }
 
     function isNoStubOracle() internal view returns (bool) {
-        return _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
+        return (block.chainid != 1 && block.chainid != 8453)
+            || _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
     }
 
     function getAddressesDirPath() internal view returns (string memory) {

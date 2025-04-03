@@ -46,6 +46,11 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
     set -- "${@/--batch-via-safe/}"
     batch_via_safe="--batch-via-safe"
 
+    if [[ "$@" == *"--safe-owner-simulate"* ]]; then
+        set -- "${@/--safe-owner-simulate/}"
+        safe_owner_simulate="--safe-owner-simulate"
+    fi
+
     if [[ "$@" == *"--use-safe-api"* ]]; then
         set -- "${@/--use-safe-api/}"
         use_safe_api="--use-safe-api"
@@ -66,7 +71,7 @@ if [[ "$@" == *"--no-stub-oracle"* ]]; then
     no_stub_oracle="--no-stub-oracle"
 fi
 
-if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api timelock_address=$timelock_address no_stub_oracle=$no_stub_oracle \
+if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe safe_owner_simulate=$safe_owner_simulate use_safe_api=$use_safe_api timelock_address=$timelock_address no_stub_oracle=$no_stub_oracle \
     forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
     exit 1
 fi

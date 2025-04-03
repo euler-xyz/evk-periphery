@@ -389,7 +389,7 @@ contract SafeTransaction is SafeUtil {
 
     function _simulate() private {
         if (
-            transaction.sender != address(0) && isTransactionServiceAPIAvailable()
+            transaction.sender != address(0) && isSafeOwnerSimulate() && isTransactionServiceAPIAvailable()
                 && !isSafeOwnerOrDelegate(transaction.safe, transaction.sender)
         ) {
             console.log(

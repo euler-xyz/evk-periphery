@@ -97,7 +97,7 @@ abstract contract ManageClusterBase is BatchBuilder {
 
     function run() public initialize {
         // deploy the stub oracle (needed in case pull oracle is meant to be used as it might be stale)
-        if (cluster.stubOracle == address(0) && (block.chainid == 1 || block.chainid == 8453)) {
+        if (cluster.stubOracle == address(0) && !isNoStubOracle()) {
             startBroadcast();
             cluster.stubOracle = address(new StubOracle());
             stopBroadcast();
@@ -766,7 +766,6 @@ abstract contract ManageClusterBase is BatchBuilder {
                     );
 
                     vm.deal(address(this), value);
-                    vm.prank(timelock);
                     try TimelockController(payable(timelock)).execute(target, value, data, predecessor, bytes32(0)) {}
                         catch {}
                 }
@@ -792,7 +791,6 @@ abstract contract ManageClusterBase is BatchBuilder {
                 );
 
                 vm.deal(address(this), value);
-                vm.prank(timelock);
                 try TimelockController(payable(timelock)).execute(target, value, data, predecessor, bytes32(0)) {}
                     catch {}
             }
