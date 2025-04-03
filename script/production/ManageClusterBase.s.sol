@@ -2,9 +2,10 @@
 
 pragma solidity ^0.8.0;
 
+import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {CrossAdapter} from "euler-price-oracle/adapter/CrossAdapter.sol";
-import {BatchBuilder} from "../utils/ScriptUtils.s.sol";
+import {BatchBuilder, Vm, console} from "../utils/ScriptUtils.s.sol";
 import {SafeTransaction, SafeUtil} from "../utils/SafeUtils.s.sol";
 import {IRMLens} from "../../src/Lens/IRMLens.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
@@ -713,7 +714,9 @@ abstract contract ManageClusterBase is BatchBuilder {
             SafeTransaction safeUtil = new SafeTransaction();
             if (!safeUtil.isTransactionServiceAPIAvailable()) return;
 
-            SafeTransaction.Transaction[] memory transactions = safeUtil.getPendingTransactions(getSafe());
+            vm.recordLogs();
+            console.log("Simulating pending safe transactions");
+            SafeTransaction.TransactionSimple[] memory transactions = safeUtil.getPendingTransactions(getSafe());
 
             for (uint256 i = 0; i < transactions.length; ++i) {
                 try safeUtil.simulate(
@@ -726,6 +729,73 @@ abstract contract ManageClusterBase is BatchBuilder {
             }
         }
 
-        if (getTimelock(false) != address(0)) {}
+        address timelock = getTimelock(false);
+        if (timelock != address(0)) {
+            console.log("Simulating pending timelock transactions");
+
+            bytes32[] memory topic = new bytes32[](1);
+            topic[0] = keccak256("CallScheduled(bytes32,uint256,address,uint256,bytes,bytes32,uint256)");
+
+            uint256 intervals;
+            uint256 fromBlock;
+            {
+                uint256 timeDiff = block.timestamp;
+                vm.createSelectFork(getDeploymentRpcUrl(), block.number - 1e4);
+                timeDiff -= block.timestamp;
+                selectFork(block.chainid);
+
+                intervals = TimelockController(payable(timelock)).getMinDelay() / timeDiff + 1;
+                fromBlock = block.number - intervals * 1e4;
+            }
+
+            while (intervals > 0) {
+                Vm.EthGetLogs[] memory ethLogs = vm.eth_getLogs(fromBlock, fromBlock + 1e4, timelock, topic);
+
+                for (uint256 i = 0; i < ethLogs.length; ++i) {
+                    bytes32 id = ethLogs[i].topics[1];
+
+                    if (!TimelockController(payable(timelock)).isOperationPending(id)) continue;
+
+                    (address target, uint256 value, bytes memory data, bytes32 predecessor, uint256 delay) =
+                        abi.decode(ethLogs[i].data, (address, uint256, bytes, bytes32, uint256));
+
+                    vm.store(
+                        timelock,
+                        keccak256(abi.encode(uint256(id), uint256(1))),
+                        bytes32(uint256(block.timestamp - delay))
+                    );
+
+                    vm.deal(address(this), value);
+                    vm.prank(timelock);
+                    try TimelockController(payable(timelock)).execute(target, value, data, predecessor, bytes32(0)) {}
+                        catch {}
+                }
+
+                fromBlock += 1e4;
+                intervals--;
+            }
+
+            Vm.Log[] memory logs = vm.getRecordedLogs();
+            for (uint256 i = 0; i < logs.length; ++i) {
+                bytes32 id = logs[i].topics[1];
+
+                if (
+                    timelock != logs[i].emitter || topic[0] != logs[i].topics[0]
+                        || !TimelockController(payable(timelock)).isOperationPending(id)
+                ) continue;
+
+                (address target, uint256 value, bytes memory data, bytes32 predecessor, uint256 delay) =
+                    abi.decode(logs[i].data, (address, uint256, bytes, bytes32, uint256));
+
+                vm.store(
+                    timelock, keccak256(abi.encode(uint256(id), uint256(1))), bytes32(uint256(block.timestamp - delay))
+                );
+
+                vm.deal(address(this), value);
+                vm.prank(timelock);
+                try TimelockController(payable(timelock)).execute(target, value, data, predecessor, bytes32(0)) {}
+                    catch {}
+            }
+        }
     }
 }

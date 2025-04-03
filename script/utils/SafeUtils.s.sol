@@ -43,6 +43,18 @@ abstract contract SafeUtil is ScriptExtended {
         bytes signature;
     }
 
+    struct TransactionSimple {
+        address safe;
+        string txId;
+        string txStatus;
+        address to;
+        uint256 value;
+        bytes data;
+        Operation operation;
+        uint256 nonce;
+        bytes32 hash;
+    }
+
     struct Delegate {
         address safe;
         address delegator;
@@ -144,61 +156,70 @@ abstract contract SafeUtil is ScriptExtended {
         return delegates;
     }
 
-    function getPendingTransactions(address safe) public returns (Transaction[] memory) {
-        string memory endpoint =
-            string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false&limit=10");
+    function getPendingTransactions(address safe) public returns (TransactionSimple[] memory) {
+        string memory endpoint = string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/transactions/queued");
         (uint256 status, bytes memory response) = endpoint.get();
 
         require(status == 200, "getPendingTransactions: Failed to get pending transactions");
 
-        uint256 nonce = getStatus(safe).nonce;
         uint256 length = 0;
         uint256 counter = 0;
 
-        while (vm.keyExists(string(response), _indexedKey(".results", length, ".nonce"))) {
-            if (vm.parseJsonUint(string(response), _indexedKey(".results", length, ".nonce")) >= nonce) {
+        while (vm.keyExists(string(response), _indexedKey(".results", length, ".type"))) {
+            if (_strEq(vm.parseJsonString(string(response), _indexedKey(".results", length, ".type")), "TRANSACTION")) {
                 ++counter;
             }
             ++length;
         }
 
-        Transaction[] memory transactions = new Transaction[](counter);
+        TransactionSimple[] memory transactions = new TransactionSimple[](counter);
         counter = 0;
-        for (int256 index = int256(length) - 1; index >= 0; --index) {
-            uint256 i = uint256(index);
-            uint256 txNonce = vm.parseJsonUint(string(response), _indexedKey(".results", i, ".nonce"));
+        for (uint256 i = 0; i < transactions.length; ++i) {
+            if (
+                !vm.keyExists(string(response), _indexedKey(".results", i, ".type"))
+                    || !_strEq(vm.parseJsonString(string(response), _indexedKey(".results", i, ".type")), "TRANSACTION")
+            ) {
+                continue;
+            }
 
-            if (txNonce < nonce) continue;
-
-            transactions[counter] = Transaction({
-                safe: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".safe")),
-                sender: address(0),
-                to: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".to")),
-                value: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".value")),
-                data: "",
-                operation: Operation(vm.parseJsonUint(string(response), _indexedKey(".results", i, ".operation"))),
-                safeTxGas: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".safeTxGas")),
-                baseGas: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".baseGas")),
-                gasPrice: vm.parseJsonUint(string(response), _indexedKey(".results", i, ".gasPrice")),
-                gasToken: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".gasToken")),
-                refundReceiver: vm.parseJsonAddress(string(response), _indexedKey(".results", i, ".refundReceiver")),
-                nonce: txNonce,
-                hash: vm.parseJsonBytes32(string(response), _indexedKey(".results", i, ".safeTxHash")),
-                signature: ""
-            });
-
-            try vm.parseJsonBytes(string(response), _indexedKey(".results", i, ".data")) returns (bytes memory data) {
-                transactions[counter].data = data;
-            } catch {}
-
-            ++counter;
+            transactions[counter++] =
+                getTransaction(vm.parseJsonString(string(response), _indexedKey(".results", i, ".transaction.id")));
         }
 
         return transactions;
     }
 
+    function getTransaction(string memory txId) public returns (TransactionSimple memory) {
+        string memory endpoint = string.concat(getTransactionsAPIBaseURL(), txId);
+        (uint256 status, bytes memory response) = endpoint.get();
+
+        require(status == 200, "getTransaction: Failed to get transaction");
+
+        TransactionSimple memory transaction = TransactionSimple({
+            safe: vm.parseJsonAddress(string(response), ".safeAddress"),
+            txId: vm.parseJsonString(string(response), ".txId"),
+            txStatus: vm.parseJsonString(string(response), ".txStatus"),
+            to: vm.parseJsonAddress(string(response), ".txInfo.to.value"),
+            value: vm.parseJsonUint(string(response), ".txInfo.value"),
+            data: "",
+            operation: Operation(vm.parseJsonUint(string(response), ".txData.operation")),
+            nonce: vm.parseJsonUint(string(response), ".detailedExecutionInfo.nonce"),
+            hash: vm.parseJsonBytes32(string(response), ".detailedExecutionInfo.safeTxHash")
+        });
+
+        try vm.parseJsonBytes(string(response), ".txData.hexData") returns (bytes memory data) {
+            transaction.data = data;
+        } catch {}
+
+        return transaction;
+    }
+
     function getSafesAPIBaseURL() public view returns (string memory) {
         return string.concat(getSafeBaseAPIURL("v1"), "safes/");
+    }
+
+    function getTransactionsAPIBaseURL() public view returns (string memory) {
+        return string.concat(getSafeBaseAPIURL("v1"), "transactions/");
     }
 
     function getOwnersAPIBaseURL() public view returns (string memory) {
