@@ -130,6 +130,20 @@ function verify_broadcast {
                     contractName=EulerRouter
                     constructorBytesSize=64
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                elif [[ $contractName == "GovernorAccessControlEmergencyFactory" || $function == "deploy((uint256,address[],address[],address[]),(uint256,address[],address[],address[]),address[])" ]]; then
+                    if [[ $index -eq 0 ]]; then
+                        contractName=TimelockController
+                        constructorBytesSize=192
+                        constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                    elif [[ $index -eq 1 ]]; then
+                        contractName=TimelockController
+                        constructorBytesSize=192
+                        constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                    elif [[ $index -eq 2 ]]; then
+                        contractName=GovernorAccessControlEmergency
+                        constructorBytesSize=64
+                        constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                    fi
                 elif [[ $contractName == "GenericFactory" || $function == "createProxy(address,bool,bytes)" ]]; then
                     if [[ $index -eq 0 ]]; then
                         upgradable=$(echo "$arguments" | jq -r '.[1]')

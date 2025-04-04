@@ -18,6 +18,7 @@ abstract contract Addresses {
     address internal constant sfrxETH = 0xac3E018457B222d93114458476f3E3416Abbe38F;
     address internal constant ETHx = 0xA35b1B31Ce002FBF2058D22F30f95D405200A15b;
     address internal constant rswETH = 0xFAe103DC9cf190eD75350761e95403b7b8aFa6c0;
+    address internal constant tETH = 0xD11c452fc99cF405034ee446803b6F6c1F6d5ED8;
     address internal constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address internal constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address internal constant PYUSD = 0x6c3ea9036406852006290770BEdFcAbA0e23A0e8;
@@ -25,6 +26,7 @@ abstract contract Addresses {
     address internal constant wM = 0x437cc33344a0B27A429f795ff6B469C72698B291;
     address internal constant mTBILL = 0xDD629E5241CbC5919847783e6C96B2De4754e438;
     address internal constant USDe = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
+    address internal constant eUSDe = 0x90D2af7d622ca3141efA4d8f1F24d86E5974Cc8F;
     address internal constant wUSDM = 0x57F5E098CaD7A3D1Eed53991D4d66C45C9AF7812;
     address internal constant EURC = 0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c;
     address internal constant sUSDe = 0x9D39A5DE30e57443BfF2A8307A4256c8797A3497;
@@ -46,6 +48,8 @@ abstract contract Addresses {
     address internal constant deUSD = 0x15700B564Ca08D9439C58cA5053166E8317aa138;
     address internal constant sdeUSD = 0x5C5b196aBE0d54485975D1Ec29617D42D9198326;
     address internal constant mBASIS = 0x2a8c22E3b10036f3AEF5875d04f8441d4188b656;
+    address internal constant mEDGE = 0xbB51E2a15A9158EBE2b0Ceb8678511e063AB7a55;
+    address internal constant mMEV = 0x030b69280892c888670EDCDCD8B69Fd8026A0BF3;
     address internal constant tBTC = 0x18084fbA666a33d37592fA2633fD49a74DD93a88;
     address internal constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
     address internal constant cbBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;

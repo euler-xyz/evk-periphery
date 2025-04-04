@@ -55,6 +55,10 @@ abstract contract ScriptExtended is Script {
     }
 
     function getSafeSigner() internal view returns (address) {
+        if (vm.envOr("FORCE_SAFE_SIGNER_ZERO", false)) {
+            return address(0);
+        }
+
         return safeSignerAddress;
     }
 
@@ -62,9 +66,8 @@ abstract contract ScriptExtended is Script {
         return getSafe(true);
     }
 
-    function getSafe(bool failOnNotFound) internal view returns (address) {
+    function getSafe(bool failOnNotFound) internal view returns (address safe) {
         string memory safeAddress = vm.envOr("SAFE_ADDRESS", string(""));
-        address safe;
 
         if (_strEq(safeAddress, string(""))) {
             safeAddress = vm.envOr("safe_address", string(""));
@@ -77,7 +80,6 @@ abstract contract ScriptExtended is Script {
         if (safe == address(0) && bytes(safeAddress).length == 42) safe = _toAddress(safeAddress);
 
         require(!failOnNotFound || safe != address(0), "getSafe: Cannot retrieve the Safe address");
-        return safe;
     }
 
     function getSafeNonce() internal view returns (uint256) {
@@ -88,6 +90,25 @@ abstract contract ScriptExtended is Script {
         }
 
         return nonce;
+    }
+
+    function getTimelock(bool failOnNotFound) internal view returns (address timelock) {
+        string memory timelockAddress = vm.envOr("timelock_address", string(""));
+
+        if (bytes(timelockAddress).length > 0 && bytes(timelockAddress).length < 42) {
+            if (_strEq(timelockAddress, "wildcard") || _strEq(timelockAddress, "Wildcard")) {
+                timelockAddress = "accessControlEmergencyGovernorWildcardTimelockController";
+            }
+
+            timelock =
+                getAddressFromJson(getAddressesJson("GovernorAddresses.json"), string.concat(".", timelockAddress));
+        }
+
+        if (timelock == address(0) && bytes(timelockAddress).length == 42) {
+            timelock = _toAddress(timelockAddress);
+        }
+
+        require(!failOnNotFound || timelock != address(0), "getTimelock: Cannot retrieve the Timelock address");
     }
 
     function getDeploymentRpcUrl() internal view returns (string memory) {

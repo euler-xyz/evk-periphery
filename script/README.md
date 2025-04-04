@@ -137,6 +137,10 @@ You can pass `--dry-run` option to the deployment script in order to simulate th
 
 You can pass `--batch-via-safe` option to the deployment script in order to create the a batch transaction in the Safe UI. This only works if the result of the script is a transaction to be executed via the EVC batch. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file or provide a different option to derive the Safe signer key instead, i.e. `--ledger` or `--account ACC_NAME`. The address associated must either be a signer or a delegate of the Safe in order to be able to send the transactions. You can also provide the `--safe-address` option to the command instead of `SAFE_ADDRESS` environment variable.
 
+### Timelock Controller
+
+In case a timelock controller is installed as part of the governor contracts suite, you can additionally pass `--timelock-address` option with the timelock address to the deployment script in order to schedule the transactions in the timelock controller instead of trying to execute them immediately.
+
 ### Use Safe API
 
 You can pass `--use-safe-api` option to the deployment script in order to use the Safe API to create the batch transaction in the Safe UI. This option is only valid if the `--batch-via-safe` option is also used. If `--batch-via-safe` is used, but `--use-safe-api` is not used, the script will only create payload dump files that can be used with `curl` to create the transactions in the Safe UI.
@@ -154,7 +158,7 @@ If `SAFE_KEY` is not defined in the `.env` file, you can add i.e. `--ledger` or 
 Or sign and send the request manually:
 
 ```bash
-source .env && env FORCE_NO_KEY=true forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "createManually(address,address,string,int256)" $SAFE_ADDRESS <delegate> <label> <nonce> --rpc-url $DEPLOYMENT_RPC_URL
+source .env forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "createManually(address,address,string,int256)" $SAFE_ADDRESS <delegate> <label> <nonce> --rpc-url $DEPLOYMENT_RPC_URL
 ```
 
 Replace `<delegate>` with the desired delegate address and `<label>` with the label of the delegate. Label must be enclosed in quotes. Replace `<nonce>` with the nonce intended to be used for the transaction. Use 0 to automatically fetch the nonce from the Safe API.
@@ -170,7 +174,7 @@ If `SAFE_KEY` is not defined in the `.env` file, you can add i.e. `--ledger` or 
 Or sign and send the request manually:
 
 ```bash
-source .env && env FORCE_NO_KEY=true forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "removeManually(address,address)" $SAFE_ADDRESS <delegate> --rpc-url $DEPLOYMENT_RPC_URL
+source .env forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "removeManually(address,address)" $SAFE_ADDRESS <delegate> --rpc-url $DEPLOYMENT_RPC_URL
 ```
 
 Replace `<delegate>` with the delegate address to remove.
