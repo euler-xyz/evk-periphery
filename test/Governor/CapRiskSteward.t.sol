@@ -26,6 +26,8 @@ contract CapRiskStewardTest is EVaultTestBase {
     CapRiskSteward public capRiskSteward;
     address public steward;
     address public otherUser;
+    uint256 public constant MAX_ADJUST_FACTOR = 1.5e18;
+    uint256 public constant CHARGE_INTERVAL = 3 days;
 
     function setUp() public override {
         super.setUp();
@@ -34,15 +36,65 @@ contract CapRiskStewardTest is EVaultTestBase {
         otherUser = makeAddr("otherUser");
         mockTarget = new MockTarget();
         governorAccessControl = new GovernorAccessControl(address(evc), admin);
-        capRiskSteward = new CapRiskSteward(address(governorAccessControl), admin);
+        capRiskSteward = new CapRiskSteward(address(governorAccessControl), admin, MAX_ADJUST_FACTOR, CHARGE_INTERVAL);
 
         eTST.setCaps(_encodeCap(6000e18), _encodeCap(600e18));
         eTST.setGovernorAdmin(address(governorAccessControl));
+        eTST2.setCaps(_encodeCap(type(uint256).max), _encodeCap(type(uint256).max));
+        eTST2.setGovernorAdmin(address(governorAccessControl));
 
         vm.startPrank(admin);
         governorAccessControl.grantRole(governorAccessControl.WILD_CARD(), address(capRiskSteward));
         capRiskSteward.grantRole(IGovernance.setCaps.selector, steward);
         vm.stopPrank();
+    }
+
+    function test_setCaps_unlimited() public {
+        vm.startPrank(steward);
+        vm.warp(1_000_000);
+
+        (bool success,) = address(capRiskSteward).call(
+            abi.encodePacked(
+                abi.encodeCall(
+                    IGovernance.setCaps, (_encodeCap(type(uint256).max / 1e18), _encodeCap(type(uint256).max / 1e18))
+                ),
+                address(eTST2)
+            )
+        );
+        assertFalse(success);
+    }
+
+    function test_setCaps_saneAmount() public {
+        vm.prank(eTST2.governorAdmin());
+        eTST2.setCaps(_encodeCap(2 * MAX_SANE_AMOUNT), _encodeCap(MAX_SANE_AMOUNT));
+        vm.stopPrank();
+
+        vm.startPrank(steward);
+        vm.warp(1_000_000);
+        uint256 snapshot = vm.snapshot();
+
+        // Disallow increase over MAX_SANE_AMOUNT
+        (bool success,) = address(capRiskSteward).call(
+            abi.encodePacked(
+                abi.encodeCall(
+                    IGovernance.setCaps, (_encodeCap(2 * MAX_SANE_AMOUNT) + 1, _encodeCap(MAX_SANE_AMOUNT) + 1)
+                ),
+                address(eTST2)
+            )
+        );
+        assertFalse(success);
+
+        // Allow decrease under MAX_SANE_AMOUNT
+        vm.revertTo(snapshot);
+        (success,) = address(capRiskSteward).call(
+            abi.encodePacked(
+                abi.encodeCall(
+                    IGovernance.setCaps, (_encodeCap(3 * MAX_SANE_AMOUNT / 2), _encodeCap(2 * MAX_SANE_AMOUNT / 3))
+                ),
+                address(eTST2)
+            )
+        );
+        assertTrue(success);
     }
 
     function test_setCaps_fullCapacity() public {
