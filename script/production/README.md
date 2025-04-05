@@ -42,14 +42,9 @@ Options:
 
 Always try to use the `--dry-run` option first to simulate the transactions and check for any potential issues.
 
-# Emergency Cluster Pause
+# Emergency Vault Pause
 
-This section assumes that the cluster is governed by the `GovernorAccessControlEmergency` contract with a Safe multisig having an appropriate emergency role granted to it. It also assumes that at least the following environment variables are defined in the `.env` file or their corresponding command line arguments will be provided:
-
-- `DEPLOYMENT_RPC_URL` or `--rpc-url RPC_URL`
-- `DEPLOYER_KEY` or `--account ACCOUNT` or `--ledger` (this must be a signer or a delegate of the Safe)
-- `SAFE_ADDRESS` or `--safe-address ADDRESS`
-- `SAFE_NONCE` or `--safe-nonce NONCE` (this is only necessary if Safe Transaction Service is not available on the network and otherwise may be omitted)
+In case of a governor contract installed, this section assumes that the cluster is governed by the `GovernorAccessControlEmergency` contract with a Safe multisig having an appropriate emergency role granted to it.
 
 > **IMPORTANT**: Environment variables defined in the `.env` file take precedence over the command line arguments!
 
@@ -79,47 +74,40 @@ git clone https://github.com/euler-xyz/euler-periphery.git && cd euler-periphery
 forge install
 ```
 
-4. Do necessary changes in the dedicated cluster script file (e.g. `./script/production/mainnet/clusters/PrimeCluster.s.sol`).
-
-- to reduce the LTVs, search for `cluster.ltvs` and `cluster.externalLTVs` and edit the matrix values accordingly. If only borrow LTVs need to be reduced, search for `cluster.borrowLTVsOverride` and `cluster.externalBorrowLTVsOverride` and define the matrices accordingly.
-
-- to pause vault operations, search for `cluster.hookedOps` and edit it in the following way:
-  - to pause all operations for all the vaults in the cluster, use the following value: `32767`
-  - to pause all operations except for the liquidations for all the vaults in the cluster, use the following value: `30719`
-  - to pause vaults selectively, instead of defining `cluster.hookedOps` value, define `cluster.hookedOpsOverride[SYMBOL]` for each vault you want to pause and use values as described above
-
-- to reduce the supply or borrow caps, search for `cluster.supplyCaps` and `cluster.borrowCaps` and edit the values accordingly
-
-5. Compile the contracts:
+4. Compile the contracts:
 
 ```bash
 forge clean && forge compile
 ```
 
-6. Run the script:
+5. Run the script:
 
-If environment variables are defined in the `.env` file:
-```bash
-./script/production/ExecuteSolidityScript.sh PATH_TO_CLUSTER_SPECIFIC_SCRIPT --batch-via-safe
-```
+Command line arguments to be considered:
 
-If environment variables are **not** defined in the `.env` file:
+- `--rpc-url` if `DEPLOYMENT_RPC_URL` not defined in `.env`
+- `--account ACCOUNT` or `--ledger` if `DEPLOYER_KEY` not defined in `.env` and the transaction if not meant to be executed via Safe
+- `--batch-via-safe` if operations must be executed via Safe multisig (typically should always be used)
+- `--safe-address SAFE_ADDRESS` authorized Safe multisig address
+- `--vault-address VAULT_ADDRESS` the vault being a subject of the emegency operation
+- `--emergency-ltv-collateral` should be used if you intend to disable the `VAULT_ADDRESS` from being used as collateral by modifying the borrow LTVs
+- `--emergency-ltv-borrowing` should be used if you intend to disable all collaterals on the `VAULT_ADDRESS` by modifying the borrow LTVs
+- `--emergency-caps` should be used if you intend to set the supply and the borrow caps of the `VAULT_ADDRESS` to zero
+- `--emergency-operations` should be used if you intend disable all the operations of the `VAULT_ADDRESS`
+
 ```bash
-./script/production/ExecuteSolidityScript.sh PATH_TO_CLUSTER_SPECIFIC_SCRIPT --batch-via-safe --rpc-url RPC_URL --account ACCOUNT --safe-address SAFE_ADDRESS
+./script/production/ExecuteSolidityScript.sh PATH_TO_CLUSTER_SPECIFIC_SCRIPT --rpc-url RPC_URL --batch-via-safe --safe-address SAFE_ADDRESS --vault-address VAULT_ADDRESS [--emergency-ltv-collateral] [--emergency-ltv-borrowing] [--emergency-caps] [--emergency-caps]
 ```
 
 Example command for the `PrimeCluster.s.sol` script:
 
 ```bash
-./script/production/ExecuteSolidityScript.sh script/production/mainnet/clusters/PrimeCluster.s.sol --batch-via-safe
+./script/production/ExecuteSolidityScript.sh script/production/mainnet/clusters/PrimeCluster.s.sol --rpc-url https://ethereum-rpc.publicnode.com --batch-via-safe --safe-address 0xB1345E7A4D35FB3E6bF22A32B3741Ae74E5Fba27 --vault-address 0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2 --emergency-ltv-collateral --emergency-caps
 ```
 
-7. Create the transaction in the Safe UI. 
+6. Create the transaction in the Safe UI (if the transaction if meant to be executed via Safe)
 
-If Safe Transaction Service is available you can either add `--use-safe-api` option to the previous command (then the transaction will be automatically created in the Safe UI) or run the `curl` command as displayed in the console output after running the script. The `<payload file>` is created by the script and can be found under the following path: `script/deployments/[YOUR_SPECIFIED_DIRECTORY]/[CHAIN_ID]/output/SafeTransaction_*.json`.
+Use the Safe UI Transaction Builder tool to create the transaction. Load the `<payload file>` file created by the script that can be found under the following path: `script/deployments/[YOUR_SPECIFIED_DIRECTORY]/[CHAIN_ID]/output/SafeBatchBuilder_*.json`.
 
-If Safe Transaction Service is not available, use the Safe UI Transaction Builder tool to create the transaction. Select `Custom data` option. Look up the `SafeTransaction_*.json` file. Copy the `to` address from the file and paste it into the `Enter Address` field. The `To Address` field should get automatically filled in with the same address. Put `0` into the `ETH value` field. Copy the `data` field from the file and paste it into the `Data (Hex encoded)` field. Click `Add transaction` and proceed with the transaction creation in the Safe UI.
+7. Coordinate signing process with the other Safe multisig signers.
 
-8. Coordinate signing process with the Safe multisig signers.
-
-9. Execute the transaction in the Safe UI.
+8. Execute the transaction in the Safe UI.

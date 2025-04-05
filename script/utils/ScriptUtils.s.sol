@@ -648,7 +648,7 @@ abstract contract BatchBuilder is ScriptUtils {
     TimelockCall[] internal timelockCalls;
 
     function getAppropriateOnBehalfOfAccount() internal view returns (address) {
-        address timelock = getTimelock(false);
+        address timelock = getTimelock();
 
         if (timelock != address(0)) {
             return timelock;
@@ -788,7 +788,7 @@ abstract contract BatchBuilder is ScriptUtils {
 
         dumpBatch(getDeployer());
 
-        address payable timelock = payable(getTimelock(false));
+        address payable timelock = payable(getTimelock());
         if (timelock == address(0) || !allowTimelock) {
             console.log("Executing the batch directly on the EVC (%s)\n", coreAddresses.evc);
             IEVC(coreAddresses.evc).batch{value: getBatchValue()}(batchItems);
@@ -836,8 +836,10 @@ abstract contract BatchBuilder is ScriptUtils {
         if (batchItems.length == 0) return;
 
         SafeTransaction transaction = new SafeTransaction();
+        if (isEmergency()) transaction.setSimulationOff();
+
         address safe = getSafe();
-        address payable timelock = payable(getTimelock(false));
+        address payable timelock = payable(getTimelock());
 
         dumpBatch(safe);
 

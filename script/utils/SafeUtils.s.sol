@@ -8,7 +8,7 @@ import {console} from "forge-std/console.sol";
 
 // inspired by https://github.com/ind-igo/forge-safe
 
-abstract contract SafeUtil is ScriptExtended {
+contract SafeUtil is ScriptExtended {
     using Surl for *;
 
     enum Operation {
@@ -285,7 +285,20 @@ abstract contract SafeUtil is ScriptExtended {
 contract SafeTransaction is SafeUtil {
     using Surl for *;
 
+    bool internal simulateBeforeCreation;
     Transaction internal transaction;
+
+    constructor() {
+        simulateBeforeCreation = true;
+    }
+
+    function setSimulationOn() public {
+        simulateBeforeCreation = true;
+    }
+
+    function setSimulationOff() public {
+        simulateBeforeCreation = false;
+    }
 
     function create(bool isCallOperation, address safe, address target, uint256 value, bytes memory data, uint256 nonce)
         public
@@ -323,16 +336,12 @@ contract SafeTransaction is SafeUtil {
             );
             _dumpBatchBuilderFile(batchBuilderFileName);
         }
-
-        console.log("Use Transaction Builder and load the Batch Builder file or sign the following hash:");
-        console.logBytes32(transaction.hash);
-
-        console.log("");
-        console.log("and send the following POST request adding the sender address and the signature to the payload:");
-        console.log(_getCreateCurlCommand());
     }
 
     function simulate(bool isCallOperation, address safe, address target, uint256 value, bytes memory data) public {
+        bool simulateBeforeCreationCache = simulateBeforeCreation;
+        simulateBeforeCreation = true;
+
         delete transaction;
         transaction.safe = safe;
         transaction.sender = address(0);
@@ -341,20 +350,8 @@ contract SafeTransaction is SafeUtil {
         transaction.data = data;
         transaction.operation = isCallOperation ? Operation.CALL : Operation.DELEGATECALL;
         _simulate();
-    }
 
-    function initializeAndDump(
-        bool isCallOperation,
-        address safe,
-        address target,
-        uint256 value,
-        bytes memory data,
-        uint256 nonce,
-        string memory fileName
-    ) public {
-        delete transaction;
-        _initialize(isCallOperation, safe, target, value, data, nonce);
-        _dumpSafeTransaction(fileName);
+        simulateBeforeCreation = simulateBeforeCreationCache;
     }
 
     function _initialize(
@@ -388,6 +385,8 @@ contract SafeTransaction is SafeUtil {
     }
 
     function _simulate() private {
+        if (!simulateBeforeCreation) return;
+
         if (
             transaction.sender != address(0) && isSafeOwnerSimulate() && isTransactionServiceAPIAvailable()
                 && !isSafeOwnerOrDelegate(transaction.safe, transaction.sender)
@@ -416,25 +415,6 @@ contract SafeTransaction is SafeUtil {
                 "SafeBatchBuilder_", vm.toString(transaction.nonce), "_", vm.toString(transaction.safe), ".json"
             );
             _dumpBatchBuilderFile(batchBuilderFileName);
-        }
-
-        if (!isUseSafeApi()) {
-            console.log("\nSend the following POST request:");
-            console.log(_getCreateCurlCommand());
-            return;
-        } else if (!isBroadcast()) {
-            return;
-        }
-
-        string memory endpoint =
-            string.concat(getSafesAPIBaseURL(), vm.toString(transaction.safe), "/multisig-transactions/");
-        (uint256 status, bytes memory response) = endpoint.post(getHeaders(), _getPayload());
-
-        if (status == 201) {
-            console.log("Safe transaction created successfully");
-        } else {
-            console.log(string(response));
-            revert("Safe transaction creation failed!");
         }
     }
 
@@ -517,21 +497,6 @@ contract SafeTransaction is SafeUtil {
         console.log("Safe Batch Builder file saved to %s", fileName);
         vm.writeJson(_getBatchBuilderFile(), string.concat(vm.projectRoot(), "/script/", fileName));
     }
-
-    function _getCreateCurlCommand() internal view returns (string memory) {
-        if (isTransactionServiceAPIAvailable()) {
-            return string.concat(
-                "curl -X POST ",
-                getSafesAPIBaseURL(),
-                vm.toString(transaction.safe),
-                "/multisig-transactions/ ",
-                getHeadersString(),
-                "--data-binary @<payload file>\n"
-            );
-        } else {
-            return "Transaction service API is not available. Transaction must be created manually via Safe UI.";
-        }
-    }
 }
 
 contract SafeMultisendBuilder is SafeUtil {
@@ -555,11 +520,27 @@ contract SafeMultisendBuilder is SafeUtil {
         return multisendItems.length > 0;
     }
 
-    function clearMultisendItems() public {
+    function executeMultisend(address safe, uint256 safeNonce) public {
+        if (multisendItems.length == 0) return;
+
+        console.log("\nExecuting the multicall via Safe (%s)", safe);
+
+        _simulateMultisend(safe);
+
+        SafeTransaction transaction = new SafeTransaction();
+
+        _dumpMultisendBatchBuilderFile(
+            safe, string.concat("SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), ".json")
+        );
+
+        transaction.create(
+            false, safe, _getMultisendAddress(block.chainid), _getMultisendValue(), _getMultisendCalldata(), safeNonce
+        );
+
         delete multisendItems;
     }
 
-    function getMultisendCalldata() public view returns (bytes memory) {
+    function _getMultisendCalldata() internal view returns (bytes memory) {
         bytes memory data;
         for (uint256 i = 0; i < multisendItems.length; ++i) {
             data = bytes.concat(
@@ -576,13 +557,13 @@ contract SafeMultisendBuilder is SafeUtil {
         return abi.encodeWithSignature("multiSend(bytes)", data);
     }
 
-    function getMultisendValue() public view returns (uint256 value) {
+    function _getMultisendValue() internal view returns (uint256 value) {
         for (uint256 i = 0; i < multisendItems.length; ++i) {
             value += multisendItems[i].value;
         }
     }
 
-    function getMultisendAddress(uint256 chainId) public pure returns (address) {
+    function _getMultisendAddress(uint256 chainId) internal pure returns (address) {
         if (chainId == 1 || chainId == 5 || chainId == 8453 || chainId == 42161 || chainId == 43114) {
             return 0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761;
         } else {
@@ -590,9 +571,7 @@ contract SafeMultisendBuilder is SafeUtil {
         }
     }
 
-    function simulateMultisend(address caller) public {
-        if (!multisendItemExists()) return;
-
+    function _simulateMultisend(address caller) internal {
         console.log("Simulating the multisend call execution as %s", caller);
 
         vm.startPrank(caller);
@@ -605,7 +584,7 @@ contract SafeMultisendBuilder is SafeUtil {
         vm.stopPrank();
     }
 
-    function dumpMultisendBatchBuilderFile(address safe, string memory fileName) public {
+    function _dumpMultisendBatchBuilderFile(address safe, string memory fileName) internal {
         console.log("Safe Batch Builder file saved to %s", fileName);
         vm.writeJson(_getBatchBuilderFile(safe), string.concat(vm.projectRoot(), "/script/", fileName));
     }
@@ -629,143 +608,5 @@ contract SafeMultisendBuilder is SafeUtil {
         }
 
         return vm.serializeString("content", "transactions", transactions);
-    }
-}
-
-contract SafeDelegation is SafeUtil {
-    using Surl for *;
-
-    Delegate internal data;
-
-    function create(address safe, address delegate, string memory label) public {
-        _initialize(safe, delegate, label);
-        _create();
-    }
-
-    function createManually(address safe, address delegate, string memory label) public {
-        _initialize(safe, delegate, label);
-        data.delegator = address(0);
-        data.signature = "";
-
-        console.log("Sign the following hash:");
-        console.logBytes32(data.hash);
-
-        console.log("");
-        console.log(
-            "and send the following POST request adding the delegator address and the signature to the payload:"
-        );
-        console.log(
-            string.concat(
-                "curl -X POST ", getDelegatesAPIBaseURL(), getHeadersString(), "-d '", _getCreatePayload(), "'"
-            )
-        );
-    }
-
-    function remove(address safe, address delegate) public {
-        _initialize(safe, delegate, "");
-        _remove();
-    }
-
-    function removeManually(address safe, address delegate) public {
-        _initialize(safe, delegate, "");
-
-        data.delegator = address(0);
-        data.signature = "";
-
-        console.log("Sign the following hash:");
-        console.logBytes32(data.hash);
-
-        console.log("");
-        console.log(
-            "and send the following DELETE request adding the delegator address and the signature to the payload:"
-        );
-        console.log(
-            string.concat(
-                "curl -X DELETE ",
-                getDelegatesAPIBaseURL(),
-                vm.toString(data.delegate),
-                "/ ",
-                getHeadersString(),
-                "-d '",
-                _getRemovePayload(),
-                "'"
-            )
-        );
-    }
-
-    function _initialize(address safe, address delegate, string memory label) private {
-        data.safe = safe;
-        data.delegator = getSafeSigner();
-        data.delegate = delegate;
-        data.label = label;
-        data.totp = block.timestamp / 1 hours;
-        data.hash = _getHash();
-
-        if (data.delegator == address(0)) {
-            data.signature = "";
-        } else {
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(data.delegator, data.hash);
-            data.signature = abi.encodePacked(r, s, v);
-        }
-    }
-
-    function _create() private {
-        (uint256 status, bytes memory response) = getDelegatesAPIBaseURL().post(getHeaders(), _getCreatePayload());
-
-        if (status == 201) {
-            console.log("Safe delegate creation successful");
-        } else {
-            console.log(string(response));
-            revert("Safe delegate creation failed!");
-        }
-    }
-
-    function _remove() private {
-        string memory endpoint = string.concat(getDelegatesAPIBaseURL(), vm.toString(data.delegate), "/");
-        (uint256 status, bytes memory response) = endpoint.del(getHeaders(), _getRemovePayload());
-
-        if (status == 204) {
-            console.log("Safe delegate removal successful");
-        } else {
-            console.log(string(response));
-            revert("Safe delegate removal failed!");
-        }
-    }
-
-    function _getCreatePayload() private returns (string memory) {
-        string memory payload = "";
-        payload = vm.serializeAddress("payload", "safe", data.safe);
-        payload = vm.serializeAddress("payload", "delegate", data.delegate);
-        payload = vm.serializeAddress("payload", "delegator", data.delegator);
-        payload = vm.serializeString("payload", "label", data.label);
-        payload = vm.serializeBytes("payload", "signature", data.signature);
-        return payload;
-    }
-
-    function _getRemovePayload() private returns (string memory) {
-        string memory payload = "";
-        payload = vm.serializeAddress("payload", "safe", data.safe);
-        payload = vm.serializeAddress("payload", "delegator", data.delegator);
-        payload = vm.serializeBytes("payload", "signature", data.signature);
-        return payload;
-    }
-
-    function _getHash() private view returns (bytes32) {
-        return keccak256(
-            abi.encodePacked(
-                hex"1901",
-                keccak256(
-                    abi.encode(
-                        keccak256("EIP712Domain(string name,string version,uint256 chainId)"),
-                        keccak256("Safe Transaction Service"),
-                        keccak256("1.0"),
-                        block.chainid
-                    )
-                ),
-                keccak256(
-                    abi.encode(keccak256("Delegate(address delegateAddress,uint256 totp)"), data.delegate, data.totp)
-                )
-            )
-        );
     }
 }

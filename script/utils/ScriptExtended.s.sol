@@ -92,7 +92,7 @@ abstract contract ScriptExtended is Script {
         return nonce;
     }
 
-    function getTimelock(bool failOnNotFound) internal view returns (address timelock) {
+    function getTimelock() internal view returns (address timelock) {
         string memory timelockAddress = vm.envOr("timelock_address", string(""));
 
         if (bytes(timelockAddress).length > 0 && bytes(timelockAddress).length < 42) {
@@ -107,8 +107,6 @@ abstract contract ScriptExtended is Script {
         if (timelock == address(0) && bytes(timelockAddress).length == 42) {
             timelock = _toAddress(timelockAddress);
         }
-
-        require(!failOnNotFound || timelock != address(0), "getTimelock: Cannot retrieve the Timelock address");
     }
 
     function getDeploymentRpcUrl() internal view returns (string memory) {
@@ -143,8 +141,31 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("safe_owner_simulate", string("")), "--safe-owner-simulate");
     }
 
-    function isUseSafeApi() internal view returns (bool) {
-        return _strEq(vm.envOr("use_safe_api", string("")), "--use-safe-api");
+    function isEmergency() internal view returns (bool) {
+        return isEmergencyLTVCollateral() || isEmergencyLTVBorrowing() || isEmergencyCaps() || isEmergencyOperations();
+    }
+
+    function isEmergencyLTVCollateral() internal view returns (bool) {
+        return _strEq(vm.envOr("emergency_ltv_collateral", string("")), "--emergency-ltv-collateral");
+    }
+
+    function isEmergencyLTVBorrowing() internal view returns (bool) {
+        return _strEq(vm.envOr("emergency_ltv_borrowing", string("")), "--emergency-ltv-borrowing");
+    }
+
+    function isEmergencyCaps() internal view returns (bool) {
+        return _strEq(vm.envOr("emergency_caps", string("")), "--emergency-caps");
+    }
+
+    function isEmergencyOperations() internal view returns (bool) {
+        return _strEq(vm.envOr("emergency_operations", string("")), "--emergency-operations");
+    }
+
+    function getEmergencyVaultAddress() internal view returns (address) {
+        string memory vaultAddress = vm.envOr("vault_address", string(""));
+        require(isEmergency(), "getEmergencyVaultAddress: Emergency mode is not enabled");
+        require(bytes(vaultAddress).length == 42, "getEmergencyVaultAddress: Vault address is not set");
+        return _toAddress(vaultAddress);
     }
 
     function isNoStubOracle() internal view returns (bool) {

@@ -13,6 +13,7 @@ import {KinkIRMDeployer} from "../04_IRM.s.sol";
 import {EVaultDeployer, OracleRouterDeployer, EulerRouter} from "../07_EVault.s.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
 import {StubOracle} from "../utils/StubOracle.sol";
+import "evk/EVault/shared/Constants.sol";
 import "../../src/Lens/LensTypes.sol";
 
 abstract contract ManageClusterBase is BatchBuilder {
@@ -87,7 +88,6 @@ abstract contract ManageClusterBase is BatchBuilder {
 
         checkClusterDataSanity();
         simulatePendingTransactions();
-        preOperations();
 
         _;
 
@@ -96,6 +96,11 @@ abstract contract ManageClusterBase is BatchBuilder {
     }
 
     function run() public initialize {
+        if (isEmergency()) emergencyMode();
+        else managementMode();
+    }
+
+    function managementMode() public {
         // deploy the stub oracle (needed in case pull oracle is meant to be used as it might be stale)
         if (cluster.stubOracle == address(0) && !isNoStubOracle()) {
             startBroadcast();
@@ -121,7 +126,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                                 getDeployer(),
                                 abi.encodeCall(
                                     EulerRouter(oracleRouter).transferGovernance,
-                                    (getTimelock(false) == address(0) ? getSafe() : cluster.oracleRoutersGovernor)
+                                    (getTimelock() == address(0) ? getSafe() : cluster.oracleRoutersGovernor)
                                 )
                             );
                         }
@@ -154,7 +159,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                             getDeployer(),
                             abi.encodeCall(
                                 IEVault(cluster.vaults[i]).setGovernorAdmin,
-                                (getTimelock(false) == address(0) ? getSafe() : cluster.vaultsGovernor)
+                                (getTimelock() == address(0) ? getSafe() : cluster.vaultsGovernor)
                             )
                         );
                     }
@@ -377,9 +382,72 @@ abstract contract ManageClusterBase is BatchBuilder {
         executeBatch();
     }
 
+    function emergencyMode() public {
+        address emergencyVault = getEmergencyVaultAddress();
+
+        if (isEmergencyLTVCollateral()) {
+            address collateral = emergencyVault;
+
+            for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+                address vault = cluster.vaults[i];
+                (uint16 borrowLTV, uint16 liquidationLTV,, uint48 targetTimestamp,) = IEVault(vault).LTVFull(collateral);
+
+                if (borrowLTV == 0) continue;
+
+                setLTV(
+                    vault,
+                    collateral,
+                    0,
+                    liquidationLTV,
+                    targetTimestamp <= block.timestamp ? 0 : uint32(targetTimestamp - block.timestamp)
+                );
+            }
+        }
+
+        if (isEmergencyLTVBorrowing()) {
+            address vault = emergencyVault;
+            address[] memory collaterals = IEVault(vault).LTVList();
+
+            for (uint256 i = 0; i < collaterals.length; ++i) {
+                address collateral = collaterals[i];
+                (uint16 borrowLTV, uint16 liquidationLTV,, uint48 targetTimestamp,) = IEVault(vault).LTVFull(collateral);
+
+                if (borrowLTV == 0) continue;
+
+                setLTV(
+                    vault,
+                    collateral,
+                    0,
+                    liquidationLTV,
+                    targetTimestamp <= block.timestamp ? 0 : uint32(targetTimestamp - block.timestamp)
+                );
+            }
+        }
+
+        if (isEmergencyCaps()) {
+            address vault = emergencyVault;
+            uint256 decimals = IEVault(vault).decimals();
+            (uint16 supplyCap, uint16 borrowCap) = IEVault(vault).caps();
+
+            if (supplyCap != decimals || borrowCap != decimals) {
+                setCaps(vault, uint16(decimals), uint16(decimals));
+            }
+        }
+
+        if (isEmergencyOperations()) {
+            address vault = emergencyVault;
+            (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
+
+            if (hookTarget != address(0) || hookedOps != OP_MAX_VALUE) {
+                setHookConfig(vault, address(0), OP_MAX_VALUE);
+            }
+        }
+
+        executeBatch();
+    }
+
     function defineCluster() internal virtual;
     function configureCluster() internal virtual;
-    function preOperations() internal virtual {}
     function postOperations() internal virtual {}
 
     function computeRouterConfiguration(address base, address quote, string memory provider)
@@ -729,7 +797,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             }
         }
 
-        address timelock = getTimelock(false);
+        address payable timelock = payable(getTimelock());
         if (timelock != address(0)) {
             console.log("Simulating pending timelock transactions");
 
@@ -744,7 +812,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                 timeDiff -= block.timestamp;
                 selectFork(block.chainid);
 
-                intervals = TimelockController(payable(timelock)).getMinDelay() / timeDiff + 1;
+                intervals = TimelockController(timelock).getMinDelay() / timeDiff + 1;
                 fromBlock = block.number - intervals * 1e4;
             }
 
@@ -754,7 +822,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                 for (uint256 i = 0; i < ethLogs.length; ++i) {
                     bytes32 id = ethLogs[i].topics[1];
 
-                    if (!TimelockController(payable(timelock)).isOperationPending(id)) continue;
+                    if (!TimelockController(timelock).isOperationPending(id)) continue;
 
                     (address target, uint256 value, bytes memory data, bytes32 predecessor, uint256 delay) =
                         abi.decode(ethLogs[i].data, (address, uint256, bytes, bytes32, uint256));
@@ -766,8 +834,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                     );
 
                     vm.deal(address(this), value);
-                    try TimelockController(payable(timelock)).execute(target, value, data, predecessor, bytes32(0)) {}
-                        catch {}
+                    try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {} catch {}
                 }
 
                 fromBlock += 1e4;
@@ -780,7 +847,7 @@ abstract contract ManageClusterBase is BatchBuilder {
 
                 if (
                     timelock != logs[i].emitter || topic[0] != logs[i].topics[0]
-                        || !TimelockController(payable(timelock)).isOperationPending(id)
+                        || !TimelockController(timelock).isOperationPending(id)
                 ) continue;
 
                 (address target, uint256 value, bytes memory data, bytes32 predecessor, uint256 delay) =
@@ -791,8 +858,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                 );
 
                 vm.deal(address(this), value);
-                try TimelockController(payable(timelock)).execute(target, value, data, predecessor, bytes32(0)) {}
-                    catch {}
+                try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {} catch {}
             }
         }
     }
