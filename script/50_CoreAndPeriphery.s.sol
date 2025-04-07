@@ -41,6 +41,7 @@ import {
     IGovernorAccessControlEmergencyFactory,
     GovernorAccessControlEmergencyFactory
 } from "./../src/GovernorFactory/GovernorAccessControlEmergencyFactory.sol";
+import {ICapRiskStewardFactory, CapRiskStewardFactory} from "./../src/GovernorFactory/CapRiskStewardFactory.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
 import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
@@ -669,6 +670,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0)
                 && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
                 && peripheryAddresses.governorAccessControlEmergencyFactory == address(0)
+                && peripheryAddresses.capRiskStewardFactory == address(0)
         ) {
             console.log("+ Deploying Periphery factories...");
             PeripheryFactories deployer = new PeripheryFactories();
@@ -682,6 +684,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             peripheryAddresses.irmRegistry = peripheryContracts.irmRegistry;
             peripheryAddresses.governorAccessControlEmergencyFactory =
                 peripheryContracts.governorAccessControlEmergencyFactory;
+            peripheryAddresses.capRiskStewardFactory = peripheryContracts.capRiskStewardFactory;
         } else {
             console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
         }

@@ -54,9 +54,13 @@ contract CapRiskSteward is SelectorAccessControl {
     /// @param admin The address to be granted admin privileges in the SelectorAccessControl contract
     /// @param maxAdjustFactor The multiplier in WAD units used to calculate the maximum allowable cap adjustment
     /// @param chargeInterval The duration in seconds needed to recharge the adjustment factor to the maximum
-    constructor(address governorAccessControl, address IRMFactory, address admin, uint256 maxAdjustFactor, uint256 chargeInterval)
-        SelectorAccessControl(EVCUtil(governorAccessControl).EVC(), admin)
-    {
+    constructor(
+        address governorAccessControl,
+        address IRMFactory,
+        address admin,
+        uint256 maxAdjustFactor,
+        uint256 chargeInterval
+    ) SelectorAccessControl(EVCUtil(governorAccessControl).EVC(), admin) {
         governor = governorAccessControl;
         irmFactory = IRMFactory;
         MAX_ADJUST_FACTOR = maxAdjustFactor;

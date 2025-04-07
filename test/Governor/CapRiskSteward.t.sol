@@ -39,7 +39,9 @@ contract CapRiskStewardTest is EVaultTestBase {
         mockTarget = new MockTarget();
         irmFactory = new EulerKinkIRMFactory();
         governorAccessControl = new GovernorAccessControl(address(evc), admin);
-        capRiskSteward = new CapRiskSteward(address(governorAccessControl), address(irmFactory), admin, MAX_ADJUST_FACTOR, CHARGE_INTERVAL);
+        capRiskSteward = new CapRiskSteward(
+            address(governorAccessControl), address(irmFactory), admin, MAX_ADJUST_FACTOR, CHARGE_INTERVAL
+        );
 
         eTST.setCaps(_encodeCap(6000e18), _encodeCap(600e18));
         eTST.setGovernorAdmin(address(governorAccessControl));

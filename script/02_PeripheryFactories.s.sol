@@ -8,6 +8,7 @@ import {SnapshotRegistry} from "../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../src/IRMFactory/EulerKinkIRMFactory.sol";
 import {EulerIRMAdaptiveCurveFactory} from "../src/IRMFactory/EulerIRMAdaptiveCurveFactory.sol";
 import {GovernorAccessControlEmergencyFactory} from "../src/GovernorFactory/GovernorAccessControlEmergencyFactory.sol";
+import {CapRiskStewardFactory} from "../src/GovernorFactory/CapRiskStewardFactory.sol";
 
 contract PeripheryFactories is ScriptUtils {
     struct PeripheryContracts {
@@ -18,6 +19,7 @@ contract PeripheryFactories is ScriptUtils {
         address adaptiveCurveIRMFactory;
         address irmRegistry;
         address governorAccessControlEmergencyFactory;
+        address capRiskStewardFactory;
     }
 
     function run() public broadcast returns (PeripheryContracts memory deployedContracts) {
@@ -44,6 +46,8 @@ contract PeripheryFactories is ScriptUtils {
             "governorAccessControlEmergencyFactory",
             deployedContracts.governorAccessControlEmergencyFactory
         );
+        object =
+            vm.serializeAddress("peripheryFactories", "capRiskStewardFactory", deployedContracts.capRiskStewardFactory);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
@@ -52,14 +56,18 @@ contract PeripheryFactories is ScriptUtils {
     }
 
     function execute(address evc) public returns (PeripheryContracts memory deployedContracts) {
-        deployedContracts = PeripheryContracts({
-            oracleRouterFactory: address(new EulerRouterFactory(evc)),
-            oracleAdapterRegistry: address(new SnapshotRegistry(evc, getDeployer())),
-            externalVaultRegistry: address(new SnapshotRegistry(evc, getDeployer())),
-            kinkIRMFactory: address(new EulerKinkIRMFactory()),
-            adaptiveCurveIRMFactory: address(new EulerIRMAdaptiveCurveFactory()),
-            irmRegistry: address(new SnapshotRegistry(evc, getDeployer())),
-            governorAccessControlEmergencyFactory: address(new GovernorAccessControlEmergencyFactory(evc))
-        });
+        deployedContracts.oracleRouterFactory = address(new EulerRouterFactory(evc));
+        deployedContracts.oracleAdapterRegistry = address(new SnapshotRegistry(evc, getDeployer()));
+        deployedContracts.externalVaultRegistry = address(new SnapshotRegistry(evc, getDeployer()));
+        deployedContracts.kinkIRMFactory = address(new EulerKinkIRMFactory());
+        deployedContracts.adaptiveCurveIRMFactory = address(new EulerIRMAdaptiveCurveFactory());
+        deployedContracts.irmRegistry = address(new SnapshotRegistry(evc, getDeployer()));
+        deployedContracts.governorAccessControlEmergencyFactory =
+            address(new GovernorAccessControlEmergencyFactory(evc));
+        deployedContracts.capRiskStewardFactory = address(
+            new CapRiskStewardFactory(
+                deployedContracts.governorAccessControlEmergencyFactory, deployedContracts.kinkIRMFactory
+            )
+        );
     }
 }
