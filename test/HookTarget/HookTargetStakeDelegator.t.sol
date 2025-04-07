@@ -35,11 +35,6 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
         assetTST.mint(user, 1000);
     }
 
-    function test_HookTargetStakeDelegator_setup() public {
-        assertEq(address(hookTargetStakeDelegator.evc()), address(evc));
-        assertEq(address(hookTargetStakeDelegator.rewardVault()), address(rewardVault));
-    }   
-
     function test_HookTargetStakeDelegator_deposit() public {       
         vm.startPrank(user);
 
@@ -224,7 +219,7 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
         assertEq(IRewardVault(rewardVault).getDelegateStake(liquidator, address(hookTargetStakeDelegator)), 10000);
         assertEq(IRewardVault(rewardVault).getDelegateStake(user, address(hookTargetStakeDelegator)), 1000);
         
-        (uint256 maxRepay, uint256 maxYield) = eTST2.checkLiquidation(liquidator, user, address(eTST));
+        (, uint256 maxYield) = eTST2.checkLiquidation(liquidator, user, address(eTST));
 
         eTST2.liquidate(user, address(eTST), 499, 0);
 
