@@ -194,6 +194,7 @@ abstract contract GovernorAddressesLib is ScriptExtended {
         address accessControlEmergencyGovernor;
         address accessControlEmergencyGovernorAdminTimelockController;
         address accessControlEmergencyGovernorWildcardTimelockController;
+        address capRiskSteward;
     }
 
     function serializeGovernorAddresses(GovernorAddresses memory Addresses) internal returns (string memory result) {
@@ -214,6 +215,7 @@ abstract contract GovernorAddressesLib is ScriptExtended {
             "accessControlEmergencyGovernorWildcardTimelockController",
             Addresses.accessControlEmergencyGovernorWildcardTimelockController
         );
+        result = vm.serializeAddress("governorAddresses", "capRiskSteward", Addresses.capRiskSteward);
     }
 
     function deserializeGovernorAddresses(string memory json) internal pure returns (GovernorAddresses memory) {
@@ -226,7 +228,8 @@ abstract contract GovernorAddressesLib is ScriptExtended {
             ),
             accessControlEmergencyGovernorWildcardTimelockController: getAddressFromJson(
                 json, ".accessControlEmergencyGovernorWildcardTimelockController"
-            )
+            ),
+            capRiskSteward: getAddressFromJson(json, ".capRiskSteward")
         });
     }
 }

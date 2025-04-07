@@ -153,6 +153,10 @@ function verify_broadcast {
                         constructorBytesSize=64
                         constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                     fi
+                elif [[ $contractName == "CapRiskStewardFactory" || $function == "deploy(address,address,address)" ]]; then
+                    contractName=CapRiskSteward
+                    constructorBytesSize=160
+                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $contractName == "GenericFactory" || $function == "createProxy(address,bool,bytes)" ]]; then
                     if [[ $index -eq 0 ]]; then
                         upgradable=$(echo "$arguments" | jq -r '.[1]')

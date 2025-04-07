@@ -41,7 +41,7 @@ import {
     IGovernorAccessControlEmergencyFactory,
     GovernorAccessControlEmergencyFactory
 } from "./../src/GovernorFactory/GovernorAccessControlEmergencyFactory.sol";
-import {ICapRiskStewardFactory, CapRiskStewardFactory} from "./../src/GovernorFactory/CapRiskStewardFactory.sol";
+import {CapRiskStewardFactory} from "./../src/GovernorFactory/CapRiskStewardFactory.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
 import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
@@ -738,6 +738,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             governorAddresses.accessControlEmergencyGovernorAdminTimelockController == address(0)
                 && governorAddresses.accessControlEmergencyGovernorWildcardTimelockController == address(0)
                 && governorAddresses.accessControlEmergencyGovernor == address(0)
+                && governorAddresses.capRiskSteward == address(0)
         ) {
             console.log("+ Deploying GovernorAccessControlEmergency contracts suite...");
 
@@ -790,6 +791,13 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             ) = GovernorAccessControlEmergencyFactory(peripheryAddresses.governorAccessControlEmergencyFactory).deploy(
                 adminTimelockControllerParams, wildcardTimelockControllerParams, governorAccessControlEmergencyGuardians
             );
+
+            governorAddresses.capRiskSteward = CapRiskStewardFactory(peripheryAddresses.capRiskStewardFactory).deploy(
+                governorAddresses.accessControlEmergencyGovernor,
+                peripheryAddresses.kinkIRMFactory,
+                multisigAddresses.DAO
+            );
+
             stopBroadcast();
         } else {
             console.log("- GovernorAccessControlEmergency contracts suite already deployed. Skipping...");
