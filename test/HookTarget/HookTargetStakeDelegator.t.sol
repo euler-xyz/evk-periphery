@@ -4,125 +4,424 @@ pragma solidity ^0.8.0;
 
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {HookTargetStakeDelegator} from "../../src/HookTarget/HookTargetStakeDelegator.sol";
+import {IRewardVaultFactory, IRewardVault} from "../../src/HookTarget/HookTargetStakeDelegator.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {console} from "forge-std/console.sol";
+import {IEVC} from "evc/interfaces/IEthereumVaultConnector.sol";
+
+import "evk/EVault/shared/Constants.sol";
 
 contract HookTargetStakeDelegatorTest is EVaultTestBase {
     HookTargetStakeDelegator public hookTargetStakeDelegator;
     address public user;
     uint256 public forkId;
 
-    address public rewardVaultFactory = 0x94Ad6Ac84f6C6FbA8b8CCbD71d9f4f101def52a8;
+    address public rewardVaultFactory =
+        0x94Ad6Ac84f6C6FbA8b8CCbD71d9f4f101def52a8;
+    address public rewardVault;
 
     function setUp() public override {
-        string memory rpc = vm.envString("BERA_RPC_URL");
+        string memory rpc = "https://rpc.berachain.com/";
         uint256 blockNumber = 3087244;
         forkId = vm.createSelectFork(rpc, blockNumber);
 
         super.setUp();
+
         user = makeAddr("user");
-        hookTargetStakeDelegator = new HookTargetStakeDelegator(address(eTST), address(rewardVaultFactory));
+
+        hookTargetStakeDelegator = new HookTargetStakeDelegator(
+            address(eTST),
+            address(rewardVaultFactory)
+        );
+        rewardVault = IRewardVaultFactory(rewardVaultFactory).createRewardVault(
+            address(hookTargetStakeDelegator.erc20())
+        );
+        eTST.setHookConfig(
+            address(hookTargetStakeDelegator),
+            (OP_DEPOSIT |
+                OP_MINT |
+                OP_WITHDRAW |
+                OP_REDEEM |
+                OP_SKIM |
+                OP_REPAY |
+                OP_REPAY_WITH_SHARES |
+                OP_TRANSFER |
+                OP_VAULT_STATUS_CHECK)
+        );
+
+        assetTST.mint(user, 1000);
     }
 
     function test_HookTargetStakeDelegator_setup() public {
         assertEq(address(hookTargetStakeDelegator.evc()), address(evc));
-        console.log("hookTargetStakeDelegator.rewardVault()", address(hookTargetStakeDelegator.rewardVault()));
-    }   
+        assertEq(
+            address(hookTargetStakeDelegator.rewardVault()),
+            address(rewardVault)
+        );
+    }
 
-    // function test_allowSelector() public {
-    //     bytes memory data = abi.encodeWithSignature("foo()");
-    //     bytes memory anyData = abi.encodeWithSignature("bar()");
-    //     bytes4 selector = bytes4(data);
+    function test_HookTargetStakeDelegator_deposit() public {
+        vm.startPrank(user);
 
-    //     vm.startPrank(admin);
-    //     hookTargetAccessControl.grantRole(selector, user1);
-    //     assertTrue(hookTargetAccessControl.hasRole(selector, user1));
-    //     hookTargetAccessControl.grantRole(selector, user1SubAccount);
-    //     assertTrue(hookTargetAccessControl.hasRole(selector, user1SubAccount));
-    //     vm.stopPrank();
+        assetTST.approve(address(eTST), 1000);
+        eTST.deposit(1000, user);
 
-    //     vm.prank(address(eTST));
-    //     (bool success,) = address(hookTargetAccessControl).call(abi.encodePacked(data, user1));
-    //     assertTrue(success);
+        vm.stopPrank();
 
-    //     vm.prank(address(eTST));
-    //     (success,) = address(hookTargetAccessControl).call(abi.encodePacked(anyData, user1));
-    //     assertFalse(success);
+        assertEq(eTST.balanceOf(user), 1000);
+        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 1000);
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user,
+                address(hookTargetStakeDelegator)
+            ),
+            1000
+        );
+    }
 
-    //     vm.prank(user1);
-    //     evc.call(address(hookTargetAccessControl), address(user1), 0, data);
+    function test_HookTargetStakeDelegator_withdraw() public {
+        vm.startPrank(user);
 
-    //     vm.prank(user1);
-    //     vm.expectRevert();
-    //     evc.call(address(hookTargetAccessControl), address(user1), 0, anyData);
+        assetTST.approve(address(eTST), 1000);
+        eTST.deposit(1000, user);
 
-    //     vm.prank(user1);
-    //     evc.call(address(hookTargetAccessControl), address(user1SubAccount), 0, data);
+        eTST.withdraw(1000, user, user);
 
-    //     vm.prank(user1);
-    //     vm.expectRevert();
-    //     evc.call(address(hookTargetAccessControl), address(user1SubAccount), 0, anyData);
+        vm.stopPrank();
 
-    //     vm.prank(user1);
-    //     (success,) = address(hookTargetAccessControl).call(data);
-    //     assertTrue(success);
+        assertEq(eTST.balanceOf(user), 0);
+        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 0);
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user,
+                address(hookTargetStakeDelegator)
+            ),
+            0
+        );
+    }
 
-    //     vm.prank(user1);
-    //     (success,) = address(hookTargetAccessControl).call(anyData);
-    //     assertFalse(success);
-    // }
+    function test_HookTargetStakeDelegator_transfer() public {
+        address user2 = makeAddr("user2");
 
-    // function test_allowAllSelectors() public {
-    //     bytes memory data = abi.encodeWithSignature("foo()");
-    //     bytes memory anyData = abi.encodeWithSignature("bar()");
-    //     bytes32 wildcard = hookTargetAccessControl.WILD_CARD();
+        vm.startPrank(user);
+        assetTST.approve(address(eTST), 1000);
+        eTST.deposit(1000, user);
 
-    //     vm.startPrank(admin);
-    //     hookTargetAccessControl.grantRole(wildcard, user1);
-    //     assertTrue(hookTargetAccessControl.hasRole(wildcard, user1));
-    //     hookTargetAccessControl.grantRole(wildcard, user1SubAccount);
-    //     assertTrue(hookTargetAccessControl.hasRole(wildcard, user1SubAccount));
-    //     vm.stopPrank();
+        eTST.transfer(user2, 1000);
 
-    //     vm.prank(address(eTST));
-    //     (bool success,) = address(hookTargetAccessControl).call(abi.encodePacked(data, user1));
-    //     assertTrue(success);
+        vm.stopPrank();
 
-    //     vm.prank(address(eTST));
-    //     (success,) = address(hookTargetAccessControl).call(abi.encodePacked(anyData, user1));
-    //     assertTrue(success);
+        assertEq(eTST.balanceOf(user), 0);
+        assertEq(eTST.balanceOf(user2), 1000);
+        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 1000);
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user,
+                address(hookTargetStakeDelegator)
+            ),
+            0
+        );
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user2,
+                address(hookTargetStakeDelegator)
+            ),
+            1000
+        );
 
-    //     vm.prank(user1);
-    //     evc.call(address(hookTargetAccessControl), address(user1), 0, data);
+        vm.startPrank(user2);
+        eTST.withdraw(1000, user2, user2);
 
-    //     vm.prank(user1);
-    //     evc.call(address(hookTargetAccessControl), address(user1), 0, anyData);
+        vm.stopPrank();
 
-    //     vm.prank(user1);
-    //     evc.call(address(hookTargetAccessControl), address(user1SubAccount), 0, data);
+        assertEq(eTST.balanceOf(user2), 0);
+        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 0);
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user2,
+                address(hookTargetStakeDelegator)
+            ),
+            0
+        );
+    }
 
-    //     vm.prank(user1);
-    //     evc.call(address(hookTargetAccessControl), address(user1SubAccount), 0, anyData);
+    function test_HookTargetStakeDelegator_subaccount() public {
+        address user_subaccount = address(uint160(user) ^ 0x10);
 
-    //     vm.prank(user1);
-    //     (success,) = address(hookTargetAccessControl).call(data);
-    //     assertTrue(success);
+        vm.startPrank(user);
 
-    //     vm.prank(user1);
-    //     (success,) = address(hookTargetAccessControl).call(anyData);
-    //     assertTrue(success);
-    // }
+        assetTST.approve(address(eTST), 1000);
 
-    // function test_revert_notAdmin() public {
-    //     vm.startPrank(user1);
-    //     vm.expectRevert(
-    //         abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, user1, bytes32(0))
-    //     );
-    //     hookTargetAccessControl.grantRole(0, user1);
-    // }
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](1);
+        items[0].onBehalfOfAccount = user;
+        items[0].targetContract = address(eTST);
+        items[0].value = 0;
+        items[0].data = abi.encodeWithSelector(
+            eTST.deposit.selector,
+            1000,
+            user_subaccount
+        );
 
-    // function test_revert_initializeTwice() public {
-    //     vm.expectRevert();
-    //     hookTargetAccessControl.initialize(admin);
-    // }
+        evc.batch(items);
+
+        vm.stopPrank();
+
+        assertEq(eTST.balanceOf(user_subaccount), 1000);
+        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 1000);
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user_subaccount,
+                address(hookTargetStakeDelegator)
+            ),
+            0
+        );
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user,
+                address(hookTargetStakeDelegator)
+            ),
+            1000
+        );
+
+        address user2 = makeAddr("user2");
+
+        vm.startPrank(user);
+
+        IEVC.BatchItem[] memory items2 = new IEVC.BatchItem[](1);
+
+        items2[0].onBehalfOfAccount = user_subaccount;
+        items2[0].targetContract = address(eTST);
+        items2[0].value = 0;
+        items2[0].data = abi.encodeWithSelector(
+            eTST.transfer.selector,
+            user2,
+            1000
+        );
+
+        evc.batch(items2);
+
+        vm.stopPrank();
+
+        assertEq(eTST.balanceOf(user_subaccount), 0);
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user_subaccount,
+                address(hookTargetStakeDelegator)
+            ),
+            0
+        );
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user,
+                address(hookTargetStakeDelegator)
+            ),
+            0
+        );
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user2,
+                address(hookTargetStakeDelegator)
+            ),
+            1000
+        );
+    }
+
+    function test_HookTargetStakeDelegator_withdraw_existing_position() public {
+        eTST.setHookConfig(address(0), 0);
+
+        vm.startPrank(user);
+
+        assetTST.approve(address(eTST), 1000);
+        eTST.deposit(1000, user);
+
+        vm.stopPrank();
+
+        assertEq(eTST.balanceOf(user), 1000);
+
+        eTST.setHookConfig(
+            address(hookTargetStakeDelegator),
+            (OP_DEPOSIT |
+                OP_MINT |
+                OP_WITHDRAW |
+                OP_REDEEM |
+                OP_SKIM |
+                OP_REPAY |
+                OP_REPAY_WITH_SHARES |
+                OP_TRANSFER |
+                OP_VAULT_STATUS_CHECK)
+        );
+
+        vm.startPrank(user);
+
+        eTST.withdraw(1000, user, user);
+
+        vm.stopPrank();
+
+        assertEq(eTST.balanceOf(user), 0);
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user,
+                address(hookTargetStakeDelegator)
+            ),
+            0
+        );
+    }
+
+    function test_hookTargetStakeDelegator_borrow_and_liquidation() public {
+        address user2 = makeAddr("user2");
+        address liquidator = makeAddr("liquidator");
+
+        oracle.setPrice(address(assetTST), unitOfAccount, 1e18);
+        oracle.setPrice(address(assetTST2), unitOfAccount, 1e18);
+        oracle.setPrice(address(eTST), unitOfAccount, 1e18);
+        oracle.setPrice(address(eTST2), unitOfAccount, 1e18);
+
+        assetTST.mint(liquidator, 10000);
+
+        assetTST2.mint(user2, 1000);
+        assetTST2.mint(liquidator, 1000);
+
+        HookTargetStakeDelegator hookTargetStakeDelegator2 = new HookTargetStakeDelegator(
+                address(eTST2),
+                address(rewardVaultFactory)
+            );
+        address rewardVault2 = IRewardVaultFactory(rewardVaultFactory)
+            .createRewardVault(address(hookTargetStakeDelegator2.erc20()));
+        eTST2.setHookConfig(
+            address(hookTargetStakeDelegator2),
+            (OP_DEPOSIT |
+                OP_MINT |
+                OP_WITHDRAW |
+                OP_REDEEM |
+                OP_SKIM |
+                OP_REPAY |
+                OP_REPAY_WITH_SHARES |
+                OP_TRANSFER |
+                OP_VAULT_STATUS_CHECK)
+        );
+
+        eTST2.setLTV(address(eTST), 0.5e4, 0.5e4, 0);
+
+        vm.startPrank(user2);
+
+        assetTST2.approve(address(eTST2), 1000);
+        eTST2.deposit(1000, user2);
+
+        vm.stopPrank();
+
+        assertEq(
+            hookTargetStakeDelegator2.erc20().balanceOf(rewardVault2),
+            1000
+        );
+        assertEq(
+            IRewardVault(rewardVault2).getDelegateStake(
+                user2,
+                address(hookTargetStakeDelegator2)
+            ),
+            1000
+        );
+
+        vm.startPrank(user);
+
+        assetTST.approve(address(eTST), 1000);
+        eTST.deposit(1000, user);
+
+        evc.enableCollateral(user, address(eTST));
+        evc.enableController(user, address(eTST2));
+
+        eTST2.borrow(499, user);
+
+        vm.stopPrank();
+
+        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 1000);
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user,
+                address(hookTargetStakeDelegator)
+            ),
+            1000
+        );
+
+        assertEq(
+            hookTargetStakeDelegator2.erc20().balanceOf(rewardVault2),
+            1000
+        );
+        assertEq(
+            IRewardVault(rewardVault2).getDelegateStake(
+                user2,
+                address(hookTargetStakeDelegator2)
+            ),
+            1000
+        );
+
+        oracle.setPrice(address(eTST), unitOfAccount, 0.95e18);
+
+        vm.startPrank(liquidator);
+
+        evc.enableCollateral(liquidator, address(eTST));
+        evc.enableController(liquidator, address(eTST2));
+
+        assetTST.approve(address(eTST), 10000);
+        eTST.deposit(10000, liquidator);
+
+        assertEq(
+            hookTargetStakeDelegator.erc20().balanceOf(rewardVault),
+            11000
+        );
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                liquidator,
+                address(hookTargetStakeDelegator)
+            ),
+            10000
+        );
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user,
+                address(hookTargetStakeDelegator)
+            ),
+            1000
+        );
+
+        (uint256 maxRepay, uint256 maxYield) = eTST2.checkLiquidation(
+            liquidator,
+            user,
+            address(eTST)
+        );
+
+        eTST2.liquidate(user, address(eTST), 499, 0);
+
+        vm.stopPrank();
+
+        assertEq(
+            hookTargetStakeDelegator.erc20().balanceOf(rewardVault),
+            11000
+        );
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                liquidator,
+                address(hookTargetStakeDelegator)
+            ),
+            10000 + maxYield
+        );
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(
+                user,
+                address(hookTargetStakeDelegator)
+            ),
+            1000 - maxYield
+        );
+
+        assertEq(
+            hookTargetStakeDelegator2.erc20().balanceOf(rewardVault2),
+            1000
+        );
+        assertEq(
+            IRewardVault(rewardVault2).getDelegateStake(
+                user2,
+                address(hookTargetStakeDelegator2)
+            ),
+            1000
+        );
+    }
 }

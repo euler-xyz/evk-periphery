@@ -13,6 +13,12 @@ import {IEVC} from "evc/interfaces/IEthereumVaultConnector.sol";
 /// @title IRewardVaultFactory Interface
 /// @dev Based on https://github.com/berachain/contracts/blob/main/src/pol/interfaces/IRewardVaultFactory.sol
 interface IRewardVaultFactory {
+    /// @notice Creates a new reward vault vault for the given staking token.
+    /// @dev Reverts if the staking token is not a contract.
+    /// @param stakingToken The address of the staking token.
+    /// @return The address of the new vault.
+    function createRewardVault(address stakingToken) external returns (address);
+
     /// @notice Predicts the address for a given staking token
     /// @param stakingToken The address of the staking token
     /// @return The address of the reward vault
