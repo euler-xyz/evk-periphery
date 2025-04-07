@@ -42,7 +42,7 @@ contract CapRiskStewardFactory is BaseFactory, ICapRiskStewardFactory {
         returns (address)
     {
         if (
-            BaseFactory(governorAccessControlFactory).isValidDeployment(governorAccessControl)
+            !BaseFactory(governorAccessControlFactory).isValidDeployment(governorAccessControl)
                 || IRMFactory != irmFactory
         ) {
             revert InvalidAddress();
