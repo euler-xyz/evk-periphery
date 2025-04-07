@@ -11,6 +11,12 @@ import {ICapRiskStewardFactory} from "./interfaces/ICapRiskStewardFactory.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A factory for cap risk steward contract.
 contract CapRiskStewardFactory is BaseFactory, ICapRiskStewardFactory {
+    /// @notice The multiplier in WAD units used to calculate the maximum allowable cap adjustment
+    uint256 public constant MAX_ADJUST_FACTOR = 1.5e18;
+
+    /// @notice The time in seconds needed to recharge the adjustment factor to the maximum
+    uint256 public constant CHARGE_INTERVAL = 3 days;
+
     /// @notice The address of the governor access control factory
     address public immutable governorAccessControlFactory;
 
@@ -36,13 +42,14 @@ contract CapRiskStewardFactory is BaseFactory, ICapRiskStewardFactory {
         returns (address)
     {
         if (
-            BaseFactory(governorAccessControlFactory).isValidDeployment(governorAccessControl)
+            !BaseFactory(governorAccessControlFactory).isValidDeployment(governorAccessControl)
                 || IRMFactory != irmFactory
         ) {
             revert InvalidAddress();
         }
 
-        address capRiskSteward = address(new CapRiskSteward(governorAccessControl, IRMFactory, admin));
+        address capRiskSteward =
+            address(new CapRiskSteward(governorAccessControl, IRMFactory, admin, MAX_ADJUST_FACTOR, CHARGE_INTERVAL));
         deploymentInfo[capRiskSteward] = DeploymentInfo(msg.sender, uint96(block.timestamp));
         deployments.push(capRiskSteward);
         emit ContractDeployed(capRiskSteward, msg.sender, block.timestamp);

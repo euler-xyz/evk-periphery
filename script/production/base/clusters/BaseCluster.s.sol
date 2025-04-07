@@ -117,8 +117,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0% APY  Kink(85%)=2.50% APY  Max=80.00% APY
-            uint256[4] memory irmETH         = [uint256(0), uint256(214335049),  uint256(27697130031), uint256(3650722201)];
+            // Base=0% APY  Kink(90%)=2.40% APY  Max=80.00% APY
+            uint256[4] memory irmETH         = [uint256(0), uint256(194425692),  uint256(41617711740), uint256(3865470566)];
 
             // Base=0% APY,  Kink(85%)=1.00% APY  Max=100.00% APY
             uint256[4] memory irmBTC         = [uint256(0), uint256(86370144),  uint256(33604673898), uint256(3650722201)];
@@ -132,8 +132,8 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(25%)=4.60% APY  Max=848.77% APY
             uint256[4] memory irmETH_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
 
-            // Base=0% APY,  Kink(90%)=7.50% APY  Max=80.00% APY
-            uint256[4] memory irmUSD       = [uint256(0), uint256(592877497),  uint256(38031645498), uint256(3865470566)];
+            // Base=0% APY,  Kink(90%)=6.50% APY  Max=80.00% APY
+            uint256[4] memory irmUSD       = [uint256(0), uint256(516261061),  uint256(38721193419), uint256(3865470566)];
 
             // Base=0% APY,  Kink(25%)=4.60% APY  Max=848.77% APY
             uint256[4] memory irmBTC_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];

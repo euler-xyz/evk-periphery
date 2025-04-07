@@ -70,6 +70,7 @@ abstract contract Addresses {
     address internal constant PT_sUSDe_27MAR2025 = 0xE00bd3Df25fb187d6ABBB620b3dfd19839947b81;
     address internal constant PT_sUSDe_29MAY2025 = 0xb7de5dFCb74d25c2f21841fbd6230355C50d9308;
     address internal constant PT_USDe_27MAR2025 = 0x8A47b431A7D947c6a3ED6E42d501803615a97EAa;
+    address internal constant PT_eUSDe_29MAY2025 = 0x50D2C7992b802Eef16c04FeADAB310f31866a545;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}
