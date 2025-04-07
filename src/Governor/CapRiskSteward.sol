@@ -6,6 +6,7 @@ import {SelectorAccessControl} from "../AccessControl/SelectorAccessControl.sol"
 import {BaseFactory} from "../BaseFactory/BaseFactory.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
+import {MAX_SANE_AMOUNT} from "evk/EVault/shared/Constants.sol";
 import {IGovernance} from "evk/EVault/IEVault.sol";
 
 /// @title CapRiskSteward
@@ -18,11 +19,11 @@ import {IGovernance} from "evk/EVault/IEVault.sol";
 contract CapRiskSteward is SelectorAccessControl {
     using AmountCapLib for AmountCap;
 
-    /// @notice The multiplier used to calculate the maximum allowable cap adjustment
-    uint256 public constant MAX_ADJUST_FACTOR = 1.5e18;
+    /// @notice The multiplier in WAD units used to calculate the maximum allowable cap adjustment
+    uint256 public immutable MAX_ADJUST_FACTOR;
 
-    /// @notice The time needed to recharge the adjustment factor to the maximum
-    uint256 public constant CHARGE_INTERVAL = 3 days;
+    /// @notice The time in seconds needed to recharge the adjustment factor to the maximum
+    uint256 public immutable CHARGE_INTERVAL;
 
     /// @notice The address of the governor contract that will execute the actual parameter changes
     address public immutable governor;
@@ -51,11 +52,15 @@ contract CapRiskSteward is SelectorAccessControl {
     /// @param governorAccessControl The address of the governor contract that will execute parameter changes
     /// @param IRMFactory The address of the recognized IRM factory
     /// @param admin The address to be granted admin privileges in the SelectorAccessControl contract
-    constructor(address governorAccessControl, address IRMFactory, address admin)
+    /// @param maxAdjustFactor The multiplier in WAD units used to calculate the maximum allowable cap adjustment
+    /// @param chargeInterval The duration in seconds needed to recharge the adjustment factor to the maximum
+    constructor(address governorAccessControl, address IRMFactory, address admin, uint256 maxAdjustFactor, uint256 chargeInterval)
         SelectorAccessControl(EVCUtil(governorAccessControl).EVC(), admin)
     {
         governor = governorAccessControl;
         irmFactory = IRMFactory;
+        MAX_ADJUST_FACTOR = maxAdjustFactor;
+        CHARGE_INTERVAL = chargeInterval;
     }
 
     /// @notice Adjusts the supply and borrow caps for a vault within limited bounds
@@ -76,8 +81,8 @@ contract CapRiskSteward is SelectorAccessControl {
         }
 
         // Validate cap changes
-        _validateCap(vault, currentSupplyCap, supplyCap, allowedAdjustFactor);
-        _validateCap(vault, currentBorrowCap, borrowCap, allowedAdjustFactor);
+        _validateCap(vault, currentSupplyCap, supplyCap, allowedAdjustFactor, 2 * MAX_SANE_AMOUNT);
+        _validateCap(vault, currentBorrowCap, borrowCap, allowedAdjustFactor, MAX_SANE_AMOUNT);
 
         lastCapUpdate[vault] = block.timestamp;
         _call();
@@ -122,20 +127,28 @@ contract CapRiskSteward is SelectorAccessControl {
     }
 
     /// @notice Validates that the configured cap is within the allowed range.
-    function _validateCap(address vault, uint16 currentCap, uint16 nextCap, uint256 allowedAdjustFactor)
-        internal
-        pure
-    {
+    function _validateCap(
+        address vault,
+        uint16 currentCap,
+        uint16 nextCap,
+        uint256 allowedAdjustFactor,
+        uint256 absoluteLimit
+    ) internal pure {
         // Resolve caps to absolute units
         uint256 currentCapResolved = AmountCap.wrap(currentCap).resolve();
         uint256 nextCapResolved = AmountCap.wrap(nextCap).resolve();
+
+        // Cannot adjust infinite caps
+        if (currentCapResolved == type(uint256).max) {
+            revert CapAdjustmentInvalid(vault);
+        }
 
         // Calculate the maximum and minimum caps
         uint256 maxCap = currentCapResolved * allowedAdjustFactor / 1e18;
         uint256 minCap = currentCapResolved * 1e18 / allowedAdjustFactor;
 
         // Validate the cap adjustment
-        if (nextCapResolved > maxCap || nextCapResolved < minCap) {
+        if (nextCapResolved > maxCap || nextCapResolved < minCap || nextCapResolved > absoluteLimit) {
             revert CapAdjustmentInvalid(vault);
         }
     }
