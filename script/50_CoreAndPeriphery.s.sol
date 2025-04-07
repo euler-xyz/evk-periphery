@@ -551,6 +551,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                             )
                         );
                     } else {
+                        removeBridgeConfigCache(block.chainid, chainIdOther);
                         console.log(
                             "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter send config on chain %s for chain %s must be set manually.",
                             block.chainid,
@@ -593,6 +594,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                             )
                         );
                     } else {
+                        removeBridgeConfigCache(block.chainid, chainIdOther);
                         console.log(
                             "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter receive config on chain %s for chain %s must be set manually.",
                             block.chainid,
@@ -623,6 +625,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                             )
                         );
                     } else {
+                        removeBridgeConfigCache(block.chainid, chainIdOther);
                         console.log(
                             "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter peer on chain %s for chain %s must be set manually.",
                             block.chainid,
@@ -652,6 +655,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                             abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (getEnforcedOptions(infoOther.eid)))
                         );
                     } else {
+                        removeBridgeConfigCache(block.chainid, chainIdOther);
                         console.log(
                             "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter enforced options on chain %s for chain %s must be set manually.",
                             block.chainid,

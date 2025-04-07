@@ -140,3 +140,7 @@ You can pass `--batch-via-safe` option to the deployment script in order to crea
 ### Timelock Controller
 
 In case a timelock controller is installed as part of the governor contracts suite, you can additionally pass `--timelock-address` option with the timelock address to the deployment script in order to schedule the transactions in the timelock controller instead of trying to execute them immediately.
+
+### Risk Steward
+
+In case a risk steward contract is installed as part of the governor contracts suite, you can additionally pass `--risk-steward-address` option with the risk steward contract address to the deployment script in order to execute the transactions via the risk steward contract instead of trying to execute it directly.

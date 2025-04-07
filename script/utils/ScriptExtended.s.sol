@@ -109,6 +109,23 @@ abstract contract ScriptExtended is Script {
         }
     }
 
+    function getRiskSteward() internal view returns (address riskSteward) {
+        string memory riskStewardAddress = vm.envOr("risk_steward_address", string(""));
+
+        if (bytes(riskStewardAddress).length > 0 && bytes(riskStewardAddress).length < 42) {
+            if (_strEq(riskStewardAddress, "DAO") || _strEq(riskStewardAddress, "default")) {
+                riskStewardAddress = "capRiskSteward";
+            }
+
+            riskSteward =
+                getAddressFromJson(getAddressesJson("GovernorAddresses.json"), string.concat(".", riskStewardAddress));
+        }
+
+        if (riskSteward == address(0) && bytes(riskStewardAddress).length == 42) {
+            riskSteward = _toAddress(riskStewardAddress);
+        }
+    }
+
     function getDeploymentRpcUrl() internal view returns (string memory) {
         return vm.envOr("DEPLOYMENT_RPC_URL", string(""));
     }

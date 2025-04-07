@@ -79,11 +79,6 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
     set -- "${@/--batch-via-safe/}"
     batch_via_safe="--batch-via-safe"
     ffi="--ffi"
-
-    if [[ "$@" == *"--use-safe-api"* ]]; then
-        set -- "${@/--use-safe-api/}"
-        use_safe_api="--use-safe-api"
-    fi
 else
     onBehalfOf=$(cast wallet address $@)
 fi
@@ -144,7 +139,7 @@ if [[ "$batch_via_safe" == "--batch-via-safe" ]]; then
         safe_nonce=$(forge script script/utils/SafeUtils.s.sol:SafeUtil --sig "getNextNonce(address)" $safe_address --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $@ | grep -oE '[0-9]+$')
     fi
 
-    if env broadcast=$broadcast safe_address=$safe_address batch_via_safe=$batch_via_safe use_safe_api=$use_safe_api \
+    if env broadcast=$broadcast safe_address=$safe_address batch_via_safe=$batch_via_safe \
         forge script script/utils/SafeUtils.s.sol:SafeTransaction --sig "create(bool,address,address,uint256,bytes memory,uint256)" true $safe_address $evc 0 $calldata $safe_nonce --rpc-url "$DEPLOYMENT_RPC_URL" $ffi $broadcast --legacy --slow $@; then
 
         chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)

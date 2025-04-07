@@ -24,6 +24,7 @@ import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol"
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
 import {GovernorAccessControl} from "../../src/Governor/GovernorAccessControl.sol";
+import {CapRiskSteward} from "../../src/Governor/CapRiskSteward.sol";
 import "../../src/Lens/LensTypes.sol";
 
 abstract contract CoreAddressesLib is ScriptExtended {
@@ -622,12 +623,19 @@ abstract contract ScriptUtils is
             || selector == IGovernance.setGovernorAdmin.selector;
     }
 
-    function isGovernorAccessControlInstance(address governorAdmin) internal view returns (bool) {
+    function isGovernorAccessControlInstance(address target) internal view returns (bool) {
         (bool success, bytes memory result) =
-            governorAdmin.staticcall(abi.encodeCall(GovernorAccessControl.isGovernorAccessControl, ()));
+            target.staticcall(abi.encodeCall(GovernorAccessControl.isGovernorAccessControl, ()));
 
         return success && result.length >= 32
             && abi.decode(result, (bytes4)) == GovernorAccessControl.isGovernorAccessControl.selector;
+    }
+
+    function isRiskStewardInstance(address target) internal view returns (bool) {
+        (bool success, bytes memory result) = target.staticcall(abi.encodeCall(CapRiskSteward.isCapRiskSteward, ()));
+
+        return
+            success && result.length >= 32 && abi.decode(result, (bytes4)) == CapRiskSteward.isCapRiskSteward.selector;
     }
 }
 
@@ -708,6 +716,7 @@ abstract contract BatchBuilder is ScriptUtils {
         }
 
         if (isGovernanceOperation(bytes4(data))) {
+            address riskSteward = getRiskSteward();
             address governorAdmin;
 
             if (GenericFactory(coreAddresses.eVaultFactory).isProxy(targetContract)) {
@@ -716,7 +725,10 @@ abstract contract BatchBuilder is ScriptUtils {
                 governorAdmin = EulerRouter(targetContract).governor();
             }
 
-            if (isGovernorAccessControlInstance(governorAdmin)) {
+            if (riskSteward != address(0) && isRiskStewardInstance(riskSteward)) {
+                data = abi.encodePacked(data, targetContract);
+                targetContract = riskSteward;
+            } else if (isGovernorAccessControlInstance(governorAdmin)) {
                 data = abi.encodePacked(data, targetContract);
                 targetContract = governorAdmin;
             }
