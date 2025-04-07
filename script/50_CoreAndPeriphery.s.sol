@@ -668,6 +668,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 && peripheryAddresses.oracleAdapterRegistry == address(0)
                 && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0)
                 && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
+                && peripheryAddresses.governorAccessControlEmergencyFactory == address(0)
         ) {
             console.log("+ Deploying Periphery factories...");
             PeripheryFactories deployer = new PeripheryFactories();
