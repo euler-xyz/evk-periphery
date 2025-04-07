@@ -83,6 +83,20 @@ If you prefer to deploy the components individually:
 3. Install the deployed governor access control instance as the governor of the desired vault(s)
 4. Authorized callers can now invoke permitted functions on the vault through the governor contract
 
+## `CapRiskSteward`
+
+This contract is a specialized risk management contract that combines `SelectorAccessControl` with controlled parameter adjustment capabilities for EVK vaults. It is compatible with the `GovernorAccessControl` and `GovernorAccessControlEmergency` contracts and enables authorized users to modify vault parameters (caps and interest rate models) while enforcing safety limits.
+
+`CapRiskSteward` allows autorized users to increase/decrease supply and borrow caps by up to 50% over 3 days. The maximum readjustment factor recharges over time. 
+
+`CapRiskSteward` allows autorized users to substitute the interest rate model for an interest model deployed by the recognized factory.
+
+### Usage
+
+1. Deploy the `CapRiskSteward` contract, specifying the address of the `GovernorAccessControl` or `GovernorAccessControlEmergency` contract installed on the vault and and the default admin
+2. Grant appropriate roles to addresses that should be able to adjust parameters
+3. Grant `setCaps.selector` and `setInterestRateModel.selector` roles to the `CapRiskSteward` contract
+
 ## `HookTargetAccessControl`
 
 This contract is designed to be used as a hook target for EVK vaults. It combines the functionality of `SelectorAccessControl` and `BaseHookTarget` to provide access control at the hook level.
