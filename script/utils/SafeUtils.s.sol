@@ -237,6 +237,14 @@ contract SafeUtil is ScriptExtended {
                 || block.chainid == 480 || block.chainid == 56 || block.chainid == 57073 || block.chainid == 8453
         ) {
             return "https://safe-client.safe.global/";
+        } else if (block.chainid == 1923) {
+            return "https://gateway.safe.optimism.io/";
+        } else if (block.chainid == 21000000) {
+            return "https://safe-cgw-corn.safe.onchainden.com/";
+        } else if (block.chainid == 60808) {
+            return "https://gateway.safe.gobob.xyz/";
+        } else if (block.chainid == 80094) {
+            return "https://gateway.safe.berachain.com/";
         } else {
             return "";
         }
