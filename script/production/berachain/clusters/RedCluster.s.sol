@@ -11,13 +11,13 @@ import {ClusterDump} from "../../../utils/ClusterDump.s.sol";
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/berachain/clusters/MevCapitalCluster.json";
+        cluster.clusterAddressesPath = "/script/production/berachain/clusters/RedCluster.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other
         // arrays the ltvs matrix. if more than one vauls has to be deployed for the same asset, it can be added in the
         // array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [WBERA];
+        cluster.assets = [WBERA, HONEY, iBGT];
     }
 
     function configureCluster() internal override {
@@ -60,16 +60,25 @@ contract Cluster is ManageCluster {
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
         cluster.oracleProviders[WBERA    ] = "0xe6D9C66C0416C1c88Ca5F777D81a7F424D4Fa87b";
+        cluster.oracleProviders[HONEY    ] = "0x997d72fb46690f304C7DB92df9AA823323fb23B2";
+        cluster.oracleProviders[iBGT    ] = "0x16cE03d4d67fdA6727498eDbDE2e4FD0bF5e32D3";
+
 
 
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[WBERA    ] = 5_000_000;
+        cluster.supplyCaps[WBERA    ] = 1_000_000;
+        cluster.supplyCaps[HONEY    ] = 5_000_000;
+        cluster.supplyCaps[iBGT    ] = 500_000;
+
 
 
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WBERA    ] = 4_500_000;
+        cluster.borrowCaps[WBERA    ] = 900_000;
+        cluster.borrowCaps[HONEY    ] = 4_500_000;
+        cluster.borrowCaps[iBGT    ] = type(uint256).max;
+
 
 
         // define IRM classes here and assign them to the assets
@@ -77,7 +86,12 @@ contract Cluster is ManageCluster {
             // Base=0% APY  Kink(75%)=175.00% APY  Max=375.00% APY
             uint256[4] memory irmBERA  = [uint256(0), uint256(9951593935), uint256(16129845658), uint256(3221225472)];
 
+            // Base=0% APY,  Kink(90%)=10.0% APY  Max=49.5% APY
+            uint256[4] memory irmMinor = [uint256(0), uint256(781343251), uint256(22637222055), uint256(3865470566)];
+
+
             cluster.kinkIRMParams[WBERA    ] = irmBERA;
+            cluster.kinkIRMParams[HONEY    ] = irmMinor;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -88,10 +102,12 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //                  0                1       
-            //                  WBERA            XXX     
-            /* 0  WBERA     */ [uint16(0.000e4),  0.000e4],
-            /* 1  XXX      */ [uint16(0.800e4), 0.000e4]
+            //                  0                1        2      
+            //                  WBERA            HONEY    iBGT 
+            /* 0  WBERA     */ [uint16(0.000e4), 0.000e4, 0.000e4],
+            /* 1  HONEY     */ [uint16(0.000e4), 0.000e4, 0.000e4],
+            /* 1  iBGT      */ [uint16(0.800e4), 0.700e4, 0.000e4]
+
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults.

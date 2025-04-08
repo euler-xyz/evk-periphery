@@ -22,7 +22,7 @@ abstract contract Addresses {
     address internal constant srUSD = 0x5475611Dffb8ef4d697Ae39df9395513b6E947d7;
     address internal constant PT_sUSDE = 0x2719e657ec3B3CbE521a18E640CA55799836376f;
     address internal constant iBERA = 0x9b6761bf2397Bb5a6624a856cC84A3A14Dcd3fe5;
-
+    address internal constant iBGT = 0xac03CABA51e17c86c921E1f6CBFBdC91F8BB2E6b;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}

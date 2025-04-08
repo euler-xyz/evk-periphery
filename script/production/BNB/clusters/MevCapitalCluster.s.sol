@@ -60,7 +60,7 @@ contract Cluster is ManageCluster {
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
         cluster.oracleProviders[WBNB    ] = "0xC8228b83F1d97a431A48bd9Bc3e971c8b418d889";
-        cluster.oracleProviders[slisBNB    ] = "0x7e940d9618753f2Cb816C14b05e5Da969A617490";
+        cluster.oracleProviders[slisBNB    ] = "0x421B5623A02dE8B2E7A5F83279F12EB1fC81D19d";
         cluster.oracleProviders[ETH    ] = "0xD0dAb9eDb2b1909802B03090eFBF14743E7Ff967";
         cluster.oracleProviders[USDT    ] = "0x7e262cD6226328AaF4eA5C993a952E18Dd633Bc8";
         cluster.oracleProviders[lisUSD    ] = "0xA5D8658e0Aee09A93206478B2FaDFD0929B431af";
