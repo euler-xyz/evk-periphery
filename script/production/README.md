@@ -34,7 +34,7 @@ Options:
 
 `--timelock-address`: Schedules the transactions in the timelock controller provided instead of trying to execute them immediately. This option must be used in case the timelock controller is installed as part of the governor contracts suite.
 
-`--use-safe-api`: Uses the Safe API to create the transactions in the Safe UI. This option is only valid if the `--batch-via-safe` option is also used. If `--batch-via-safe` is used, but `--use-safe-api` is not used, the script will only create payload dump files that can be used to create the transactions in the Safe UI.
+`--risk-steward-address`: Executes the transactions via the risk steward contract provided instead of trying to execute it directly. This option can be used in case the risk steward contract is installed as part of the governor contracts suite and the operation executed allows bypassing timelocks.
 
 `--verify`: Verifies the deployed contracts (if any) in the blockchain explorer.
 
