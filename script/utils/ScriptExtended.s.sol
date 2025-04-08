@@ -144,10 +144,8 @@ abstract contract ScriptExtended is Script {
     }
 
     function isNoStubOracle() internal view returns (bool) {
-         return _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
-     }
- 
-
+        return _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
+    }
 
     function getAddressesDirPath() internal view returns (string memory) {
         string memory path = vm.envOr("ADDRESSES_DIR_PATH", string(""));

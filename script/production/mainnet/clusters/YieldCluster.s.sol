@@ -137,7 +137,7 @@ contract Cluster is ManageCluster {
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC                     ] = 50_000_000;
         cluster.supplyCaps[USDT                     ] = 50_000_000;
-        cluster.supplyCaps[FDUSD                    ] = 10_000_000;
+        cluster.supplyCaps[FDUSD                    ] = 0;
         cluster.supplyCaps[PYUSD                    ] = 10_000_000;
         cluster.supplyCaps[rlUSD                    ] = 10_000_000;
         cluster.supplyCaps[wUSDM                    ] = 5_000_000;
@@ -163,12 +163,12 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_sUSDe_27MAR2025       ] = 4_000_000;
         cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 4_000_000;
         cluster.supplyCaps[PT_USDe_27MAR2025        ] = 4_000_000;
-        cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 5_000_000;
+        cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 40_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC                     ] = 45_000_000;
         cluster.borrowCaps[USDT                     ] = 45_000_000;
-        cluster.borrowCaps[FDUSD                    ] = 9_000_000;
+        cluster.borrowCaps[FDUSD                    ] = 0;
         cluster.borrowCaps[PYUSD                    ] = 9_000_000;
         cluster.borrowCaps[rlUSD                    ] = 0;
         cluster.borrowCaps[wUSDM                    ] = 4_500_000;
@@ -181,7 +181,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USD0                     ] = 9_000_000;
         cluster.borrowCaps[USD0PlusPlus             ] = 2_400_000;
         cluster.borrowCaps[USDe                     ] = 3_000_000;
-        cluster.borrowCaps[eUSDe                    ] = type(uint256).max;
+        cluster.borrowCaps[eUSDe                    ] = 20_000_000;
         cluster.borrowCaps[sUSDe                    ] = 2_400_000;
         cluster.borrowCaps[deUSD                    ] = 0;
         cluster.borrowCaps[sdeUSD                   ] = 0;
@@ -207,6 +207,9 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(30%)=12.75% APY  Max=848.77% APY
             uint256[4] memory irm_USD_3_MEGA_YIELD = [uint256(0), uint256(2951312420), uint256(22450463582), uint256(1288490188)];
 
+            // Base=0% APY,  Kink(50%)=10.00% APY  Max=100.00% APY
+            uint256[4] memory irm_eUSDe            = [uint256(0), uint256(1406417851), uint256(8821813573), uint256(2147483648)];
+
             cluster.kinkIRMParams[USDC        ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[USDT        ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[FDUSD       ] = irm_USD_1_MEGA_YIELD;
@@ -222,6 +225,7 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[USD0        ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[USD0PlusPlus] = irm_USD_3_MEGA_YIELD;
             cluster.kinkIRMParams[USDe        ] = irm_USD_1_MEGA_YIELD;
+            cluster.kinkIRMParams[eUSDe       ] = irm_eUSDe;
             cluster.kinkIRMParams[sUSDe       ] = irm_USD_3_MEGA_YIELD;
             cluster.kinkIRMParams[deUSD       ] = irm_USD_3_MEGA_YIELD;
             cluster.kinkIRMParams[sdeUSD      ] = irm_USD_3_MEGA_YIELD;
@@ -236,6 +240,7 @@ contract Cluster is ManageCluster {
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             cluster.spreadLTVOverride[15][i] = 0.04e4; // eUSDe as collateral
+            cluster.spreadLTVOverride[28][i] = 0.04e4; // PT_eUSDe_29MAY2025 as collateral
         }
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
@@ -270,7 +275,7 @@ contract Cluster is ManageCluster {
         /* 25 PT_sUSDe_27MAR2025        */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 26 PT_sUSDe_29MAY2025        */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 27 PT_USDe_27MAR2025         */ [uint16(0.81e4), 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.81e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 28 PT_eUSDe_29MAY2025        */ [uint16(0.82e4), 0.82e4, 0.82e4, 0.82e4, 0.82e4, 0.00e4, 0.00e4, 0.82e4, 0.82e4, 0.00e4, 0.82e4, 0.00e4, 0.82e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
+        /* 28 PT_eUSDe_29MAY2025        */ [uint16(0.86e4), 0.86e4, 0.86e4, 0.86e4, 0.86e4, 0.00e4, 0.00e4, 0.86e4, 0.86e4, 0.00e4, 0.86e4, 0.00e4, 0.86e4, 0.00e4, 0.90e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
