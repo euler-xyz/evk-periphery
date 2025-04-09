@@ -80,7 +80,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDtb ] = 50_000_000;
         cluster.supplyCaps[rlUSD ] = 50_000_000;
         cluster.supplyCaps[wM    ] = 10_000_000;
-        cluster.supplyCaps[sBUIDL] = 50_000_000;
+        cluster.supplyCaps[sBUIDL] = 0;//50_000_000;
         cluster.supplyCaps[USYC  ] = 50_000_000;
         cluster.supplyCaps[USDY  ] = 50_000_000;
         cluster.supplyCaps[wUSDM ] = 20_000_000;
@@ -93,7 +93,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDtb ] = 46_000_000;
         cluster.borrowCaps[rlUSD ] = 5_000_000;
         cluster.borrowCaps[wM    ] = 9_200_000;
-        cluster.borrowCaps[sBUIDL] = type(uint256).max;
+        cluster.borrowCaps[sBUIDL] = 0;//type(uint256).max;
         cluster.borrowCaps[USYC  ] = type(uint256).max;
         cluster.borrowCaps[USDY  ] = type(uint256).max;
         cluster.borrowCaps[wUSDM ] = type(uint256).max;
@@ -134,10 +134,6 @@ contract Cluster is ManageCluster {
         /* 9  wUSDL  */ [uint16(0.960e4), 0.960e4, 0.960e4, 0.960e4, 0.960e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4],
         /* 10 mTBILL */ [uint16(0.960e4), 0.960e4, 0.960e4, 0.960e4, 0.960e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4, 0.000e4]
         ];
-
-        for (uint256 i = 0; i < cluster.assets.length; ++i) {
-            cluster.ltvs[5][i] = 0; // sBUIDL
-        }
     }
 
     function postOperations() internal view override {
