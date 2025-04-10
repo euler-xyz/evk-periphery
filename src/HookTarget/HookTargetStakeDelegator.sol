@@ -261,15 +261,18 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
         }
     }
 
-    /// @notice Delegates stake to an account's EVC owner
-    /// @dev Stakes are always delegated to the EVC owner of the account, not the account itself. If the account has no
-    /// registered EVC owner (owner is address(0)), the stake is delegated to the account directly, assuming it is its
-    /// own owner.
+    /// @notice Delegates stake to an account's EVC owner and handles stake migration between account and its EVC owner
+    /// @dev Handles stake delegation and migration with the following considerations:
+    /// - Stakes are always delegated to the EVC owner of the account, not the account itself
+    /// - If an account has no registered EVC owner, the stake is delegated to the account directly
+    /// - When an account first receives stake, its EVC owner might not be registered yet, causing the stake to be
+    /// delegated directly to the account. Once the owner is registered and is different from the account, we need to
+    /// migrate this stake.
     /// @param account The account whose EVC owner will receive the delegated stake
     /// @param amount The amount of shares to delegate stake
     function _delegateStake(address account, uint256 amount) internal {
         address owner = evc.getAccountOwner(account);
-        rewardVault.delegateStake(owner == address(0) ? account : owner, amount);
+        rewardVault.delegateStake(owner == address(0) ? account : owner, amount + _migrateStake(owner, account));
     }
 
     /// @notice Withdraws delegated stake from an account and handles stake migration between account and its EVC owner
@@ -285,16 +288,7 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
     function _delegateWithdraw(address account, uint256 amount) internal returns (uint256) {
         address owner = evc.getAccountOwner(account);
 
-        // If account has a registered owner different from itself, migrate any stake that was delegated directly to the
-        // account (from before owner registration)
-        if (owner != address(0) && owner != account) {
-            uint256 delegatedStakeAccount = rewardVault.getDelegateStake(account, address(this));
-
-            if (delegatedStakeAccount > 0) {
-                rewardVault.delegateWithdraw(account, delegatedStakeAccount);
-                rewardVault.delegateStake(owner, delegatedStakeAccount);
-            }
-        }
+        _migrateStake(owner, account);
 
         if (owner == address(0)) owner = account;
 
@@ -311,5 +305,25 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
         }
 
         return amount;
+    }
+
+    /// @notice Migrates any stake delegated directly to an account to its registered EVC owner
+    /// @dev If an account has a registered owner different from itself, this function migrates any stake that was
+    /// delegated directly to the account (from before owner registration) to the owner
+    /// @param owner The registered EVC owner address of the account
+    /// @param account The account address to check and migrate stake from
+    /// @return The amount of stake that was migrated from the account to its owner
+    function _migrateStake(address owner, address account) internal returns (uint256) {
+        uint256 delegatedStakeAccount;
+        if (owner != address(0) && owner != account) {
+            delegatedStakeAccount = rewardVault.getDelegateStake(account, address(this));
+
+            if (delegatedStakeAccount > 0) {
+                rewardVault.delegateWithdraw(account, delegatedStakeAccount);
+                rewardVault.delegateStake(owner, delegatedStakeAccount);
+            }
+        }
+
+        return delegatedStakeAccount;
     }
 }
