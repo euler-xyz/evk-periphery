@@ -240,7 +240,9 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
     }
 
     /// @inheritdoc IHookTarget
-    function isHookTarget() external pure override returns (bytes4) {
+    /// @dev This function returns the expected magic value only if the reward vault is already deployed.
+    function isHookTarget() external view override returns (bytes4) {
+        if (address(rewardVault).code.length == 0) return 0;
         return this.isHookTarget.selector;
     }
 
