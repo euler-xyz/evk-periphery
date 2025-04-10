@@ -18,6 +18,7 @@ abstract contract Addresses {
     address internal constant sfrxETH = 0xac3E018457B222d93114458476f3E3416Abbe38F;
     address internal constant ETHx = 0xA35b1B31Ce002FBF2058D22F30f95D405200A15b;
     address internal constant rswETH = 0xFAe103DC9cf190eD75350761e95403b7b8aFa6c0;
+    address internal constant tETH = 0xD11c452fc99cF405034ee446803b6F6c1F6d5ED8;
     address internal constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address internal constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address internal constant PYUSD = 0x6c3ea9036406852006290770BEdFcAbA0e23A0e8;
@@ -25,6 +26,7 @@ abstract contract Addresses {
     address internal constant wM = 0x437cc33344a0B27A429f795ff6B469C72698B291;
     address internal constant mTBILL = 0xDD629E5241CbC5919847783e6C96B2De4754e438;
     address internal constant USDe = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
+    address internal constant eUSDe = 0x90D2af7d622ca3141efA4d8f1F24d86E5974Cc8F;
     address internal constant wUSDM = 0x57F5E098CaD7A3D1Eed53991D4d66C45C9AF7812;
     address internal constant EURC = 0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c;
     address internal constant sUSDe = 0x9D39A5DE30e57443BfF2A8307A4256c8797A3497;
@@ -45,6 +47,9 @@ abstract contract Addresses {
     address internal constant sDAI = 0x83F20F44975D03b1b09e64809B757c47f942BEeA;
     address internal constant deUSD = 0x15700B564Ca08D9439C58cA5053166E8317aa138;
     address internal constant sdeUSD = 0x5C5b196aBE0d54485975D1Ec29617D42D9198326;
+    address internal constant USDtb = 0xC139190F447e929f090Edeb554D95AbB8b18aC1C;
+    address internal constant sBUIDL = 0x07a36C630e3F072637da3445Da733B29958D8cAB;
+    address internal constant USYC = 0x136471a34f6ef19fE571EFFC1CA711fdb8E49f2b;
     address internal constant mBASIS = 0x2a8c22E3b10036f3AEF5875d04f8441d4188b656;
     address internal constant mEDGE = 0xbB51E2a15A9158EBE2b0Ceb8678511e063AB7a55;
     address internal constant mMEV = 0x030b69280892c888670EDCDCD8B69Fd8026A0BF3;
@@ -68,6 +73,7 @@ abstract contract Addresses {
     address internal constant PT_sUSDe_27MAR2025 = 0xE00bd3Df25fb187d6ABBB620b3dfd19839947b81;
     address internal constant PT_sUSDe_29MAY2025 = 0xb7de5dFCb74d25c2f21841fbd6230355C50d9308;
     address internal constant PT_USDe_27MAR2025 = 0x8A47b431A7D947c6a3ED6E42d501803615a97EAa;
+    address internal constant PT_eUSDe_29MAY2025 = 0x50D2C7992b802Eef16c04FeADAB310f31866a545;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}

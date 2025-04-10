@@ -99,7 +99,7 @@ contract AccountLens is Utils {
 
         result.asset = abi.decode(data, (address));
 
-        (success, data) = vault.staticcall(abi.encodeCall(IEVault(result.asset).balanceOf, (account)));
+        (success, data) = result.asset.staticcall(abi.encodeCall(IEVault(result.asset).balanceOf, (account)));
 
         if (success && data.length >= 32) {
             result.assetsAccount = abi.decode(data, (uint256));
@@ -123,7 +123,7 @@ contract AccountLens is Utils {
             result.borrowed = abi.decode(data, (uint256));
         }
 
-        (success, data) = vault.staticcall(abi.encodeCall(IEVault(result.asset).allowance, (account, vault)));
+        (success, data) = result.asset.staticcall(abi.encodeCall(IEVault(result.asset).allowance, (account, vault)));
 
         if (success && data.length >= 32) {
             result.assetAllowanceVault = abi.decode(data, (uint256));
