@@ -294,12 +294,12 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
 
         if (owner == address(0)) owner = account;
 
-        uint256 delegatedStakeOwner = rewardVault.getDelegateStake(owner, address(this));
+        uint256 stake = rewardVault.getDelegateStake(owner, address(this));
 
         // Cap withdrawal at available stake (might be less than shares if hook target wasn't installed from EVault
         // creation)
-        if (amount > delegatedStakeOwner) {
-            amount = delegatedStakeOwner;
+        if (amount > stake) {
+            amount = stake;
         }
 
         if (amount > 0) {
@@ -316,16 +316,16 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
     /// @param account The account address to check and migrate stake from
     /// @return The amount of stake that was migrated from the account to its owner
     function _migrateStake(address owner, address account) internal returns (uint256) {
-        uint256 delegatedStakeAccount;
+        uint256 stake;
         if (owner != address(0) && owner != account) {
-            delegatedStakeAccount = rewardVault.getDelegateStake(account, address(this));
+            stake = rewardVault.getDelegateStake(account, address(this));
 
-            if (delegatedStakeAccount > 0) {
-                rewardVault.delegateWithdraw(account, delegatedStakeAccount);
-                rewardVault.delegateStake(owner, delegatedStakeAccount);
+            if (stake > 0) {
+                rewardVault.delegateWithdraw(account, stake);
+                rewardVault.delegateStake(owner, stake);
             }
         }
 
-        return delegatedStakeAccount;
+        return stake;
     }
 }
