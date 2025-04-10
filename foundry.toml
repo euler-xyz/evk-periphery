@@ -4,9 +4,9 @@ out = "out"
 libs = ["lib"]
 solc = "0.8.24"
 
-evm_version = "shanghai"
+evm_version = "london"
 optimizer = true
-optimizer_runs = 20_000
+optimizer_runs = 10_000
 
 fs_permissions = [
     { access = "read-write", path = "./" },

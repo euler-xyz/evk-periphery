@@ -37,7 +37,7 @@ if ! script/utils/checkEnvironment.sh "$@"; then
     exit 1
 fi
 
-eulerEarnCompilerOptions="--optimize --optimizer-runs 800 --use 0.8.27 --out out-euler-earn"
+eulerEarnCompilerOptions="--optimize --optimizer-runs 400 --use 0.8.27 --out out-euler-earn"
 
 while true; do
     echo ""

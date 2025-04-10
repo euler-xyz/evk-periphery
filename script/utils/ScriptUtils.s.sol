@@ -429,6 +429,8 @@ abstract contract ScriptUtils is
             return 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
         } else if (block.chainid == 43114) {
             return 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB;
+        } else if (block.chainid == 59144) {
+            return 0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f;
         } else if (block.chainid == 80094) {
             return 0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590;
         } else {

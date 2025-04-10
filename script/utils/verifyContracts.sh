@@ -192,8 +192,8 @@ function verify_broadcast {
             if [ -d "out-euler-earn" ]; then
                 # try to verify as EulerEarn contracts
                 local src="lib/euler-earn/src"
-                local verificationOptions="--num-of-optimizations 800 --compiler-version 0.8.27 --root lib/euler-earn"
-                local compilerOptions="--optimize --optimizer-runs 800 --use 0.8.27"
+                local verificationOptions="--num-of-optimizations 400 --compiler-version 0.8.27 --root lib/euler-earn"
+                local compilerOptions="--optimize --optimizer-runs 400 --use 0.8.27"
 
                 while true; do
                     case $eulerEarnIndex in
