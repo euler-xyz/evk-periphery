@@ -5,8 +5,6 @@ pragma solidity ^0.8.0;
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
-import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
-import {ClusterDump} from "../../../utils/ClusterDump.s.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
@@ -155,13 +153,13 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[deUSD                    ] = 0;
         cluster.supplyCaps[sdeUSD                   ] = 0;
         cluster.supplyCaps[mBASIS                   ] = 6_000_000;
-        cluster.supplyCaps[mEDGE                    ] = 3_000_000;
+        cluster.supplyCaps[mEDGE                    ] = 4_500_000;
         cluster.supplyCaps[mMEV                     ] = 6_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_30JAN2025] = 0;
         cluster.supplyCaps[PT_USD0PlusPlus_27MAR2025] = 4_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 4_000_000;
         cluster.supplyCaps[PT_sUSDe_27MAR2025       ] = 4_000_000;
-        cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 4_000_000;
+        cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 6_000_000;
         cluster.supplyCaps[PT_USDe_27MAR2025        ] = 4_000_000;
         cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 40_000_000;
 
@@ -207,8 +205,8 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(30%)=12.75% APY  Max=848.77% APY
             uint256[4] memory irm_USD_3_MEGA_YIELD = [uint256(0), uint256(2951312420), uint256(22450463582), uint256(1288490188)];
 
-            // Base=0% APY,  Kink(50%)=10.00% APY  Max=100.00% APY
-            uint256[4] memory irm_eUSDe            = [uint256(0), uint256(1406417851), uint256(8821813573), uint256(2147483648)];
+            // Base=0% APY,  Kink(80%)=7.00% APY  Max=80.00% APY
+            uint256[4] memory irm_eUSDe            = [uint256(0), uint256(623991132), uint256(19187806958), uint256(3435973836)];
 
             cluster.kinkIRMParams[USDC        ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[USDT        ] = irm_USD_1_MEGA_YIELD;
@@ -293,12 +291,9 @@ contract Cluster is ManageCluster {
         ];
     }
 
-    function postOperations() internal override {
+    function postOperations() internal view override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
         }
-
-        ClusterDump dumper = new ClusterDump();
-        dumper.dumpCluster(cluster.vaults, cluster.externalVaults);
     }
 }
