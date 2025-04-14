@@ -24,6 +24,7 @@ import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol"
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
 import {GovernorAccessControl} from "../../src/Governor/GovernorAccessControl.sol";
+import {CapRiskSteward} from "../../src/Governor/CapRiskSteward.sol";
 import "../../src/Lens/LensTypes.sol";
 
 abstract contract CoreAddressesLib is ScriptExtended {
@@ -88,6 +89,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address edgeFactoryPerspective;
         address termsOfUseSigner;
         address governorAccessControlEmergencyFactory;
+        address capRiskStewardFactory;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -125,6 +127,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             "governorAccessControlEmergencyFactory",
             Addresses.governorAccessControlEmergencyFactory
         );
+        result = vm.serializeAddress("peripheryAddresses", "capRiskStewardFactory", Addresses.capRiskStewardFactory);
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -148,7 +151,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             edgeFactory: getAddressFromJson(json, ".edgeFactory"),
             edgeFactoryPerspective: getAddressFromJson(json, ".edgeFactoryPerspective"),
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner"),
-            governorAccessControlEmergencyFactory: getAddressFromJson(json, ".governorAccessControlEmergencyFactory")
+            governorAccessControlEmergencyFactory: getAddressFromJson(json, ".governorAccessControlEmergencyFactory"),
+            capRiskStewardFactory: getAddressFromJson(json, ".capRiskStewardFactory")
         });
     }
 }
@@ -191,6 +195,7 @@ abstract contract GovernorAddressesLib is ScriptExtended {
         address accessControlEmergencyGovernor;
         address accessControlEmergencyGovernorAdminTimelockController;
         address accessControlEmergencyGovernorWildcardTimelockController;
+        address capRiskSteward;
     }
 
     function serializeGovernorAddresses(GovernorAddresses memory Addresses) internal returns (string memory result) {
@@ -211,6 +216,7 @@ abstract contract GovernorAddressesLib is ScriptExtended {
             "accessControlEmergencyGovernorWildcardTimelockController",
             Addresses.accessControlEmergencyGovernorWildcardTimelockController
         );
+        result = vm.serializeAddress("governorAddresses", "capRiskSteward", Addresses.capRiskSteward);
     }
 
     function deserializeGovernorAddresses(string memory json) internal pure returns (GovernorAddresses memory) {
@@ -223,7 +229,8 @@ abstract contract GovernorAddressesLib is ScriptExtended {
             ),
             accessControlEmergencyGovernorWildcardTimelockController: getAddressFromJson(
                 json, ".accessControlEmergencyGovernorWildcardTimelockController"
-            )
+            ),
+            capRiskSteward: getAddressFromJson(json, ".capRiskSteward")
         });
     }
 }
@@ -428,7 +435,14 @@ abstract contract ScriptUtils is
             return 0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590;
         } else {
             // bitcoin-specific and test networks
-            if (block.chainid == 30 || block.chainid == 21000000 || block.chainid == 10143 || block.chainid == 80084) {
+            if (
+                block.chainid == 30 || block.chainid == 21000000 || block.chainid == 10143 || block.chainid == 80084
+                    || block.chainid == 2390
+            ) {
+                return address(0);
+            }
+            // hyperEVM
+            if (block.chainid == 999) {
                 return address(0);
             }
         }
@@ -491,6 +505,10 @@ abstract contract ScriptUtils is
             if (adapter == address(0)) revert("getValidAdapters: Adapter not found");
             if (counter > 1) revert("getValidAdapters: Multiple adapters found");
         }
+    }
+
+    function isValidOracleRouter(address oracleRouter) internal view returns (bool) {
+        return _strEq(EulerRouter(oracleRouter).name(), "EulerRouter");
     }
 
     function isValidExternalVault(address vault) internal view returns (bool) {
@@ -607,12 +625,19 @@ abstract contract ScriptUtils is
             || selector == IGovernance.setGovernorAdmin.selector;
     }
 
-    function isGovernorAccessControlInstance(address governorAdmin) internal view returns (bool) {
+    function isGovernorAccessControlInstance(address target) internal view returns (bool) {
         (bool success, bytes memory result) =
-            governorAdmin.staticcall(abi.encodeCall(GovernorAccessControl.isGovernorAccessControl, ()));
+            target.staticcall(abi.encodeCall(GovernorAccessControl.isGovernorAccessControl, ()));
 
         return success && result.length >= 32
             && abi.decode(result, (bytes4)) == GovernorAccessControl.isGovernorAccessControl.selector;
+    }
+
+    function isRiskStewardInstance(address target) internal view returns (bool) {
+        (bool success, bytes memory result) = target.staticcall(abi.encodeCall(CapRiskSteward.isCapRiskSteward, ()));
+
+        return
+            success && result.length >= 32 && abi.decode(result, (bytes4)) == CapRiskSteward.isCapRiskSteward.selector;
     }
 }
 
@@ -622,14 +647,24 @@ abstract contract BatchBuilder is ScriptUtils {
         CRITICAL
     }
 
+    struct TimelockCall {
+        bytes32 id;
+        address target;
+        uint256 value;
+        bytes data;
+        bytes32 predecessor;
+        bytes32 salt;
+        uint256 delay;
+    }
+
     uint256 internal constant TRIGGER_EXECUTE_BATCH_AT_SIZE = 250;
     IEVC.BatchItem[] internal batchItems;
     IEVC.BatchItem[] internal criticalItems;
     uint256 internal batchCounter;
-    bytes32 internal timelockPredecessor;
+    TimelockCall[] internal timelockCalls;
 
     function getAppropriateOnBehalfOfAccount() internal view returns (address) {
-        address timelock = getTimelock(false);
+        address timelock = getTimelock();
 
         if (timelock != address(0)) {
             return timelock;
@@ -683,6 +718,7 @@ abstract contract BatchBuilder is ScriptUtils {
         }
 
         if (isGovernanceOperation(bytes4(data))) {
+            address riskSteward = getRiskSteward();
             address governorAdmin;
 
             if (GenericFactory(coreAddresses.eVaultFactory).isProxy(targetContract)) {
@@ -691,7 +727,10 @@ abstract contract BatchBuilder is ScriptUtils {
                 governorAdmin = EulerRouter(targetContract).governor();
             }
 
-            if (isGovernorAccessControlInstance(governorAdmin)) {
+            if (riskSteward != address(0) && isRiskStewardInstance(riskSteward)) {
+                data = abi.encodePacked(data, targetContract);
+                targetContract = riskSteward;
+            } else if (isGovernorAccessControlInstance(governorAdmin)) {
                 data = abi.encodePacked(data, targetContract);
                 targetContract = governorAdmin;
             }
@@ -739,6 +778,10 @@ abstract contract BatchBuilder is ScriptUtils {
         }
     }
 
+    function getTimelockPredecessor() internal view returns (bytes32) {
+        return timelockCalls.length == 0 ? bytes32(0) : timelockCalls[timelockCalls.length - 1].id;
+    }
+
     function executeBatchPrank(address caller) internal {
         if (batchItems.length == 0) return;
 
@@ -755,56 +798,87 @@ abstract contract BatchBuilder is ScriptUtils {
     }
 
     function executeBatch() internal {
-        if (isBatchViaSafe()) executeBatchViaSafe();
-        else executeBatchDirectly();
+        if (isBatchViaSafe()) executeBatchViaSafe(true);
+        else executeBatchDirectly(false);
         batchCounter++;
     }
 
-    function executeBatchDirectly() internal broadcast {
+    function executeBatchDirectly(bool allowTimelock) internal broadcast {
         if (batchItems.length == 0) return;
 
         dumpBatch(getDeployer());
 
-        address payable timelock = payable(getTimelock(false));
-        if (timelock == address(0)) {
+        address payable timelock = payable(getTimelock());
+        if (timelock == address(0) || !allowTimelock) {
             console.log("Executing the batch directly on the EVC (%s)\n", coreAddresses.evc);
             IEVC(coreAddresses.evc).batch{value: getBatchValue()}(batchItems);
         } else {
             uint256 delay = TimelockController(timelock).getMinDelay();
             uint256 batchValue = getBatchValue();
             bytes memory batchCalldata = getBatchCalldata();
+            bytes32 timelockPredecessor = getTimelockPredecessor();
             bytes32 id = TimelockController(timelock).hashOperation(
                 coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0)
             );
+            bytes memory data = abi.encodeCall(
+                TimelockController.schedule,
+                (coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0), delay)
+            );
 
             console.log("Executing the batch directly on the EVC (%s) via Timelock (%s)\n", coreAddresses.evc, timelock);
-            TimelockController(timelock).schedule(coreAddresses.evc, batchValue, batchCalldata, id, bytes32(0), delay);
-            timelockPredecessor = id;
+            (bool success,) = timelock.call(data);
+            require(success, "executeBatchDirectly: timelock execution failed");
+
+            timelockCalls.push(
+                TimelockCall({
+                    id: id,
+                    target: timelock,
+                    value: batchValue,
+                    data: data,
+                    predecessor: timelockPredecessor,
+                    salt: bytes32(0),
+                    delay: delay
+                })
+            );
+
+            dumpTimelockCall(timelockCalls.length - 1);
+
+            // simulate timelock execution
+            vm.prank(timelock);
+            (success,) = coreAddresses.evc.call{value: batchValue}(batchCalldata);
+            require(success, "executeBatchDirectly: timelock execution simulation failed");
         }
 
         clearBatchItems();
     }
 
-    function executeBatchViaSafe() internal {
+    function executeBatchViaSafe(bool allowTimelock) internal {
         if (batchItems.length == 0) return;
 
         SafeTransaction transaction = new SafeTransaction();
+        if (isEmergency()) transaction.setSimulationOff();
+
         address safe = getSafe();
-        address payable timelock = payable(getTimelock(false));
+        address payable timelock = payable(getTimelock());
 
         dumpBatch(safe);
 
         safeNonce = safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce;
 
-        if (timelock == address(0)) {
+        if (timelock == address(0) || !allowTimelock) {
             console.log("Executing the batch via Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
             transaction.create(true, safe, coreAddresses.evc, getBatchValue(), getBatchCalldata(), safeNonce++);
         } else {
             uint256 delay = TimelockController(timelock).getMinDelay();
             uint256 batchValue = getBatchValue();
             bytes memory batchCalldata = getBatchCalldata();
+            bytes32 timelockPredecessor = getTimelockPredecessor();
             bytes32 id = TimelockController(timelock).hashOperation(
                 coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0)
+            );
+            bytes memory data = abi.encodeCall(
+                TimelockController.schedule,
+                (coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0), delay)
             );
 
             console.log(
@@ -814,18 +888,26 @@ abstract contract BatchBuilder is ScriptUtils {
                 coreAddresses.evc
             );
 
-            transaction.create(
-                true,
-                safe,
-                timelock,
-                batchValue,
-                abi.encodeCall(
-                    TimelockController.schedule, (coreAddresses.evc, batchValue, batchCalldata, id, bytes32(0), delay)
-                ),
-                safeNonce++
+            transaction.create(true, safe, timelock, batchValue, data, safeNonce++);
+
+            timelockCalls.push(
+                TimelockCall({
+                    id: id,
+                    target: timelock,
+                    value: batchValue,
+                    data: data,
+                    predecessor: timelockPredecessor,
+                    salt: bytes32(0),
+                    delay: delay
+                })
             );
 
-            timelockPredecessor = id;
+            dumpTimelockCall(timelockCalls.length - 1);
+
+            // simulate timelock execution
+            vm.prank(timelock);
+            (bool success,) = coreAddresses.evc.call{value: batchValue}(batchCalldata);
+            require(success, "executeBatchViaSafe: timelock execution simulation failed");
         }
 
         clearBatchItems();
@@ -842,6 +924,24 @@ abstract contract BatchBuilder is ScriptUtils {
         json = vm.serializeBytes(key, "data", getBatchCalldata());
 
         vm.writeJson(vm.serializeString("batches", vm.toString(batchCounter), json), path);
+    }
+
+    function dumpTimelockCall(uint256 i) internal {
+        require(i < timelockCalls.length, "dumpTimelockCall: incorrect index");
+
+        string memory path = string.concat(vm.projectRoot(), "/script/TimelockCalls.json");
+        string memory json = vm.exists(path) ? vm.readFile(path) : "{}";
+        string memory key = vm.toString(timelockCalls[i].id);
+
+        json = vm.serializeBytes32(key, "id", timelockCalls[i].id);
+        json = vm.serializeAddress(key, "target", timelockCalls[i].target);
+        json = vm.serializeUint(key, "value", timelockCalls[i].value);
+        json = vm.serializeBytes(key, "data", timelockCalls[i].data);
+        json = vm.serializeBytes32(key, "predecessor", timelockCalls[i].predecessor);
+        json = vm.serializeBytes32(key, "salt", timelockCalls[i].salt);
+        json = vm.serializeUint(key, "delay", timelockCalls[i].delay);
+
+        vm.writeJson(vm.serializeString("timelockCalls", key, json), path);
     }
 
     function grantRole(address accessController, bytes32 role, address account) internal {

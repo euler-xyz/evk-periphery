@@ -141,40 +141,6 @@ You can pass `--batch-via-safe` option to the deployment script in order to crea
 
 In case a timelock controller is installed as part of the governor contracts suite, you can additionally pass `--timelock-address` option with the timelock address to the deployment script in order to schedule the transactions in the timelock controller instead of trying to execute them immediately.
 
-### Use Safe API
+### Risk Steward
 
-You can pass `--use-safe-api` option to the deployment script in order to use the Safe API to create the batch transaction in the Safe UI. This option is only valid if the `--batch-via-safe` option is also used. If `--batch-via-safe` is used, but `--use-safe-api` is not used, the script will only create payload dump files that can be used with `curl` to create the transactions in the Safe UI.
-
-## Safe Delegates management
-
-To add a new Safe delegate, run:
-
-```bash
-source .env && forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "create(address,address,string)" $SAFE_ADDRESS <delegate> <label> --ffi --rpc-url $DEPLOYMENT_RPC_URL
-```
-
-If `SAFE_KEY` is not defined in the `.env` file, you can add i.e. `--ledger` or `--account ACC_NAME` options to the command.
-
-Or sign and send the request manually:
-
-```bash
-source .env forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "createManually(address,address,string,int256)" $SAFE_ADDRESS <delegate> <label> <nonce> --rpc-url $DEPLOYMENT_RPC_URL
-```
-
-Replace `<delegate>` with the desired delegate address and `<label>` with the label of the delegate. Label must be enclosed in quotes. Replace `<nonce>` with the nonce intended to be used for the transaction. Use 0 to automatically fetch the nonce from the Safe API.
-
-To remove a Safe delegate, run:
-
-```bash
-source .env && forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "remove(address,address)" $SAFE_ADDRESS <delegate> --ffi --rpc-url $DEPLOYMENT_RPC_URL
-```
-
-If `SAFE_KEY` is not defined in the `.env` file, you can add i.e. `--ledger` or `--account ACC_NAME` options to the command.
-
-Or sign and send the request manually:
-
-```bash
-source .env forge script script/utils/SafeUtils.s.sol:SafeDelegation --sig "removeManually(address,address)" $SAFE_ADDRESS <delegate> --rpc-url $DEPLOYMENT_RPC_URL
-```
-
-Replace `<delegate>` with the delegate address to remove.
+In case a risk steward contract is installed as part of the governor contracts suite, you can additionally pass `--risk-steward-address` option with the risk steward contract address to the deployment script in order to execute the transactions via the risk steward contract instead of trying to execute it directly.

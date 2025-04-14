@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {BatchBuilder, Vm, console} from "./utils/ScriptUtils.s.sol";
-import {SafeMultisendBuilder, SafeTransaction} from "./utils/SafeUtils.s.sol";
+import {SafeMultisendBuilder, SafeTransaction, SafeUtil} from "./utils/SafeUtils.s.sol";
 import {LayerZeroUtil} from "./utils/LayerZeroUtils.s.sol";
 import {ERC20BurnableMintableDeployer, RewardTokenDeployer} from "./00_ERC20.s.sol";
 import {Integrations} from "./01_Integrations.s.sol";
@@ -41,6 +41,7 @@ import {
     IGovernorAccessControlEmergencyFactory,
     GovernorAccessControlEmergencyFactory
 } from "./../src/GovernorFactory/GovernorAccessControlEmergencyFactory.sol";
+import {CapRiskStewardFactory} from "./../src/GovernorFactory/CapRiskStewardFactory.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
 import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
@@ -550,6 +551,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                             )
                         );
                     } else {
+                        removeBridgeConfigCache(block.chainid, chainIdOther);
                         console.log(
                             "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter send config on chain %s for chain %s must be set manually.",
                             block.chainid,
@@ -592,6 +594,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                             )
                         );
                     } else {
+                        removeBridgeConfigCache(block.chainid, chainIdOther);
                         console.log(
                             "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter receive config on chain %s for chain %s must be set manually.",
                             block.chainid,
@@ -622,6 +625,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                             )
                         );
                     } else {
+                        removeBridgeConfigCache(block.chainid, chainIdOther);
                         console.log(
                             "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter peer on chain %s for chain %s must be set manually.",
                             block.chainid,
@@ -651,6 +655,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                             abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (getEnforcedOptions(infoOther.eid)))
                         );
                     } else {
+                        removeBridgeConfigCache(block.chainid, chainIdOther);
                         console.log(
                             "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter enforced options on chain %s for chain %s must be set manually.",
                             block.chainid,
@@ -663,29 +668,30 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             }
         }
 
-        //if (
-        //    peripheryAddresses.oracleRouterFactory == address(0)
-        //        && peripheryAddresses.oracleAdapterRegistry == address(0)
-        //        && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory ==
-        // address(0)
-        //        && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry ==
-        // address(0)
-        //) {
-        console.log("+ Deploying Periphery factories...");
-        PeripheryFactories deployer = new PeripheryFactories();
-        PeripheryFactories.PeripheryContracts memory peripheryContracts = deployer.deploy(coreAddresses.evc);
+        if (
+            peripheryAddresses.oracleRouterFactory == address(0)
+                && peripheryAddresses.oracleAdapterRegistry == address(0)
+                && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0)
+                && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
+                && peripheryAddresses.governorAccessControlEmergencyFactory == address(0)
+                && peripheryAddresses.capRiskStewardFactory == address(0)
+        ) {
+            console.log("+ Deploying Periphery factories...");
+            PeripheryFactories deployer = new PeripheryFactories();
+            PeripheryFactories.PeripheryContracts memory peripheryContracts = deployer.deploy(coreAddresses.evc);
 
-        //peripheryAddresses.oracleRouterFactory = peripheryContracts.oracleRouterFactory;
-        //peripheryAddresses.oracleAdapterRegistry = peripheryContracts.oracleAdapterRegistry;
-        //peripheryAddresses.externalVaultRegistry = peripheryContracts.externalVaultRegistry;
-        //peripheryAddresses.kinkIRMFactory = peripheryContracts.kinkIRMFactory;
-        peripheryAddresses.adaptiveCurveIRMFactory = peripheryContracts.adaptiveCurveIRMFactory;
-        peripheryAddresses.irmRegistry = peripheryContracts.irmRegistry;
-        peripheryAddresses.governorAccessControlEmergencyFactory =
-            peripheryContracts.governorAccessControlEmergencyFactory;
-        //} else {
-        //    console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
-        //}
+            peripheryAddresses.oracleRouterFactory = peripheryContracts.oracleRouterFactory;
+            peripheryAddresses.oracleAdapterRegistry = peripheryContracts.oracleAdapterRegistry;
+            peripheryAddresses.externalVaultRegistry = peripheryContracts.externalVaultRegistry;
+            peripheryAddresses.kinkIRMFactory = peripheryContracts.kinkIRMFactory;
+            peripheryAddresses.adaptiveCurveIRMFactory = peripheryContracts.adaptiveCurveIRMFactory;
+            peripheryAddresses.irmRegistry = peripheryContracts.irmRegistry;
+            peripheryAddresses.governorAccessControlEmergencyFactory =
+                peripheryContracts.governorAccessControlEmergencyFactory;
+            peripheryAddresses.capRiskStewardFactory = peripheryContracts.capRiskStewardFactory;
+        } else {
+            console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
+        }
 
         if (peripheryAddresses.feeFlowController == address(0)) {
             address paymentToken = bridgeAddresses.oftAdapter == address(0) ? getWETHAddress() : tokenAddresses.EUL;
@@ -736,6 +742,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             governorAddresses.accessControlEmergencyGovernorAdminTimelockController == address(0)
                 && governorAddresses.accessControlEmergencyGovernorWildcardTimelockController == address(0)
                 && governorAddresses.accessControlEmergencyGovernor == address(0)
+                && governorAddresses.capRiskSteward == address(0)
         ) {
             console.log("+ Deploying GovernorAccessControlEmergency contracts suite...");
 
@@ -788,6 +795,13 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             ) = GovernorAccessControlEmergencyFactory(peripheryAddresses.governorAccessControlEmergencyFactory).deploy(
                 adminTimelockControllerParams, wildcardTimelockControllerParams, governorAccessControlEmergencyGuardians
             );
+
+            governorAddresses.capRiskSteward = CapRiskStewardFactory(peripheryAddresses.capRiskStewardFactory).deploy(
+                governorAddresses.accessControlEmergencyGovernor,
+                peripheryAddresses.kinkIRMFactory,
+                multisigAddresses.DAO
+            );
+
             stopBroadcast();
         } else {
             console.log("- GovernorAccessControlEmergency contracts suite already deployed. Skipping...");
@@ -983,27 +997,13 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
         if (multisendItemExists()) {
             address safe = getSafe();
-            console.log("\nExecuting the multicall via Safe (%s)", safe);
 
-            simulateMultisend(safe);
+            if (safeNonce == 0) {
+                SafeUtil util = new SafeUtil();
+                safeNonce = util.getNextNonce(safe);
+            }
 
-            SafeTransaction transaction = new SafeTransaction();
-            safeNonce = safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce;
-
-            dumpMultisendBatchBuilderFile(
-                safe, string.concat("SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), ".json")
-            );
-
-            transaction.create(
-                false,
-                safe,
-                getMultisendAddress(block.chainid),
-                getMultisendValue(),
-                getMultisendCalldata(),
-                safeNonce++
-            );
-
-            clearMultisendItems();
+            executeMultisend(safe, safeNonce++);
         }
 
         // save results

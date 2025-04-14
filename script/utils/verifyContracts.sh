@@ -34,16 +34,29 @@ function verify_contract {
         if [[ $constructorArgs == "--guess-constructor-args" ]]; then
             constructorArgs=""
         fi
+    elif [[ $verifier == "sourcify" ]]; then
+        verifierArgs="$verifierArgs --verifier=$verifier --retries 1"
     elif [[ $verifier == "custom" ]]; then
         verifierArgs="$verifierArgs --verifier=$verifier"
+
+        if [[ $constructorArgs == "--guess-constructor-args" ]]; then
+            constructorArgs=""
+        fi
     else
         verifierArgs="$verifierArgs --verifier-api-key $verifier_api_key --verifier=$verifier"
     fi
 
     echo "Verifying $contractName: $contractAddress"
-    env VERIFIER_API_KEY=$verifier_api_key ETHERSCAN_API_KEY=$verifier_api_key \
-        forge verify-contract $contractAddress $contractName $constructorArgs --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId $verifierArgs --watch $@ #--show-standard-json-input > $contractAddress.json
+
+    output=$(env VERIFIER_API_KEY=$verifier_api_key ETHERSCAN_API_KEY=$verifier_api_key \
+        forge verify-contract $contractAddress $contractName $constructorArgs --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId $verifierArgs --watch $@ 2>&1 | tee /dev/tty) #--show-standard-json-input > $contractAddress.json
+
     result=$?
+
+    if [[ $verifier == "sourcify" ]] && echo "$output" | grep -q "is already partially verified"; then
+        echo "Contract already partially verified, continuing..."
+        result=0
+    fi
 
     if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan.io/api* ]]; then
         curl -d "address=$contractAddress" "$verifier_url?module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
@@ -128,7 +141,7 @@ function verify_broadcast {
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $contractName == "EulerRouterFactory" || $function == "deploy(address)" ]]; then
                     contractName=EulerRouter
-                    constructorBytesSize=32
+                    constructorBytesSize=64
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $contractName == "GovernorAccessControlEmergencyFactory" || $function == "deploy((uint256,address[],address[],address[]),(uint256,address[],address[],address[]),address[])" ]]; then
                     if [[ $index -eq 0 ]]; then
@@ -144,6 +157,10 @@ function verify_broadcast {
                         constructorBytesSize=64
                         constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                     fi
+                elif [[ $contractName == "CapRiskStewardFactory" || $function == "deploy(address,address,address)" ]]; then
+                    contractName=CapRiskSteward
+                    constructorBytesSize=160
+                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $contractName == "GenericFactory" || $function == "createProxy(address,bool,bytes)" ]]; then
                     if [[ $index -eq 0 ]]; then
                         upgradable=$(echo "$arguments" | jq -r '.[1]')

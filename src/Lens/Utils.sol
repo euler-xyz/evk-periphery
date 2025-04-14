@@ -43,7 +43,14 @@ abstract contract Utils {
             return 0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590;
         } else {
             // bitcoin-specific and test networks
-            if (block.chainid == 30 || block.chainid == 21000000 || block.chainid == 10143 || block.chainid == 80084) {
+            if (
+                block.chainid == 30 || block.chainid == 21000000 || block.chainid == 10143 || block.chainid == 80084
+                    || block.chainid == 2390
+            ) {
+                return address(0);
+            }
+            // hyperEVM
+            if (block.chainid == 999) {
                 return address(0);
             }
         }

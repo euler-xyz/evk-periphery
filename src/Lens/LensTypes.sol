@@ -309,6 +309,12 @@ struct RateProviderOracleInfo {
     address rateProvider;
 }
 
+struct OndoOracleInfo {
+    address base;
+    address quote;
+    address rwaOracle;
+}
+
 struct PendleProviderOracleInfo {
     address base;
     address quote;
