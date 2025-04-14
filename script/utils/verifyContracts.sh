@@ -38,6 +38,10 @@ function verify_contract {
         verifierArgs="$verifierArgs --verifier=$verifier --retries 1"
     elif [[ $verifier == "custom" ]]; then
         verifierArgs="$verifierArgs --verifier=$verifier"
+
+        if [[ $constructorArgs == "--guess-constructor-args" ]]; then
+            constructorArgs=""
+        fi
     else
         verifierArgs="$verifierArgs --verifier-api-key $verifier_api_key --verifier=$verifier"
     fi

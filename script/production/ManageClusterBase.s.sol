@@ -778,6 +778,8 @@ abstract contract ManageClusterBase is BatchBuilder {
     }
 
     function simulatePendingTransactions() internal {
+        if (isSkipPendingSimulation()) return;
+
         if (isBatchViaSafe()) {
             SafeTransaction safeUtil = new SafeTransaction();
             if (!safeUtil.isTransactionServiceAPIAvailable()) return;

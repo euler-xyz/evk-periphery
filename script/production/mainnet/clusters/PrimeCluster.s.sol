@@ -5,8 +5,6 @@ pragma solidity ^0.8.0;
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
-import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
-import {ClusterDump} from "../../../utils/ClusterDump.s.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
@@ -58,6 +56,8 @@ contract Cluster is ManageCluster {
         cluster.interestFeeOverride[WETH] = 0;
         cluster.interestFeeOverride[USDC] = 0;
         cluster.interestFeeOverride[USDT] = 0;
+
+        cluster.interestFeeOverride[wUSDM] = 1e4;
 
         // define max liquidation discount here. if needed to be defined per asset, populate the maxLiquidationDiscountOverride mapping
         cluster.maxLiquidationDiscount = 0.15e4;
@@ -113,7 +113,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[ezETH  ] = 13_000;
         cluster.supplyCaps[RETH   ] = 6_250;
         cluster.supplyCaps[mETH   ] = 6_250;
-        cluster.supplyCaps[rsETH  ] = 13_000;
+        cluster.supplyCaps[rsETH  ] = 18_000;
         cluster.supplyCaps[ETHx   ] = 2_500;
         cluster.supplyCaps[tETH   ] = 8_000;
         cluster.supplyCaps[USDC   ] = 50_000_000;
@@ -138,14 +138,14 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[ezETH  ] = 3_120;
         cluster.borrowCaps[RETH   ] = 2_500;
         cluster.borrowCaps[mETH   ] = 2_500;
-        cluster.borrowCaps[rsETH  ] = 3_120;
+        cluster.borrowCaps[rsETH  ] = 4_500;
         cluster.borrowCaps[ETHx   ] = 1_000;
         cluster.borrowCaps[tETH   ] = 2_000;
         cluster.borrowCaps[USDC   ] = 45_000_000;
         cluster.borrowCaps[USDT   ] = 45_000_000;
-        cluster.borrowCaps[wUSDM  ] = 4_100_000;
+        cluster.borrowCaps[wUSDM  ] = 0;
         cluster.borrowCaps[wM     ] = 4_500_000;
-        cluster.borrowCaps[mTBILL ] = 2_000_000;
+        cluster.borrowCaps[mTBILL ] = 0;
         cluster.borrowCaps[USDS   ] = 9_000_000;
         cluster.borrowCaps[sUSDS  ] = 3_200_000;
         cluster.borrowCaps[tBTC   ] = 85;
@@ -216,7 +216,7 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 30 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
@@ -225,34 +225,30 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22
         //                WETH            wstETH  cbETH   weETH   ezETH   RETH    mETH    rsETH   ETHx    tETH    USDC    USDT    wUSDM   wM      mTBILL  USDS    sUSDS   tBTC    WBTC    cbBTC   LBTC    eBTC    solvBTC
-        /* 0  WETH    */ [uint16(0.00e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.00e4, 0.85e4, 0.00e4, 0.73e4, 0.73e4, 0.78e4, 0.78e4, 0.78e4, 0.78e4],
-        /* 1  wstETH  */ [uint16(0.95e4), 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.83e4, 0.83e4, 0.83e4, 0.83e4, 0.00e4, 0.83e4, 0.00e4, 0.72e4, 0.72e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4],
-        /* 2  cbETH   */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.92e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.70e4, 0.70e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
-        /* 3  weETH   */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.70e4, 0.70e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
-        /* 4  ezETH   */ [uint16(0.93e4), 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
-        /* 5  RETH    */ [uint16(0.95e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
-        /* 6  mETH    */ [uint16(0.93e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
-        /* 7  rsETH   */ [uint16(0.93e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
-        /* 8  ETHx    */ [uint16(0.93e4), 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.00e4, 0.87e4, 0.74e4, 0.74e4, 0.74e4, 0.74e4, 0.00e4, 0.74e4, 0.00e4, 0.64e4, 0.64e4, 0.69e4, 0.69e4, 0.69e4, 0.69e4],
-        /* 9  tETH    */ [uint16(0.93e4), 0.93e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
-        /* 10 USDC    */ [uint16(0.87e4), 0.83e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.75e4, 0.82e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
-        /* 11 USDT    */ [uint16(0.87e4), 0.83e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.75e4, 0.82e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
-        /* 12 wUSDM   */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.00e4, 0.92e4, 0.00e4, 0.60e4, 0.60e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4],
-        /* 13 wM      */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.60e4, 0.60e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4],
-        /* 14 mTBILL  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.00e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 15 USDS    */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.94e4, 0.94e4, 0.94e4, 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.75e4, 0.75e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
-        /* 16 sUSDS   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.94e4, 0.94e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 17 tBTC    */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.00e4, 0.75e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4],
-        /* 18 WBTC    */ [uint16(0.70e4), 0.68e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.00e4, 0.75e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4],
-        /* 19 cbBTC   */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4],
-        /* 20 LBTC    */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4],
-        /* 21 eBTC    */ [uint16(0.72e4), 0.70e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.00e4, 0.87e4],
+        /* 0  WETH    */ [uint16(0.00e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.85e4, 0.85e4, 0.00e4, 0.85e4, 0.00e4, 0.85e4, 0.00e4, 0.73e4, 0.73e4, 0.78e4, 0.78e4, 0.78e4, 0.78e4],
+        /* 1  wstETH  */ [uint16(0.95e4), 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.83e4, 0.83e4, 0.00e4, 0.83e4, 0.00e4, 0.83e4, 0.00e4, 0.72e4, 0.72e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4],
+        /* 2  cbETH   */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.92e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.70e4, 0.70e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
+        /* 3  weETH   */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.70e4, 0.70e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4],
+        /* 4  ezETH   */ [uint16(0.93e4), 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
+        /* 5  RETH    */ [uint16(0.95e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
+        /* 6  mETH    */ [uint16(0.93e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
+        /* 7  rsETH   */ [uint16(0.93e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
+        /* 8  ETHx    */ [uint16(0.93e4), 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.00e4, 0.87e4, 0.74e4, 0.74e4, 0.00e4, 0.74e4, 0.00e4, 0.74e4, 0.00e4, 0.64e4, 0.64e4, 0.69e4, 0.69e4, 0.69e4, 0.69e4],
+        /* 9  tETH    */ [uint16(0.93e4), 0.93e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.67e4, 0.67e4, 0.72e4, 0.72e4, 0.72e4, 0.72e4],
+        /* 10 USDC    */ [uint16(0.87e4), 0.83e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.75e4, 0.82e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
+        /* 11 USDT    */ [uint16(0.87e4), 0.83e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.95e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.75e4, 0.82e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
+        /* 12 wUSDM   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 13 wM      */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.60e4, 0.60e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4],
+        /* 14 mTBILL  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 15 USDS    */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.75e4, 0.75e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4],
+        /* 16 sUSDS   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.00e4, 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 17 tBTC    */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.75e4, 0.75e4, 0.00e4, 0.75e4, 0.00e4, 0.75e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4],
+        /* 18 WBTC    */ [uint16(0.70e4), 0.68e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.75e4, 0.75e4, 0.00e4, 0.75e4, 0.00e4, 0.75e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4],
+        /* 19 cbBTC   */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4],
+        /* 20 LBTC    */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4],
+        /* 21 eBTC    */ [uint16(0.72e4), 0.70e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.67e4, 0.77e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.77e4, 0.00e4, 0.87e4, 0.87e4, 0.87e4, 0.87e4, 0.00e4, 0.87e4],
         /* 22 solvBTC */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
-
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            cluster.borrowLTVsOverride[12][i] = 0.00e4; // wUSDM
-        }
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
@@ -264,12 +260,9 @@ contract Cluster is ManageCluster {
         ];
     }
 
-    function postOperations() internal override {
+    function postOperations() internal view override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
         }
-
-        ClusterDump dumper = new ClusterDump();
-        dumper.dumpCluster(cluster.vaults, cluster.externalVaults);
     }
 }

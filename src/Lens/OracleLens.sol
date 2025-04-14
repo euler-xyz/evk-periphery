@@ -34,6 +34,7 @@ interface IOracle is IPriceOracle {
     function cache() external view returns (uint208, uint48);
     function rate() external view returns (uint256);
     function rateProvider() external view returns (address);
+    function rwaOracle() external view returns (address);
     function resolveOracle(uint256 inAmount, address base, address quote)
         external
         view
@@ -161,6 +162,14 @@ contract OracleLens is Utils {
                     base: IOracle(oracleAddress).base(),
                     quote: IOracle(oracleAddress).quote(),
                     rateProvider: IOracle(oracleAddress).rateProvider()
+                })
+            );
+        } else if (_strEq(name, "OndoOracle")) {
+            oracleInfo = abi.encode(
+                OndoOracleInfo({
+                    base: IOracle(oracleAddress).base(),
+                    quote: IOracle(oracleAddress).quote(),
+                    rwaOracle: IOracle(oracleAddress).rwaOracle()
                 })
             );
         } else if (_strEq(name, "PendleOracle")) {

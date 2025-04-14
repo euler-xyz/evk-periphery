@@ -56,6 +56,11 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
     fi
 fi
 
+if [[ "$@" == *"--skip-pending-simulation"* ]]; then
+    set -- "${@/--skip-pending-simulation/}"
+    skip_pending_simulation="--skip-pending-simulation"
+fi
+
 if [[ "$@" == *"--timelock-address"* ]]; then
     timelock_address=$(echo "$@" | grep -o '\--timelock-address [^ ]*' | cut -d ' ' -f 2)
     set -- $(echo "$@" | sed "s/--timelock-address $timelock_address//")
@@ -104,7 +109,8 @@ if [[ "$@" == *"--no-stub-oracle"* ]]; then
 fi
 
 if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe \
-    safe_owner_simulate=$safe_owner_simulate timelock_address=$timelock_address risk_steward_address=$risk_steward_address \
+    safe_owner_simulate=$safe_owner_simulate skip_pending_simulation=$skip_pending_simulation \
+    timelock_address=$timelock_address risk_steward_address=$risk_steward_address \
     emergency_ltv_collateral=$emergency_ltv_collateral emergency_ltv_borrowing=$emergency_ltv_borrowing \
     emergency_caps=$emergency_caps emergency_operations=$emergency_operations \
     vault_address=$vault_address no_stub_oracle=$no_stub_oracle \
