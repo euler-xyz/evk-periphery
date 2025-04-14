@@ -5,8 +5,6 @@ pragma solidity ^0.8.0;
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
-import {PerspectiveVerifier} from "../../../utils/PerspectiveCheck.s.sol";
-import {ClusterDump} from "../../../utils/ClusterDump.s.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
@@ -113,7 +111,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[ezETH  ] = 13_000;
         cluster.supplyCaps[RETH   ] = 6_250;
         cluster.supplyCaps[mETH   ] = 6_250;
-        cluster.supplyCaps[rsETH  ] = 13_000;
+        cluster.supplyCaps[rsETH  ] = 18_000;
         cluster.supplyCaps[ETHx   ] = 2_500;
         cluster.supplyCaps[tETH   ] = 8_000;
         cluster.supplyCaps[USDC   ] = 50_000_000;
@@ -138,7 +136,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[ezETH  ] = 3_120;
         cluster.borrowCaps[RETH   ] = 2_500;
         cluster.borrowCaps[mETH   ] = 2_500;
-        cluster.borrowCaps[rsETH  ] = 3_120;
+        cluster.borrowCaps[rsETH  ] = 4_500;
         cluster.borrowCaps[ETHx   ] = 1_000;
         cluster.borrowCaps[tETH   ] = 2_000;
         cluster.borrowCaps[USDC   ] = 45_000_000;
@@ -264,12 +262,9 @@ contract Cluster is ManageCluster {
         ];
     }
 
-    function postOperations() internal override {
+    function postOperations() internal view override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
         }
-
-        ClusterDump dumper = new ClusterDump();
-        dumper.dumpCluster(cluster.vaults, cluster.externalVaults);
     }
 }
