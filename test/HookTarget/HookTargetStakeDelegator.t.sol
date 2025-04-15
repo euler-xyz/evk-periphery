@@ -248,12 +248,13 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
     function test_HookTargetStakeDelegator_deposit_into_subaccount() public {
         address user2 = makeAddr("user2");
         address user2_subaccount1 = address(uint160(user2) ^ 0x1);
-        address user2_subaccount2 = address(uint160(user2) ^ 0x2);
+
+        assetTST.mint(user, 1000);
 
         vm.startPrank(user);    
 
-        assetTST.approve(address(eTST), 1000);
-        eTST.deposit(1000, user);
+        assetTST.approve(address(eTST), 2000);
+        eTST.deposit(2000, user);
 
         vm.stopPrank();
 
@@ -269,7 +270,7 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
 
         assertEq(eTST.balanceOf(user2), 0);
         assertEq(eTST.balanceOf(user2_subaccount1), 500);
-        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 500);
+        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 2500);
         assertEq(IRewardVault(rewardVault).getDelegateStake(user2_subaccount1, address(hookTargetStakeDelegator)), 500);
         assertEq(IRewardVault(rewardVault).getDelegateStake(user2, address(hookTargetStakeDelegator)), 0);
 
@@ -278,17 +279,13 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
         evc.call(address(0), user2, 0, "");
 
         vm.startPrank(user2);
-
-        // once again deposit into the subaccount (this time owner is registered).
-        // this would be double counted but in fact it will revert because we will try to 
-        // delegate more than the hook target balance at the moment (due to amount + _migrateStake)
         eTST.deposit(500, user2_subaccount1);
 
         vm.stopPrank();
 
         assertEq(eTST.balanceOf(user2), 0);
         assertEq(eTST.balanceOf(user2_subaccount1), 1000);
-        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 1000);
+        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 3000);
         assertEq(IRewardVault(rewardVault).getDelegateStake(user2_subaccount1, address(hookTargetStakeDelegator)), 0);
         assertEq(IRewardVault(rewardVault).getDelegateStake(user2, address(hookTargetStakeDelegator)), 1000);
     }
