@@ -133,7 +133,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[PT_eUSDe_29MAY2025       ] = "CrossAdapter=PendleUniversalOracle+PythOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[USDC                     ] = 50_000_000;
+        cluster.supplyCaps[USDC                     ] = 70_000_000;
         cluster.supplyCaps[USDT                     ] = 50_000_000;
         cluster.supplyCaps[FDUSD                    ] = 0;
         cluster.supplyCaps[PYUSD                    ] = 10_000_000;
@@ -146,7 +146,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[DAI                      ] = 10_000_000;
         cluster.supplyCaps[sDAI                     ] = 10_000_000;
         cluster.supplyCaps[USD0                     ] = 10_000_000;
-        cluster.supplyCaps[USD0PlusPlus             ] = 8_000_000;
+        cluster.supplyCaps[USD0PlusPlus             ] = 12_000_000;
         cluster.supplyCaps[USDe                     ] = 10_000_000;
         cluster.supplyCaps[eUSDe                    ] = 40_000_000;
         cluster.supplyCaps[sUSDe                    ] = 16_000_000;
@@ -164,7 +164,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 40_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[USDC                     ] = 45_000_000;
+        cluster.borrowCaps[USDC                     ] = 63_000_000;
         cluster.borrowCaps[USDT                     ] = 45_000_000;
         cluster.borrowCaps[FDUSD                    ] = 0;
         cluster.borrowCaps[PYUSD                    ] = 9_000_000;
@@ -177,7 +177,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[DAI                      ] = 9_000_000;
         cluster.borrowCaps[sDAI                     ] = 3_000_000;
         cluster.borrowCaps[USD0                     ] = 9_000_000;
-        cluster.borrowCaps[USD0PlusPlus             ] = 2_400_000;
+        cluster.borrowCaps[USD0PlusPlus             ] = 3_600_000;
         cluster.borrowCaps[USDe                     ] = 3_000_000;
         cluster.borrowCaps[eUSDe                    ] = 20_000_000;
         cluster.borrowCaps[sUSDe                    ] = 2_400_000;

@@ -104,7 +104,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[solvBTC] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[WETH   ] = 50_000;
+        cluster.supplyCaps[WETH   ] = 70_000;
         cluster.supplyCaps[wstETH ] = 12_500;
         cluster.supplyCaps[cbETH  ] = 12_500;
         cluster.supplyCaps[weETH  ] = 13_000;
@@ -124,12 +124,12 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[tBTC   ] = 100;
         cluster.supplyCaps[WBTC   ] = 600;
         cluster.supplyCaps[cbBTC  ] = 500;
-        cluster.supplyCaps[LBTC   ] = 500;
+        cluster.supplyCaps[LBTC   ] = 600;
         cluster.supplyCaps[eBTC   ] = 100;
         cluster.supplyCaps[solvBTC] = 100;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WETH   ] = 45_000;
+        cluster.borrowCaps[WETH   ] = 63_000;
         cluster.borrowCaps[wstETH ] = 5_000;
         cluster.borrowCaps[cbETH  ] = 5_000;
         cluster.borrowCaps[weETH  ] = 3_120;
@@ -149,7 +149,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[tBTC   ] = 85;
         cluster.borrowCaps[WBTC   ] = 510;
         cluster.borrowCaps[cbBTC  ] = 425;
-        cluster.borrowCaps[LBTC   ] = 125;
+        cluster.borrowCaps[LBTC   ] = 150;
         cluster.borrowCaps[eBTC   ] = 25;
         cluster.borrowCaps[solvBTC] = 25;
 
