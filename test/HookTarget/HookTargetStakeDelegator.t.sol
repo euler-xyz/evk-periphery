@@ -191,18 +191,19 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
 
     function test_HookTargetStakeDelegator_deposit_on_behalf_of_subaccount() public {
         address user2 = makeAddr("user2");
-        address user2_subaccount = address(uint160(user2) ^ 0x10);
-        
+        address user2_subaccount1 = address(uint160(user2) ^ 0x1);
+        address user2_subaccount2 = address(uint160(user2) ^ 0x2);
+
         vm.startPrank(user);    
 
         assetTST.approve(address(eTST), 1000);
-        eTST.deposit(1000, user2_subaccount);
+        eTST.deposit(1000, user2_subaccount1);
 
         vm.stopPrank();
 
-        assertEq(eTST.balanceOf(user2_subaccount), 1000);
+        assertEq(eTST.balanceOf(user2_subaccount1), 1000);
         assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 1000);
-        assertEq(IRewardVault(rewardVault).getDelegateStake(user2_subaccount, address(hookTargetStakeDelegator)), 1000);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user2_subaccount1, address(hookTargetStakeDelegator)), 1000);
         assertEq(IRewardVault(rewardVault).getDelegateStake(user2, address(hookTargetStakeDelegator)), 0);
         assertEq(IRewardVault(rewardVault).getDelegateStake(user, address(hookTargetStakeDelegator)), 0);
 
@@ -210,17 +211,37 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
 
         IEVC.BatchItem[] memory items2 = new IEVC.BatchItem[](1);
 
-        items2[0].onBehalfOfAccount = user2_subaccount;
+        items2[0].onBehalfOfAccount = user2_subaccount1;
         items2[0].targetContract = address(eTST);
         items2[0].value = 0;
-        items2[0].data = abi.encodeWithSelector(eTST.transfer.selector, user2, 1000);
+        items2[0].data = abi.encodeWithSelector(eTST.transfer.selector, user2_subaccount2, 1000);
 
         evc.batch(items2);
 
         vm.stopPrank();
 
-        assertEq(eTST.balanceOf(user2_subaccount), 0);
-        assertEq(IRewardVault(rewardVault).getDelegateStake(user2_subaccount, address(hookTargetStakeDelegator)), 0);
+        assertEq(eTST.balanceOf(user2_subaccount1), 0);
+        assertEq(eTST.balanceOf(user2_subaccount2), 1000);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user2_subaccount1, address(hookTargetStakeDelegator)), 0);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user2_subaccount2, address(hookTargetStakeDelegator)), 0);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user2, address(hookTargetStakeDelegator)), 1000);
+
+        vm.startPrank(user2);
+
+        IEVC.BatchItem[] memory items3 = new IEVC.BatchItem[](1);
+
+        items3[0].onBehalfOfAccount = user2_subaccount2;
+        items3[0].targetContract = address(eTST);
+        items3[0].value = 0;
+        items3[0].data = abi.encodeWithSelector(eTST.transfer.selector, user2, 1000);
+
+        evc.batch(items3);
+
+        vm.stopPrank();
+
+        assertEq(eTST.balanceOf(user2_subaccount2), 0);
+        assertEq(eTST.balanceOf(user2), 1000);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user2_subaccount2, address(hookTargetStakeDelegator)), 0);
         assertEq(IRewardVault(rewardVault).getDelegateStake(user2, address(hookTargetStakeDelegator)), 1000);
     }
 
