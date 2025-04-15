@@ -133,6 +133,97 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
         assertEq(IRewardVault(rewardVault).getDelegateStake(user2, address(hookTargetStakeDelegator)), 1000);
     }
 
+    function test_HookTargetStakeDelegator_transfer_subaccount() public {
+        address user_subaccount = address(uint160(user) ^ 0x10);
+        
+        vm.startPrank(user);
+
+        assetTST.approve(address(eTST), 1000);
+        
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](1);
+        items[0].onBehalfOfAccount = user;
+        items[0].targetContract = address(eTST);
+        items[0].value = 0;
+        items[0].data = abi.encodeWithSelector(eTST.deposit.selector, 1000, user_subaccount);
+
+        evc.batch(items);
+
+        vm.stopPrank();
+
+        assertEq(eTST.balanceOf(user_subaccount), 1000);
+        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 1000);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user_subaccount, address(hookTargetStakeDelegator)), 0);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user, address(hookTargetStakeDelegator)), 1000);
+
+        vm.startPrank(user);
+
+        IEVC.BatchItem[] memory items2 = new IEVC.BatchItem[](1);
+
+        items2[0].onBehalfOfAccount = user_subaccount;
+        items2[0].targetContract = address(eTST);
+        items2[0].value = 0;
+        items2[0].data = abi.encodeWithSelector(eTST.transfer.selector, user, 1000);
+
+        evc.batch(items2);
+
+        vm.stopPrank();
+
+        assertEq(eTST.balanceOf(user_subaccount), 0);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user_subaccount, address(hookTargetStakeDelegator)), 0);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user, address(hookTargetStakeDelegator)), 1000);
+
+        vm.startPrank(user);
+
+        IEVC.BatchItem[] memory items3 = new IEVC.BatchItem[](1);
+        items3[0].onBehalfOfAccount = user;
+        items3[0].targetContract = address(eTST);
+        items3[0].value = 0;
+        items3[0].data = abi.encodeWithSelector(eTST.transfer.selector, user_subaccount, 1000);
+
+        evc.batch(items3);
+
+        vm.stopPrank();
+
+        assertEq(eTST.balanceOf(user_subaccount), 1000);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user, address(hookTargetStakeDelegator)), 1000);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user_subaccount, address(hookTargetStakeDelegator)), 0);
+    }
+
+    function test_HookTargetStakeDelegator_deposit_on_behalf_of_subaccount() public {
+        address user2 = makeAddr("user2");
+        address user2_subaccount = address(uint160(user2) ^ 0x10);
+        
+        vm.startPrank(user);    
+
+        assetTST.approve(address(eTST), 1000);
+        eTST.deposit(1000, user2_subaccount);
+
+        vm.stopPrank();
+
+        assertEq(eTST.balanceOf(user2_subaccount), 1000);
+        assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 1000);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user2_subaccount, address(hookTargetStakeDelegator)), 1000);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user2, address(hookTargetStakeDelegator)), 0);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user, address(hookTargetStakeDelegator)), 0);
+
+        vm.startPrank(user2);
+
+        IEVC.BatchItem[] memory items2 = new IEVC.BatchItem[](1);
+
+        items2[0].onBehalfOfAccount = user2_subaccount;
+        items2[0].targetContract = address(eTST);
+        items2[0].value = 0;
+        items2[0].data = abi.encodeWithSelector(eTST.transfer.selector, user2, 1000);
+
+        evc.batch(items2);
+
+        vm.stopPrank();
+
+        assertEq(eTST.balanceOf(user2_subaccount), 0);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user2_subaccount, address(hookTargetStakeDelegator)), 0);
+        assertEq(IRewardVault(rewardVault).getDelegateStake(user2, address(hookTargetStakeDelegator)), 1000);
+    }
+
     function test_HookTargetStakeDelegator_withdraw_existing_position() public {
         eTST.setHookConfig(address(0), 0);
 

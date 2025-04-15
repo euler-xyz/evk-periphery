@@ -281,6 +281,7 @@ contract HookTargetStakeDelegator is Ownable, IHookTarget {
     function _delegateStake(address account, uint256 amount) internal {
         address owner = evc.getAccountOwner(account);
         rewardVault.delegateStake(owner == address(0) ? account : owner, amount + _migrateStake(owner, account));
+        // rewardVault.delegateStake(owner == address(0) ? account : owner, amount);
     }
 
     /// @notice Withdraws delegated stake from an account and handles stake migration between account and its EVC owner
