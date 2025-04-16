@@ -29,13 +29,20 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
         user = makeAddr("user");
 
         hookTargetStakeDelegator = new HookTargetStakeDelegator(address(eTST), address(rewardVaultFactory));
-        rewardVault = IRewardVaultFactory(rewardVaultFactory).createRewardVault(address(hookTargetStakeDelegator.erc20()));
-        eTST.setHookConfig(address(hookTargetStakeDelegator), (OP_DEPOSIT | OP_MINT | OP_WITHDRAW | OP_REDEEM | OP_SKIM | OP_REPAY | OP_REPAY_WITH_SHARES | OP_TRANSFER | OP_VAULT_STATUS_CHECK));
+        rewardVault =
+            IRewardVaultFactory(rewardVaultFactory).createRewardVault(address(hookTargetStakeDelegator.erc20()));
+        eTST.setHookConfig(
+            address(hookTargetStakeDelegator),
+            (
+                OP_DEPOSIT | OP_MINT | OP_WITHDRAW | OP_REDEEM | OP_SKIM | OP_REPAY | OP_REPAY_WITH_SHARES | OP_TRANSFER
+                    | OP_VAULT_STATUS_CHECK
+            )
+        );
 
         assetTST.mint(user, 1000);
     }
 
-    function test_HookTargetStakeDelegator_deposit() public {       
+    function test_HookTargetStakeDelegator_deposit() public {
         vm.startPrank(user);
 
         assetTST.approve(address(eTST), 1000);
@@ -92,11 +99,11 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
 
     function test_HookTargetStakeDelegator_subaccount() public {
         address user_subaccount = address(uint160(user) ^ 0x10);
-        
+
         vm.startPrank(user);
 
         assetTST.approve(address(eTST), 1000);
-        
+
         IEVC.BatchItem[] memory items = new IEVC.BatchItem[](1);
         items[0].onBehalfOfAccount = user;
         items[0].targetContract = address(eTST);
@@ -135,11 +142,11 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
 
     function test_HookTargetStakeDelegator_transfer_subaccount() public {
         address user_subaccount = address(uint160(user) ^ 0x10);
-        
+
         vm.startPrank(user);
 
         assetTST.approve(address(eTST), 1000);
-        
+
         IEVC.BatchItem[] memory items = new IEVC.BatchItem[](1);
         items[0].onBehalfOfAccount = user;
         items[0].targetContract = address(eTST);
@@ -194,7 +201,7 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
         address user2_subaccount1 = address(uint160(user2) ^ 0x1);
         address user2_subaccount2 = address(uint160(user2) ^ 0x2);
 
-        vm.startPrank(user);    
+        vm.startPrank(user);
 
         assetTST.approve(address(eTST), 1000);
         eTST.deposit(1000, user2_subaccount1);
@@ -251,7 +258,7 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
 
         assetTST.mint(user, 1000);
 
-        vm.startPrank(user);    
+        vm.startPrank(user);
 
         assetTST.approve(address(eTST), 2000);
         eTST.deposit(2000, user);
@@ -260,7 +267,7 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
 
         assetTST.mint(user2, 1000);
 
-        vm.startPrank(user2);    
+        vm.startPrank(user2);
 
         // deposit into the subaccount
         assetTST.approve(address(eTST), 1000);
@@ -294,7 +301,7 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
         address user2 = makeAddr("user2");
         address user2_subaccount1 = address(uint160(user2) ^ 0x1);
 
-        vm.startPrank(user);    
+        vm.startPrank(user);
 
         assetTST.approve(address(eTST), 1000);
         eTST.deposit(1000, user2_subaccount1);
@@ -341,7 +348,13 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
 
         assertEq(eTST.balanceOf(user), 1000);
 
-        eTST.setHookConfig(address(hookTargetStakeDelegator), (OP_DEPOSIT | OP_MINT | OP_WITHDRAW | OP_REDEEM | OP_SKIM | OP_REPAY | OP_REPAY_WITH_SHARES | OP_TRANSFER | OP_VAULT_STATUS_CHECK));
+        eTST.setHookConfig(
+            address(hookTargetStakeDelegator),
+            (
+                OP_DEPOSIT | OP_MINT | OP_WITHDRAW | OP_REDEEM | OP_SKIM | OP_REPAY | OP_REPAY_WITH_SHARES | OP_TRANSFER
+                    | OP_VAULT_STATUS_CHECK
+            )
+        );
 
         vm.startPrank(user);
 
@@ -366,11 +379,19 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
 
         assetTST2.mint(user2, 1000);
         assetTST2.mint(liquidator, 1000);
-        
-        HookTargetStakeDelegator hookTargetStakeDelegator2 = new HookTargetStakeDelegator(address(eTST2), address(rewardVaultFactory));
-        address rewardVault2 = IRewardVaultFactory(rewardVaultFactory).createRewardVault(address(hookTargetStakeDelegator2.erc20()));
-        eTST2.setHookConfig(address(hookTargetStakeDelegator2), (OP_DEPOSIT | OP_MINT | OP_WITHDRAW | OP_REDEEM | OP_SKIM | OP_REPAY | OP_REPAY_WITH_SHARES | OP_TRANSFER | OP_VAULT_STATUS_CHECK));
-        
+
+        HookTargetStakeDelegator hookTargetStakeDelegator2 =
+            new HookTargetStakeDelegator(address(eTST2), address(rewardVaultFactory));
+        address rewardVault2 =
+            IRewardVaultFactory(rewardVaultFactory).createRewardVault(address(hookTargetStakeDelegator2.erc20()));
+        eTST2.setHookConfig(
+            address(hookTargetStakeDelegator2),
+            (
+                OP_DEPOSIT | OP_MINT | OP_WITHDRAW | OP_REDEEM | OP_SKIM | OP_REPAY | OP_REPAY_WITH_SHARES | OP_TRANSFER
+                    | OP_VAULT_STATUS_CHECK
+            )
+        );
+
         eTST2.setLTV(address(eTST), 0.5e4, 0.5e4, 0);
 
         vm.startPrank(user2);
@@ -414,7 +435,7 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
         assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 11000);
         assertEq(IRewardVault(rewardVault).getDelegateStake(liquidator, address(hookTargetStakeDelegator)), 10000);
         assertEq(IRewardVault(rewardVault).getDelegateStake(user, address(hookTargetStakeDelegator)), 1000);
-        
+
         (, uint256 maxYield) = eTST2.checkLiquidation(liquidator, user, address(eTST));
 
         eTST2.liquidate(user, address(eTST), 499, 0);
@@ -422,7 +443,9 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
         vm.stopPrank();
 
         assertEq(hookTargetStakeDelegator.erc20().balanceOf(rewardVault), 11000);
-        assertEq(IRewardVault(rewardVault).getDelegateStake(liquidator, address(hookTargetStakeDelegator)), 10000 + maxYield);
+        assertEq(
+            IRewardVault(rewardVault).getDelegateStake(liquidator, address(hookTargetStakeDelegator)), 10000 + maxYield
+        );
         assertEq(IRewardVault(rewardVault).getDelegateStake(user, address(hookTargetStakeDelegator)), 1000 - maxYield);
 
         assertEq(hookTargetStakeDelegator2.erc20().balanceOf(rewardVault2), 1000);
