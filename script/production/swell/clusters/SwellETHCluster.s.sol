@@ -74,7 +74,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[pzETH ] = "RedstoneClassicOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[WETH  ] = 5_000;
+        cluster.supplyCaps[WETH  ] = 7_000;
         cluster.supplyCaps[wstETH] = 5_000;
         cluster.supplyCaps[weETH ] = 5_000;
         cluster.supplyCaps[ezETH ] = 5_000;
@@ -84,7 +84,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[pzETH ] = 2_500;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WETH  ] = 4_250;
+        cluster.borrowCaps[WETH  ] = 6_300;
         cluster.borrowCaps[wstETH] = 2_000;
         cluster.borrowCaps[weETH ] = 1_250;
         cluster.borrowCaps[ezETH ] = 1_250;
@@ -95,8 +95,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0% APY  Kink(85%)=2.79% APY  Max=122.55% APY
-            uint256[4] memory irmETH     = [uint256(0), uint256(238858791),  uint256(37995478916), uint256(3650722201)];
+            // Base=0% APY  Kink(90%)=2.4% APY  Max=50.0% APY
+            uint256[4] memory irmETH     = [uint256(0), uint256(194425692),  uint256(28165827922), uint256(3865470566)];
 
             // Base=0% APY,  Kink(40%)=4.60% APY  Max=145.96% APY
             uint256[4] memory irmETH_LST = [uint256(0), uint256(829546015),  uint256(10514117840), uint256(1717986918)];
