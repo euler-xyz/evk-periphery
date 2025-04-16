@@ -143,17 +143,17 @@ contract CapRiskSteward is SelectorAccessControl {
         uint256 nextCapResolved = AmountCap.wrap(nextCap).resolve();
 
         // Cannot adjust infinite caps
-        if (currentCapResolved == type(uint256).max) {
+        if (currentCapResolved == type(uint256).max && nextCapResolved != type(uint256).max) {
             revert CapAdjustmentInvalid(vault);
-        }
+        } else if (currentCapResolved != type(uint256).max) {
+            // Calculate the maximum and minimum caps
+            uint256 maxCap = currentCapResolved * allowedAdjustFactor / 1e18;
+            uint256 minCap = currentCapResolved * 1e18 / allowedAdjustFactor;
 
-        // Calculate the maximum and minimum caps
-        uint256 maxCap = currentCapResolved * allowedAdjustFactor / 1e18;
-        uint256 minCap = currentCapResolved * 1e18 / allowedAdjustFactor;
-
-        // Validate the cap adjustment
-        if (nextCapResolved > maxCap || nextCapResolved < minCap || nextCapResolved > absoluteLimit) {
-            revert CapAdjustmentInvalid(vault);
+            // Validate the cap adjustment
+            if (nextCapResolved > maxCap || nextCapResolved < minCap || nextCapResolved > absoluteLimit) {
+                revert CapAdjustmentInvalid(vault);
+            }
         }
     }
 }
