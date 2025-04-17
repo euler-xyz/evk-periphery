@@ -845,16 +845,15 @@ abstract contract ManageClusterBase is BatchBuilder {
 
             Vm.Log[] memory logs = vm.getRecordedLogs();
             for (uint256 i = 0; i < logs.length; ++i) {
-                bytes32 id = logs[i].topics[1];
-
                 if (
-                    timelock != logs[i].emitter || topic[0] != logs[i].topics[0]
-                        || !TimelockController(timelock).isOperationPending(id)
+                    timelock != logs[i].emitter || logs[i].topics.length < 2 || topic[0] != logs[i].topics[0]
+                        || !TimelockController(timelock).isOperationPending(logs[i].topics[1])
                 ) continue;
 
                 (address target, uint256 value, bytes memory data, bytes32 predecessor, uint256 delay) =
                     abi.decode(logs[i].data, (address, uint256, bytes, bytes32, uint256));
 
+                bytes32 id = logs[i].topics[1];
                 vm.store(
                     timelock, keccak256(abi.encode(uint256(id), uint256(1))), bytes32(uint256(block.timestamp - delay))
                 );
