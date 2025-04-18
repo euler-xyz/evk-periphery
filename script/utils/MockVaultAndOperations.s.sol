@@ -22,7 +22,7 @@ contract MockVaultAndOperations is ScriptUtils {
         mockERC20.approve(address(eVault), AMOUNT);
         eVault.setHookConfig(address(0), 0);
         eVault.deposit(AMOUNT, deployer);
-        eVault.withdraw(AMOUNT, deployer, deployer);
+        eVault.withdraw(AMOUNT / 2, deployer, deployer);
         vm.stopBroadcast();
     }
 }

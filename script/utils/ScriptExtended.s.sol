@@ -74,6 +74,12 @@ abstract contract ScriptExtended is Script {
 
             if (bytes(safeAddress).length > 0 && bytes(safeAddress).length < 42) {
                 safe = getAddressFromJson(getAddressesJson("MultisigAddresses.json"), string.concat(".", safeAddress));
+
+                if (safe == address(0)) {
+                    safe = getAddressFromJson(
+                        getConfigAddressesJson("MultisigAddresses.json", block.chainid), string.concat(".", safeAddress)
+                    );
+                }
             }
         }
 
@@ -113,9 +119,7 @@ abstract contract ScriptExtended is Script {
         string memory riskStewardAddress = vm.envOr("risk_steward_address", string(""));
 
         if (bytes(riskStewardAddress).length > 0 && bytes(riskStewardAddress).length < 42) {
-            if (_strEq(riskStewardAddress, "DAO") || _strEq(riskStewardAddress, "default")) {
-                riskStewardAddress = "capRiskSteward";
-            }
+            if (_strEq(riskStewardAddress, "default")) riskStewardAddress = "capRiskSteward";
 
             riskSteward =
                 getAddressFromJson(getAddressesJson("GovernorAddresses.json"), string.concat(".", riskStewardAddress));
@@ -156,6 +160,10 @@ abstract contract ScriptExtended is Script {
 
     function isSafeOwnerSimulate() internal view returns (bool) {
         return _strEq(vm.envOr("safe_owner_simulate", string("")), "--safe-owner-simulate");
+    }
+
+    function isSkipPendingSimulation() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_pending_simulation", string("")), "--skip-pending-simulation");
     }
 
     function isEmergency() internal view returns (bool) {
@@ -233,6 +241,14 @@ abstract contract ScriptExtended is Script {
         return string.concat(getAddressesDirPath(), vm.toString(chainId), "/", jsonFile);
     }
 
+    function getConfigAddressesFilePath(string memory jsonFile, uint256 chainId)
+        internal
+        view
+        returns (string memory)
+    {
+        return string.concat(getAddressesDirPath(), "../config/addresses/", vm.toString(chainId), "/", jsonFile);
+    }
+
     function getAddressesJson(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
         try vm.readFile(getAddressesFilePath(jsonFile, chainId)) returns (string memory result) {
             return result;
@@ -243,6 +259,14 @@ abstract contract ScriptExtended is Script {
 
     function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
         return getAddressesJson(jsonFile, block.chainid);
+    }
+
+    function getConfigAddressesJson(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
+        try vm.readFile(getConfigAddressesFilePath(jsonFile, chainId)) returns (string memory result) {
+            return result;
+        } catch {
+            return "";
+        }
     }
 
     function getChainIdFromAddressesDirPath(string memory path) internal pure returns (uint256) {
