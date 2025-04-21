@@ -73,6 +73,10 @@ abstract contract ScriptExtended is Script {
             safeAddress = vm.envOr("safe_address", string(""));
 
             if (bytes(safeAddress).length > 0 && bytes(safeAddress).length < 42) {
+                if (_strEq(safeAddress, "steward") || _strEq(safeAddress, "Steward")) {
+                    safeAddress = "riskSteward";
+                }
+
                 safe = getAddressFromJson(getAddressesJson("MultisigAddresses.json"), string.concat(".", safeAddress));
 
                 if (safe == address(0)) {
@@ -102,7 +106,9 @@ abstract contract ScriptExtended is Script {
         string memory timelockAddress = vm.envOr("timelock_address", string(""));
 
         if (bytes(timelockAddress).length > 0 && bytes(timelockAddress).length < 42) {
-            if (_strEq(timelockAddress, "wildcard") || _strEq(timelockAddress, "Wildcard")) {
+            if (_strEq(timelockAddress, "admin") || _strEq(timelockAddress, "Admin")) {
+                timelockAddress = "accessControlEmergencyGovernorAdminTimelockController";
+            } else if (_strEq(timelockAddress, "wildcard") || _strEq(timelockAddress, "Wildcard")) {
                 timelockAddress = "accessControlEmergencyGovernorWildcardTimelockController";
             }
 
@@ -113,6 +119,14 @@ abstract contract ScriptExtended is Script {
         if (timelock == address(0) && bytes(timelockAddress).length == 42) {
             timelock = _toAddress(timelockAddress);
         }
+    }
+
+    function getTimelockId() internal view returns (bytes32 id) {
+        return vm.envOr("timelock_id", bytes32(0));
+    }
+
+    function getTimelockSalt() internal view returns (bytes32 salt) {
+        return vm.envOr("timelock_salt", bytes32(0));
     }
 
     function getRiskSteward() internal view returns (address riskSteward) {
