@@ -73,6 +73,10 @@ abstract contract ScriptExtended is Script {
             safeAddress = vm.envOr("safe_address", string(""));
 
             if (bytes(safeAddress).length > 0 && bytes(safeAddress).length < 42) {
+                if (_strEq(safeAddress, "steward") || _strEq(safeAddress, "Steward")) {
+                    safeAddress = "riskSteward";
+                }
+
                 safe = getAddressFromJson(getAddressesJson("MultisigAddresses.json"), string.concat(".", safeAddress));
 
                 if (safe == address(0)) {
