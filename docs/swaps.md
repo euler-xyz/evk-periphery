@@ -45,7 +45,7 @@ Finally a `multicall` function allows chaining all of the above to execute compl
 The swaps can be performed in one of 3 modes:
 - exact input 
 
-  In this mode, all of the provided input token is expected to be swapped for an unknown amount of the output token. The proceeds are expected to be sent to a vault, to be skimmed by the user, or back to the swapper contract. The latter option is useful when performing complex, multi-stage swaps, where the output token is accumulated in the swapper before being consumed at the end of the operation. Note that the available handler (`GenericHandler`) executes a payload encoded off-chain, so a lot of the parameters passed to the `swap` funtion will be ignored and only the amount of input token encoded in the payload will be swapped, even if the swapper holds more.
+  In this mode, all of the provided input token is expected to be swapped for an unknown amount of the output token. The proceeds are expected to be sent to a vault, to be skimmed by the user, or back to the swapper contract. The latter option is useful when performing complex, multi-stage swaps, where the output token is accumulated in the swapper before being consumed at the end of the operation. Note that the available handler (`GenericHandler`) executes a payload encoded off-chain, so a lot of the parameters passed to the `swap` function will be ignored and only the amount of input token encoded in the payload will be swapped, even if the swapper holds more.
 
 - exact output
 
