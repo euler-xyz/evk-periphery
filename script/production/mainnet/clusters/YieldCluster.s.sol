@@ -141,7 +141,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDT                     ] = 50_000_000;
         cluster.supplyCaps[FDUSD                    ] = 0;
         cluster.supplyCaps[PYUSD                    ] = 10_000_000;
-        cluster.supplyCaps[rlUSD                    ] = 10_000_000;
+        cluster.supplyCaps[rlUSD                    ] = 100_000_000;
         cluster.supplyCaps[wUSDM                    ] = 5_000_000;
         cluster.supplyCaps[wUSDL                    ] = 5_000_000;
         cluster.supplyCaps[wM                       ] = 5_000_000;
