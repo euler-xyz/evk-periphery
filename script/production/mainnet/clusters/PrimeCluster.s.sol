@@ -115,9 +115,9 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[ezETH  ] = 13_000;
         cluster.supplyCaps[RETH   ] = 6_250;
         cluster.supplyCaps[mETH   ] = 6_250;
-        cluster.supplyCaps[rsETH  ] = 18_000;
+        cluster.supplyCaps[rsETH  ] = 24_000;
         cluster.supplyCaps[ETHx   ] = 2_500;
-        cluster.supplyCaps[tETH   ] = 8_000;
+        cluster.supplyCaps[tETH   ] = 12_000;
         cluster.supplyCaps[USDC   ] = 50_000_000;
         cluster.supplyCaps[USDT   ] = 50_000_000;
         cluster.supplyCaps[wUSDM  ] = 5_000_000;
@@ -141,9 +141,9 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[ezETH  ] = 3_120;
         cluster.borrowCaps[RETH   ] = 2_500;
         cluster.borrowCaps[mETH   ] = 2_500;
-        cluster.borrowCaps[rsETH  ] = 4_500;
+        cluster.borrowCaps[rsETH  ] = 6_000;
         cluster.borrowCaps[ETHx   ] = 1_000;
-        cluster.borrowCaps[tETH   ] = 2_000;
+        cluster.borrowCaps[tETH   ] = 3_000;
         cluster.borrowCaps[USDC   ] = 45_000_000;
         cluster.borrowCaps[USDT   ] = 45_000_000;
         cluster.borrowCaps[wUSDM  ] = 0;
