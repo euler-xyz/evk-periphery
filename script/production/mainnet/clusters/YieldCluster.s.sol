@@ -137,7 +137,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[PT_cUSDO_19JUN2025       ] = "0xb3df99fff1f803f1a505af97f18fbf6c5b28ac8f"; //"CrossAdapter=PendleOracle+PythOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[USDC                     ] = 70_000_000;
+        cluster.supplyCaps[USDC                     ] = 100_000_000;
         cluster.supplyCaps[USDT                     ] = 50_000_000;
         cluster.supplyCaps[FDUSD                    ] = 0;
         cluster.supplyCaps[PYUSD                    ] = 10_000_000;
@@ -162,15 +162,15 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[mMEV                     ] = 6_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_30JAN2025] = 0;
         cluster.supplyCaps[PT_USD0PlusPlus_27MAR2025] = 4_000_000;
-        cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 4_000_000;
+        cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 6_000_000;
         cluster.supplyCaps[PT_sUSDe_27MAR2025       ] = 4_000_000;
-        cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 9_000_000;
+        cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 13_500_000;
         cluster.supplyCaps[PT_USDe_27MAR2025        ] = 4_000_000;
         cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 40_000_000;
         cluster.supplyCaps[PT_cUSDO_19JUN2025       ] = 4_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[USDC                     ] = 63_000_000;
+        cluster.borrowCaps[USDC                     ] = 90_000_000;
         cluster.borrowCaps[USDT                     ] = 45_000_000;
         cluster.borrowCaps[FDUSD                    ] = 0;
         cluster.borrowCaps[PYUSD                    ] = 9_000_000;
