@@ -40,31 +40,31 @@ contract HookTargetAccessControlKeyring is BaseHookTarget, SelectorAccessControl
     }
 
     /// @notice Intercepts EVault deposit operations to authenticate the caller and the receiver
-    /// @param receiver The address that will receive shares and needs balance tracking
+    /// @param receiver The address that will receive shares
     function deposit(uint256, address receiver) external view {
         _authenticateCallerAndAccount(receiver);
     }
 
     /// @notice Intercepts EVault mint operations to authenticate the caller and the receiver
-    /// @param receiver The address that will receive shares and needs balance tracking
+    /// @param receiver The address that will receive shares
     function mint(uint256, address receiver) external view {
         _authenticateCallerAndAccount(receiver);
     }
 
     /// @notice Intercepts EVault withdraw operations to authenticate the caller and the owner
-    /// @param owner The address whose balance will change and needs tracking
+    /// @param owner The address whose balance will change
     function withdraw(uint256, address, address owner) external view {
         _authenticateCallerAndAccount(owner);
     }
 
     /// @notice Intercepts EVault redeem operations to authenticate the caller and the owner
-    /// @param owner The address whose balance will change and needs tracking
+    /// @param owner The address whose balance will change
     function redeem(uint256, address, address owner) external view {
         _authenticateCallerAndAccount(owner);
     }
 
     /// @notice Intercepts EVault skim operations to authenticate the caller and the receiver
-    /// @param receiver The address that will receive shares and needs balance tracking
+    /// @param receiver The address that will receive shares
     function skim(uint256, address receiver) external view {
         _authenticateCallerAndAccount(receiver);
     }
