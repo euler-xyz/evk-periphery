@@ -93,6 +93,15 @@ contract HookTargetAccessControlKeyring is BaseHookTarget, SelectorAccessControl
         _authenticateCallerAndAccount(from);
     }
 
+    /// @notice Checks if the EVC owner of the account has valid Keyring credential
+    /// @dev If the EVC owner is not registered yet, the account is assumed to be the owner
+    /// @param account The address to check credential for
+    /// @return bool True if the EVC owner of the account has valid Keyring credential
+    function checkKeyringCredential(address account) external view returns (bool) {
+        address owner = evc.getAccountOwner(account);
+        return keyring.checkCredential(owner == address(0) ? account : owner, policyId);
+    }
+
     /// @notice Authenticates both the caller and the specified account for access control
     /// @dev This function checks if either the caller or the account owner are authorized to call the function
     /// @param account The account to be authenticated
