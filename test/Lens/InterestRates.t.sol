@@ -42,7 +42,7 @@ contract InterestRates is EVaultTestBase {
         accountLens = new AccountLens();
         oracleLens = new OracleLens(address(0));
         irmLens = new IRMLens(address(irmFactory), address(irmAdaptiveCurveFactory));
-        utilsLens = new UtilsLens(address(oracleLens));
+        utilsLens = new UtilsLens(address(factory), address(oracleLens));
         vaultLens = new VaultLens(address(oracleLens), address(utilsLens), address(irmLens));
 
         user1 = makeAddr("user1");
