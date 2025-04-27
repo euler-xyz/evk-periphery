@@ -71,14 +71,15 @@ contract EulerEarnVaultLens is Utils {
             address strategyAddress = i == 0 ? address(0) : withdrawalQueue[i - 1];
             IEulerEarn.Strategy memory strategy = IEulerEarn(vault).getStrategy(strategyAddress);
 
-            result.strategies[i] = EulerEarnVaultStrategyInfo({
-                strategy: strategyAddress,
-                assetsAllocated: strategy.allocated,
-                allocationPoints: strategy.allocationPoints,
-                allocationCap: AmountCapLib.resolve(strategy.cap),
-                isInEmergency: strategy.status == IEulerEarn.StrategyStatus.Emergency,
-                info: utilsLens.getVaultInfoERC4626(strategyAddress)
-            });
+            result.strategies[i].strategy = strategyAddress;
+            result.strategies[i].assetsAllocated = strategy.allocated;
+            result.strategies[i].allocationPoints = strategy.allocationPoints;
+            result.strategies[i].allocationCap = AmountCapLib.resolve(strategy.cap);
+            result.strategies[i].isInEmergency = strategy.status == IEulerEarn.StrategyStatus.Emergency;
+
+            if (strategyAddress != address(0)) {
+                result.strategies[i].info = utilsLens.getVaultInfoERC4626(strategyAddress);
+            }
         }
 
         address[] memory bases = new address[](1);
