@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import {GenericFactory} from "evk/GenericFactory/GenericFactory.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
 import {OracleLens} from "./OracleLens.sol";
@@ -9,10 +10,44 @@ import {Utils} from "./Utils.sol";
 import "./LensTypes.sol";
 
 contract UtilsLens is Utils {
+    GenericFactory public immutable eVaultFactory;
     OracleLens public immutable oracleLens;
 
-    constructor(address _oracleLens) {
+    constructor(address _eVaultFactory, address _oracleLens) {
+        eVaultFactory = GenericFactory(_eVaultFactory);
         oracleLens = OracleLens(_oracleLens);
+    }
+
+    function getVaultInfoERC4626(address vault) public view returns (VaultInfoERC4626 memory) {
+        VaultInfoERC4626 memory result;
+
+        result.timestamp = block.timestamp;
+
+        result.vault = vault;
+        result.vaultName = IEVault(vault).name();
+        result.vaultSymbol = IEVault(vault).symbol();
+        result.vaultDecimals = IEVault(vault).decimals();
+
+        result.asset = IEVault(vault).asset();
+        result.assetName = _getStringOrBytes32(result.asset, IEVault(vault).name.selector);
+        result.assetSymbol = _getStringOrBytes32(result.asset, IEVault(vault).symbol.selector);
+        result.assetDecimals = _getDecimals(result.asset);
+
+        result.totalShares = IEVault(vault).totalSupply();
+        result.totalAssets = IEVault(vault).totalAssets();
+
+        result.isEVault = eVaultFactory.isProxy(vault);
+
+        return result;
+    }
+
+    function getAPYs(address vault) external view returns (uint256 borrowAPY, uint256 supplyAPY) {
+        return _computeAPYs(
+            IEVault(vault).interestRate(),
+            IEVault(vault).cash(),
+            IEVault(vault).totalBorrows(),
+            IEVault(vault).interestFee()
+        );
     }
 
     function computeAPYs(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)

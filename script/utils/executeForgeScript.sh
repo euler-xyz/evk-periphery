@@ -66,6 +66,16 @@ if [[ "$@" == *"--timelock-address"* ]]; then
     set -- $(echo "$@" | sed "s/--timelock-address $timelock_address//")
 fi
 
+if [[ "$@" == *"--timelock-id"* ]]; then
+    timelock_id=$(echo "$@" | grep -o '\--timelock-id [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--timelock-id $timelock_id//")
+fi
+
+if [[ "$@" == *"--timelock-salt"* ]]; then
+    timelock_salt=$(echo "$@" | grep -o '\--timelock-salt [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--timelock-salt $timelock_salt//")
+fi
+
 if [[ "$@" == *"--risk-steward-address"* ]]; then
     risk_steward_address=$(echo "$@" | grep -o '\--risk-steward-address [^ ]*' | cut -d ' ' -f 2)
 
@@ -110,7 +120,8 @@ fi
 
 if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe \
     safe_owner_simulate=$safe_owner_simulate skip_pending_simulation=$skip_pending_simulation \
-    timelock_address=$timelock_address risk_steward_address=$risk_steward_address \
+    timelock_address=$timelock_address timelock_id=$timelock_id timelock_salt=$timelock_salt \
+    risk_steward_address=$risk_steward_address \
     emergency_ltv_collateral=$emergency_ltv_collateral emergency_ltv_borrowing=$emergency_ltv_borrowing \
     emergency_caps=$emergency_caps emergency_operations=$emergency_operations \
     vault_address=$vault_address no_stub_oracle=$no_stub_oracle \
