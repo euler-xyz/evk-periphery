@@ -786,7 +786,7 @@ abstract contract ManageClusterBase is BatchBuilder {
 
             vm.recordLogs();
             console.log("Simulating pending safe transactions");
-            SafeTransaction.TransactionSimple[] memory transactions = safeUtil.getPendingTransactions(getSafe());
+            SafeTransaction.TransactionSimple[] memory transactions = safeUtil.getPendingTransactions(getSimulateSafe());
 
             for (uint256 i = 0; i < transactions.length; ++i) {
                 try safeUtil.simulate(
@@ -799,7 +799,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             }
         }
 
-        address payable timelock = payable(getTimelock());
+        address payable timelock = payable(getSimulateTimelock());
         if (timelock != address(0)) {
             console.log("Simulating pending timelock transactions");
 

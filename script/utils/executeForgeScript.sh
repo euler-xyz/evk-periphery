@@ -61,6 +61,16 @@ if [[ "$@" == *"--skip-pending-simulation"* ]]; then
     skip_pending_simulation="--skip-pending-simulation"
 fi
 
+if [[ "$@" == *"--simulate-safe-address"* ]]; then
+    simulate_safe_address=$(echo "$@" | grep -o '\--simulate-safe-address [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--simulate-safe-address $simulate_safe_address//")
+fi
+
+if [[ "$@" == *"--simulate-timelock-address"* ]]; then
+    simulate_timelock_address=$(echo "$@" | grep -o '\--simulate-timelock-address [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--simulate-timelock-address $simulate_timelock_address//")
+fi
+
 if [[ "$@" == *"--timelock-address"* ]]; then
     timelock_address=$(echo "$@" | grep -o '\--timelock-address [^ ]*' | cut -d ' ' -f 2)
     set -- $(echo "$@" | sed "s/--timelock-address $timelock_address//")
@@ -120,6 +130,7 @@ fi
 
 if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe \
     safe_owner_simulate=$safe_owner_simulate skip_pending_simulation=$skip_pending_simulation \
+    simulate_safe_address=$simulate_safe_address simulate_timelock_address=$simulate_timelock_address \
     timelock_address=$timelock_address timelock_id=$timelock_id timelock_salt=$timelock_salt \
     risk_steward_address=$risk_steward_address \
     emergency_ltv_collateral=$emergency_ltv_collateral emergency_ltv_borrowing=$emergency_ltv_borrowing \
