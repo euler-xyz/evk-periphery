@@ -41,14 +41,15 @@ Options:
 
 Example - initial deployment:
 
-```
+```bash
 ./script/production/ExecuteSolidityScript.sh ./script/production/mainnet/clusters/PrimeCluster.s.sol --account DEPLOYER --rpc-url 1
 ```
 
 Example - management of the deployed cluster after the governance transferred to the governance contracts suite (GovernorAccessControl + TimelockController + Safe):
 
-```
+```bash
 ./script/production/ExecuteSolidityScript.sh ./script/production/mainnet/clusters/PrimeCluster.s.sol --batch-via-safe --safe-address DAO --timelock-address wildcard --rpc-url 1
+```
 
 ## Important Notes
 

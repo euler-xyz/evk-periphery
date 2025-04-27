@@ -770,13 +770,16 @@ while true; do
                     scriptName=${baseName}.s.sol:Lenses
                     jsonName=08_Lenses
 
+                    read -p "Enter the EVault Factory address: " eVaultFactory
                     read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
                     read -p "Enter the Kink IRM Factory address: " kink_irm_factory
 
                     jq -n \
+                        --arg eVaultFactory "$eVaultFactory" \
                         --arg oracleAdapterRegistry "$oracle_adapter_registry" \
                         --arg kinkIRMFactory "$kink_irm_factory" \
                         '{
+                            eVaultFactory: $eVaultFactory,
                             oracleAdapterRegistry: $oracleAdapterRegistry,
                             kinkIRMFactory: $kinkIRMFactory
                         }' --indent 4 > script/${jsonName}_input.json
@@ -858,11 +861,14 @@ while true; do
                     scriptName=${baseName}.s.sol:LensUtilsDeployer
                     jsonName=08_LensUtils
                     
+                    read -p "Enter the EVault Factory address: " eVaultFactory
                     read -p "Enter the Oracle Lens address: " oracle_lens
 
                     jq -n \
+                        --arg eVaultFactory "$eVaultFactory" \
                         --arg oracleLens "$oracle_lens" \
                         '{
+                            eVaultFactory: $eVaultFactory,
                             oracleLens: $oracleLens
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;

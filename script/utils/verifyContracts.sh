@@ -58,7 +58,7 @@ function verify_contract {
         result=0
     fi
 
-    if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan.io/api* ]]; then
+    if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan*/api* ]]; then
         curl -d "address=$contractAddress" "$verifier_url?module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
     fi
 

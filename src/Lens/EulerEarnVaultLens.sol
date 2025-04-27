@@ -76,7 +76,8 @@ contract EulerEarnVaultLens is Utils {
                 assetsAllocated: strategy.allocated,
                 allocationPoints: strategy.allocationPoints,
                 allocationCap: AmountCapLib.resolve(strategy.cap),
-                isInEmergency: strategy.status == IEulerEarn.StrategyStatus.Emergency
+                isInEmergency: strategy.status == IEulerEarn.StrategyStatus.Emergency,
+                info: utilsLens.getVaultInfoERC4626(strategyAddress)
             });
         }
 
