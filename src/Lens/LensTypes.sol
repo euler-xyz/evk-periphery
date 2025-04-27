@@ -64,6 +64,21 @@ struct CollateralLiquidityInfo {
     uint256 collateralValue;
 }
 
+struct VaultInfoERC4626 {
+    uint256 timestamp;
+    address vault;
+    string vaultName;
+    string vaultSymbol;
+    uint256 vaultDecimals;
+    address asset;
+    string assetName;
+    string assetSymbol;
+    uint256 assetDecimals;
+    uint256 totalShares;
+    uint256 totalAssets;
+    bool isEVault;
+}
+
 struct VaultInfoFull {
     uint256 timestamp;
     address vault;
@@ -408,4 +423,5 @@ struct EulerEarnVaultStrategyInfo {
     uint256 allocationPoints;
     uint256 allocationCap;
     bool isInEmergency;
+    VaultInfoERC4626 info;
 }
