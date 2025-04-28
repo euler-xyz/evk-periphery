@@ -935,7 +935,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (lensAddresses.utilsLens == address(0)) {
             console.log("+ Deploying LensUtils...");
             LensUtilsDeployer deployer = new LensUtilsDeployer();
-            lensAddresses.utilsLens = deployer.deploy(lensAddresses.oracleLens);
+            lensAddresses.utilsLens = deployer.deploy(coreAddresses.eVaultFactory, lensAddresses.oracleLens);
         } else {
             console.log("- LensUtils already deployed. Skipping...");
         }

@@ -778,13 +778,15 @@ abstract contract ManageClusterBase is BatchBuilder {
     }
 
     function simulatePendingTransactions() internal {
+        if (isSkipPendingSimulation()) return;
+
         if (isBatchViaSafe()) {
             SafeTransaction safeUtil = new SafeTransaction();
             if (!safeUtil.isTransactionServiceAPIAvailable()) return;
 
             vm.recordLogs();
             console.log("Simulating pending safe transactions");
-            SafeTransaction.TransactionSimple[] memory transactions = safeUtil.getPendingTransactions(getSafe());
+            SafeTransaction.TransactionSimple[] memory transactions = safeUtil.getPendingTransactions(getSimulateSafe());
 
             for (uint256 i = 0; i < transactions.length; ++i) {
                 try safeUtil.simulate(
@@ -797,7 +799,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             }
         }
 
-        address payable timelock = payable(getTimelock());
+        address payable timelock = payable(getSimulateTimelock());
         if (timelock != address(0)) {
             console.log("Simulating pending timelock transactions");
 
@@ -843,16 +845,15 @@ abstract contract ManageClusterBase is BatchBuilder {
 
             Vm.Log[] memory logs = vm.getRecordedLogs();
             for (uint256 i = 0; i < logs.length; ++i) {
-                bytes32 id = logs[i].topics[1];
-
                 if (
-                    timelock != logs[i].emitter || topic[0] != logs[i].topics[0]
-                        || !TimelockController(timelock).isOperationPending(id)
+                    timelock != logs[i].emitter || logs[i].topics.length < 2 || topic[0] != logs[i].topics[0]
+                        || !TimelockController(timelock).isOperationPending(logs[i].topics[1])
                 ) continue;
 
                 (address target, uint256 value, bytes memory data, bytes32 predecessor, uint256 delay) =
                     abi.decode(logs[i].data, (address, uint256, bytes, bytes32, uint256));
 
+                bytes32 id = logs[i].topics[1];
                 vm.store(
                     timelock, keccak256(abi.encode(uint256(id), uint256(1))), bytes32(uint256(block.timestamp - delay))
                 );

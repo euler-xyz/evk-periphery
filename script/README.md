@@ -46,7 +46,7 @@ To use the interactive deployment script, run the following command:
 or with options, i.e.:
 
 ```sh
-./script/interactiveDeployment.sh --account ACC_NAME --verify
+./script/interactiveDeployment.sh --account ACC_NAME --rpc-url RPC_URL
 ```
 
 You will be walked through the deployment process step by step.
@@ -56,7 +56,7 @@ You will be walked through the deployment process step by step.
 ### Core and Periphery contracts deployment and configuration
 
 ```sh
-./script/interactiveDeployment.sh --account ACC_NAME --verify
+./script/interactiveDeployment.sh --account ACC_NAME --rpc-url RPC_URL
 ```
 
 After that, select option 50 and provide necessary input values.
@@ -64,7 +64,7 @@ After that, select option 50 and provide necessary input values.
 ### Core contracts ownership transfer
 
 ```sh
-./script/interactiveDeployment.sh --account ACC_NAME --verify
+./script/interactiveDeployment.sh --account ACC_NAME --rpc-url RPC_URL
 ```
 
 After that, select option 51 and provide necessary input values.
@@ -72,7 +72,7 @@ After that, select option 51 and provide necessary input values.
 ### Periphery contracts ownership transfer
 
 ```sh
-./script/interactiveDeployment.sh --account ACC_NAME --verify
+./script/interactiveDeployment.sh --account ACC_NAME --rpc-url RPC_URL
 ```
 
 After that, select option 52 and provide necessary input values.
@@ -133,6 +133,16 @@ You can pass `--verify` option to the deployment script in order to verify the d
 
 You can pass `--dry-run` option to the deployment script in order to simulate the deployment without actually executing transactions.
 
+### RPC URL
+
+You can pass the RPC to the script using the `--rpc-url RPC_URL` option.
+
+### Private key management
+
+You can use standard Foundry options for providing the private key to the script, i.e. `--account ACC_NAME` or `--ledger`.
+
+If neither option is provided, the script will look for `DEPLOYER_KEY` in your `.env` file.
+
 ### Batch via Safe
 
 You can pass `--batch-via-safe` option to the deployment script in order to create the a batch transaction in the Safe UI. This only works if the result of the script is a transaction to be executed via the EVC batch. For this option to be used, ensure that `SAFE_KEY` and `SAFE_ADDRESS` are defined in the `.env` file or provide a different option to derive the Safe signer key instead, i.e. `--ledger` or `--account ACC_NAME`. The address associated must either be a signer or a delegate of the Safe in order to be able to send the transactions. You can also provide the `--safe-address` option to the command instead of `SAFE_ADDRESS` environment variable.
@@ -144,3 +154,16 @@ In case a timelock controller is installed as part of the governor contracts sui
 ### Risk Steward
 
 In case a risk steward contract is installed as part of the governor contracts suite, you can additionally pass `--risk-steward-address` option with the risk steward contract address to the deployment script in order to execute the transactions via the risk steward contract instead of trying to execute it directly.
+
+## Timelock transaction execution
+
+A utility script is provided to execute scheduled timelock transactions automatically. To use it, run:
+
+```sh
+./script/production/ExecuteSolidityScript.sh ./script/utils/ExecuteTimelockTx.s.sol --account <ACCOUNT> --timelock-address <TIMELOCK_ADDRESS> --timelock-id <TIMELOCK_ID> --rpc-url <RPC_URL>
+```
+
+Required options:
+- `--timelock-address`: The address of the timelock controller contract
+- `--timelock-id`: The ID of the scheduled transaction, which can be found in the logs emitted when the transaction was scheduled
+- `--timelock-salt`: (Optional) The salt used for the timelock operation. If not provided, zero is assumed

@@ -66,14 +66,28 @@ abstract contract ScriptExtended is Script {
         return getSafe(true);
     }
 
-    function getSafe(bool failOnNotFound) internal view returns (address safe) {
-        string memory safeAddress = vm.envOr("SAFE_ADDRESS", string(""));
+    function getSafe(bool failOnNotFound) internal view returns (address) {
+        return _getSafe("SAFE_ADDRESS", "safe_address", failOnNotFound);
+    }
+
+    function _getSafe(string memory env, string memory key, bool failOnNotFound) internal view returns (address safe) {
+        string memory safeAddress = vm.envOr(env, string(""));
 
         if (_strEq(safeAddress, string(""))) {
-            safeAddress = vm.envOr("safe_address", string(""));
+            safeAddress = vm.envOr(key, string(""));
 
             if (bytes(safeAddress).length > 0 && bytes(safeAddress).length < 42) {
+                if (_strEq(safeAddress, "steward") || _strEq(safeAddress, "Steward")) {
+                    safeAddress = "riskSteward";
+                }
+
                 safe = getAddressFromJson(getAddressesJson("MultisigAddresses.json"), string.concat(".", safeAddress));
+
+                if (safe == address(0)) {
+                    safe = getAddressFromJson(
+                        getConfigAddressesJson("MultisigAddresses.json", block.chainid), string.concat(".", safeAddress)
+                    );
+                }
             }
         }
 
@@ -93,10 +107,16 @@ abstract contract ScriptExtended is Script {
     }
 
     function getTimelock() internal view returns (address timelock) {
-        string memory timelockAddress = vm.envOr("timelock_address", string(""));
+        return _getTimelock("timelock_address");
+    }
+
+    function _getTimelock(string memory key) internal view returns (address timelock) {
+        string memory timelockAddress = vm.envOr(key, string(""));
 
         if (bytes(timelockAddress).length > 0 && bytes(timelockAddress).length < 42) {
-            if (_strEq(timelockAddress, "wildcard") || _strEq(timelockAddress, "Wildcard")) {
+            if (_strEq(timelockAddress, "admin") || _strEq(timelockAddress, "Admin")) {
+                timelockAddress = "accessControlEmergencyGovernorAdminTimelockController";
+            } else if (_strEq(timelockAddress, "wildcard") || _strEq(timelockAddress, "Wildcard")) {
                 timelockAddress = "accessControlEmergencyGovernorWildcardTimelockController";
             }
 
@@ -109,13 +129,23 @@ abstract contract ScriptExtended is Script {
         }
     }
 
+    function getTimelockId() internal view returns (bytes32 id) {
+        return vm.envOr("timelock_id", bytes32(0));
+    }
+
+    function getTimelockSalt() internal view returns (bytes32 salt) {
+        return vm.envOr("timelock_salt", bytes32(0));
+    }
+
     function getRiskSteward() internal view returns (address riskSteward) {
-        string memory riskStewardAddress = vm.envOr("risk_steward_address", string(""));
+        return _getRiskSteward("risk_steward_address");
+    }
+
+    function _getRiskSteward(string memory key) internal view returns (address riskSteward) {
+        string memory riskStewardAddress = vm.envOr(key, string(""));
 
         if (bytes(riskStewardAddress).length > 0 && bytes(riskStewardAddress).length < 42) {
-            if (_strEq(riskStewardAddress, "DAO") || _strEq(riskStewardAddress, "default")) {
-                riskStewardAddress = "capRiskSteward";
-            }
+            if (_strEq(riskStewardAddress, "default")) riskStewardAddress = "capRiskSteward";
 
             riskSteward =
                 getAddressFromJson(getAddressesJson("GovernorAddresses.json"), string.concat(".", riskStewardAddress));
@@ -156,6 +186,20 @@ abstract contract ScriptExtended is Script {
 
     function isSafeOwnerSimulate() internal view returns (bool) {
         return _strEq(vm.envOr("safe_owner_simulate", string("")), "--safe-owner-simulate");
+    }
+
+    function isSkipPendingSimulation() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_pending_simulation", string("")), "--skip-pending-simulation");
+    }
+
+    function getSimulateSafe() internal view returns (address) {
+        address safe = _getSafe("", "simulate_safe_address", false);
+        return safe == address(0) ? getSafe() : safe;
+    }
+
+    function getSimulateTimelock() internal view returns (address) {
+        address timelock = _getTimelock("simulate_timelock_address");
+        return timelock == address(0) ? getTimelock() : timelock;
     }
 
     function isEmergency() internal view returns (bool) {
@@ -233,6 +277,14 @@ abstract contract ScriptExtended is Script {
         return string.concat(getAddressesDirPath(), vm.toString(chainId), "/", jsonFile);
     }
 
+    function getConfigAddressesFilePath(string memory jsonFile, uint256 chainId)
+        internal
+        view
+        returns (string memory)
+    {
+        return string.concat(getAddressesDirPath(), "../config/addresses/", vm.toString(chainId), "/", jsonFile);
+    }
+
     function getAddressesJson(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
         try vm.readFile(getAddressesFilePath(jsonFile, chainId)) returns (string memory result) {
             return result;
@@ -243,6 +295,14 @@ abstract contract ScriptExtended is Script {
 
     function getAddressesJson(string memory jsonFile) internal view returns (string memory) {
         return getAddressesJson(jsonFile, block.chainid);
+    }
+
+    function getConfigAddressesJson(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
+        try vm.readFile(getConfigAddressesFilePath(jsonFile, chainId)) returns (string memory result) {
+            return result;
+        } catch {
+            return "";
+        }
     }
 
     function getChainIdFromAddressesDirPath(string memory path) internal pure returns (uint256) {

@@ -38,6 +38,10 @@ function verify_contract {
         verifierArgs="$verifierArgs --verifier=$verifier --retries 1"
     elif [[ $verifier == "custom" ]]; then
         verifierArgs="$verifierArgs --verifier=$verifier"
+
+        if [[ $constructorArgs == "--guess-constructor-args" ]]; then
+            constructorArgs=""
+        fi
     else
         verifierArgs="$verifierArgs --verifier-api-key $verifier_api_key --verifier=$verifier"
     fi
@@ -54,7 +58,7 @@ function verify_contract {
         result=0
     fi
 
-    if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan.io/api* ]]; then
+    if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan*/api* ]]; then
         curl -d "address=$contractAddress" "$verifier_url?module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
     fi
 
