@@ -82,7 +82,7 @@ contract FactoryGovernorTests is EVaultTestBase {
         vm.expectRevert("contract is in read-only mode");
         eTST.deposit(1e18, depositor);
 
-        // admin can roll back changes by installing previous imlpementation
+        // admin can roll back changes by installing previous implementations
         vm.prank(admin);
         factoryGovernor.adminCall(address(factory), abi.encodeCall(factory.setImplementation, (oldImplementation)));
 
