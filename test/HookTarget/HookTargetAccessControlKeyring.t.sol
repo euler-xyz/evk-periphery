@@ -4,7 +4,6 @@ pragma solidity ^0.8.12;
 
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {EVaultTestBase, TestERC20} from "evk-test/unit/evault/EVaultTestBase.t.sol";
-import {DToken} from "euler-vault-kit/src/EVault/DToken.sol";
 import {IEVault, IERC4626, IERC20} from "evk/EVault/IEVault.sol";
 import {IRMTestZero} from "euler-vault-kit/test/mocks/IRMTestZero.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
@@ -46,18 +45,9 @@ contract HookTargetAccessControlKeyringTest is EVaultTestBase {
             address(evc), admin, address(factory), address(keyring), keyring.POLICY_ID()
         );
 
-        // Setup initial permissions
-        startHoax(admin);
-
-        // Grant liquidator wild card permissions
-        hookTarget.grantRole(hookTarget.WILD_CARD(), liquidator);
-        vm.stopPrank();
-
-        // Setup keyring permissions
         keyring.setAllowed(user1, true);
         keyring.setAllowed(user2, true);
 
-        // Setup vault hook for all relevant operations
         startHoax(address(this));
         eTST.setHookConfig(
             address(hookTarget),
@@ -69,7 +59,7 @@ contract HookTargetAccessControlKeyringTest is EVaultTestBase {
             OP_DEPOSIT | OP_MINT | OP_REDEEM | OP_WITHDRAW | OP_BORROW | OP_REPAY | OP_LIQUIDATE | OP_SKIM
                 | OP_REPAY_WITH_SHARES | OP_PULL_DEBT
         );
-        
+
         oracle.setPrice(address(assetTST), unitOfAccount, 1e18);
         oracle.setPrice(address(assetTST2), unitOfAccount, 1e18);
         oracle.setPrice(address(eTST), unitOfAccount, 1e18);
@@ -81,22 +71,18 @@ contract HookTargetAccessControlKeyringTest is EVaultTestBase {
         startHoax(user1);
         evc.enableCollateral(user1, address(eTST));
         evc.enableController(user1, address(eTST2));
-        vm.stopPrank();
 
-        // Setup test tokens and approvals
         startHoax(user1);
         assetTST.mint(user1, type(uint256).max);
         assetTST.approve(address(eTST), type(uint256).max);
         assetTST2.mint(user1, type(uint256).max);
         assetTST2.approve(address(eTST2), type(uint256).max);
-        vm.stopPrank();
 
         startHoax(user2);
         assetTST.mint(user2, type(uint256).max);
         assetTST.approve(address(eTST), type(uint256).max);
         assetTST2.mint(user2, type(uint256).max);
         assetTST2.approve(address(eTST2), type(uint256).max);
-        vm.stopPrank();
     }
 
     function swap(address tokenIn, uint256 amountIn, address tokenOut, uint256 amountOut, address recipient) public {
@@ -361,11 +347,9 @@ contract HookTargetAccessControlKeyringTest is EVaultTestBase {
     function test_skim_WithValidCredentials() public {
         startHoax(user1);
         assetTST.transfer(address(eTST), 2e18);
-        vm.stopPrank();
 
         startHoax(user2);
         evc.enableController(user2, address(eTST));
-        vm.stopPrank();
 
         startHoax(user2);
         eTST.skim(0.5e18, user2);
@@ -375,11 +359,9 @@ contract HookTargetAccessControlKeyringTest is EVaultTestBase {
     function test_skim_WithInvalidCredentials() public {
         startHoax(user1);
         assetTST.transfer(address(eTST), 2e18);
-        vm.stopPrank();
 
         startHoax(user2);
         evc.enableController(user2, address(eTST));
-        vm.stopPrank();
 
         keyring.setAllowed(user2, false);
         startHoax(user2);
@@ -390,11 +372,9 @@ contract HookTargetAccessControlKeyringTest is EVaultTestBase {
     function test_skim_WithMsgSenderHasInvalidCredentials() public {
         startHoax(user1);
         assetTST.transfer(address(eTST), 2e18);
-        vm.stopPrank();
 
         startHoax(user2);
         evc.enableController(user2, address(eTST));
-        vm.stopPrank();
 
         keyring.setAllowed(user2, false);
         startHoax(user2);
@@ -405,11 +385,9 @@ contract HookTargetAccessControlKeyringTest is EVaultTestBase {
     function test_skim_WithOwnerHasInvalidCredentials() public {
         startHoax(user1);
         assetTST.transfer(address(eTST), 2e18);
-        vm.stopPrank();
 
         startHoax(user2);
         evc.enableController(user2, address(eTST));
-        vm.stopPrank();
 
         keyring.setAllowed(user1, false);
         startHoax(user2);
@@ -500,7 +478,6 @@ contract HookTargetAccessControlKeyringTest is EVaultTestBase {
         evc.enableController(user2, address(eTST2));
         evc.enableCollateral(user2, address(eTST));
         eTST2.pullDebt(type(uint256).max, user1);
-        vm.stopPrank();
 
         assertEq(eTST2.debtOf(user1), 0);
         assertEq(eTST2.debtOf(user2), 0.5e18);
@@ -522,25 +499,10 @@ contract HookTargetAccessControlKeyringTest is EVaultTestBase {
     }
 
     ///////////////////////////////
-    /// 10. Wildcard tests
+    /// 10. liquidation tests
     ///////////////////////////////
 
-    function test_roleBasedAccessControl() public {
-        vm.skip(true); // TODO
-    }
-
-    ///////////////////////////////
-    /// 11. liquidation tests
-    ///////////////////////////////
-
-    function test_liquidate_WithValidCredentials() public {
-        startHoax(user2);
-        eTST2.deposit(100e18, user2);
-        startHoax(user1);
-        eTST.deposit(10e18, user1);
-        eTST2.borrow(4e18, user1);
-        assertEq(eTST2.debtOf(user1), 4e18);
-
+    function _buildLiquidationBatch() internal returns (IEVC.BatchItem[] memory) {
         startHoax(address(this));
         oracle.setPrice(address(eTST), unitOfAccount, 5e17);
 
@@ -600,17 +562,64 @@ contract HookTargetAccessControlKeyringTest is EVaultTestBase {
             value: 0,
             data: abi.encodeCall(IEVC.disableCollateral, (liquidator, address(eTST)))
         });
-        
+
+        return batchItems;
+    }
+
+    function test_liquidate_WithLiquidatorHasWildCardPermissions() public {
+        startHoax(user2);
+        eTST2.deposit(100e18, user2);
+        startHoax(user1);
+        eTST.deposit(10e18, user1);
+        eTST2.borrow(4e18, user1);
+        assertEq(eTST2.debtOf(user1), 4e18);
+        startHoax(admin);
+        hookTarget.grantRole(hookTarget.WILD_CARD(), liquidator);
+        IEVC.BatchItem[] memory batchItems = _buildLiquidationBatch();
         evc.batch(batchItems);
         assertEq(eTST2.debtOf(user1), 0);
         assertEq(eTST2.debtOf(liquidator), 0);
     }
 
-    function test_liquidate_WithInvalidCredentials() public {
-        vm.skip(true); // TODO
+    function test_liquidate_WithLiquidatorWithoutWildCardPermissions() public {
+        startHoax(user2);
+        eTST2.deposit(100e18, user2);
+        startHoax(user1);
+        eTST.deposit(10e18, user1);
+        eTST2.borrow(4e18, user1);
+        assertEq(eTST2.debtOf(user1), 4e18);
+        IEVC.BatchItem[] memory batchItems = _buildLiquidationBatch();
+        vm.expectRevert(NotAuthorized.selector);
+        evc.batch(batchItems);
     }
 
-    function test_liquidate_WithPartialPermissions() public {
-        vm.skip(true); // TODO
+    function test_liquidate_WithLiquidatorHasWildCardPermissionsButUserNotPermitted() public {
+        startHoax(user2);
+        eTST2.deposit(100e18, user2);
+        startHoax(user1);
+        eTST.deposit(10e18, user1);
+        eTST2.borrow(4e18, user1);
+        assertEq(eTST2.debtOf(user1), 4e18);
+        keyring.setAllowed(user1, false);
+        keyring.setAllowed(user2, false);
+        startHoax(admin);
+        hookTarget.grantRole(hookTarget.WILD_CARD(), liquidator);
+        IEVC.BatchItem[] memory batchItems = _buildLiquidationBatch();
+        evc.batch(batchItems);
+        assertEq(eTST2.debtOf(user1), 0);
+        assertEq(eTST2.debtOf(liquidator), 0);
+    }
+
+    function test_liquidate_WithLiquidatorIsKeyringPermitted() public {
+        startHoax(user2);
+        eTST2.deposit(100e18, user2);
+        startHoax(user1);
+        eTST.deposit(10e18, user1);
+        eTST2.borrow(4e18, user1);
+        assertEq(eTST2.debtOf(user1), 4e18);
+        keyring.setAllowed(liquidator, true);
+        IEVC.BatchItem[] memory batchItems = _buildLiquidationBatch();
+        vm.expectRevert(NotAuthorized.selector);
+        evc.batch(batchItems);
     }
 }
