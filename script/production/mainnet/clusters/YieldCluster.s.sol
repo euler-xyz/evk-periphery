@@ -123,7 +123,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[USDe                     ] = "PythOracle";
         cluster.oracleProviders[eUSDe                    ] = "ExternalVault|PythOracle";
         cluster.oracleProviders[sUSDe                    ] = "ExternalVault|PythOracle";
-        cluster.oracleProviders[USDtb                    ] = "0x16FcC1d29833B4C46Fa7c7232B0C613034C0242E"; //"FixedRateOracle";
+        cluster.oracleProviders[USDtb                    ] = "FixedRateOracle";
         cluster.oracleProviders[deUSD                    ] = "PythOracle";
         cluster.oracleProviders[sdeUSD                   ] = "ExternalVault|PythOracle";
         cluster.oracleProviders[mBASIS                   ] = "0xfd63eED8Db6F5Bae46B2860C4B8a8a07eD8BF8bb";
@@ -137,7 +137,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[PT_sUSDe_31JULY2025      ] = "0x1d6ba68e8a98c1afb9983976b39efd877b1fd361"; //"CrossAdapter=PendleOracle+PythOracle";
         cluster.oracleProviders[PT_USDe_27MAR2025        ] = "CrossAdapter=PendleOracle+PythOracle";
         cluster.oracleProviders[PT_eUSDe_29MAY2025       ] = "CrossAdapter=PendleUniversalOracle+PythOracle";
-        cluster.oracleProviders[PT_cUSDO_19JUN2025       ] = "0xb3df99fff1f803f1a505af97f18fbf6c5b28ac8f"; //"CrossAdapter=PendleOracle+PythOracle";
+        cluster.oracleProviders[PT_cUSDO_19JUN2025       ] = "CrossAdapter=PendleUniversalOracle+FixedRateOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC                     ] = 100_000_000;
@@ -155,14 +155,14 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USD0                     ] = 10_000_000;
         cluster.supplyCaps[USD0PlusPlus             ] = 12_000_000;
         cluster.supplyCaps[USDe                     ] = 40_000_000;
-        cluster.supplyCaps[eUSDe                    ] = 40_000_000;
+        cluster.supplyCaps[eUSDe                    ] = 45_000_000;
         cluster.supplyCaps[sUSDe                    ] = 30_000_000;
         cluster.supplyCaps[USDtb                    ] = 20_000_000;
         cluster.supplyCaps[deUSD                    ] = 0;
         cluster.supplyCaps[sdeUSD                   ] = 0;
         cluster.supplyCaps[mBASIS                   ] = 6_000_000;
-        cluster.supplyCaps[mEDGE                    ] = 4_500_000;
-        cluster.supplyCaps[mMEV                     ] = 6_000_000;
+        cluster.supplyCaps[mEDGE                    ] = 3_000_000;
+        cluster.supplyCaps[mMEV                     ] = 4_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_30JAN2025] = 0;
         cluster.supplyCaps[PT_USD0PlusPlus_27MAR2025] = 4_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 6_000_000;
@@ -170,7 +170,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 40_000_000;
         cluster.supplyCaps[PT_sUSDe_31JULY2025      ] = 40_000_000;
         cluster.supplyCaps[PT_USDe_27MAR2025        ] = 4_000_000;
-        cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 40_000_000;
+        cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 45_000_000;
         cluster.supplyCaps[PT_cUSDO_19JUN2025       ] = 16_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
@@ -189,7 +189,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USD0                     ] = 9_000_000;
         cluster.borrowCaps[USD0PlusPlus             ] = 3_600_000;
         cluster.borrowCaps[USDe                     ] = 36_000_000;
-        cluster.borrowCaps[eUSDe                    ] = 34_000_000;
+        cluster.borrowCaps[eUSDe                    ] = 38_200_000;
         cluster.borrowCaps[sUSDe                    ] = 9_000_000;
         cluster.borrowCaps[USDtb                    ] = 18_000_000;
         cluster.borrowCaps[deUSD                    ] = 0;
