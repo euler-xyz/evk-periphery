@@ -152,21 +152,21 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USD0                     ] = 10_000_000;
         cluster.supplyCaps[USD0PlusPlus             ] = 12_000_000;
         cluster.supplyCaps[USDe                     ] = 10_000_000;
-        cluster.supplyCaps[eUSDe                    ] = 40_000_000;
+        cluster.supplyCaps[eUSDe                    ] = 45_000_000;
         cluster.supplyCaps[sUSDe                    ] = 16_000_000;
         cluster.supplyCaps[USDtb                    ] = 20_000_000;
         cluster.supplyCaps[deUSD                    ] = 0;
         cluster.supplyCaps[sdeUSD                   ] = 0;
         cluster.supplyCaps[mBASIS                   ] = 6_000_000;
-        cluster.supplyCaps[mEDGE                    ] = 4_500_000;
-        cluster.supplyCaps[mMEV                     ] = 6_000_000;
+        cluster.supplyCaps[mEDGE                    ] = 3_000_000;
+        cluster.supplyCaps[mMEV                     ] = 4_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_30JAN2025] = 0;
         cluster.supplyCaps[PT_USD0PlusPlus_27MAR2025] = 4_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 6_000_000;
         cluster.supplyCaps[PT_sUSDe_27MAR2025       ] = 4_000_000;
         cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 13_500_000;
         cluster.supplyCaps[PT_USDe_27MAR2025        ] = 4_000_000;
-        cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 40_000_000;
+        cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 45_000_000;
         cluster.supplyCaps[PT_cUSDO_19JUN2025       ] = 16_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
@@ -185,7 +185,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USD0                     ] = 9_000_000;
         cluster.borrowCaps[USD0PlusPlus             ] = 3_600_000;
         cluster.borrowCaps[USDe                     ] = 3_000_000;
-        cluster.borrowCaps[eUSDe                    ] = 30_000_000;
+        cluster.borrowCaps[eUSDe                    ] = 36_000_000;
         cluster.borrowCaps[sUSDe                    ] = 2_400_000;
         cluster.borrowCaps[USDtb                    ] = 18_000_000;
         cluster.borrowCaps[deUSD                    ] = 0;
