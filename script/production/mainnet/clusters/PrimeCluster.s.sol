@@ -97,7 +97,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[mTBILL ] = "0x256f8fA018e8e6F5B54b1fF708efd5ec73E20AC6";
         cluster.oracleProviders[USDS   ] = "ChainlinkOracle";
         cluster.oracleProviders[sUSDS  ] = "ExternalVault|ChainlinkOracle";
-        cluster.oracleProviders[USDtb  ] = "0x16FcC1d29833B4C46Fa7c7232B0C613034C0242E"; //"FixedRateOracle";
+        cluster.oracleProviders[USDtb  ] = "FixedRateOracle";
         cluster.oracleProviders[tBTC   ] = "ChainlinkOracle";
         cluster.oracleProviders[WBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
         cluster.oracleProviders[cbBTC  ] = "ChainlinkOracle";
