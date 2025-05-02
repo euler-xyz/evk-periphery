@@ -789,7 +789,7 @@ abstract contract ManageClusterBase is BatchBuilder {
             console.log("Simulating pending safe transactions");
             SafeTransaction.TransactionSimple[] memory transactions = safeUtil.getPendingTransactions(safe);
 
-            for (uint256 i = 0; i < transactions.length; ++i) {            
+            for (uint256 i = 0; i < transactions.length; ++i) {
                 try safeUtil.simulate(
                     transactions[i].operation == SafeUtil.Operation.CALL,
                     transactions[i].safe,
@@ -839,7 +839,8 @@ abstract contract ManageClusterBase is BatchBuilder {
                     );
 
                     vm.deal(address(this), value);
-                    try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {} catch {
+                    try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {}
+                    catch {
                         console.log("Error executing already scheduled timelock transaction");
                     }
                 }
@@ -864,7 +865,8 @@ abstract contract ManageClusterBase is BatchBuilder {
                 );
 
                 vm.deal(address(this), value);
-                try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {} catch {
+                try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {}
+                catch {
                     console.log("Error executing not yet scheduled timelock transaction");
                 }
             }

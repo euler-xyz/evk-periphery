@@ -411,7 +411,8 @@ contract SafeTransaction is SafeUtil {
             require(success, string(result));
         } else {
             MultisendMock multisendMock = new MultisendMock(transaction.safe);
-            (bool success, bytes memory result) = address(multisendMock).call{value: transaction.value}(transaction.data);
+            (bool success, bytes memory result) =
+                address(multisendMock).call{value: transaction.value}(transaction.data);
             require(success, string(result));
         }
     }
@@ -663,15 +664,9 @@ contract MultisendMock is ScriptExtended {
             assembly {
                 let success := 0
                 switch operation
-                    case 0 {
-                        success := call(gas(), to, value, data, dataLength, 0, 0)
-                    }
-                    case 1 {
-                        success := delegatecall(gas(), to, data, dataLength, 0, 0)
-                    }
-                if eq(success, 0) {
-                    revert(0, 0)
-                }
+                case 0 { success := call(gas(), to, value, data, dataLength, 0, 0) }
+                case 1 { success := delegatecall(gas(), to, data, dataLength, 0, 0) }
+                if eq(success, 0) { revert(0, 0) }
                 i := add(i, add(0x55, dataLength))
             }
         }
