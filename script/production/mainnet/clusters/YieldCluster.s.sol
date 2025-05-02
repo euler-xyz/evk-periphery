@@ -202,6 +202,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[PT_USD0PlusPlus_26JUN2025] = type(uint256).max;
         cluster.borrowCaps[PT_sUSDe_27MAR2025       ] = type(uint256).max;
         cluster.borrowCaps[PT_sUSDe_29MAY2025       ] = type(uint256).max;
+        //cluster.borrowCaps[PT_sUSDe_31JULY2025      ] = type(uint256).max;
         cluster.borrowCaps[PT_USDe_27MAR2025        ] = type(uint256).max;
         cluster.borrowCaps[PT_eUSDe_29MAY2025       ] = type(uint256).max;
         cluster.borrowCaps[PT_cUSDO_19JUN2025       ] = type(uint256).max;
