@@ -134,7 +134,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[PT_USD0PlusPlus_26JUN2025] = "CrossAdapter=PendleOracle+PythOracle";
         cluster.oracleProviders[PT_sUSDe_27MAR2025       ] = "CrossAdapter=PendleOracle+PythOracle";
         cluster.oracleProviders[PT_sUSDe_29MAY2025       ] = "CrossAdapter=PendleOracle+PythOracle";
-        cluster.oracleProviders[PT_sUSDe_31JULY2025      ] = "0x1d6ba68e8a98c1afb9983976b39efd877b1fd361"; //"CrossAdapter=PendleOracle+PythOracle";
+        cluster.oracleProviders[PT_sUSDe_31JULY2025      ] = "CrossAdapter=PendleUniversalOracle+PythOracle";
         cluster.oracleProviders[PT_USDe_27MAR2025        ] = "CrossAdapter=PendleOracle+PythOracle";
         cluster.oracleProviders[PT_eUSDe_29MAY2025       ] = "CrossAdapter=PendleUniversalOracle+PythOracle";
         cluster.oracleProviders[PT_cUSDO_19JUN2025       ] = "CrossAdapter=PendleUniversalOracle+FixedRateOracle";
