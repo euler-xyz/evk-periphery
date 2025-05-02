@@ -194,7 +194,7 @@ abstract contract ScriptExtended is Script {
 
     function getSimulateSafe() internal view returns (address) {
         address safe = _getSafe("", "simulate_safe_address", false);
-        return safe == address(0) ? getSafe() : safe;
+        return safe == address(0) ? getSafe(false) : safe;
     }
 
     function getSimulateTimelock() internal view returns (address) {
