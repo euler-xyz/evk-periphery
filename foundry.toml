@@ -30,7 +30,8 @@ ignore = [
     "script/production/mainnet/clusters/RepoCluster.s.sol",
     "script/production/base/clusters/BaseCluster.s.sol",
     "script/production/swell/clusters/SwellCluster.s.sol",
-    "script/production/swell/clusters/SwellETHCluster.s.sol"
+    "script/production/swell/clusters/SwellETHCluster.s.sol",
+    "script/production/unichain/clusters/UnichainCluster.s.sol"
 ]
 
 [profile.default.fuzz]
