@@ -3,16 +3,22 @@
 pragma solidity ^0.8.0;
 
 import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
+import {TransferFromSender} from "./TransferFromSender.sol";
 
 /// @title SwapVerifier
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Simple contract used to verify post swap conditions
 /// @dev This contract is the only trusted code in the EVK swap periphery
-contract SwapVerifier {
+contract SwapVerifier is TransferFromSender {
     error SwapVerifier_skimMin();
     error SwapVerifier_debtMax();
     error SwapVerifier_pastDeadline();
+
+    /// @notice Contract constructor
+    /// @param evc Address of the EthereumVaultConnector contract
+    /// @param permit2 Address of the Permit2 contract
+    constructor(address evc, address permit2) TransferFromSender(evc, permit2) {}
 
     /// @notice Verify results of a regular swap, when bought tokens are sent to the vault and skim for the buyer
     /// @param vault The EVault to query
