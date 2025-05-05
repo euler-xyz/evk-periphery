@@ -53,7 +53,7 @@ contract Swaps1Inch is EVaultTestBase {
         user2 = makeAddr("user2");
 
         swapper = new Swapper(uniswapRouterV2, uniswapRouterV3);
-        swapVerifier = new SwapVerifier();
+        swapVerifier = new SwapVerifier(address(1), address(1));
 
         if (bytes(FORK_RPC_URL).length != 0) {
             mainnetFork = vm.createSelectFork(FORK_RPC_URL);
