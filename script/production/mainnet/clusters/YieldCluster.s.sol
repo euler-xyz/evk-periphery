@@ -256,7 +256,7 @@ contract Cluster is ManageCluster {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             cluster.spreadLTVOverride[27][i] = 0.025e4; // PT_sUSDe_29MAY2025 as collateral
             cluster.spreadLTVOverride[28][i] = 0.025e4; // PT_sUSDe_31JULY2025 as collateral
-            cluster.spreadLTVOverride[30][i] = 0.025e4;  // PT_eUSDe_29MAY2025 as collateral
+            cluster.spreadLTVOverride[30][i] = 0.025e4; // PT_eUSDe_29MAY2025 as collateral
         }
 
         cluster.spreadLTVOverride[15][14] = 0.01e4; // eUSDe/USDe
@@ -272,6 +272,12 @@ contract Cluster is ManageCluster {
         cluster.spreadLTVOverride[30][14] = 0.01e4; // PT_eUSDe_29MAY2025/USDe
         cluster.spreadLTVOverride[30][15] = 0.01e4; // PT_eUSDe_29MAY2025/eUSDe
         
+        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            cluster.borrowLTVsOverride[13][i] = 0.84e4; // USD0PlusPlus as collateral
+        }
+
+        cluster.borrowLTVsOverride[13][12] = 0.86e4; // USD0PlusPlus/USD0
+        cluster.borrowLTVsOverride[25][12] = 0.84e4; // PT_USD0PlusPlus_26JUN2025/USD0
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
