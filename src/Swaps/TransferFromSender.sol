@@ -19,6 +19,7 @@ contract TransferFromSender is EVCUtil {
     /// @notice Address of Permit2 contract
     address public immutable permit2;
 
+    /// @notice Contract constructor
     /// @param _permit2 Address of the Permit2 contract
     constructor(address _evc, address _permit2) EVCUtil(_evc) {
         if (_permit2 == address(0)) revert TransferFromSender_InvalidAddress();
