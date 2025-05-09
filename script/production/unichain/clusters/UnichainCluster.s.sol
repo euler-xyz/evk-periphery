@@ -29,7 +29,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = getDeployer(); //governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -60,15 +60,15 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[USDC  ] = "";
-        cluster.oracleProviders[USDT0 ] = "";
-        cluster.oracleProviders[WETH  ] = "";
-        cluster.oracleProviders[wstETH] = "";
-        cluster.oracleProviders[weETH ] = "";
-        cluster.oracleProviders[rsETH ] = "";
-        cluster.oracleProviders[ezETH ] = "";
-        cluster.oracleProviders[WBTC  ] = "";
-        cluster.oracleProviders[UNI   ] = "";
+        cluster.oracleProviders[USDC  ] = "0xd544ccb6f2231bd1ccac0258cba89e8a13d4a421";
+        cluster.oracleProviders[USDT0 ] = "0x5939ee098eb6d411c3727b78ee665771f5cb0501";
+        cluster.oracleProviders[WETH  ] = "0xf5c2dfd1740d18ad7cf23fba76cc11d877802937";
+        cluster.oracleProviders[wstETH] = "0xfc40b9415ff4591ec304f3c18509a6dc28c408ca";
+        cluster.oracleProviders[weETH ] = "0xf7129a6280dcfff6149792186b54c818ea4d80d6";
+        cluster.oracleProviders[rsETH ] = "0xbad0e1da7d39a21455acef570cf9f3a8881f5e23";
+        cluster.oracleProviders[ezETH ] = "0xf2b8616744502851343c52da76e9adfb97f08b91";
+        cluster.oracleProviders[WBTC  ] = "0xc8228b83f1d97a431a48bd9bc3e971c8b418d889";
+        cluster.oracleProviders[UNI   ] = "0x7e262cd6226328aaf4ea5c993a952e18dd633bc8";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC  ] = 30_000_000;
@@ -146,8 +146,8 @@ contract Cluster is ManageCluster {
     }
 
     function postOperations() internal view override {
-        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
-        //}
+        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+        }
     }
 }
