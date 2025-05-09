@@ -121,11 +121,11 @@ contract Cluster is ManageCluster {
             // Base=0% APY  Kink(90%)=2.40% APY  Max=80.00% APY
             uint256[4] memory irmETH         = [uint256(0), uint256(194425692),  uint256(41617711740), uint256(3865470566)];
 
-            // Base=0% APY,  Kink(85%)=1.00% APY  Max=100.00% APY
-            uint256[4] memory irmBTC         = [uint256(0), uint256(86370144),  uint256(33604673898), uint256(3650722201)];
+            // Base=0% APY,  Kink(85%)=0.60% APY  Max=100.00% APY
+            uint256[4] memory irmBTC         = [uint256(0), uint256(51925146),  uint256(33799862224), uint256(3650722201)];
 
-            // Base=0% APY,  Kink(85%)=2.50% APY  Max=80.00% APY
-            uint256[4] memory irmETH_LST_1   = [uint256(0), uint256(214335049),  uint256(27697130031), uint256(3650722201)];
+            // Base=0% APY,  Kink(85%)=0.50% APY  Max=80.00% APY
+            uint256[4] memory irmETH_LST_1   = [uint256(0), uint256(43292497),  uint256(28666371159), uint256(3650722201)];
 
             // Base=0% APY,  Kink(40%)=4.60% APY  Max=145.96% APY
             uint256[4] memory irmETH_LST_2   = [uint256(0), uint256(829546015),  uint256(10514117840), uint256(1717986918)];
@@ -133,11 +133,11 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(25%)=4.60% APY  Max=848.77% APY
             uint256[4] memory irmETH_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
 
-            // Base=0% APY,  Kink(90%)=6.50% APY  Max=80.00% APY
-            uint256[4] memory irmUSD       = [uint256(0), uint256(516261061),  uint256(38721193419), uint256(3865470566)];
+            // Base=0% APY,  Kink(90%)=5.00% APY  Max=80.00% APY
+            uint256[4] memory irmUSD       = [uint256(0), uint256(399976852),  uint256(39767751304), uint256(3865470566)];
 
-            // Base=0% APY,  Kink(25%)=4.60% APY  Max=848.77% APY
-            uint256[4] memory irmBTC_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
+            // Base=0% APY,  Kink(25%)=2.50% APY  Max=100.00% APY
+            uint256[4] memory irmBTC_LRT   = [uint256(0), uint256(728739169), uint256(6575907893), uint256(1073741824)];
 
             // Base=0% APY,  Kink(80%)=8.87% APY  Max=848.77% APY
             uint256[4] memory irmDEFI      = [uint256(0), uint256(783779538),  uint256(79868472958), uint256(3435973836)];
