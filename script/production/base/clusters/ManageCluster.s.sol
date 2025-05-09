@@ -13,6 +13,7 @@ abstract contract Addresses {
     address internal constant weETH = 0x04C0599Ae5A44757c0af6F9eC3b93da8976c150A;
     address internal constant ezETH = 0x2416092f143378750bb29b79eD961ab195CcEea5;
     address internal constant RETH = 0xB6fe221Fe9EeF5aBa221c348bA20A1Bf5e73624c;
+    address internal constant wsuperOETHb = 0x7FcD174E80f264448ebeE8c88a7C4476AAF58Ea6;
     address internal constant USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address internal constant USDS = 0x820C137fa70C8691f0e44Dc420a5e53c168921Dc;
     address internal constant SUSDS = 0x5875eEE11Cf8398102FdAd704C9E96607675467a;
