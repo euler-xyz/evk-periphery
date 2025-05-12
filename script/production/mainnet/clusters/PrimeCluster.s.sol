@@ -99,8 +99,8 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[sUSDS  ] = "ExternalVault|ChainlinkOracle";
         cluster.oracleProviders[USDtb  ] = "FixedRateOracle";
         cluster.oracleProviders[tBTC   ] = "ChainlinkOracle";
-        cluster.oracleProviders[WBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
-        cluster.oracleProviders[cbBTC  ] = "ChainlinkOracle";
+        cluster.oracleProviders[WBTC   ] = "0x8e8cfcbe490da27032a6edacb6a8436be904cd4e"; // "CrossAdapter=FixedRateOracle+ChainlinkOracle";
+        cluster.oracleProviders[cbBTC  ] = "0xd0156a894f2d14b127a8c37360d6879891f62efa"; // "CrossAdapter=FixedRateOracle+ChainlinkOracle";
         cluster.oracleProviders[LBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
         cluster.oracleProviders[eBTC   ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
         cluster.oracleProviders[solvBTC] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
@@ -256,9 +256,9 @@ contract Cluster is ManageCluster {
         /* 16 sUSDS   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.94e4, 0.94e4, 0.00e4, 0.94e4, 0.00e4, 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 17 USDtb   */ [uint16(0.87e4), 0.83e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.80e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.82e4, 0.80e4, 0.80e4, 0.00e4, 0.00e4],
         /* 18 tBTC    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 19 WBTC    */ [uint16(0.70e4), 0.68e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.75e4, 0.75e4, 0.00e4, 0.75e4, 0.00e4, 0.75e4, 0.00e4, 0.75e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4],
-        /* 20 cbBTC   */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4],
-        /* 21 LBTC    */ [uint16(0.75e4), 0.73e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.70e4, 0.80e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.80e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 19 WBTC    */ [uint16(0.82e4), 0.80e4, 0.80e4, 0.77e4, 0.77e4, 0.80e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.86e4, 0.86e4, 0.00e4, 0.86e4, 0.00e4, 0.86e4, 0.00e4, 0.86e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4],
+        /* 20 cbBTC   */ [uint16(0.82e4), 0.80e4, 0.80e4, 0.77e4, 0.77e4, 0.80e4, 0.77e4, 0.77e4, 0.77e4, 0.77e4, 0.86e4, 0.86e4, 0.00e4, 0.86e4, 0.00e4, 0.86e4, 0.00e4, 0.86e4, 0.00e4, 0.90e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4],
+        /* 21 LBTC    */ [uint16(0.80e4), 0.78e4, 0.78e4, 0.75e4, 0.75e4, 0.78e4, 0.75e4, 0.75e4, 0.75e4, 0.75e4, 0.84e4, 0.84e4, 0.00e4, 0.84e4, 0.00e4, 0.84e4, 0.00e4, 0.84e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4],
         /* 22 eBTC    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 23 solvBTC */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
