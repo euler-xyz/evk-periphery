@@ -18,7 +18,7 @@ contract HookTargetAccessControlKeyring is BaseHookTarget, SelectorAccessControl
     IKeyringCredentials public immutable keyring;
 
     /// @notice The policy ID used when checking credentials against the Keyring contract
-    uint32 internal immutable policyId;
+    uint32 public immutable policyId;
 
     /// @notice Initializes the HookTargetAccessControlKeyring contract
     /// @param _evc The address of the EVC.
