@@ -189,7 +189,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USD0                     ] = 9_000_000;
         cluster.borrowCaps[USD0PlusPlus             ] = 3_600_000;
         cluster.borrowCaps[USDe                     ] = 36_000_000;
-        cluster.borrowCaps[eUSDe                    ] = 51_200_000;
+        cluster.borrowCaps[eUSDe                    ] = 51_000_000;
         cluster.borrowCaps[sUSDe                    ] = 9_000_000;
         cluster.borrowCaps[USDtb                    ] = 18_000_000;
         cluster.borrowCaps[deUSD                    ] = 0;
