@@ -35,6 +35,8 @@ contract Cluster is ManageCluster {
             USDtb,
             deUSD,
             sdeUSD,
+            rUSD,
+            srUSD,
             mBASIS,
             mEDGE,
             mMEV,
@@ -82,6 +84,7 @@ contract Cluster is ManageCluster {
         cluster.interestFeeOverride[sUSDe       ] = 0;
         cluster.interestFeeOverride[deUSD       ] = 0.15e4;
         cluster.interestFeeOverride[sdeUSD      ] = 0.15e4;
+        cluster.interestFeeOverride[rUSD        ] = 0;
         cluster.interestFeeOverride[mBASIS      ] = 0.15e4;
 
         // define max liquidation discount here. if needed to be defined per asset, populate the maxLiquidationDiscountOverride mapping
@@ -126,6 +129,8 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[USDtb                    ] = "FixedRateOracle";
         cluster.oracleProviders[deUSD                    ] = "PythOracle";
         cluster.oracleProviders[sdeUSD                   ] = "ExternalVault|PythOracle";
+        cluster.oracleProviders[rUSD                     ] = "0x01dBD40296C232C2C58c99Ff69084B256BeE33EE";
+        cluster.oracleProviders[srUSD                    ] = "0xd54bc197150487a40d4ebd4fb215ca4fa996173e";
         cluster.oracleProviders[mBASIS                   ] = "0xfd63eED8Db6F5Bae46B2860C4B8a8a07eD8BF8bb";
         cluster.oracleProviders[mEDGE                    ] = "0xc8228b83f1d97a431a48bd9bc3e971c8b418d889";
         cluster.oracleProviders[mMEV                     ] = "0xf5c2dfd1740d18ad7cf23fba76cc11d877802937";
@@ -160,6 +165,8 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDtb                    ] = 20_000_000;
         cluster.supplyCaps[deUSD                    ] = 0;
         cluster.supplyCaps[sdeUSD                   ] = 0;
+        cluster.supplyCaps[rUSD                     ] = 30_000_000;
+        cluster.supplyCaps[srUSD                    ] = 30_000_000;
         cluster.supplyCaps[mBASIS                   ] = 6_000_000;
         cluster.supplyCaps[mEDGE                    ] = 2_000_000;
         cluster.supplyCaps[mMEV                     ] = 2_000_000;
@@ -194,6 +201,8 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDtb                    ] = 18_000_000;
         cluster.borrowCaps[deUSD                    ] = 0;
         cluster.borrowCaps[sdeUSD                   ] = 0;
+        cluster.borrowCaps[rUSD                     ] = 27_000_000;
+        cluster.borrowCaps[srUSD                    ] = type(uint256).max;
         cluster.borrowCaps[mBASIS                   ] = 1_800_000;
         cluster.borrowCaps[mEDGE                    ] = type(uint256).max;
         cluster.borrowCaps[mMEV                     ] = type(uint256).max;
@@ -202,7 +211,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[PT_USD0PlusPlus_26JUN2025] = type(uint256).max;
         cluster.borrowCaps[PT_sUSDe_27MAR2025       ] = type(uint256).max;
         cluster.borrowCaps[PT_sUSDe_29MAY2025       ] = type(uint256).max;
-        //cluster.borrowCaps[PT_sUSDe_31JULY2025      ] = type(uint256).max;
+        cluster.borrowCaps[PT_sUSDe_31JULY2025      ] = type(uint256).max;
         cluster.borrowCaps[PT_USDe_27MAR2025        ] = type(uint256).max;
         cluster.borrowCaps[PT_eUSDe_29MAY2025       ] = type(uint256).max;
         cluster.borrowCaps[PT_cUSDO_19JUN2025       ] = type(uint256).max;
@@ -224,6 +233,9 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(30%)=2.00% APY  Max=80.00% APY
             uint256[4] memory irm_sUSDe            = [uint256(0), uint256(487019827), uint256(5986640502), uint256(1288490188)];
 
+            // Base=0% APY,  Kink(90%)=6.00% APY  Max=80.00% APY
+            uint256[4] memory irm_rUSD             = [uint256(0), uint256(477682641), uint256(39068399204), uint256(3865470566)];
+
             cluster.kinkIRMParams[USDC        ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[USDT        ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[FDUSD       ] = irm_USD_1_MEGA_YIELD;
@@ -244,6 +256,7 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[USDtb       ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[deUSD       ] = irm_USD_3_MEGA_YIELD;
             cluster.kinkIRMParams[sdeUSD      ] = irm_USD_3_MEGA_YIELD;
+            cluster.kinkIRMParams[rUSD        ] = irm_rUSD;
             cluster.kinkIRMParams[mBASIS      ] = irm_USD_3_MEGA_YIELD;
         }
 
@@ -254,76 +267,80 @@ contract Cluster is ManageCluster {
         cluster.spreadLTV = 0.02e4;
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            cluster.spreadLTVOverride[27][i] = 0.025e4; // PT_sUSDe_29MAY2025 as collateral
-            cluster.spreadLTVOverride[28][i] = 0.025e4; // PT_sUSDe_31JULY2025 as collateral
-            cluster.spreadLTVOverride[30][i] = 0.025e4; // PT_eUSDe_29MAY2025 as collateral
+            cluster.spreadLTVOverride[29][i] = 0.025e4; // PT_sUSDe_29MAY2025 as collateral
+            cluster.spreadLTVOverride[30][i] = 0.025e4; // PT_sUSDe_31JULY2025 as collateral
+            cluster.spreadLTVOverride[32][i] = 0.025e4; // PT_eUSDe_29MAY2025 as collateral
         }
 
         cluster.spreadLTVOverride[15][14] = 0.01e4; // eUSDe/USDe
 
-        cluster.spreadLTVOverride[27][14] = 0.01e4; // PT_sUSDe_29MAY2025/USDe
-        cluster.spreadLTVOverride[27][15] = 0.01e4; // PT_sUSDe_29MAY2025/eUSDe
-        cluster.spreadLTVOverride[27][16] = 0.01e4; // PT_sUSDe_29MAY2025/sUSDe
-        
-        cluster.spreadLTVOverride[28][14] = 0.01e4; // PT_sUSDe_31JULY2025/USDe
-        cluster.spreadLTVOverride[28][15] = 0.01e4; // PT_sUSDe_31JULY2025/eUSDe
-        cluster.spreadLTVOverride[28][16] = 0.01e4; // PT_sUSDe_31JULY2025/sUSDe
+        cluster.spreadLTVOverride[21][20] = 0.015e4; // srUSD/rUSD
 
-        cluster.spreadLTVOverride[30][14] = 0.01e4; // PT_eUSDe_29MAY2025/USDe
-        cluster.spreadLTVOverride[30][15] = 0.01e4; // PT_eUSDe_29MAY2025/eUSDe
+        cluster.spreadLTVOverride[29][14] = 0.01e4; // PT_sUSDe_29MAY2025/USDe
+        cluster.spreadLTVOverride[29][15] = 0.01e4; // PT_sUSDe_29MAY2025/eUSDe
+        cluster.spreadLTVOverride[29][16] = 0.01e4; // PT_sUSDe_29MAY2025/sUSDe
+        
+        cluster.spreadLTVOverride[30][14] = 0.01e4; // PT_sUSDe_31JULY2025/USDe
+        cluster.spreadLTVOverride[30][15] = 0.01e4; // PT_sUSDe_31JULY2025/eUSDe
+        cluster.spreadLTVOverride[30][16] = 0.01e4; // PT_sUSDe_31JULY2025/sUSDe
+
+        cluster.spreadLTVOverride[32][14] = 0.01e4; // PT_eUSDe_29MAY2025/USDe
+        cluster.spreadLTVOverride[32][15] = 0.01e4; // PT_eUSDe_29MAY2025/eUSDe
         
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             cluster.borrowLTVsOverride[13][i] = 0.84e4; // USD0PlusPlus as collateral
         }
 
         cluster.borrowLTVsOverride[13][12] = 0.86e4; // USD0PlusPlus/USD0
-        cluster.borrowLTVsOverride[25][12] = 0.84e4; // PT_USD0PlusPlus_26JUN2025/USD0
+        cluster.borrowLTVsOverride[27][12] = 0.84e4; // PT_USD0PlusPlus_26JUN2025/USD0
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                                  0               1       2       3       4       5       6       7       8       9       10      11      12      13      14       15      16      17      18      19      20      21      22      23      24      25      26      27      28      29      30      31
-        //                                  USDC            USDT    FDUSD   PYUSD   rlUSD   wUSDM   wUSDL   wM      USDS    sUSDS   DAI     sDAI    USD0    USD0++  USDe     eUSDe   sUSDe   USDtb   deUSD   sdeUSD  mBASIS  mEDGE   mMEV    PT_USD0PlusPlus_30JAN2025 PT_USD0PlusPlus_27MAR2025 PT_USD0PlusPlus_26JUN2025 PT_sUSDe_27MAR2025 PT_sUSDe_29MAY2025 PT_sUSDe_31JULY2025 PT_USDe_27MAR2025 PT_eUSDe_29MAY2025 PT_cUSDO_19JUN2025
-        /* 0  USDC                      */ [uint16(0.00e4), 0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.00e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 1  USDT                      */ [uint16(0.95e4), 0.00e4, 0.00e4, 0.95e4, 0.95e4, 0.00e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 2  FDUSD                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 3  PYUSD                     */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 4  rlUSD                     */ [uint16(0.95e4), 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 5  wUSDM                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 6  wUSDL                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 7  wM                        */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 8  USDS                      */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 9  sUSDS                     */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 10 DAI                       */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 11 sDAI                      */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 12 USD0                      */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 13 USD0PlusPlus              */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 14 USDe                      */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 15 eUSDe                     */ [uint16(0.88e4), 0.88e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.940e4, 0.00e4, 0.00e4, 0.88e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 16 sUSDe                     */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 17 USDtb                     */ [uint16(0.95e4), 0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.00e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 18 deUSD                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 19 sdeUSD                    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 20 mBASIS                    */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 21 mEDGE                     */ [uint16(0.95e4), 0.95e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.95e4, 0.00e4, 0.90e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 22 mMEV                      */ [uint16(0.95e4), 0.95e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.95e4, 0.00e4, 0.90e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 23 PT_USD0PlusPlus_30JAN2025 */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 24 PT_USD0PlusPlus_27MAR2025 */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 25 PT_USD0PlusPlus_26JUN2025 */ [uint16(0.84e4), 0.84e4, 0.00e4, 0.84e4, 0.84e4, 0.00e4, 0.00e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.90e4, 0.00e4, 0.840e4, 0.00e4, 0.00e4, 0.84e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 26 PT_sUSDe_27MAR2025        */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 27 PT_sUSDe_29MAY2025        */ [uint16(0.88e4), 0.88e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.00e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.925e4, 0.92e4, 0.94e4, 0.88e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 28 PT_sUSDe_31JULY2025       */ [uint16(0.88e4), 0.88e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.00e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.925e4, 0.92e4, 0.94e4, 0.88e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 29 PT_USDe_27MAR2025         */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 30 PT_eUSDe_29MAY2025        */ [uint16(0.88e4), 0.88e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.00e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.935e4, 0.94e4, 0.00e4, 0.88e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 31 PT_cUSDO_19JUN2025        */ [uint16(0.88e4), 0.88e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
+        //                                  0               1       2       3       4       5       6       7       8       9       10      11      12      13      14       15      16      17      18      19      20       21      22      23      24      25      26      27      28      29      30      31      32      33
+        //                                  USDC            USDT    FDUSD   PYUSD   rlUSD   wUSDM   wUSDL   wM      USDS    sUSDS   DAI     sDAI    USD0    USD0++  USDe     eUSDe   sUSDe   USDtb   deUSD   sdeUSD  rUSD     srUSD   mBASIS  mEDGE   mMEV    PT_USD0PlusPlus_30JAN2025 PT_USD0PlusPlus_27MAR2025 PT_USD0PlusPlus_26JUN2025 PT_sUSDe_27MAR2025 PT_sUSDe_29MAY2025 PT_sUSDe_31JULY2025 PT_USDe_27MAR2025 PT_eUSDe_29MAY2025 PT_cUSDO_19JUN2025
+        /* 0  USDC                      */ [uint16(0.00e4), 0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.00e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 1  USDT                      */ [uint16(0.95e4), 0.00e4, 0.00e4, 0.95e4, 0.95e4, 0.00e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 2  FDUSD                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 3  PYUSD                     */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 4  rlUSD                     */ [uint16(0.95e4), 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 5  wUSDM                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 6  wUSDL                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 7  wM                        */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 8  USDS                      */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 9  sUSDS                     */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 10 DAI                       */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 11 sDAI                      */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.930e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 12 USD0                      */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 13 USD0PlusPlus              */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 14 USDe                      */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 15 eUSDe                     */ [uint16(0.88e4), 0.88e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.940e4, 0.00e4, 0.00e4, 0.88e4, 0.00e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 16 sUSDe                     */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 17 USDtb                     */ [uint16(0.95e4), 0.95e4, 0.00e4, 0.95e4, 0.95e4, 0.00e4, 0.00e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.950e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 18 deUSD                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 19 sdeUSD                    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 20 rUSD                      */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 21 srUSD                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.975e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 22 mBASIS                    */ [uint16(0.90e4), 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 23 mEDGE                     */ [uint16(0.95e4), 0.95e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.95e4, 0.00e4, 0.90e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 24 mMEV                      */ [uint16(0.95e4), 0.95e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.00e4, 0.90e4, 0.90e4, 0.00e4, 0.95e4, 0.00e4, 0.90e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 25 PT_USD0PlusPlus_30JAN2025 */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 26 PT_USD0PlusPlus_27MAR2025 */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 27 PT_USD0PlusPlus_26JUN2025 */ [uint16(0.84e4), 0.84e4, 0.00e4, 0.84e4, 0.84e4, 0.00e4, 0.00e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.90e4, 0.00e4, 0.840e4, 0.00e4, 0.00e4, 0.84e4, 0.00e4, 0.00e4, 0.840e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 28 PT_sUSDe_27MAR2025        */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 29 PT_sUSDe_29MAY2025        */ [uint16(0.88e4), 0.88e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.00e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.925e4, 0.92e4, 0.94e4, 0.88e4, 0.00e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 30 PT_sUSDe_31JULY2025       */ [uint16(0.88e4), 0.88e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.00e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.925e4, 0.92e4, 0.94e4, 0.88e4, 0.00e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 31 PT_USDe_27MAR2025         */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 32 PT_eUSDe_29MAY2025        */ [uint16(0.88e4), 0.88e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.00e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.935e4, 0.94e4, 0.00e4, 0.88e4, 0.00e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 33 PT_cUSDO_19JUN2025        */ [uint16(0.88e4), 0.88e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.00e4, 0.88e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
         cluster.externalLTVs = [
-        //                                 0                1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22      23      24      25      26      27      28      29      30      31
-        //                                 USDC             USDT    FDUSD   PYUSD   rlUSD   wUSDM   wUSDL   wM      USDS    sUSDS   DAI     sDAI    USD0    USD0++  USDe    eUSDe   sUSDe   USDtb   deUSD   sdeUSD  mBASIS  mEDGE   mMEV    PT_USD0PlusPlus_30JAN2025 PT_USD0PlusPlus_27MAR2025 PT_USD0PlusPlus_26JUN2025 PT_sUSDe_27MAR2025 PT_sUSDe_29MAY2025 PT_sUSDe_31JULY2025 PT_USDe_27MAR2025 PT_eUSDe_29MAY2025 PT_cUSDO_19JUN2025
-        /* 0  Prime USDC                */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 1  Prime USDT                */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
+        //                                 0                1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22      23      24      25      26      27      28      29      30      31      32      33
+        //                                 USDC             USDT    FDUSD   PYUSD   rlUSD   wUSDM   wUSDL   wM      USDS    sUSDS   DAI     sDAI    USD0    USD0++  USDe    eUSDe   sUSDe   USDtb   deUSD   sdeUSD  rUSD    srUSD   mBASIS  mEDGE   mMEV    PT_USD0PlusPlus_30JAN2025 PT_USD0PlusPlus_27MAR2025 PT_USD0PlusPlus_26JUN2025 PT_sUSDe_27MAR2025 PT_sUSDe_29MAY2025 PT_sUSDe_31JULY2025 PT_USDe_27MAR2025 PT_eUSDe_29MAY2025 PT_cUSDO_19JUN2025
+        /* 0  Prime USDC                */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 1  Prime USDT                */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
     }
 
