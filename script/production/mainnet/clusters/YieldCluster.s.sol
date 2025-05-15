@@ -140,7 +140,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[PT_cUSDO_19JUN2025       ] = "CrossAdapter=PendleUniversalOracle+FixedRateOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[USDC                     ] = 100_000_000;
+        cluster.supplyCaps[USDC                     ] = 150_000_000;
         cluster.supplyCaps[USDT                     ] = 50_000_000;
         cluster.supplyCaps[FDUSD                    ] = 0;
         cluster.supplyCaps[PYUSD                    ] = 10_000_000;
@@ -155,14 +155,14 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USD0                     ] = 10_000_000;
         cluster.supplyCaps[USD0PlusPlus             ] = 12_000_000;
         cluster.supplyCaps[USDe                     ] = 40_000_000;
-        cluster.supplyCaps[eUSDe                    ] = 45_000_000;
+        cluster.supplyCaps[eUSDe                    ] = 60_000_000;
         cluster.supplyCaps[sUSDe                    ] = 30_000_000;
         cluster.supplyCaps[USDtb                    ] = 20_000_000;
         cluster.supplyCaps[deUSD                    ] = 0;
         cluster.supplyCaps[sdeUSD                   ] = 0;
         cluster.supplyCaps[mBASIS                   ] = 6_000_000;
         cluster.supplyCaps[mEDGE                    ] = 2_000_000;
-        cluster.supplyCaps[mMEV                     ] = 2_700_000;
+        cluster.supplyCaps[mMEV                     ] = 2_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_30JAN2025] = 0;
         cluster.supplyCaps[PT_USD0PlusPlus_27MAR2025] = 4_000_000;
         cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 6_000_000;
@@ -171,10 +171,10 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_sUSDe_31JULY2025      ] = 40_000_000;
         cluster.supplyCaps[PT_USDe_27MAR2025        ] = 4_000_000;
         cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 45_000_000;
-        cluster.supplyCaps[PT_cUSDO_19JUN2025       ] = 36_000_000;
+        cluster.supplyCaps[PT_cUSDO_19JUN2025       ] = 54_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[USDC                     ] = 90_000_000;
+        cluster.borrowCaps[USDC                     ] = 135_000_000;
         cluster.borrowCaps[USDT                     ] = 45_000_000;
         cluster.borrowCaps[FDUSD                    ] = 0;
         cluster.borrowCaps[PYUSD                    ] = 9_000_000;
@@ -189,7 +189,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USD0                     ] = 9_000_000;
         cluster.borrowCaps[USD0PlusPlus             ] = 3_600_000;
         cluster.borrowCaps[USDe                     ] = 36_000_000;
-        cluster.borrowCaps[eUSDe                    ] = 38_200_000;
+        cluster.borrowCaps[eUSDe                    ] = 51_000_000;
         cluster.borrowCaps[sUSDe                    ] = 9_000_000;
         cluster.borrowCaps[USDtb                    ] = 18_000_000;
         cluster.borrowCaps[deUSD                    ] = 0;
@@ -209,8 +209,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0% APY,  Kink(90%)=6.50% APY  Max=80.00% APY
-            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(0), uint256(516261061), uint256(38721193419), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=7.00% APY  Max=40.00% APY
+            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(0), uint256(554658784), uint256(19833360540), uint256(3865470566)];
 
             // Base=0% APY,  Kink(90%)=16.18% APY  Max=101.38% APY
             uint256[4] memory irm_USD_1_MEGA_YIELD_OLD = [uint256(0), uint256(1229443272), uint256(40583508868), uint256(3865470566)];
@@ -218,8 +218,8 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(30%)=12.75% APY  Max=848.77% APY
             uint256[4] memory irm_USD_3_MEGA_YIELD = [uint256(0), uint256(2951312420), uint256(22450463582), uint256(1288490188)];
 
-            // Base=0% APY,  Kink(85%)=6.50% APY  Max=80.00% APY
-            uint256[4] memory irm_eUSDe            = [uint256(0), uint256(546629359), uint256(25814128946), uint256(3650722201)];
+            // Base=0.00% APY,  Kink(85.00%)=7.00% APY  Max=40.00% APY
+            uint256[4] memory irm_eUSDe            = [uint256(0), uint256(587285771), uint256(13222240360), uint256(3650722201)];
 
             // Base=0% APY,  Kink(30%)=2.00% APY  Max=80.00% APY
             uint256[4] memory irm_sUSDe            = [uint256(0), uint256(487019827), uint256(5986640502), uint256(1288490188)];
