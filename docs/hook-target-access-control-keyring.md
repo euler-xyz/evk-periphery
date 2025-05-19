@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `HookTargetAccessControlKeyring` is a specialized hook target contract that combines selector-based access control with keyring credential verification. This contract enables vault operators to restrict access to critical vault operations, ensuring only authorized users with valid credentials can perform operations on vaults.
+The `HookTargetAccessControlKeyring` is a specialized hook target contract that combines selector-based access control with Keyring credential verification. This contract enables vault operators to restrict access to critical vault operations, ensuring only authorized users with valid credentials can perform operations on vaults.
 
 ## Purpose
 
@@ -30,23 +30,29 @@ The contract implements a sophisticated authentication workflow through the `_au
 
 1. **Initial Role Check**:
    - First, check if the caller has either the `WILD_CARD` role or a specific role for the current function selector
-   - If yes, bypass the keyring credential check entirely
+   - If yes, bypass the Keyring credential check entirely
 
 2. **Caller Credential Check**:
    - Determine the EVC owner of the calling account
    - If no owner is registered, assume the caller itself is the owner
-   - Verify the owner has valid credentials according to the specified policy ID
+   - If the owner lacks valid Keyring credential according to the policy ID:
+     - Check if they have the `PRIVILEGED_ACCOUNT_ROLE` AND they don't share a common owner with the account being operated on
+     - If neither credential exists nor the privileged role condition is met, revert with `NotAuthorized`
 
 3. **Account Credential Check**:
    - Only performed if the account being operated on has a different EVC owner than the caller
    - Determine the EVC owner of the account being operated on
    - If no owner is registered, assume the account itself is the owner
-   - Verify this owner also has valid credentials according to the policy ID
+   - If the owner lacks valid Keyring credential according to the policy ID:
+     - Check if they have the `PRIVILEGED_ACCOUNT_ROLE`
+     - If neither credential nor privileged role exists, revert with `NotAuthorized`
 
-4. **Optimization**:
-   - If the caller and the account being operated on share the same EVC owner, only one credential check is performed
+4. **Privileged Account Restrictions**:
+   - When a user tries to operate on an account that shares the same EVC owner, they cannot use their privileged status to bypass credential checks
+   - This means that privileged accounts must have valid credentials to perform operations on their own accounts
+   - However, privileged accounts can bypass credential checks when operating on accounts that belong to a different EVC owner
 
-This mechanism ensures that both the entity initiating the operation and the entity being affected by it (if different) have proper authorization.
+This mechanism ensures that both the entity initiating the operation and the entity being affected by it (if different) have proper authorization, while maintaining strict controls on privileged account usage.
 
 ## Hooked Operations
 
@@ -76,7 +82,7 @@ The contract implements a fallback function that provides a catch-all authentica
 When a hooked operation is called that doesn't match any of the explicitly defined functions, the fallback function:
 - Authenticates only the caller using the `_authenticateCaller` function
 - Applies the same role-based access control rules (WILD_CARD and selector-specific roles)
-- Does not perform keyring credential checks on any additional accounts
+- Does not perform Keyring credential checks on any additional accounts
 
 ## Usage Patterns
 
@@ -100,7 +106,15 @@ To use this hook target:
 A vault operator could use this hook target to create a vault cluster where:
 - Only users with valid credentials can perform operations on the vaults
 - Specific addresses (like chosen liquidators) are whitelisted to bypass credential checks
+- The Swapper and SwapVerifier contracts are granted the PRIVILEGED_ACCOUNT_ROLE to enable asset withdrawals for swaps while preventing self-deposits
 
 To achieve the above, the following operations should be hooked: `OP_DEPOSIT`, `OP_MINT`, `OP_WITHDRAW`, `OP_REDEEM`, `OP_SKIM`, `OP_BORROW`, `OP_REPAY`, `OP_REPAY_WITH_SHARES`, `OP_PULL_DEBT`, `OP_LIQUIDATE` and `OP_FLASHLOAN`.
 
 The liquidators should be granted the `WILD_CARD` role so that they can liquidate and close the position without needing to obtain a Keyring credential.
+
+The Swapper and the SwapVerifier contracts should be granted the `PRIVILEGED_ACCOUNT_ROLE` to enable them to:
+- Receive the assets withdrawn from user accounts for swapping
+- Deposit/skim swapped assets back into user accounts
+- Repay debt on behalf of users
+
+However, the Swapper cannot deposit assets into its own account since the `_authenticateCallerAndAccount` function prevents privileged accounts from performing operations on accounts that share their EVC owner. This means that while the Swapper can operate on user accounts (which have different EVC owners), it must have valid credentials to perform operations on its own account.
