@@ -183,8 +183,8 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 40_000_000;
         cluster.supplyCaps[PT_sUSDe_31JULY2025      ] = 40_000_000;
         cluster.supplyCaps[PT_USDe_27MAR2025        ] = 4_000_000;
-        cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 45_000_000;
-        cluster.supplyCaps[PT_cUSDO_19JUN2025       ] = 54_000_000;
+        cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 60_000_000;
+        cluster.supplyCaps[PT_cUSDO_19JUN2025       ] = 70_000_000;
         cluster.supplyCaps[PT_syrupUSDC_28AUG2025   ] = 15_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
@@ -227,8 +227,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0.00% APY,  Kink(90.00%)=7.00% APY  Max=40.00% APY
-            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(0), uint256(554658784), uint256(19833360540), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=7.50% APY  Max=40.00% APY
+            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(0), uint256(592877497), uint256(19489392122), uint256(3865470566)];
 
             // Base=0% APY,  Kink(90%)=16.18% APY  Max=101.38% APY
             uint256[4] memory irm_USD_1_MEGA_YIELD_OLD = [uint256(0), uint256(1229443272), uint256(40583508868), uint256(3865470566)];
@@ -242,8 +242,8 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(30%)=2.00% APY  Max=80.00% APY
             uint256[4] memory irm_sUSDe            = [uint256(0), uint256(487019827), uint256(5986640502), uint256(1288490188)];
 
-            // Base=0% APY,  Kink(90%)=6.00% APY  Max=80.00% APY
-            uint256[4] memory irm_rUSD             = [uint256(0), uint256(477682641), uint256(39068399204), uint256(3865470566)];
+            // Base=0% APY,  Kink(90%)=7.00% APY  Max=40.00% APY
+            uint256[4] memory irm_rUSD             = [uint256(0), uint256(554658784), uint256(19833360540), uint256(3865470566)];
 
             // Base=0% APY,  Kink(90%)=1.50% APY  Max=80.00% APY
             uint256[4] memory irm_syrupUSDC        = [uint256(0), uint256(122055342), uint256(42269044890), uint256(3865470566)];
