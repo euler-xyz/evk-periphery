@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {ManageCluster} from "./ManageCluster.s.sol";
 
 contract Cluster is ManageCluster {
-    address internal constant mEDGE = 0xbB51E2a15A9158EBE2b0Ceb8678511e063AB7a55;
+    address internal constant mEDGE    = 0xbB51E2a15A9158EBE2b0Ceb8678511e063AB7a55;
     address internal constant PT_mEDGE = 0x7f01d0FCe9BC646389483384C41B4d71c7139f11;
 
     function defineCluster() internal override {
@@ -33,12 +33,11 @@ contract Cluster is ManageCluster {
         // they should be referred to as "RedstoneClassicOracle".
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to
-        // resolve
-        // the asset (vault) in the oracle router.
+        // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[USDC] = "0xD35657aE033A86FFa8fc6Bc767C5eb57C7c3D4B8";
-        cluster.oracleProviders[mEDGE] = "0xc8228b83f1d97a431a48bd9bc3e971c8b418d889";
+        cluster.oracleProviders[USDC    ] = "0xD35657aE033A86FFa8fc6Bc767C5eb57C7c3D4B8";
+        cluster.oracleProviders[mEDGE   ] = "0xc8228b83f1d97a431a48bd9bc3e971c8b418d889";
         cluster.oracleProviders[PT_mEDGE] = "0xe8192efbf40faa247f1c4fb792d986057fc69a15";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
@@ -46,7 +45,7 @@ contract Cluster is ManageCluster {
             // Base=0% APY  Kink(90%)=2.7% APY  Max=40.00% APY
             //cluster.kinkIRMParams[WETH] = [uint256(0), uint256(218407859), uint256(22859618857), uint256(3865470566)];
 
-            cluster.irms[USDC] = IRM_ADAPTIVE_USD;
+            cluster.irms[USDC ] = IRM_ADAPTIVE_USD;
             cluster.irms[mEDGE] = IRM_ADAPTIVE_USD_YB;
         }
 
@@ -54,12 +53,9 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
             //               0          1         2
             //               USDC       mEDGE     PT_mEDGE
-            /* 0  USDC    */
-            [LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 1  mEDGE   */
-            [LTV__LOW, LTV_ZERO, LTV_ZERO],
-            /* 2  PT_mEDGE*/
-            [LTV__LOW, LTV_HIGH, LTV_ZERO]
+            /* 0  USDC    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 1  mEDGE   */ [LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 2  PT_mEDGE*/ [LTV__LOW, LTV_HIGH, LTV_ZERO]
         ];
     }
 }

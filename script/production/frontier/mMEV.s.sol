@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {ManageCluster} from "./ManageCluster.s.sol";
 
 contract Cluster is ManageCluster {
-    address internal constant mMEV = 0x030b69280892c888670EDCDCD8B69Fd8026A0BF3;
+    address internal constant mMEV    = 0x030b69280892c888670EDCDCD8B69Fd8026A0BF3;
     address internal constant PT_mMEV = 0x1132065009850C72E27B7950C0f9285d1D103589;
 
     function defineCluster() internal override {
@@ -33,12 +33,11 @@ contract Cluster is ManageCluster {
         // they should be referred to as "RedstoneClassicOracle".
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to
-        // resolve
-        // the asset (vault) in the oracle router.
+        // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[USDC] = "0xD35657aE033A86FFa8fc6Bc767C5eb57C7c3D4B8";
-        cluster.oracleProviders[mMEV] = "0xf5c2dfd1740d18ad7cf23fba76cc11d877802937";
+        cluster.oracleProviders[USDC   ] = "0xD35657aE033A86FFa8fc6Bc767C5eb57C7c3D4B8";
+        cluster.oracleProviders[mMEV   ] = "0xf5c2dfd1740d18ad7cf23fba76cc11d877802937";
         cluster.oracleProviders[PT_mMEV] = "0x8c6ba8c189fc9f88fc72533ea60b9c4134a650f0";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
@@ -54,12 +53,9 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
             //               0          1         2
             //               USDC       mMEV      PT_mMEV
-            /* 0  USDC    */
-            [LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 1  mMEV    */
-            [LTV__LOW, LTV_ZERO, LTV_ZERO],
-            /* 2  PT_mMEV */
-            [LTV__LOW, LTV_HIGH, LTV_ZERO]
+            /* 0  USDC    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 1  mMEV    */ [LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 2  PT_mMEV */ [LTV__LOW, LTV_HIGH, LTV_ZERO]
         ];
     }
 }

@@ -32,11 +32,10 @@ contract Cluster is ManageCluster {
         // they should be referred to as "RedstoneClassicOracle".
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to
-        // resolve
-        // the asset (vault) in the oracle router.
+        // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[WETH] = "";
+        cluster.oracleProviders[WETH ] = "";
         cluster.oracleProviders[ezETH] = "0x2E5c0B799eFbe406b98b7D5aDA26d6CD31734D6d";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
@@ -49,10 +48,8 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
             //               0         1
             //               WETH      ezETH
-            /* 0  WETH   */
-            [LTV_ZERO, LTV_ZERO],
-            /* 1  ezETH  */
-            [LTV_HIGH, LTV_ZERO]
+            /* 0  WETH   */ [LTV_ZERO, LTV_ZERO],
+            /* 1  ezETH  */ [LTV_HIGH, LTV_ZERO]
         ];
     }
 }
