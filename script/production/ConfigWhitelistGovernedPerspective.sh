@@ -15,7 +15,15 @@ eval 'set -- $SCRIPT_ARGS'
 
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
-governed_perspective=$(jq -r '.governedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
+
+if [[ "$@" == *"--earn"* ]]; then
+    governed_perspective=$(jq -r '.eulerEarnGovernedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
+else
+    governed_perspective=$(jq -r '.governedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
+fi
+
+set -- "${@/--evk/}"
+set -- "${@/--earn/}"
 
 if ! script/utils/checkEnvironment.sh; then
     echo "Environment check failed. Exiting."

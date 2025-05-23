@@ -174,10 +174,17 @@ abstract contract ManageClusterBase is BatchBuilder {
         {
             KinkIRMDeployer deployer = new KinkIRMDeployer();
             for (uint256 i = 0; i < cluster.assets.length; ++i) {
-                uint256[4] storage p = cluster.kinkIRMParams[cluster.assets[i]];
-                address irm = p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0
-                    ? cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]]
-                    : cluster.irmsArr[i];
+                address asset = cluster.assets[i];
+                uint256[4] storage p = cluster.kinkIRMParams[asset];
+                address irm;
+
+                if (p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0) {
+                    irm = cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]];
+                } else if (cluster.irms[asset] == address(0)) {
+                    irm = cluster.irmsArr[i];
+                } else {
+                    irm = cluster.irms[asset];
+                }
 
                 // only deploy those IRMs that haven't been deployed or cached yet
                 if (irm == address(0) && (p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0)) {
@@ -455,7 +462,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         view
         returns (address, address, bool)
     {
-        if (base == quote) return (base, address(0), false);
+        if (base == quote || _strEq(provider, "")) return (base, address(0), false);
 
         address adapter = getValidAdapter(base, quote, provider);
         bool useStub = false;
@@ -780,13 +787,14 @@ abstract contract ManageClusterBase is BatchBuilder {
     function simulatePendingTransactions() internal {
         if (isSkipPendingSimulation()) return;
 
-        if (isBatchViaSafe()) {
-            SafeTransaction safeUtil = new SafeTransaction();
-            if (!safeUtil.isTransactionServiceAPIAvailable()) return;
+        SafeTransaction safeUtil = new SafeTransaction();
+        if (!safeUtil.isTransactionServiceAPIAvailable()) return;
 
+        address safe = getSimulateSafe();
+        if (safe != address(0)) {
             vm.recordLogs();
             console.log("Simulating pending safe transactions");
-            SafeTransaction.TransactionSimple[] memory transactions = safeUtil.getPendingTransactions(getSimulateSafe());
+            SafeTransaction.TransactionSimple[] memory transactions = safeUtil.getPendingTransactions(safe);
 
             for (uint256 i = 0; i < transactions.length; ++i) {
                 try safeUtil.simulate(
@@ -795,7 +803,9 @@ abstract contract ManageClusterBase is BatchBuilder {
                     transactions[i].to,
                     transactions[i].value,
                     transactions[i].data
-                ) {} catch {}
+                ) {} catch {
+                    console.log("Error simulating pending safe transaction");
+                }
             }
         }
 
@@ -836,7 +846,10 @@ abstract contract ManageClusterBase is BatchBuilder {
                     );
 
                     vm.deal(address(this), value);
-                    try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {} catch {}
+                    try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {}
+                    catch {
+                        console.log("Error executing already scheduled timelock transaction");
+                    }
                 }
 
                 fromBlock += 1e4;
@@ -859,7 +872,10 @@ abstract contract ManageClusterBase is BatchBuilder {
                 );
 
                 vm.deal(address(this), value);
-                try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {} catch {}
+                try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {}
+                catch {
+                    console.log("Error executing not yet scheduled timelock transaction");
+                }
             }
         }
     }

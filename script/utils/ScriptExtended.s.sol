@@ -11,6 +11,7 @@ abstract contract ScriptExtended is Script {
     mapping(uint256 => uint256) private forks;
     address private deployerAddress;
     address private safeSignerAddress;
+    bool private noStubOracle;
 
     constructor() {
         vm.pauseGasMetering();
@@ -194,7 +195,7 @@ abstract contract ScriptExtended is Script {
 
     function getSimulateSafe() internal view returns (address) {
         address safe = _getSafe("", "simulate_safe_address", false);
-        return safe == address(0) ? getSafe() : safe;
+        return safe == address(0) ? getSafe(false) : safe;
     }
 
     function getSimulateTimelock() internal view returns (address) {
@@ -229,8 +230,12 @@ abstract contract ScriptExtended is Script {
         return _toAddress(vaultAddress);
     }
 
+    function setNoStubOracle(bool value) internal {
+        noStubOracle = value;
+    }
+
     function isNoStubOracle() internal view returns (bool) {
-        return (block.chainid != 1 && block.chainid != 8453)
+        return noStubOracle || (block.chainid != 1 && block.chainid != 8453)
             || _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
     }
 

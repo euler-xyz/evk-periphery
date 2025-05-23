@@ -134,3 +134,7 @@ This factory builds upon the selector-based access control system described in t
 The `GovernorAccessControlEmergencyFactory` provides a streamlined way to deploy a complete governance system with timelocks and emergency response capabilities. This approach balances the need for careful governance with the ability to respond rapidly to emergencies, making it well-suited for managing risk parameters of the EVK vaults.
 
 By enforcing time delays through timelocks, the system prioritizes user protection, giving vault users the transparency and time needed to assess and respond to governance changes. At the same time, the dual timelock architecture provides both operational flexibility and security guarantees, while the standardized factory deployment makes it easier to implement consistent monitoring across all governance instances, enhancing the security of the entire ecosystem.
+
+## Governor Contracts Suite
+
+![Governor Contracts Suite](./governor_contracts_suite.png)
