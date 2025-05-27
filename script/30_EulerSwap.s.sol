@@ -42,6 +42,18 @@ interface IEulerSwapFactory {
     function deployPool(Params memory params, InitialState memory initialState, bytes32 salt)
         external
         returns (address);
+
+    /// @notice Uninstalls the pool associated with the Euler account
+    /// @dev This function removes the pool from the factory's tracking and emits a PoolUninstalled event
+    /// @dev The function can only be called by the Euler account that owns the pool
+    /// @dev If no pool is installed for the caller, the function returns without any action
+    function uninstallPool() external;
+
+    /// @notice Returns the pool address associated with a specific holder
+    /// @dev Returns the pool address from the EulerAccountState mapping for the given holder
+    /// @param who The address of the holder to query
+    /// @return The address of the pool associated with the holder
+    function poolByEulerAccount(address who) external view returns (address);
 }
 
 contract EulerSwapOperatorDeployer is BatchBuilder {
@@ -94,14 +106,24 @@ contract EulerSwapOperatorDeployer is BatchBuilder {
         IEulerSwapFactory.InitialState memory initialState,
         bytes32 salt
     ) public {
+        address onBehalfOfAccount = getAppropriateOnBehalfOfAccount();
+        address currentPool = IEulerSwapFactory(eulerSwapFactory).poolByEulerAccount(onBehalfOfAccount);
+
+        if (currentPool != address(0)) {
+            addBatchItem(
+                coreAddresses.evc,
+                address(0),
+                abi.encodeCall(IEVC.setAccountOperator, (onBehalfOfAccount, currentPool, false))
+            );
+            addBatchItem(eulerSwapFactory, onBehalfOfAccount, abi.encodeCall(IEulerSwapFactory.uninstallPool, ()));
+        }
+
         addBatchItem(
-            coreAddresses.evc,
-            address(0),
-            abi.encodeCall(IEVC.setAccountOperator, (getAppropriateOnBehalfOfAccount(), pool, true))
+            coreAddresses.evc, address(0), abi.encodeCall(IEVC.setAccountOperator, (onBehalfOfAccount, pool, true))
         );
         addBatchItem(
             eulerSwapFactory,
-            getAppropriateOnBehalfOfAccount(),
+            onBehalfOfAccount,
             abi.encodeCall(IEulerSwapFactory.deployPool, (params, initialState, salt))
         );
         executeBatch();
