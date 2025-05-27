@@ -25,6 +25,7 @@ number_underscore = "preserve"
 override_spacing = true
 wrap_comments = true
 ignore = [
+    "script/production/*/*",
     "script/production/*/*/*"
 ]
 
