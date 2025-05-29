@@ -50,10 +50,6 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
         set -- "${@/--safe-owner-simulate/}"
         safe_owner_simulate="--safe-owner-simulate"
     fi
-
-    if [[ "$@" != *"--ffi"* ]]; then
-        set -- "$@" --ffi
-    fi
 fi
 
 if [[ "$@" == *"--skip-pending-simulation"* ]]; then
@@ -126,6 +122,12 @@ fi
 if [[ "$@" == *"--no-stub-oracle"* ]]; then
     set -- "${@/--no-stub-oracle/}"
     no_stub_oracle="--no-stub-oracle"
+fi
+
+if [[ -n "$safe_address" ]] || [[ -n "$simulate_safe_address" ]]; then
+    if [[ "$@" != *"--ffi"* ]]; then
+        set -- "$@" --ffi
+    fi
 fi
 
 if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe \

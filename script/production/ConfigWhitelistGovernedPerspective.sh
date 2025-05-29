@@ -15,7 +15,15 @@ eval 'set -- $SCRIPT_ARGS'
 
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
-governed_perspective=$(jq -r '.governedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
+
+if [[ "$@" == *"--earn"* ]]; then
+    governed_perspective=$(jq -r '.eulerEarnGovernedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
+else
+    governed_perspective=$(jq -r '.governedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
+fi
+
+set -- "${@/--evk/}"
+set -- "${@/--earn/}"
 
 if ! script/utils/checkEnvironment.sh; then
     echo "Environment check failed. Exiting."
@@ -102,14 +110,14 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
     if [[ "$whitelist" == "Yes" ]]; then
         if [[ $isVerified == *false* ]]; then
-            echo "Adding 'perspectiveVerify' batch item for vault $vault."
+            echo "Adding 'perspectiveVerify' batch item for vault $vault"
             items+="($governed_perspective,$onBehalfOf,0,$(cast calldata "perspectiveVerify(address,bool)" $vault true)),"
         elif [[ "$verbose" == "--verbose" ]]; then
             echo "Vault $vault is already verified. Skipping..."
         fi
     elif [[ "$whitelist" == "No" ]]; then
         if [[ $isVerified == *true* ]]; then
-            echo "Adding 'perspectiveUnverify' batch item for vault $vault."
+            echo "Adding 'perspectiveUnverify' batch item for vault $vault"
             items+="($governed_perspective,$onBehalfOf,0,$(cast calldata "perspectiveUnverify(address)" $vault)),"
         elif [[ "$verbose" == "--verbose" ]]; then
             echo "Vault $vault is not verified. Skipping..."

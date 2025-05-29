@@ -57,7 +57,7 @@ contract ExecuteTimelockTx is ScriptExtended {
                     bytes32 predecessor;
 
                     for (uint256 j = i; j < i + counter; ++j) {
-                        (targets[j], values[j], datas[j], predecessor,) =
+                        (targets[j - i], values[j - i], datas[j - i], predecessor,) =
                             abi.decode(ethLogs[j].data, (address, uint256, bytes, bytes32, uint256));
                     }
 
@@ -65,6 +65,8 @@ contract ExecuteTimelockTx is ScriptExtended {
                     TimelockController(timelock).executeBatch(targets, values, datas, predecessor, getTimelockSalt());
                     vm.stopBroadcast();
                 }
+
+                return;
             }
 
             toBlock -= 1e4;
