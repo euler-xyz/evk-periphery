@@ -471,20 +471,24 @@ abstract contract ManageClusterBase is BatchBuilder {
             base = IEVault(base).asset();
         }
 
-        string memory name = EulerRouter(adapter).name();
-        if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle")) {
-            useStub = true;
-        } else if (_strEq(name, "CrossAdapter")) {
-            address baseCross = CrossAdapter(adapter).oracleBaseCross();
-            address crossBase = CrossAdapter(adapter).oracleCrossQuote();
-
-            name = EulerRouter(baseCross).name();
-            if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle") || _strEq(name, "CrossAdapter")) {
+        if (adapter != address(0)) {
+            string memory name = EulerRouter(adapter).name();
+            if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle")) {
                 useStub = true;
-            } else {
-                name = EulerRouter(crossBase).name();
+            } else if (_strEq(name, "CrossAdapter")) {
+                address baseCross = CrossAdapter(adapter).oracleBaseCross();
+                address crossBase = CrossAdapter(adapter).oracleCrossQuote();
+
+                name = EulerRouter(baseCross).name();
                 if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle") || _strEq(name, "CrossAdapter")) {
                     useStub = true;
+                } else {
+                    name = EulerRouter(crossBase).name();
+                    if (
+                        _strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle") || _strEq(name, "CrossAdapter")
+                    ) {
+                        useStub = true;
+                    }
                 }
             }
         }

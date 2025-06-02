@@ -498,7 +498,7 @@ abstract contract ScriptUtils is
             counter = 0;
         }
 
-        if (adapter == address(0) || counter > 1) {
+        if ((adapter == address(0) && bytes(provider).length != bytes("ExternalVault|").length) || counter > 1) {
             console.log("base: %s, quote: %s, provider: %s", base, quote, provider);
             if (adapter == address(0)) revert("getValidAdapters: Adapter not found");
             if (counter > 1) revert("getValidAdapters: Multiple adapters found");
