@@ -71,22 +71,22 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[UNI   ] = "0x7e262cd6226328aaf4ea5c993a952e18dd633bc8";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[USDC  ] = 30_000_000;
-        cluster.supplyCaps[USDT0 ] = 30_000_000;
+        cluster.supplyCaps[USDC  ] = 45_000_000;
+        cluster.supplyCaps[USDT0 ] = 45_000_000;
         cluster.supplyCaps[WETH  ] = 9_000;
         cluster.supplyCaps[wstETH] = 3_000;
-        cluster.supplyCaps[weETH ] = 4_500;
+        cluster.supplyCaps[weETH ] = 6_750;
         cluster.supplyCaps[rsETH ] = 2_000;
         cluster.supplyCaps[ezETH ] = 2_000;
         cluster.supplyCaps[WBTC  ] = 0;
         cluster.supplyCaps[UNI   ] = 500_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[USDC  ] = 27_000_000;
-        cluster.borrowCaps[USDT0 ] = 27_000_000;
+        cluster.borrowCaps[USDC  ] = 40_500_000;
+        cluster.borrowCaps[USDT0 ] = 40_500_000;
         cluster.borrowCaps[WETH  ] = 8_100;
         cluster.borrowCaps[wstETH] = 750;
-        cluster.borrowCaps[weETH ] = 1_120;
+        cluster.borrowCaps[weETH ] = 1_680;
         cluster.borrowCaps[rsETH ] = 500;
         cluster.borrowCaps[ezETH ] = 500;
         cluster.borrowCaps[WBTC  ] = 0;
@@ -95,7 +95,7 @@ contract Cluster is ManageCluster {
         // define IRM classes here and assign them to the assets
         {
             // Base=0.00% APY,  Kink(90.00%)=6.00% APY  Max=80.00% APY
-            uint256[4] memory irmUSD  = [uint256(0), uint256(477682641),  uint256(39068399204), uint256(3865470566)];
+            uint256[4] memory irmUSD  = [uint256(0), uint256(477682641),  uint256(20526145828), uint256(3865470566)];
 
             // Base=0% APY  Kink(90%)=2.40% APY  Max=80.00% APY
             uint256[4] memory irmWETH = [uint256(0), uint256(194425692),  uint256(41617711740), uint256(3865470566)];
