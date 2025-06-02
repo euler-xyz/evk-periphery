@@ -14,6 +14,7 @@ abstract contract Addresses {
     address internal constant rsETH = 0xc3eACf0612346366Db554C991D7858716db09f58;
     address internal constant USDC = 0x078D782b760474a361dDA0AF3839290b0EF57AD6;
     address internal constant USDT0 = 0x9151434b16b9763660705744891fA906F660EcC5;
+    address internal constant sUSDC = 0x14d9143BEcC348920b68D123687045db49a016C6;
     address internal constant WBTC = 0x927B51f251480a681271180DA4de28D44EC4AfB8;
     address internal constant UNI = 0x8f187aA05619a017077f5308904739877ce9eA21;
 }
