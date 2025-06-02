@@ -16,6 +16,7 @@ abstract contract Addresses {
     address internal constant USDT0 = 0x9151434b16b9763660705744891fA906F660EcC5;
     address internal constant sUSDC = 0x14d9143BEcC348920b68D123687045db49a016C6;
     address internal constant WBTC = 0x927B51f251480a681271180DA4de28D44EC4AfB8;
+    address internal constant WBTC_OFT = 0x0555E30da8f98308EdB960aa94C0Db47230d2B9c;
     address internal constant UNI = 0x8f187aA05619a017077f5308904739877ce9eA21;
 }
 
