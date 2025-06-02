@@ -796,11 +796,11 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 adminTimelockControllerParams, wildcardTimelockControllerParams, governorAccessControlEmergencyGuardians
             );
 
-            governorAddresses.capRiskSteward = CapRiskStewardFactory(peripheryAddresses.capRiskStewardFactory).deploy(
-                governorAddresses.accessControlEmergencyGovernor,
-                peripheryAddresses.kinkIRMFactory,
-                multisigAddresses.DAO
-            );
+            //governorAddresses.capRiskSteward = CapRiskStewardFactory(peripheryAddresses.capRiskStewardFactory).deploy(
+            //    governorAddresses.accessControlEmergencyGovernor,
+            //    peripheryAddresses.kinkIRMFactory,
+            //    multisigAddresses.DAO
+            //);
 
             stopBroadcast();
         } else {
