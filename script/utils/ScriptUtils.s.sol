@@ -295,6 +295,26 @@ abstract contract MultisigAddressesLib is ScriptExtended {
     }
 }
 
+abstract contract EulerSwapAddressesLib is ScriptExtended {
+    struct EulerSwapAddresses {
+        address eulerSwapV1Implementation;
+        address eulerSwapV1Factory;
+    }
+
+    function serializeEulerSwapAddresses(EulerSwapAddresses memory Addresses) internal returns (string memory result) {
+        result =
+            vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Implementation", Addresses.eulerSwapV1Implementation);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Factory", Addresses.eulerSwapV1Factory);
+    }
+
+    function deserializeEulerSwapAddresses(string memory json) internal pure returns (EulerSwapAddresses memory) {
+        return EulerSwapAddresses({
+            eulerSwapV1Implementation: getAddressFromJson(json, ".eulerSwapV1Implementation"),
+            eulerSwapV1Factory: getAddressFromJson(json, ".eulerSwapV1Factory")
+        });
+    }
+}
+
 abstract contract BridgeAddressesLib is ScriptExtended {
     struct BridgeAddresses {
         address oftAdapter;
@@ -373,6 +393,7 @@ abstract contract ScriptUtils is
     BridgeAddressesLib,
     TokenAddressesLib,
     GovernorAddressesLib,
+    EulerSwapAddressesLib,
     BridgeConfigCache
 {
     MultisigAddresses internal multisigAddresses;
@@ -382,6 +403,7 @@ abstract contract ScriptUtils is
     BridgeAddresses internal bridgeAddresses;
     TokenAddresses internal tokenAddresses;
     GovernorAddresses internal governorAddresses;
+    EulerSwapAddresses internal eulerSwapAddresses;
     uint256 internal safeNonce = getSafeNonce();
 
     constructor() {
@@ -392,6 +414,7 @@ abstract contract ScriptUtils is
         bridgeAddresses = deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json"));
         tokenAddresses = deserializeTokenAddresses(getAddressesJson("TokenAddresses.json"));
         governorAddresses = deserializeGovernorAddresses(getAddressesJson("GovernorAddresses.json"));
+        eulerSwapAddresses = deserializeEulerSwapAddresses(getAddressesJson("EulerSwapAddresses.json"));
         deserializeBridgeConfigCache(getBridgeConfigCacheJson("BridgeConfigCache.json"));
     }
 

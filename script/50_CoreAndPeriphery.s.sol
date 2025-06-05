@@ -36,6 +36,8 @@ import {OFTAdapterUpgradeableDeployer, MintBurnOFTAdapterDeployer} from "./14_OF
 import {EdgeFactoryDeployer} from "./15_EdgeFactory.s.sol";
 import {EulerEarnImplementation, IntegrationsParams} from "./20_EulerEarnImplementation.s.sol";
 import {EulerEarnFactory} from "./21_EulerEarnFactory.s.sol";
+import {EulerSwapImplementation} from "./22_EulerSwapImplementation.s.sol";
+import {EulerSwapFactory} from "./23_EulerSwapFactory.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {
     IGovernorAccessControlEmergencyFactory,
@@ -82,6 +84,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         address uniswapV3Router;
         uint256 feeFlowInitPrice;
         bool deployOFT;
+        bool deployEulerSwapV1;
+        address uniswapPoolManager;
+        address eulerSwapFeeOwner;
+        address eulerSwapFeeRecipientSetter;
     }
 
     struct AdaptiveCurveIRMParams {
@@ -172,7 +178,11 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             uniswapV2Router: vm.parseJsonAddress(json, ".uniswapV2Router"),
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
             feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice"),
-            deployOFT: vm.parseJsonBool(json, ".deployOFT")
+            deployOFT: vm.parseJsonBool(json, ".deployOFT"),
+            deployEulerSwapV1: vm.parseJsonBool(json, ".deployEulerSwapV1"),
+            uniswapPoolManager: vm.parseJsonAddress(json, ".uniswapPoolManager"),
+            eulerSwapFeeOwner: vm.parseJsonAddress(json, ".eulerSwapFeeOwner"),
+            eulerSwapFeeRecipientSetter: vm.parseJsonAddress(json, ".eulerSwapFeeRecipientSetter")
         });
 
         if (
@@ -253,6 +263,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             coreAddresses.eulerEarnFactory = deployer.deploy(coreAddresses.eulerEarnImplementation);
         } else {
             console.log("- EulerEarn factory already deployed. Skipping...");
+            vm.removeDir("out-euler-earn", true);
         }
 
         if (governorAddresses.eVaultFactoryGovernor == address(0)) {
@@ -993,6 +1004,34 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- Adaptive Curve IRM factory or IRM registry not deployed. Skipping...");
         }
 
+        if (
+            eulerSwapAddresses.eulerSwapV1Implementation == address(0)
+                && eulerSwapAddresses.eulerSwapV1Factory == address(0)
+        ) {
+            if (input.deployEulerSwapV1) {
+                {
+                    console.log("+ Deploying EulerSwap V1 implementation...");
+                    EulerSwapImplementation deployer = new EulerSwapImplementation();
+                    eulerSwapAddresses.eulerSwapV1Implementation =
+                        deployer.deploy(coreAddresses.evc, input.uniswapPoolManager);
+                }
+                {
+                    console.log("+ Deploying EulerSwap V1 factory...");
+                    EulerSwapFactory deployer = new EulerSwapFactory();
+                    eulerSwapAddresses.eulerSwapV1Factory = deployer.deploy(
+                        coreAddresses.evc,
+                        coreAddresses.eVaultFactory,
+                        eulerSwapAddresses.eulerSwapV1Implementation,
+                        input.eulerSwapFeeOwner,
+                        input.eulerSwapFeeRecipientSetter
+                    );
+                }
+            } else {
+                console.log("- EulerSwap v1 not deployed. Skipping...");
+                vm.removeDir("out-euler-swap", true);
+            }
+        }
+
         executeBatch();
 
         if (multisendItemExists()) {
@@ -1015,6 +1054,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         vm.writeJson(serializeGovernorAddresses(governorAddresses), getScriptFilePath("GovernorAddresses_output.json"));
         vm.writeJson(serializeTokenAddresses(tokenAddresses), getScriptFilePath("TokenAddresses_output.json"));
         vm.writeJson(serializeLensAddresses(lensAddresses), getScriptFilePath("LensAddresses_output.json"));
+        vm.writeJson(
+            serializeEulerSwapAddresses(eulerSwapAddresses), getScriptFilePath("EulerSwapAddresses_output.json")
+        );
         vm.writeJson(serializeBridgeAddresses(bridgeAddresses), getScriptFilePath("BridgeAddresses_output.json"));
         vm.writeJson(serializeBridgeConfigCache(), getScriptFilePath("BridgeConfigCache_output.json"));
 
@@ -1041,6 +1083,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             );
             vm.writeJson(
                 serializeLensAddresses(lensAddresses), getAddressesFilePath("LensAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeEulerSwapAddresses(eulerSwapAddresses),
+                getAddressesFilePath("EulerSwapAddresses.json", block.chainid)
             );
             vm.writeJson(
                 serializeBridgeAddresses(bridgeAddresses), getAddressesFilePath("BridgeAddresses.json", block.chainid)
