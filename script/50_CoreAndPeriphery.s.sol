@@ -263,7 +263,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             coreAddresses.eulerEarnFactory = deployer.deploy(coreAddresses.eulerEarnImplementation);
         } else {
             console.log("- EulerEarn factory already deployed. Skipping...");
-            vm.removeDir("out-euler-earn", true);
+            if (vm.isDir("out-euler-earn")) vm.removeDir("out-euler-earn", true);
         }
 
         if (governorAddresses.eVaultFactoryGovernor == address(0)) {
@@ -1028,7 +1028,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 }
             } else {
                 console.log("- EulerSwap v1 not deployed. Skipping...");
-                vm.removeDir("out-euler-swap", true);
+                if (vm.isDir("out-euler-swap")) vm.removeDir("out-euler-swap", true);
             }
         }
 

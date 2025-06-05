@@ -1297,7 +1297,7 @@ while true; do
                 
                 if [ "$deploy_euler_swap_v1" = "y" ]; then
                     read -p "Enter the Uniswap V4 Pool Manager address (default: address(0) or look up https://docs.uniswap.org/contracts/v4/deployments): " uniswap_pool_manager
-                    read -p "Enter the EulerSwap fee owner (default: address(0)): " euler_swap_fee_owner
+                    read -p "Enter the EulerSwap fee owner (default: DAO multisig): " euler_swap_fee_owner
                     read -p "Enter the EulerSwap fee recipient setter (default: address(0)): " euler_swap_fee_recipient_setter
                 fi
             fi
@@ -1314,7 +1314,7 @@ while true; do
             deploy_oft=${deploy_oft:-n}
             deploy_euler_swap_v1=${deploy_euler_swap_v1:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
-            euler_swap_fee_owner=${euler_swap_fee_owner:-$addressZero}
+            euler_swap_fee_owner=${euler_swap_fee_owner:-$multisig_dao}
             euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$addressZero}
 
             if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
