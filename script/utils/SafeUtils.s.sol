@@ -174,7 +174,7 @@ contract SafeUtil is ScriptExtended {
 
         TransactionSimple[] memory transactions = new TransactionSimple[](counter);
         counter = 0;
-        for (uint256 i = 0; i < transactions.length; ++i) {
+        for (uint256 i = 0; i < length; ++i) {
             if (
                 !vm.keyExists(string(response), _indexedKey(".results", i, ".type"))
                     || !_strEq(vm.parseJsonString(string(response), _indexedKey(".results", i, ".type")), "TRANSACTION")
@@ -409,6 +409,11 @@ contract SafeTransaction is SafeUtil {
             vm.prank(transaction.safe);
             (bool success, bytes memory result) = transaction.to.call{value: transaction.value}(transaction.data);
             require(success, string(result));
+        } else {
+            MultisendMock multisendMock = new MultisendMock(transaction.safe);
+            (bool success, bytes memory result) =
+                address(multisendMock).call{value: transaction.value}(transaction.data);
+            require(success, string(result));
         }
     }
 
@@ -616,5 +621,54 @@ contract SafeMultisendBuilder is SafeUtil {
         }
 
         return vm.serializeString("content", "transactions", transactions);
+    }
+}
+
+contract MultisendMock is ScriptExtended {
+    address internal immutable msgSender;
+
+    constructor(address _msgSender) {
+        msgSender = _msgSender;
+    }
+
+    function multiSend(bytes memory transactions) public payable {
+        uint256 length;
+        uint256 i;
+
+        assembly {
+            length := mload(transactions)
+            i := 0x20
+        }
+
+        while (i < length) {
+            uint256 operation;
+            uint256 to;
+            uint256 value;
+            uint256 dataLength;
+            uint256 data;
+
+            assembly {
+                operation := shr(0xf8, mload(add(transactions, i)))
+                to := shr(0x60, mload(add(transactions, add(i, 0x01))))
+                value := mload(add(transactions, add(i, 0x15)))
+                dataLength := mload(add(transactions, add(i, 0x35)))
+                data := add(transactions, add(i, 0x55))
+            }
+
+            if (operation == 0) {
+                vm.prank(msgSender);
+            } else {
+                vm.prank(msgSender, true);
+            }
+
+            assembly {
+                let success := 0
+                switch operation
+                case 0 { success := call(gas(), to, value, data, dataLength, 0, 0) }
+                case 1 { success := delegatecall(gas(), to, data, dataLength, 0, 0) }
+                if eq(success, 0) { revert(0, 0) }
+                i := add(i, add(0x55, dataLength))
+            }
+        }
     }
 }

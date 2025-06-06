@@ -78,6 +78,7 @@ function verify_broadcast {
 
     local createVerified=false
     local eulerEarnIndex=0
+    local eulerSwapIndex=0
     for tx in $transactions; do
         local transactionType=$(echo $tx | jq -r '.transactionType')
         local contractAddress=$(echo $tx | jq -r '.contractAddress')
@@ -193,7 +194,7 @@ function verify_broadcast {
         elif [[ $transactionType == "CREATE" && $verificationSuccessful != true ]]; then
             local initCode=$(echo $tx | jq -r '.transaction.input')
 
-            if [ -d "out-euler-earn" ]; then
+            if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 7 ]; then
                 # try to verify as EulerEarn contracts
                 local src="lib/euler-earn/src"
                 local verificationOptions="--num-of-optimizations 800 --compiler-version 0.8.27 --root lib/euler-earn"
@@ -261,6 +262,47 @@ function verify_broadcast {
                     fi
 
                     ((eulerEarnIndex++))
+                done
+            fi
+
+            if [ -d "out-euler-swap" ] && ([ ! -d "out-euler-earn" ] || [ $eulerEarnIndex -gt 7 ]); then
+                # try to verify as EulerSwap contracts
+                local src="lib/euler-swap/src"
+                local verificationOptions="--num-of-optimizations 1000000 --compiler-version 0.8.27 --root lib/euler-swap"
+                local compilerOptions="--optimize --optimizer-runs 1000000 --use 0.8.27"
+
+                while true; do
+                    case $eulerSwapIndex in
+                        0)
+                            # try to verify as EulerSwap
+                            contractName=EulerSwap
+                            constructorBytesSize=64
+                            ;;
+                        1)
+                            # try to verify as EulerSwapFactory
+                            contractName=EulerSwapFactory
+                            constructorBytesSize=160
+                            ;;
+                        *)
+                            break
+                            ;;
+                    esac
+
+                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+
+                    if [ "$createVerified" = false ]; then
+                        forge clean && forge compile $src $compilerOptions
+                    fi
+
+                    verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
+
+                    if [ $? -eq 0 ]; then
+                        createVerified=true
+                        ((eulerSwapIndex++))
+                        break
+                    fi
+
+                    ((eulerSwapIndex++))
                 done
             fi
         fi

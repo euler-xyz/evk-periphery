@@ -622,4 +622,86 @@ contract HookTargetAccessControlKeyringTest is EVaultTestBase {
         vm.expectRevert(NotAuthorized.selector);
         evc.batch(batchItems);
     }
+
+    ///////////////////////////////
+    /// 11. Privileged Account Role tests
+    ///////////////////////////////
+
+    function test_privilegedAccount_CanOperateOnOtherAccounts() public {
+        // Setup: user1 is privileged but has no credentials
+        startHoax(admin);
+        hookTarget.grantRole(hookTarget.PRIVILEGED_ACCOUNT_ROLE(), user1);
+        keyring.setAllowed(user1, false);
+        keyring.setAllowed(user2, true);
+
+        // user1 can deposit to user2's account
+        startHoax(user1);
+        eTST.deposit(1e18, user2);
+        assertEq(eTST.balanceOf(user2), 1e18);
+
+        // user1 can withdraw from user2's account after approval
+        startHoax(user2);
+        eTST.approve(user1, type(uint256).max);
+        startHoax(user1);
+        eTST.withdraw(0.5e18, user1, user2);
+        assertEq(eTST.balanceOf(user2), 0.5e18);
+    }
+
+    function test_privilegedAccount_CannotOperateOnOwnAccount() public {
+        // Setup: user1 is privileged but has no credentials
+        startHoax(admin);
+        hookTarget.grantRole(hookTarget.PRIVILEGED_ACCOUNT_ROLE(), user1);
+        keyring.setAllowed(user1, false);
+
+        // user1 cannot deposit to their own account
+        startHoax(user1);
+        vm.expectRevert(NotAuthorized.selector);
+        eTST.deposit(1e18, user1);
+
+        // user1 cannot withdraw from their own account
+        vm.expectRevert(NotAuthorized.selector);
+        eTST.withdraw(1e18, user1, user1);
+    }
+
+    function test_privilegedAccount_WithPrivilegedReceiver() public {
+        // Setup: both user1 and user2 are privileged but have no credentials
+        startHoax(admin);
+        hookTarget.grantRole(hookTarget.PRIVILEGED_ACCOUNT_ROLE(), user1);
+        hookTarget.grantRole(hookTarget.PRIVILEGED_ACCOUNT_ROLE(), user2);
+        keyring.setAllowed(user1, false);
+        keyring.setAllowed(user2, false);
+
+        // user1 can deposit to user2's account
+        startHoax(user1);
+        eTST.deposit(1e18, user2);
+        assertEq(eTST.balanceOf(user2), 1e18);
+
+        // Transfer shares from user2 to user1
+        startHoax(user2);
+        eTST.transfer(user1, 0.5e18);
+        assertEq(eTST.balanceOf(user1), 0.5e18);
+
+        // user2 can withdraw from user1's account after approval
+        startHoax(user1);
+        eTST.approve(user2, type(uint256).max);
+        startHoax(user2);
+        eTST.withdraw(0.5e18, user2, user1);
+        assertEq(eTST.balanceOf(user1), 0);
+    }
+
+    function test_privilegedAccount_WithCredentials() public {
+        // Setup: user1 is privileged and has credentials
+        startHoax(admin);
+        hookTarget.grantRole(hookTarget.PRIVILEGED_ACCOUNT_ROLE(), user1);
+        keyring.setAllowed(user1, true);
+
+        // user1 can deposit to their own account (because they have credentials)
+        startHoax(user1);
+        eTST.deposit(1e18, user1);
+        assertEq(eTST.balanceOf(user1), 1e18);
+
+        // user1 can withdraw from their own account (because they have credentials)
+        eTST.withdraw(0.5e18, user1, user1);
+        assertEq(eTST.balanceOf(user1), 0.5e18);
+    }
 }

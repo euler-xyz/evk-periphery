@@ -50,6 +50,9 @@ abstract contract Addresses {
     address internal constant USDtb = 0xC139190F447e929f090Edeb554D95AbB8b18aC1C;
     address internal constant sBUIDL = 0x07a36C630e3F072637da3445Da733B29958D8cAB;
     address internal constant USYC = 0x136471a34f6ef19fE571EFFC1CA711fdb8E49f2b;
+    address internal constant rUSD = 0x09D4214C03D01F49544C0448DBE3A27f768F2b34;
+    address internal constant srUSD = 0x738d1115B90efa71AE468F1287fc864775e23a31;
+    address internal constant syrupUSDC = 0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
     address internal constant mBASIS = 0x2a8c22E3b10036f3AEF5875d04f8441d4188b656;
     address internal constant mEDGE = 0xbB51E2a15A9158EBE2b0Ceb8678511e063AB7a55;
     address internal constant mMEV = 0x030b69280892c888670EDCDCD8B69Fd8026A0BF3;
@@ -60,21 +63,19 @@ abstract contract Addresses {
     address internal constant eBTC = 0x657e8C867D8B37dCC18fA4Caead9C45EB088C642;
     address internal constant solvBTC = 0x7A56E1C57C7475CCf742a1832B028F0456652F97;
     address internal constant pumpBTC = 0xF469fBD2abcd6B9de8E169d128226C0Fc90a012e;
-    address internal constant PT_LBTC_27MAR2025 = 0xEc5a52C685CC3Ad79a6a347aBACe330d69e0b1eD;
     address internal constant PT_corn_LBTC_26DEC2024 = 0x332A8ee60EdFf0a11CF3994b1b846BBC27d3DcD6;
     address internal constant PT_eBTC_26DEC2024 = 0xB997B3418935A1Df0F914Ee901ec83927c1509A0;
-    address internal constant PT_corn_eBTC_27MAR2025 = 0x44A7876cA99460ef3218bf08b5f52E2dbE199566;
     address internal constant PT_corn_pumpBTC_26DEC2024 = 0xa76f0C6e5f286bFF151b891d2A0245077F1Ad74c;
-    address internal constant PT_pumpBTC_27MAR2025 = 0x997Ec6Bf18a30Ef01ed8D9c90718C7726a213527;
     address internal constant PT_solvBTC_26DEC2024 = 0x23e479ddcda990E8523494895759bD98cD2fDBF6;
     address internal constant PT_USD0PlusPlus_30JAN2025 = 0x61439b9575278054D69c9176d88FaFaf8319E4b7;
-    address internal constant PT_USD0PlusPlus_27MAR2025 = 0x5BaE9a5D67d1CA5b09B14c91935f635CFBF3b685;
     address internal constant PT_USD0PlusPlus_26JUN2025 = 0xf696FE29Ef85E892b5926313897D178288faA07e;
-    address internal constant PT_sUSDe_27MAR2025 = 0xE00bd3Df25fb187d6ABBB620b3dfd19839947b81;
     address internal constant PT_sUSDe_29MAY2025 = 0xb7de5dFCb74d25c2f21841fbd6230355C50d9308;
-    address internal constant PT_USDe_27MAR2025 = 0x8A47b431A7D947c6a3ED6E42d501803615a97EAa;
+    address internal constant PT_sUSDe_31JULY2025 = 0x3b3fB9C57858EF816833dC91565EFcd85D96f634;
     address internal constant PT_eUSDe_29MAY2025 = 0x50D2C7992b802Eef16c04FeADAB310f31866a545;
+    address internal constant PT_eUSDe_14AUG2025 = 0x14Bdc3A3AE09f5518b923b69489CBcAfB238e617;
     address internal constant PT_cUSDO_19JUN2025 = 0x933B9FfEE0Ad3Ef8E4DBb52688ea905826D73755;
+    address internal constant PT_syrupUSDC_28AUG2025 = 0xCcE7D12f683c6dAe700154f0BAdf779C0bA1F89A;
+    address internal constant PT_USDS_14AUG2025 = 0xFfEc096c087C13Cc268497B89A613cACE4DF9A48;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}

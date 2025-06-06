@@ -155,6 +155,10 @@ In case a timelock controller is installed as part of the governor contracts sui
 
 In case a risk steward contract is installed as part of the governor contracts suite, you can additionally pass `--risk-steward-address` option with the risk steward contract address to the deployment script in order to execute the transactions via the risk steward contract instead of trying to execute it directly.
 
+### Pending transactions simulation
+
+In case there are pending transactions yet to be executed in a multisig or a timelock that affect the state of the vaults, it might be required to simulate those transactions in order to update the state of the fork against which the script is being executed. In order to do that, you can additionally pass `--simulate-safe-address` and `--simulate-timelock-address` with the appropriate addresses.
+
 ## Timelock transaction execution
 
 A utility script is provided to execute scheduled timelock transactions automatically. To use it, run:
