@@ -36,7 +36,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         address permit2;
         address eVaultImplementation;
         address eVaultFactory;
-        address eulerEarnImplementation;
         address eulerEarnFactory;
     }
 
@@ -48,7 +47,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         result = vm.serializeAddress("coreAddresses", "permit2", Addresses.permit2);
         result = vm.serializeAddress("coreAddresses", "eVaultImplementation", Addresses.eVaultImplementation);
         result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
-        result = vm.serializeAddress("coreAddresses", "eulerEarnImplementation", Addresses.eulerEarnImplementation);
         result = vm.serializeAddress("coreAddresses", "eulerEarnFactory", Addresses.eulerEarnFactory);
     }
 
@@ -61,7 +59,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
             permit2: getAddressFromJson(json, ".permit2"),
             eVaultImplementation: getAddressFromJson(json, ".eVaultImplementation"),
             eVaultFactory: getAddressFromJson(json, ".eVaultFactory"),
-            eulerEarnImplementation: getAddressFromJson(json, ".eulerEarnImplementation"),
             eulerEarnFactory: getAddressFromJson(json, ".eulerEarnFactory")
         });
     }

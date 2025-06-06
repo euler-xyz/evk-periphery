@@ -34,10 +34,9 @@ import {EVaultFactoryGovernorDeployer, TimelockControllerDeployer} from "./12_Go
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {OFTAdapterUpgradeableDeployer, MintBurnOFTAdapterDeployer} from "./14_OFT.s.sol";
 import {EdgeFactoryDeployer} from "./15_EdgeFactory.s.sol";
-import {EulerEarnImplementation, IntegrationsParams} from "./20_EulerEarnImplementation.s.sol";
-import {EulerEarnFactory} from "./21_EulerEarnFactory.s.sol";
-import {EulerSwapImplementation} from "./22_EulerSwapImplementation.s.sol";
-import {EulerSwapFactory} from "./23_EulerSwapFactory.s.sol";
+import {EulerEarnFactory} from "./20_EulerEarnFactory.s.sol";
+import {EulerSwapImplementation} from "./21_EulerSwapImplementation.s.sol";
+import {EulerSwapFactory} from "./22_EulerSwapFactory.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {
     IGovernorAccessControlEmergencyFactory,
@@ -243,24 +242,11 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- EVault factory already deployed. Skipping...");
         }
 
-        if (coreAddresses.eulerEarnImplementation == address(0)) {
-            console.log("+ Deploying EulerEarn implementation...");
-            EulerEarnImplementation deployer = new EulerEarnImplementation();
-            IntegrationsParams memory integrations = IntegrationsParams({
-                evc: coreAddresses.evc,
-                balanceTracker: coreAddresses.balanceTracker,
-                permit2: coreAddresses.permit2,
-                isHarvestCoolDownCheckOn: EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON[block.chainid]
-            });
-            (, coreAddresses.eulerEarnImplementation) = deployer.deploy(integrations);
-        } else {
-            console.log("- EulerEarn implementation already deployed. Skipping...");
-        }
-
         if (coreAddresses.eulerEarnFactory == address(0)) {
             console.log("+ Deploying EulerEarn factory...");
             EulerEarnFactory deployer = new EulerEarnFactory();
-            coreAddresses.eulerEarnFactory = deployer.deploy(coreAddresses.eulerEarnImplementation);
+            coreAddresses.eulerEarnFactory =
+                deployer.deploy(coreAddresses.evc, coreAddresses.permit2, peripheryAddresses.evkFactoryPerspective);
         } else {
             console.log("- EulerEarn factory already deployed. Skipping...");
             if (vm.isDir("out-euler-earn")) vm.removeDir("out-euler-earn", true);
@@ -495,7 +481,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- OFT Adapter already deployed. Skipping...");
         }
 
-        if (containsOftHubChainId(block.chainid) && bridgeAddresses.oftAdapter != address(0)) {
+        if (false && containsOftHubChainId(block.chainid) && bridgeAddresses.oftAdapter != address(0)) {
             console.log("+ Attempting to configure OFT Adapter on chain %s", block.chainid);
 
             LayerZeroUtil lzUtil = new LayerZeroUtil();
@@ -961,7 +947,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (lensAddresses.eulerEarnVaultLens == address(0)) {
             console.log("+ Deploying EulerEarnVaultLens...");
             LensEulerEarnVaultDeployer deployer = new LensEulerEarnVaultDeployer();
-            lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.oracleLens, lensAddresses.utilsLens);
+            lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.utilsLens);
         } else {
             console.log("- EulerEarnVaultLens already deployed. Skipping...");
         }
