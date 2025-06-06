@@ -64,9 +64,9 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[mTON ] = 5_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[mUSDC] = type(uint256).max;
-        cluster.supplyCaps[mWETH] = 25_000;
-        cluster.supplyCaps[mTON ] = 4_500_000;
+        cluster.borrowCaps[mUSDC] = type(uint256).max;
+        cluster.borrowCaps[mWETH] = 25_000;
+        cluster.borrowCaps[mTON ] = 4_500_000;
 
         // define IRM classes here and assign them to the assets
         {
