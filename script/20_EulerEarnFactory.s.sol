@@ -9,9 +9,11 @@ contract EulerEarnFactory is ScriptUtils {
         string memory inputScriptFileName = "21_EulerEarnFactory_input.json";
         string memory outputScriptFileName = "21_EulerEarnFactory_output.json";
         string memory json = getScriptFile(inputScriptFileName);
-        address eulerEarnImplementation = vm.parseJsonAddress(json, ".eulerEarnImplementation");
+        address evc = vm.parseJsonAddress(json, ".evc");
+        address permit2 = vm.parseJsonAddress(json, ".permit2");
+        address perspective = vm.parseJsonAddress(json, ".perspective");
 
-        eulerEarnfactory = execute(eulerEarnImplementation);
+        eulerEarnfactory = execute(evc, permit2, perspective);
 
         string memory object;
         object = vm.serializeAddress("factory", "eulerEarnfactory", eulerEarnfactory);
@@ -19,13 +21,14 @@ contract EulerEarnFactory is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address implementation) public broadcast returns (address factory) {
-        factory = execute(implementation);
+    function deploy(address evc, address permit2, address perspective) public broadcast returns (address factory) {
+        factory = execute(evc, permit2, perspective);
     }
 
-    function execute(address implementation) public returns (address factory) {
+    function execute(address evc, address permit2, address perspective) public returns (address factory) {
         bytes memory bytecode = abi.encodePacked(
-            vm.getCode("out-euler-earn/EulerEarnFactory.sol/EulerEarnFactory.json"), abi.encode(implementation)
+            vm.getCode("out-euler-earn/EulerEarnFactory.sol/EulerEarnFactory.json"),
+            abi.encode(getDeployer(), evc, permit2, perspective)
         );
         assembly {
             factory := create(0, add(bytecode, 0x20), mload(bytecode))

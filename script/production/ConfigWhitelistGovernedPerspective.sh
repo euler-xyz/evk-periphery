@@ -110,14 +110,14 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
     if [[ "$whitelist" == "Yes" ]]; then
         if [[ $isVerified == *false* ]]; then
-            echo "Adding 'perspectiveVerify' batch item for vault $vault."
+            echo "Adding 'perspectiveVerify' batch item for vault $vault"
             items+="($governed_perspective,$onBehalfOf,0,$(cast calldata "perspectiveVerify(address,bool)" $vault true)),"
         elif [[ "$verbose" == "--verbose" ]]; then
             echo "Vault $vault is already verified. Skipping..."
         fi
     elif [[ "$whitelist" == "No" ]]; then
         if [[ $isVerified == *true* ]]; then
-            echo "Adding 'perspectiveUnverify' batch item for vault $vault."
+            echo "Adding 'perspectiveUnverify' batch item for vault $vault"
             items+="($governed_perspective,$onBehalfOf,0,$(cast calldata "perspectiveUnverify(address)" $vault)),"
         elif [[ "$verbose" == "--verbose" ]]; then
             echo "Vault $vault is not verified. Skipping..."

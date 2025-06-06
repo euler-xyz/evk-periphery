@@ -25,13 +25,8 @@ number_underscore = "preserve"
 override_spacing = true
 wrap_comments = true
 ignore = [
-    "script/production/mainnet/clusters/PrimeCluster.s.sol",
-    "script/production/mainnet/clusters/YieldCluster.s.sol",
-    "script/production/mainnet/clusters/RepoCluster.s.sol",
-    "script/production/base/clusters/BaseCluster.s.sol",
-    "script/production/swell/clusters/SwellCluster.s.sol",
-    "script/production/swell/clusters/SwellETHCluster.s.sol",
-    "script/production/unichain/clusters/UnichainCluster.s.sol"
+    "script/production/*/*",
+    "script/production/*/*/*"
 ]
 
 [profile.default.fuzz]

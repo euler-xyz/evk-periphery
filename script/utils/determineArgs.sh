@@ -3,8 +3,14 @@
 source .env
 
 rpc_url=$(echo "$@" | grep -o '\--rpc-url [^ ]*' | cut -d ' ' -f 2)
-EXPORT_ENV_VARS="export ADDRESSES_DIR_PATH=../euler-interfaces/addresses"
-SCRIPT_ARGS=$(echo "$@" | sed 's/--rpc-url [^ ]* *//')
+
+if echo "$@" | grep -q '\--test-addresses'; then
+    EXPORT_ENV_VARS="export ADDRESSES_DIR_PATH=../euler-interfaces/addresses/test"
+else
+    EXPORT_ENV_VARS="export ADDRESSES_DIR_PATH=../euler-interfaces/addresses"
+fi
+
+SCRIPT_ARGS=$(echo "$@" | sed 's/--rpc-url [^ ]* *//' | sed 's/--test-addresses *//')
 
 if [ -z "$DEPLOYMENT_RPC_URL" ] && [ -n "$rpc_url" ]; then
     DEPLOYMENT_RPC_URL=$rpc_url

@@ -22,9 +22,6 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "lib/euler-earn"]
-	path = lib/euler-earn
-	url = https://github.com/euler-xyz/euler-earn
 [submodule "lib/layerzero-devtools"]
 	path = lib/layerzero-devtools
 	url = https://github.com/LayerZero-Labs/devtools
@@ -34,3 +31,10 @@
 [submodule "lib/solidity-bytes-utils"]
 	path = lib/solidity-bytes-utils
 	url = https://github.com/GNSPS/solidity-bytes-utils
+[submodule "lib/euler-swap"]
+	path = lib/euler-swap
+	url = https://github.com/euler-xyz/euler-swap
+[submodule "lib/euler-earn"]
+	path = lib/euler-earn
+	url = https://github.com/euler-xyz/euler-earn
+	branch = development
