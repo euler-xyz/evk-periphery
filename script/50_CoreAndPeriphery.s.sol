@@ -35,8 +35,9 @@ import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {OFTAdapterUpgradeableDeployer, MintBurnOFTAdapterDeployer} from "./14_OFT.s.sol";
 import {EdgeFactoryDeployer} from "./15_EdgeFactory.s.sol";
 import {EulerEarnFactory} from "./20_EulerEarnFactory.s.sol";
-import {EulerSwapImplementation} from "./21_EulerSwapImplementation.s.sol";
-import {EulerSwapFactory} from "./22_EulerSwapFactory.s.sol";
+import {EulerSwapImplementationDeployer} from "./21_EulerSwapImplementation.s.sol";
+import {EulerSwapFactoryDeployer} from "./22_EulerSwapFactory.s.sol";
+import {EulerSwapPeripheryDeployer} from "./23_EulerSwapPeriphery.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {
     IGovernorAccessControlEmergencyFactory,
@@ -481,7 +482,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- OFT Adapter already deployed. Skipping...");
         }
 
-        if (false && containsOftHubChainId(block.chainid) && bridgeAddresses.oftAdapter != address(0)) {
+        if (containsOftHubChainId(block.chainid) && bridgeAddresses.oftAdapter != address(0)) {
             console.log("+ Attempting to configure OFT Adapter on chain %s", block.chainid);
 
             LayerZeroUtil lzUtil = new LayerZeroUtil();
@@ -993,17 +994,18 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (
             eulerSwapAddresses.eulerSwapV1Implementation == address(0)
                 && eulerSwapAddresses.eulerSwapV1Factory == address(0)
+                && eulerSwapAddresses.eulerSwapV1Periphery == address(0)
         ) {
             if (input.deployEulerSwapV1) {
                 {
                     console.log("+ Deploying EulerSwap V1 implementation...");
-                    EulerSwapImplementation deployer = new EulerSwapImplementation();
+                    EulerSwapImplementationDeployer deployer = new EulerSwapImplementationDeployer();
                     eulerSwapAddresses.eulerSwapV1Implementation =
                         deployer.deploy(coreAddresses.evc, input.uniswapPoolManager);
                 }
                 {
                     console.log("+ Deploying EulerSwap V1 factory...");
-                    EulerSwapFactory deployer = new EulerSwapFactory();
+                    EulerSwapFactoryDeployer deployer = new EulerSwapFactoryDeployer();
                     eulerSwapAddresses.eulerSwapV1Factory = deployer.deploy(
                         coreAddresses.evc,
                         coreAddresses.eVaultFactory,
@@ -1011,6 +1013,11 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                         input.eulerSwapFeeOwner,
                         input.eulerSwapFeeRecipientSetter
                     );
+                }
+                {
+                    console.log("+ Deploying EulerSwap V1 periphery...");
+                    EulerSwapPeripheryDeployer deployer = new EulerSwapPeripheryDeployer();
+                    eulerSwapAddresses.eulerSwapV1Periphery = deployer.deploy();
                 }
             } else {
                 console.log("- EulerSwap v1 not deployed. Skipping...");

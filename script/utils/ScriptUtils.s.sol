@@ -296,18 +296,21 @@ abstract contract EulerSwapAddressesLib is ScriptExtended {
     struct EulerSwapAddresses {
         address eulerSwapV1Implementation;
         address eulerSwapV1Factory;
+        address eulerSwapV1Periphery;
     }
 
     function serializeEulerSwapAddresses(EulerSwapAddresses memory Addresses) internal returns (string memory result) {
         result =
             vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Implementation", Addresses.eulerSwapV1Implementation);
         result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Factory", Addresses.eulerSwapV1Factory);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Periphery", Addresses.eulerSwapV1Periphery);
     }
 
     function deserializeEulerSwapAddresses(string memory json) internal pure returns (EulerSwapAddresses memory) {
         return EulerSwapAddresses({
             eulerSwapV1Implementation: getAddressFromJson(json, ".eulerSwapV1Implementation"),
-            eulerSwapV1Factory: getAddressFromJson(json, ".eulerSwapV1Factory")
+            eulerSwapV1Factory: getAddressFromJson(json, ".eulerSwapV1Factory"),
+            eulerSwapV1Periphery: getAddressFromJson(json, ".eulerSwapV1Periphery")
         });
     }
 }

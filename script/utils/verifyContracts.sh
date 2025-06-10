@@ -212,7 +212,11 @@ function verify_broadcast {
                             ;;
                     esac
 
-                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                    if [ $constructorBytesSize -eq 0 ]; then
+                        constructorArgs=""
+                    else
+                        constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                    fi
 
                     if [ "$createVerified" = false ]; then
                         forge clean && forge compile $src $compilerOptions
@@ -248,12 +252,21 @@ function verify_broadcast {
                             contractName=EulerSwapFactory
                             constructorBytesSize=160
                             ;;
+                        2)
+                            # try to verify as EulerSwapPeriphery
+                            contractName=EulerSwapPeriphery
+                            constructorBytesSize=0
+                            ;;
                         *)
                             break
                             ;;
                     esac
 
-                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                    if [ $constructorBytesSize -eq 0 ]; then
+                        constructorArgs=""
+                    else
+                        constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                    fi
 
                     if [ "$createVerified" = false ]; then
                         forge clean && forge compile $src $compilerOptions
