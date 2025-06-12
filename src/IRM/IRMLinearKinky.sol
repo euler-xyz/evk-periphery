@@ -24,6 +24,12 @@ contract IRMLinearKinky is IIRM {
     /// @notice Remaining kink helper constant.
     uint256 internal immutable kinkRemaining;
 
+    /// @notice Creates a new linear kinky interest rate model
+    /// @param baseRate_ Base interest rate applied when utilization is equal zero
+    /// @param slope_ Slope of the function before the kink
+    /// @param shape_ Shape parameter for the non-linear part of the curve. Typically between 0 and 100
+    /// @param kink_ Utilization at which the slope of the interest rate function changes. In type(uint32).max scale
+    /// @param cutoff_ Interest rate in second percent yield (SPY) at which the interest rate function is capped
     constructor(uint256 baseRate_, uint256 slope_, uint256 shape_, uint32 kink_, uint256 cutoff_) {
         baseRate = baseRate_;
         slope = slope_;
