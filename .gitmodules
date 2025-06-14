@@ -24,7 +24,7 @@
 	url = https://github.com/foundry-rs/forge-std
 [submodule "lib/euler-earn"]
 	path = lib/euler-earn
-	url = https://github.com/euler-xyz/euler-earn
+	url = https://github.com/euler-xyz/euler-earn-legacy
 [submodule "lib/layerzero-devtools"]
 	path = lib/layerzero-devtools
 	url = https://github.com/LayerZero-Labs/devtools
