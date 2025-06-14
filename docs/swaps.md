@@ -111,7 +111,7 @@ F2. Swap deposits from one EVault (A) to exact amount of another (B)
   - `A.withdraw` to the swapper contract. The amount must cover all of the estimated swap costs with some extra, to account for slippage
   - `swapper.multicall` with the following items:
     - `Swapper.swap` - `exact input` on the generic handler with the off-chain payload
-    - `Swapper.swap` - `exact output` on one of the supportin handlers (Uni V2/V3) with the user specified `amountOut`. The receiver can be either the swapper contract or B vault.
+    - `Swapper.swap` - `exact output` on one of the supporting handlers (Uni V2/V3) with the user specified `amountOut`. The receiver can be either the swapper contract or B vault.
     - `Swapper.sweep` the output token, into the B vault
   - `SwapVerifier.verifyAmountMinAndSkim` check a minimum required amount was bought and claim the funds for the user. Because exact output swaps are not guaranteed to be exact always, a small slippage could be allowed.
 
