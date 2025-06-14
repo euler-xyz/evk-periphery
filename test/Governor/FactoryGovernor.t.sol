@@ -91,7 +91,7 @@ contract FactoryGovernorTests is EVaultTestBase {
         assertEq(eTST.balanceOf(depositor), 102e18);
     }
 
-    function test_FactoryGovernor_unathorizedCantTriggePause() external {
+    function test_FactoryGovernor_unauthorizedCantTriggePause() external {
         vm.prank(admin);
         vm.expectRevert();
         factoryGovernor.pause(address(factory));
@@ -132,7 +132,7 @@ contract FactoryGovernorTests is EVaultTestBase {
         assertEq(eTST.balanceOf(depositor), 101e18);
     }
 
-    function test_FactoryGovernor_unathorizedCantTriggeUnpause() external {
+    function test_FactoryGovernor_unauthorizedCantTriggeUnpause() external {
         vm.prank(admin);
         vm.expectRevert();
         factoryGovernor.unpause(address(factory));
