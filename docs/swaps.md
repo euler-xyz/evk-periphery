@@ -34,7 +34,7 @@ The general steps to use the `Swapper` contract are following:
 
 The `Swapper` contract should implement the `ISwapper` interface. This ensures, that users could potentially provide their own implementations of the swapper contract in the UI, without needing to modify the FE code.
 
-The main function is `swap()`, which takes a swap definition in a `SwapParams` struct. The params define a handler to use, swapping mode, bought and sold tokens, the amounts etc. See [ISwapper natspec](../src/Swaps/ISwapper.sol) for details. Note, that some parameters might be ignored in certain modes or by certain handlers, while others (`amountOut`) might have differrent semantics in certain modes.
+The main function is `swap()`, which takes a swap definition in a `SwapParams` struct. The params define a handler to use, swapping mode, bought and sold tokens, the amounts etc. See [ISwapper natspec](../src/Swaps/ISwapper.sol) for details. Note, that some parameters might be ignored in certain modes or by certain handlers, while others (`amountOut`) might have different semantics in certain modes.
 
 The interface also defines helper functions like `sweep`, `deposit`, `repay` and `repayAndDeposit` which allow consuming the contract's balance.
 
