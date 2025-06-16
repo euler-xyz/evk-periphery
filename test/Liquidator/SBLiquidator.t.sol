@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 // import {Test} from "forge-std/Test.sol";
+import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {SBuidlLiquidator, ISBToken} from "../../src/Liquidator/SBLiquidator.sol";
 import {IERC20} from "openzeppelin-contracts/interfaces/IERC20.sol";
@@ -22,6 +23,7 @@ contract SBLiquidatorTests is EVaultTestBase {
     address borrower = makeAddr("borrower");
     address liquidator = makeAddr("liquidator");
     address receiver = makeAddr("receiver");
+    address nonOwner = makeAddr("nonOwner");
 
     IERC20 sbUnderlyingToken;
 
@@ -45,7 +47,7 @@ contract SBLiquidatorTests is EVaultTestBase {
         address[] memory customLiquidationVaults = new address[](1);
         customLiquidationVaults[0] = address(esBToken);
 
-        sbLiquidator = new SBuidlLiquidator(address(evc), address(this), customLiquidationVaults);
+        sbLiquidator = new SBuidlLiquidator(address(evc), liquidator, customLiquidationVaults);
 
         // Set LTV for esBToken as collateral
         eTST.setLTV(address(esBToken), 0.97e4, 0.97e4, 0);
@@ -111,6 +113,11 @@ contract SBLiquidatorTests is EVaultTestBase {
         uint256 receiverSbUnderlyingBefore = sbUnderlyingToken.balanceOf(receiver);
         uint256 borrowerDebtBefore = eTST.debtOf(borrower);
         uint256 liquidatorDebtBefore = eTST.debtOf(liquidator);
+
+        vm.startPrank(nonOwner);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
+        sbLiquidator.liquidate(receiver, address(eTST), borrower, address(esBToken), type(uint256).max, 0);
+        vm.stopPrank();
 
         vm.startPrank(liquidator);
         sbLiquidator.liquidate(receiver, address(eTST), borrower, address(esBToken), type(uint256).max, 0);
