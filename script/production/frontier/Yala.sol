@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {ManageCluster} from "./ManageCluster.s.sol";
 
 contract Cluster is ManageCluster {
-    address internal constant YU  = 0x865377367054516e17014CcdED1e7d814EDC9ce4;
+    address internal constant YU  = 0xE868084cf08F3c3db11f4B73a95473762d9463f7;
     address internal constant PT_YU_04SEP2025 = 0x076BdA095a434a7B00733115A0D679DE6478d9f8;
 
     function defineCluster() internal override {

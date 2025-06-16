@@ -52,7 +52,7 @@ contract Cluster is ManageCluster {
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //               0          1         2
-            //               USDC       DOLA     sDOLA
+            //               USDC       DOLA      sDOLA
             /* 0  USDC    */ [LTV_ZERO, LTV__LOW, LTV_ZERO],
             /* 1  DOLA    */ [LTV__LOW, LTV_ZERO, LTV_ZERO],
             /* 2  sDOLA   */ [LTV__LOW, LTV_HIGH, LTV_ZERO]

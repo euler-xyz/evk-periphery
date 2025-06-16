@@ -7,7 +7,7 @@ import {ManageCluster} from "./ManageCluster.s.sol";
 contract Cluster is ManageCluster {
     address internal constant USDf                = 0xFa2B947eEc368f42195f24F36d2aF29f7c24CeC2;
     address internal constant sUSDf               = 0xc8CF6D7991f15525488b2A83Df53468D682Ba4B0;
-    address internal constant PT_sUSDf_25SEPT2025 = 0xab365c0879024481e4ad3b47bd6fea9c10014fbc;
+    address internal constant PT_sUSDf_25SEPT2025 = 0xAB365C0879024481E4ad3b47bd6FeA9c10014FbC;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
@@ -55,7 +55,7 @@ contract Cluster is ManageCluster {
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //               0          1         2         3
-            //               USDC       USDf     sUSDf     PT_sUSDf
+            //               USDC       USDf      sUSDf     PT_sUSDf
             /* 0  USDC    */ [LTV_ZERO, LTV__LOW, LTV_ZERO, LTV_ZERO],
             /* 1  USDf    */ [LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 2  sUSDf   */ [LTV__LOW, LTV_HIGH, LTV_ZERO, LTV_ZERO],
