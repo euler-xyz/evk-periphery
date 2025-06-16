@@ -2,7 +2,7 @@
 
 The `Swapper` and `SwapVerifier` contracts are helpers for executing swaps and swaps-to-repay operations on EVK vaults, using EVC batches.
 
-## Security and trust boundries
+## Security and trust boundaries
 
 The `Swapper` contract is not trusted. From the protocol's perspective, it is a black box. Provided with a token to sell, it is supposed to execute the swap and return the bought token either as a balance available for deposit or as repaid debt. No assumptions are made about how the swap is performed or about the security of the `Swapper` code. In fact, the `Swapper` has no access control and allows anyone to remove any token balance it holds at any time. The provided implementation is just a reference; users are generally free to use any swapper they choose.
 
