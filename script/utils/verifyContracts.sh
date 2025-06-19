@@ -136,6 +136,10 @@ function verify_broadcast {
                     contractName=IRMLinearKink
                     constructorBytesSize=128
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                elif [[ $contractName == "EulerKinkyIRMFactory" || $function == "deploy(uint256,uint256,uint256,uint32,uint256)" ]]; then
+                    contractName=IRMLinearKink
+                    constructorBytesSize=160
+                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $contractName == "EulerIRMAdaptiveCurveFactory" || $function == "deploy(int256,int256,int256,int256,int256,int256)" ]]; then
                     contractName=IRMAdaptiveCurve
                     constructorBytesSize=192
