@@ -382,7 +382,6 @@ struct EulerEarnVaultInfoFull {
     uint256 lostAssets;
     uint256 performanceFee;
     address feeReceiver;
-    address skimRecipient;
     address creator;
     address curator;
     address guardian;

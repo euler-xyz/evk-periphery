@@ -34,7 +34,6 @@ contract EulerEarnVaultLens is Utils {
         result.lostAssets = IEulerEarn(vault).lostAssets();
         result.performanceFee = IEulerEarn(vault).fee();
         result.feeReceiver = IEulerEarn(vault).feeRecipient();
-        result.skimRecipient = IEulerEarn(vault).skimRecipient();
         result.creator = IEulerEarn(vault).creator();
         result.curator = IEulerEarn(vault).curator();
         result.guardian = IEulerEarn(vault).guardian();
