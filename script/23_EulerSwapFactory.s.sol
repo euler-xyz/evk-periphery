@@ -13,9 +13,9 @@ contract EulerSwapFactory is ScriptUtils {
         address eVaultFactory = vm.parseJsonAddress(json, ".eVaultFactory");
         address eulerSwapImplementation = vm.parseJsonAddress(json, ".eulerSwapImplementation");
         address feeOwner = vm.parseJsonAddress(json, ".feeOwner");
-        address feeReceipientSetter = vm.parseJsonAddress(json, ".feeReceipientSetter");
+        address feeRecipientSetter = vm.parseJsonAddress(json, ".feeRecipientSetter");
 
-        eulerSwapFactory = execute(evc, eVaultFactory, eulerSwapImplementation, feeOwner, feeReceipientSetter);
+        eulerSwapFactory = execute(evc, eVaultFactory, eulerSwapImplementation, feeOwner, feeRecipientSetter);
 
         string memory object;
         object = vm.serializeAddress("factory", "eulerSwapFactory", eulerSwapFactory);
@@ -28,9 +28,9 @@ contract EulerSwapFactory is ScriptUtils {
         address eVaultFactory,
         address eulerSwapImplementation,
         address feeOwner,
-        address feeReceipientSetter
+        address feeRecipientSetter
     ) public broadcast returns (address eulerSwapFactory) {
-        eulerSwapFactory = execute(evc, eVaultFactory, eulerSwapImplementation, feeOwner, feeReceipientSetter);
+        eulerSwapFactory = execute(evc, eVaultFactory, eulerSwapImplementation, feeOwner, feeRecipientSetter);
     }
 
     function execute(
@@ -38,11 +38,11 @@ contract EulerSwapFactory is ScriptUtils {
         address eVaultFactory,
         address eulerSwapImplementation,
         address feeOwner,
-        address feeReceipientSetter
+        address feeRecipientSetter
     ) public returns (address eulerSwapFactory) {
         bytes memory bytecode = abi.encodePacked(
             vm.getCode("out-euler-swap/EulerSwapFactory.sol/EulerSwapFactory.json"),
-            abi.encode(evc, eVaultFactory, eulerSwapImplementation, feeOwner, feeReceipientSetter)
+            abi.encode(evc, eVaultFactory, eulerSwapImplementation, feeOwner, feeRecipientSetter)
         );
         assembly {
             eulerSwapFactory := create(0, add(bytecode, 0x20), mload(bytecode))
