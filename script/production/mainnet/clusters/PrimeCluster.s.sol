@@ -96,6 +96,9 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[WBTC   ] = "0x8e8cfcbe490da27032a6edacb6a8436be904cd4e"; // "CrossAdapter=FixedRateOracle+ChainlinkOracle";
         cluster.oracleProviders[cbBTC  ] = "0xd0156a894f2d14b127a8c37360d6879891f62efa"; // "CrossAdapter=FixedRateOracle+ChainlinkOracle";
         cluster.oracleProviders[LBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
+        
+        
+        cluster.oracleProviders[sBUIDL ] = "ExternalVault|";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH   ] = 100_000;
@@ -230,7 +233,8 @@ contract Cluster is ManageCluster {
         //                       0               1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22      23
         //                       WETH            wstETH  cbETH   weETH   ezETH   RETH    mETH    rsETH   ETHx    tETH    USDC    USDT    wM      USDS    sUSDS   USDtb   rlUSD   WBTC    cbBTC   LBTC    
         /* 1  Escrow wstETH  */ [uint16(0.95e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.87e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 2  Escrow sUSDS   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
+        /* 2  Escrow sUSDS   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 3  RWA sBUIDL     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4]
         ];
     }
 

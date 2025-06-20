@@ -133,6 +133,9 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[PT_cUSDO_20NOV2025       ] = "0x673222872a407775feab95a7a98f930a2cec53f4"; //"CrossAdapter=PendleUniversalOracle+FixedRateOracle";
         cluster.oracleProviders[PT_syrupUSDC_28AUG2025   ] = "0xee307d24a721f418a57a494a85c29a0e81f430a2"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
         cluster.oracleProviders[PT_USDS_14AUG2025        ] = "0x92d8b31f5bcb01134a8ba7c7fd8277e30e37b570"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
+        
+        
+        cluster.oracleProviders[sBUIDL                   ] = "ExternalVault|";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC                     ] = 225_000_000;
@@ -325,7 +328,8 @@ contract Cluster is ManageCluster {
         //                                 0                1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22      23      24      25      26      27      28      29      30      31      32      33      34      35
         //                                 USDC             USDT    PYUSD   rlUSD   wM      USDS    sUSDS   DAI     sDAI    USD0    USD0++  USDe    eUSDe   sUSDe   USDtb   rUSD    srUSD syrupUSDC mBASIS  mEDGE   mMEV    PT_USD0PlusPlus_26JUN2025 PT_sUSDe_29MAY2025 PT_sUSDe_31JULY2025 PT_eUSDe_29MAY2025 PT_eUSDe_14AUG2025 PT_cUSDO_19JUN2025 PT_cUSDO_20NOV2025 PT_syrupUSDC_28AUG2025 PT_USDS_14AUG2025
         /* 0  Prime USDC                */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 1  Prime USDT                */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
+        /* 1  Prime USDT                */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 2  RWA sBUIDL                */ [uint16(0.95e4), 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
     }
 
