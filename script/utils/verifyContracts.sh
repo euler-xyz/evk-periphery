@@ -136,6 +136,10 @@ function verify_broadcast {
                     contractName=IRMLinearKink
                     constructorBytesSize=128
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                elif [[ $contractName == "EulerKinkyIRMFactory" || $function == "deploy(uint256,uint256,uint256,uint32,uint256)" ]]; then
+                    contractName=IRMLinearKink
+                    constructorBytesSize=160
+                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $contractName == "EulerIRMAdaptiveCurveFactory" || $function == "deploy(int256,int256,int256,int256,int256,int256)" ]]; then
                     contractName=IRMAdaptiveCurve
                     constructorBytesSize=192
@@ -194,60 +198,29 @@ function verify_broadcast {
         elif [[ $transactionType == "CREATE" && $verificationSuccessful != true ]]; then
             local initCode=$(echo $tx | jq -r '.transaction.input')
 
-            if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 7 ]; then
+            if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 1 ]; then
                 # try to verify as EulerEarn contracts
                 local src="lib/euler-earn/src"
-                local verificationOptions="--num-of-optimizations 800 --compiler-version 0.8.27 --root lib/euler-earn"
-                local compilerOptions="--optimize --optimizer-runs 800 --use 0.8.27"
+                local verificationOptions="--via-ir --num-of-optimizations 800 --compiler-version 0.8.26 --root lib/euler-earn"
+                local compilerOptions="--via-ir --optimize --optimizer-runs 800 --use 0.8.26"
 
                 while true; do
                     case $eulerEarnIndex in
                         0)
-                            # try to verify as EulerEarnVault
-                            contractName=EulerEarnVault
-                            constructorBytesSize=128
-                            ;;
-                        1)
-                            # try to verify as Rewards
-                            contractName=Rewards
-                            constructorBytesSize=128
-                            ;;
-                        2)
-                            # try to verify as Hooks
-                            contractName=Hooks
-                            constructorBytesSize=128
-                            ;;
-                        3)
-                            # try to verify as Fee
-                            contractName=Fee
-                            constructorBytesSize=128
-                            ;;
-                        4)
-                            # try to verify as Strategy
-                            contractName=Strategy
-                            constructorBytesSize=128
-                            ;;
-                        5)
-                            # try to verify as WithdrawalQueue
-                            contractName=WithdrawalQueue
-                            constructorBytesSize=128
-                            ;;
-                        6)
-                            # try to verify as EulerEarn
-                            contractName=EulerEarn
-                            constructorBytesSize=320
-                            ;;
-                        7)
                             # try to verify as EulerEarnFactory
                             contractName=EulerEarnFactory
-                            constructorBytesSize=32
+                            constructorBytesSize=96
                             ;;
                         *)
                             break
                             ;;
                     esac
 
-                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                    if [ $constructorBytesSize -eq 0 ]; then
+                        constructorArgs=""
+                    else
+                        constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                    fi
 
                     if [ "$createVerified" = false ]; then
                         forge clean && forge compile $src $compilerOptions
@@ -265,7 +238,7 @@ function verify_broadcast {
                 done
             fi
 
-            if [ -d "out-euler-swap" ] && ([ ! -d "out-euler-earn" ] || [ $eulerEarnIndex -gt 7 ]); then
+            if [ -d "out-euler-swap" ] && ([ ! -d "out-euler-earn" ] || [ $eulerEarnIndex -gt 1 ]); then
                 # try to verify as EulerSwap contracts
                 local src="lib/euler-swap/src"
                 local verificationOptions="--num-of-optimizations 1000000 --compiler-version 0.8.27 --root lib/euler-swap"
@@ -283,12 +256,21 @@ function verify_broadcast {
                             contractName=EulerSwapFactory
                             constructorBytesSize=160
                             ;;
+                        2)
+                            # try to verify as EulerSwapPeriphery
+                            contractName=EulerSwapPeriphery
+                            constructorBytesSize=0
+                            ;;
                         *)
                             break
                             ;;
                     esac
 
-                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                    if [ $constructorBytesSize -eq 0 ]; then
+                        constructorArgs=""
+                    else
+                        constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                    fi
 
                     if [ "$createVerified" = false ]; then
                         forge clean && forge compile $src $compilerOptions

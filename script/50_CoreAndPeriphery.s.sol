@@ -34,10 +34,10 @@ import {EVaultFactoryGovernorDeployer, TimelockControllerDeployer} from "./12_Go
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {OFTAdapterUpgradeableDeployer, MintBurnOFTAdapterDeployer} from "./14_OFT.s.sol";
 import {EdgeFactoryDeployer} from "./15_EdgeFactory.s.sol";
-import {EulerEarnImplementation, IntegrationsParams} from "./20_EulerEarnImplementation.s.sol";
-import {EulerEarnFactory} from "./21_EulerEarnFactory.s.sol";
-import {EulerSwapImplementation} from "./22_EulerSwapImplementation.s.sol";
-import {EulerSwapFactory} from "./23_EulerSwapFactory.s.sol";
+import {EulerEarnFactory} from "./20_EulerEarnFactory.s.sol";
+import {EulerSwapImplementationDeployer} from "./21_EulerSwapImplementation.s.sol";
+import {EulerSwapFactoryDeployer} from "./22_EulerSwapFactory.s.sol";
+import {EulerSwapPeripheryDeployer} from "./23_EulerSwapPeriphery.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {
     IGovernorAccessControlEmergencyFactory,
@@ -241,29 +241,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             coreAddresses.eVaultFactory = deployer.deploy(coreAddresses.eVaultImplementation);
         } else {
             console.log("- EVault factory already deployed. Skipping...");
-        }
-
-        if (coreAddresses.eulerEarnImplementation == address(0)) {
-            console.log("+ Deploying EulerEarn implementation...");
-            EulerEarnImplementation deployer = new EulerEarnImplementation();
-            IntegrationsParams memory integrations = IntegrationsParams({
-                evc: coreAddresses.evc,
-                balanceTracker: coreAddresses.balanceTracker,
-                permit2: coreAddresses.permit2,
-                isHarvestCoolDownCheckOn: EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON[block.chainid]
-            });
-            (, coreAddresses.eulerEarnImplementation) = deployer.deploy(integrations);
-        } else {
-            console.log("- EulerEarn implementation already deployed. Skipping...");
-        }
-
-        if (coreAddresses.eulerEarnFactory == address(0)) {
-            console.log("+ Deploying EulerEarn factory...");
-            EulerEarnFactory deployer = new EulerEarnFactory();
-            coreAddresses.eulerEarnFactory = deployer.deploy(coreAddresses.eulerEarnImplementation);
-        } else {
-            console.log("- EulerEarn factory already deployed. Skipping...");
-            if (vm.isDir("out-euler-earn")) vm.removeDir("out-euler-earn", true);
         }
 
         if (governorAddresses.eVaultFactoryGovernor == address(0)) {
@@ -682,7 +659,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (
             peripheryAddresses.oracleRouterFactory == address(0)
                 && peripheryAddresses.oracleAdapterRegistry == address(0)
-                && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0)
+                && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0) && peripheryAddresses.kinkyIRMFactory == address(0)
                 && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
                 && peripheryAddresses.governorAccessControlEmergencyFactory == address(0)
                 && peripheryAddresses.capRiskStewardFactory == address(0)
@@ -695,6 +672,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             peripheryAddresses.oracleAdapterRegistry = peripheryContracts.oracleAdapterRegistry;
             peripheryAddresses.externalVaultRegistry = peripheryContracts.externalVaultRegistry;
             peripheryAddresses.kinkIRMFactory = peripheryContracts.kinkIRMFactory;
+            peripheryAddresses.kinkyIRMFactory = peripheryContracts.kinkyIRMFactory;
             peripheryAddresses.adaptiveCurveIRMFactory = peripheryContracts.adaptiveCurveIRMFactory;
             peripheryAddresses.irmRegistry = peripheryContracts.irmRegistry;
             peripheryAddresses.governorAccessControlEmergencyFactory =
@@ -880,6 +858,16 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- EulerUngovernedNzxPerspective already deployed. Skipping...");
         }
 
+        if (coreAddresses.eulerEarnFactory == address(0)) {
+            console.log("+ Deploying EulerEarn factory...");
+            EulerEarnFactory deployer = new EulerEarnFactory();
+            coreAddresses.eulerEarnFactory =
+                deployer.deploy(coreAddresses.evc, coreAddresses.permit2, peripheryAddresses.evkFactoryPerspective);
+        } else {
+            console.log("- EulerEarn factory already deployed. Skipping...");
+            if (vm.isDir("out-euler-earn")) vm.removeDir("out-euler-earn", true);
+        }
+
         if (
             peripheryAddresses.eulerEarnFactoryPerspective == address(0)
                 && peripheryAddresses.eulerEarnGovernedPerspective == address(0)
@@ -961,7 +949,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (lensAddresses.eulerEarnVaultLens == address(0)) {
             console.log("+ Deploying EulerEarnVaultLens...");
             LensEulerEarnVaultDeployer deployer = new LensEulerEarnVaultDeployer();
-            lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.oracleLens, lensAddresses.utilsLens);
+            lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.utilsLens);
         } else {
             console.log("- EulerEarnVaultLens already deployed. Skipping...");
         }
@@ -1007,17 +995,18 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (
             eulerSwapAddresses.eulerSwapV1Implementation == address(0)
                 && eulerSwapAddresses.eulerSwapV1Factory == address(0)
+                && eulerSwapAddresses.eulerSwapV1Periphery == address(0)
         ) {
             if (input.deployEulerSwapV1) {
                 {
                     console.log("+ Deploying EulerSwap V1 implementation...");
-                    EulerSwapImplementation deployer = new EulerSwapImplementation();
+                    EulerSwapImplementationDeployer deployer = new EulerSwapImplementationDeployer();
                     eulerSwapAddresses.eulerSwapV1Implementation =
                         deployer.deploy(coreAddresses.evc, input.uniswapPoolManager);
                 }
                 {
                     console.log("+ Deploying EulerSwap V1 factory...");
-                    EulerSwapFactory deployer = new EulerSwapFactory();
+                    EulerSwapFactoryDeployer deployer = new EulerSwapFactoryDeployer();
                     eulerSwapAddresses.eulerSwapV1Factory = deployer.deploy(
                         coreAddresses.evc,
                         coreAddresses.eVaultFactory,
@@ -1025,6 +1014,11 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                         input.eulerSwapFeeOwner,
                         input.eulerSwapFeeRecipientSetter
                     );
+                }
+                {
+                    console.log("+ Deploying EulerSwap V1 periphery...");
+                    EulerSwapPeripheryDeployer deployer = new EulerSwapPeripheryDeployer();
+                    eulerSwapAddresses.eulerSwapV1Periphery = deployer.deploy();
                 }
             } else {
                 console.log("- EulerSwap v1 not deployed. Skipping...");

@@ -840,16 +840,13 @@ abstract contract ManageClusterBase is BatchBuilder {
 
                     if (!TimelockController(timelock).isOperationPending(id)) continue;
 
-                    (address target, uint256 value, bytes memory data, bytes32 predecessor, uint256 delay) =
+                    (address target, uint256 value, bytes memory data, bytes32 predecessor,) =
                         abi.decode(ethLogs[i].data, (address, uint256, bytes, bytes32, uint256));
 
-                    vm.store(
-                        timelock,
-                        keccak256(abi.encode(uint256(id), uint256(1))),
-                        bytes32(uint256(block.timestamp - delay))
-                    );
+                    vm.store(timelock, keccak256(abi.encode(uint256(id), uint256(1))), bytes32(block.timestamp));
 
-                    vm.deal(address(this), value);
+                    vm.deal(getDeployer(), value);
+                    vm.prank(getDeployer());
                     try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {}
                     catch {
                         console.log("Error executing already scheduled timelock transaction");
@@ -867,15 +864,14 @@ abstract contract ManageClusterBase is BatchBuilder {
                         || !TimelockController(timelock).isOperationPending(logs[i].topics[1])
                 ) continue;
 
-                (address target, uint256 value, bytes memory data, bytes32 predecessor, uint256 delay) =
+                (address target, uint256 value, bytes memory data, bytes32 predecessor,) =
                     abi.decode(logs[i].data, (address, uint256, bytes, bytes32, uint256));
 
                 bytes32 id = logs[i].topics[1];
-                vm.store(
-                    timelock, keccak256(abi.encode(uint256(id), uint256(1))), bytes32(uint256(block.timestamp - delay))
-                );
+                vm.store(timelock, keccak256(abi.encode(uint256(id), uint256(1))), bytes32(uint256(block.timestamp)));
 
-                vm.deal(address(this), value);
+                vm.deal(getDeployer(), value);
+                vm.prank(getDeployer());
                 try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {}
                 catch {
                     console.log("Error executing not yet scheduled timelock transaction");

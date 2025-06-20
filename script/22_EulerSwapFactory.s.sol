@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 
-contract EulerSwapFactory is ScriptUtils {
+contract EulerSwapFactoryDeployer is ScriptUtils {
     function run() public broadcast returns (address eulerSwapFactory) {
         string memory inputScriptFileName = "23_EulerSwapFactory_input.json";
         string memory outputScriptFileName = "23_EulerSwapFactory_output.json";

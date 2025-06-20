@@ -36,7 +36,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         address permit2;
         address eVaultImplementation;
         address eVaultFactory;
-        address eulerEarnImplementation;
         address eulerEarnFactory;
     }
 
@@ -48,7 +47,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         result = vm.serializeAddress("coreAddresses", "permit2", Addresses.permit2);
         result = vm.serializeAddress("coreAddresses", "eVaultImplementation", Addresses.eVaultImplementation);
         result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
-        result = vm.serializeAddress("coreAddresses", "eulerEarnImplementation", Addresses.eulerEarnImplementation);
         result = vm.serializeAddress("coreAddresses", "eulerEarnFactory", Addresses.eulerEarnFactory);
     }
 
@@ -61,7 +59,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
             permit2: getAddressFromJson(json, ".permit2"),
             eVaultImplementation: getAddressFromJson(json, ".eVaultImplementation"),
             eVaultFactory: getAddressFromJson(json, ".eVaultFactory"),
-            eulerEarnImplementation: getAddressFromJson(json, ".eulerEarnImplementation"),
             eulerEarnFactory: getAddressFromJson(json, ".eulerEarnFactory")
         });
     }
@@ -73,6 +70,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address oracleAdapterRegistry;
         address externalVaultRegistry;
         address kinkIRMFactory;
+        address kinkyIRMFactory;
         address adaptiveCurveIRMFactory;
         address irmRegistry;
         address swapper;
@@ -97,6 +95,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "oracleAdapterRegistry", Addresses.oracleAdapterRegistry);
         result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
         result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
+        result = vm.serializeAddress("peripheryAddresses", "kinkyIRMFactory", Addresses.kinkyIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "adaptiveCurveIRMFactory", Addresses.adaptiveCurveIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "irmRegistry", Addresses.irmRegistry);
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
@@ -136,6 +135,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             oracleAdapterRegistry: getAddressFromJson(json, ".oracleAdapterRegistry"),
             externalVaultRegistry: getAddressFromJson(json, ".externalVaultRegistry"),
             kinkIRMFactory: getAddressFromJson(json, ".kinkIRMFactory"),
+            kinkyIRMFactory: getAddressFromJson(json, ".kinkyIRMFactory"),
             adaptiveCurveIRMFactory: getAddressFromJson(json, ".adaptiveCurveIRMFactory"),
             irmRegistry: getAddressFromJson(json, ".irmRegistry"),
             swapper: getAddressFromJson(json, ".swapper"),
@@ -299,18 +299,21 @@ abstract contract EulerSwapAddressesLib is ScriptExtended {
     struct EulerSwapAddresses {
         address eulerSwapV1Implementation;
         address eulerSwapV1Factory;
+        address eulerSwapV1Periphery;
     }
 
     function serializeEulerSwapAddresses(EulerSwapAddresses memory Addresses) internal returns (string memory result) {
         result =
             vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Implementation", Addresses.eulerSwapV1Implementation);
         result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Factory", Addresses.eulerSwapV1Factory);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Periphery", Addresses.eulerSwapV1Periphery);
     }
 
     function deserializeEulerSwapAddresses(string memory json) internal pure returns (EulerSwapAddresses memory) {
         return EulerSwapAddresses({
             eulerSwapV1Implementation: getAddressFromJson(json, ".eulerSwapV1Implementation"),
-            eulerSwapV1Factory: getAddressFromJson(json, ".eulerSwapV1Factory")
+            eulerSwapV1Factory: getAddressFromJson(json, ".eulerSwapV1Factory"),
+            eulerSwapV1Periphery: getAddressFromJson(json, ".eulerSwapV1Periphery")
         });
     }
 }
@@ -464,6 +467,11 @@ abstract contract ScriptUtils is
             }
             // hyperEVM
             if (block.chainid == 999) {
+                return address(0);
+            }
+
+            // TAC
+            if (block.chainid == 239) {
                 return address(0);
             }
         }

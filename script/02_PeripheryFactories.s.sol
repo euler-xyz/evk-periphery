@@ -6,6 +6,7 @@ import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {EulerRouterFactory} from "../src/EulerRouterFactory/EulerRouterFactory.sol";
 import {SnapshotRegistry} from "../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../src/IRMFactory/EulerKinkIRMFactory.sol";
+import {EulerKinkyIRMFactory} from "../src/IRMFactory/EulerKinkyIRMFactory.sol";
 import {EulerIRMAdaptiveCurveFactory} from "../src/IRMFactory/EulerIRMAdaptiveCurveFactory.sol";
 import {GovernorAccessControlEmergencyFactory} from "../src/GovernorFactory/GovernorAccessControlEmergencyFactory.sol";
 import {CapRiskStewardFactory} from "../src/GovernorFactory/CapRiskStewardFactory.sol";
@@ -16,6 +17,7 @@ contract PeripheryFactories is ScriptUtils {
         address oracleAdapterRegistry;
         address externalVaultRegistry;
         address kinkIRMFactory;
+        address kinkyIRMFactory;
         address adaptiveCurveIRMFactory;
         address irmRegistry;
         address governorAccessControlEmergencyFactory;
@@ -37,6 +39,7 @@ contract PeripheryFactories is ScriptUtils {
         object =
             vm.serializeAddress("peripheryFactories", "externalVaultRegistry", deployedContracts.externalVaultRegistry);
         object = vm.serializeAddress("peripheryFactories", "kinkIRMFactory", deployedContracts.kinkIRMFactory);
+        object = vm.serializeAddress("peripheryFactories", "kinkyIRMFactory", deployedContracts.kinkyIRMFactory);
         object = vm.serializeAddress(
             "peripheryFactories", "adaptiveCurveIRMFactory", deployedContracts.adaptiveCurveIRMFactory
         );
@@ -60,6 +63,7 @@ contract PeripheryFactories is ScriptUtils {
         deployedContracts.oracleAdapterRegistry = address(new SnapshotRegistry(evc, getDeployer()));
         deployedContracts.externalVaultRegistry = address(new SnapshotRegistry(evc, getDeployer()));
         deployedContracts.kinkIRMFactory = address(new EulerKinkIRMFactory());
+        deployedContracts.kinkyIRMFactory = address(new EulerKinkyIRMFactory());
         deployedContracts.adaptiveCurveIRMFactory = address(new EulerIRMAdaptiveCurveFactory());
         deployedContracts.irmRegistry = address(new SnapshotRegistry(evc, getDeployer()));
         deployedContracts.governorAccessControlEmergencyFactory =
