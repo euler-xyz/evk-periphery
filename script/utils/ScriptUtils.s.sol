@@ -469,6 +469,11 @@ abstract contract ScriptUtils is
             if (block.chainid == 999) {
                 return address(0);
             }
+
+            // TAC
+            if (block.chainid == 239) {
+                return address(0);
+            }
         }
 
         revert("getWETHAddress: Unsupported chain");
