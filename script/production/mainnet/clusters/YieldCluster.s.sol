@@ -103,36 +103,36 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[USDC                     ] = "PythOracle";
-        cluster.oracleProviders[USDT                     ] = "PythOracle";
-        cluster.oracleProviders[PYUSD                    ] = "PythOracle";
-        cluster.oracleProviders[rlUSD                    ] = "FixedRateOracle";
+        cluster.oracleProviders[USDC                     ] = "0x6213f24332D35519039f2afa7e3BffE105a37d3F";
+        cluster.oracleProviders[USDT                     ] = "0x587CABe0521f5065b561A6e68c25f338eD037FF9";
+        cluster.oracleProviders[PYUSD                    ] = "0x27895A6295a5117CB989d610DF1Df39DC2CDBf8F";
+        cluster.oracleProviders[rlUSD                    ] = "0x3bDcB804Fd42Ccb2B7Cf329fa07724bEcB872970";
         cluster.oracleProviders[wM                       ] = "FixedRateOracle";
-        cluster.oracleProviders[USDS                     ] = "PythOracle";
-        cluster.oracleProviders[sUSDS                    ] = "ExternalVault|PythOracle";
-        cluster.oracleProviders[DAI                      ] = "PythOracle";
-        cluster.oracleProviders[sDAI                     ] = "ExternalVault|PythOracle";
+        cluster.oracleProviders[USDS                     ] = "0xD0dAb9eDb2b1909802B03090eFBF14743E7Ff967";
+        cluster.oracleProviders[sUSDS                    ] = "ExternalVault|0xD0dAb9eDb2b1909802B03090eFBF14743E7Ff967";
+        cluster.oracleProviders[DAI                      ] = "0xBb918933b510CDF9008E0f1B6AFE50A587CD9224";
+        cluster.oracleProviders[sDAI                     ] = "ExternalVault|0xBb918933b510CDF9008E0f1B6AFE50A587CD9224";
         cluster.oracleProviders[USD0                     ] = "PythOracle";
         cluster.oracleProviders[USD0PlusPlus             ] = "PythOracle";
-        cluster.oracleProviders[USDe                     ] = "PythOracle";
-        cluster.oracleProviders[eUSDe                    ] = "ExternalVault|PythOracle";
-        cluster.oracleProviders[sUSDe                    ] = "ExternalVault|PythOracle";
-        cluster.oracleProviders[USDtb                    ] = "FixedRateOracle";
+        cluster.oracleProviders[USDe                     ] = "0x8211B9ae40b06d3Db0215E520F232184Af355378";
+        cluster.oracleProviders[eUSDe                    ] = "ExternalVault|0x8211B9ae40b06d3Db0215E520F232184Af355378";
+        cluster.oracleProviders[sUSDe                    ] = "ExternalVault|0x8211B9ae40b06d3Db0215E520F232184Af355378";
+        cluster.oracleProviders[USDtb                    ] = "0xE3Dce6a38A529B97B69cA47778c933b61b17535E";
         cluster.oracleProviders[rUSD                     ] = "0x01dBD40296C232C2C58c99Ff69084B256BeE33EE";
         cluster.oracleProviders[srUSD                    ] = "0xd54bc197150487a40d4ebd4fb215ca4fa996173e";
-        cluster.oracleProviders[syrupUSDC                ] = "ExternalVault|PythOracle";
+        cluster.oracleProviders[syrupUSDC                ] = "ExternalVault|0x6213f24332D35519039f2afa7e3BffE105a37d3F";
         cluster.oracleProviders[mBASIS                   ] = "0xfd63eED8Db6F5Bae46B2860C4B8a8a07eD8BF8bb";
         cluster.oracleProviders[mEDGE                    ] = "0xc8228b83f1d97a431a48bd9bc3e971c8b418d889";
         cluster.oracleProviders[mMEV                     ] = "0xf5c2dfd1740d18ad7cf23fba76cc11d877802937";
         cluster.oracleProviders[PT_USD0PlusPlus_26JUN2025] = "CrossAdapter=PendleOracle+PythOracle";
         cluster.oracleProviders[PT_sUSDe_29MAY2025       ] = "CrossAdapter=PendleOracle+PythOracle";
-        cluster.oracleProviders[PT_sUSDe_31JULY2025      ] = "CrossAdapter=PendleUniversalOracle+PythOracle";
+        cluster.oracleProviders[PT_sUSDe_31JULY2025      ] = "0xF4B7271e5c03C25fAde548706a042fF086FD4E70";
         cluster.oracleProviders[PT_eUSDe_29MAY2025       ] = "CrossAdapter=PendleUniversalOracle+PythOracle";
-        cluster.oracleProviders[PT_eUSDe_14AUG2025       ] = "0xc47fe334817371bbc1a131f8df2b23aec9636d1e"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
+        cluster.oracleProviders[PT_eUSDe_14AUG2025       ] = "0x6Ee9aAdEB6252783ab8Fd22E7bcBeC9Fa296A53a"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
         cluster.oracleProviders[PT_cUSDO_19JUN2025       ] = "CrossAdapter=PendleUniversalOracle+FixedRateOracle";
         cluster.oracleProviders[PT_cUSDO_20NOV2025       ] = "0x673222872a407775feab95a7a98f930a2cec53f4"; //"CrossAdapter=PendleUniversalOracle+FixedRateOracle";
-        cluster.oracleProviders[PT_syrupUSDC_28AUG2025   ] = "0xee307d24a721f418a57a494a85c29a0e81f430a2"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
-        cluster.oracleProviders[PT_USDS_14AUG2025        ] = "0x92d8b31f5bcb01134a8ba7c7fd8277e30e37b570"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
+        cluster.oracleProviders[PT_syrupUSDC_28AUG2025   ] = "0xe635E116D38ED5db736E620dD5c839a9A119f3F5"; //"CrossAdapter=PendleUniversalOracle+ChainlinkOracle";
+        cluster.oracleProviders[PT_USDS_14AUG2025        ] = "0x011088B8725eef48cAdFf5fb290E186B2AEd83f5"; //"CrossAdapter=PendleUniversalOracle+ChainlinkOracle";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC                     ] = 225_000_000;
