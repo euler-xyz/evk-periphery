@@ -126,15 +126,15 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[mEDGE                    ] = "0xc8228b83f1d97a431a48bd9bc3e971c8b418d889";
         cluster.oracleProviders[mMEV                     ] = "0xf5c2dfd1740d18ad7cf23fba76cc11d877802937";
         cluster.oracleProviders[PT_USD0PlusPlus_26JUN2025] = "CrossAdapter=PendleOracle+PythOracle";
-        cluster.oracleProviders[PT_USDe_31JUL2025        ] = "0x5732b609ebc4ab09f4e9c8cc9c34d8cf2b1a4e31";
+        cluster.oracleProviders[PT_USDe_31JUL2025        ] = "0xd9df01449ba6e3a4b2ad2b4e92e9b5d6a7c8b66b";
         cluster.oracleProviders[PT_sUSDe_29MAY2025       ] = "CrossAdapter=PendleOracle+PythOracle";
         cluster.oracleProviders[PT_sUSDe_31JULY2025      ] = "0x7351d14f0d8ad684302578e3f8f7d2bd161da435";
         cluster.oracleProviders[PT_eUSDe_29MAY2025       ] = "CrossAdapter=PendleUniversalOracle+PythOracle";
-        cluster.oracleProviders[PT_eUSDe_14AUG2025       ] = "0x29e1163590eb05c84747ede225a11ce555b36ce8"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
+        cluster.oracleProviders[PT_eUSDe_14AUG2025       ] = "0x29e1163590eb05c84747ede225a11ce555b36ce8";
         cluster.oracleProviders[PT_cUSDO_19JUN2025       ] = "CrossAdapter=PendleUniversalOracle+FixedRateOracle";
-        cluster.oracleProviders[PT_cUSDO_20NOV2025       ] = "0x673222872a407775feab95a7a98f930a2cec53f4"; //"CrossAdapter=PendleUniversalOracle+FixedRateOracle";
-        cluster.oracleProviders[PT_syrupUSDC_28AUG2025   ] = "0xe635E116D38ED5db736E620dD5c839a9A119f3F5"; //"CrossAdapter=PendleUniversalOracle+ChainlinkOracle";
-        cluster.oracleProviders[PT_USDS_14AUG2025        ] = "0x011088B8725eef48cAdFf5fb290E186B2AEd83f5"; //"CrossAdapter=PendleUniversalOracle+ChainlinkOracle";
+        cluster.oracleProviders[PT_cUSDO_20NOV2025       ] = "0x673222872a407775feab95a7a98f930a2cec53f4";
+        cluster.oracleProviders[PT_syrupUSDC_28AUG2025   ] = "0xe635E116D38ED5db736E620dD5c839a9A119f3F5";
+        cluster.oracleProviders[PT_USDS_14AUG2025        ] = "0x011088B8725eef48cAdFf5fb290E186B2AEd83f5";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC                     ] = 225_000_000;
