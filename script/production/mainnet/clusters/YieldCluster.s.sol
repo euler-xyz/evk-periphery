@@ -114,9 +114,9 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[sDAI                     ] = "ExternalVault|0xBb918933b510CDF9008E0f1B6AFE50A587CD9224";
         cluster.oracleProviders[USD0                     ] = "PythOracle";
         cluster.oracleProviders[USD0PlusPlus             ] = "PythOracle";
-        cluster.oracleProviders[USDe                     ] = "0x8211B9ae40b06d3Db0215E520F232184Af355378";
-        cluster.oracleProviders[eUSDe                    ] = "ExternalVault|0x8211B9ae40b06d3Db0215E520F232184Af355378";
-        cluster.oracleProviders[sUSDe                    ] = "ExternalVault|0x8211B9ae40b06d3Db0215E520F232184Af355378";
+        cluster.oracleProviders[USDe                     ] = "0x93840A424aBc32549809Dd0Bc07cEb56E137221C";
+        cluster.oracleProviders[eUSDe                    ] = "ExternalVault|0x93840A424aBc32549809Dd0Bc07cEb56E137221C";
+        cluster.oracleProviders[sUSDe                    ] = "ExternalVault|0x93840A424aBc32549809Dd0Bc07cEb56E137221C";
         cluster.oracleProviders[USDtb                    ] = "0xE3Dce6a38A529B97B69cA47778c933b61b17535E";
         cluster.oracleProviders[rUSD                     ] = "0x01dBD40296C232C2C58c99Ff69084B256BeE33EE";
         cluster.oracleProviders[srUSD                    ] = "0xd54bc197150487a40d4ebd4fb215ca4fa996173e";
@@ -126,9 +126,9 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[mMEV                     ] = "0xf5c2dfd1740d18ad7cf23fba76cc11d877802937";
         cluster.oracleProviders[PT_USD0PlusPlus_26JUN2025] = "CrossAdapter=PendleOracle+PythOracle";
         cluster.oracleProviders[PT_sUSDe_29MAY2025       ] = "CrossAdapter=PendleOracle+PythOracle";
-        cluster.oracleProviders[PT_sUSDe_31JULY2025      ] = "0xF4B7271e5c03C25fAde548706a042fF086FD4E70";
+        cluster.oracleProviders[PT_sUSDe_31JULY2025      ] = "0x7351d14f0d8ad684302578e3f8f7d2bd161da435";
         cluster.oracleProviders[PT_eUSDe_29MAY2025       ] = "CrossAdapter=PendleUniversalOracle+PythOracle";
-        cluster.oracleProviders[PT_eUSDe_14AUG2025       ] = "0x6Ee9aAdEB6252783ab8Fd22E7bcBeC9Fa296A53a"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
+        cluster.oracleProviders[PT_eUSDe_14AUG2025       ] = "0x29e1163590eb05c84747ede225a11ce555b36ce8"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
         cluster.oracleProviders[PT_cUSDO_19JUN2025       ] = "CrossAdapter=PendleUniversalOracle+FixedRateOracle";
         cluster.oracleProviders[PT_cUSDO_20NOV2025       ] = "0x673222872a407775feab95a7a98f930a2cec53f4"; //"CrossAdapter=PendleUniversalOracle+FixedRateOracle";
         cluster.oracleProviders[PT_syrupUSDC_28AUG2025   ] = "0xe635E116D38ED5db736E620dD5c839a9A119f3F5"; //"CrossAdapter=PendleUniversalOracle+ChainlinkOracle";
