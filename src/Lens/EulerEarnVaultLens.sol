@@ -34,6 +34,7 @@ contract EulerEarnVaultLens is Utils {
         result.lostAssets = IEulerEarn(vault).lostAssets();
         result.performanceFee = IEulerEarn(vault).fee();
         result.feeReceiver = IEulerEarn(vault).feeRecipient();
+        result.owner = IEulerEarn(vault).owner();
         result.creator = IEulerEarn(vault).creator();
         result.curator = IEulerEarn(vault).curator();
         result.guardian = IEulerEarn(vault).guardian();
@@ -53,7 +54,6 @@ contract EulerEarnVaultLens is Utils {
             result.strategies[i].pendingAllocationCap = pendingConfig.value;
             result.strategies[i].pendingAllocationCapValidAt = pendingConfig.validAt;
             result.strategies[i].removableAt = config.removableAt;
-            result.strategies[i].enabled = config.enabled;
             result.strategies[i].info = utilsLens.getVaultInfoERC4626(result.strategies[i].strategy);
         }
 
