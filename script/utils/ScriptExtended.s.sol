@@ -239,6 +239,14 @@ abstract contract ScriptExtended is Script {
             || _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
     }
 
+    function getConfigAddress(string memory key) internal view returns (address) {
+        return getConfigAddress(key, block.chainid);
+    }
+
+    function getConfigAddress(string memory key, uint256 chainId) internal view returns (address) {
+        return getAddressFromJson(getConfigAddressesJson("MultisigAddresses.json", chainId), string.concat(".", key));
+    }
+
     function getAddressesDirPath() internal view returns (string memory) {
         string memory path = vm.envOr("ADDRESSES_DIR_PATH", string(""));
         path =
