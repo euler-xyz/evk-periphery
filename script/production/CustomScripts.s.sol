@@ -42,28 +42,83 @@ contract DeployAndConfigureCapRiskSteward is CustomScriptBase {
 
         stopBroadcast();
 
-        address[] memory targets = new address[](7);
-        uint256[] memory values = new uint256[](7);
-        bytes[] memory payloads = new bytes[](7);
+        SafeTransaction transaction = new SafeTransaction();
+        safeNonce = safeNonce == 0 ? transaction.getNextNonce(getSafe()) : safeNonce;
+        address[] memory targets = new address[](2);
+        uint256[] memory values = new uint256[](2);
+        bytes[] memory payloads = new bytes[](2);
 
-        targets[0] = governorAddresses.accessControlEmergencyGovernorAdminTimelockController;
+        targets[0] = governorAddresses.accessControlEmergencyGovernorWildcardTimelockController;
         values[0] = 0;
         payloads[0] = abi.encodeCall(
             AccessControl.grantRole,
             (
-                TimelockController(payable(governorAddresses.accessControlEmergencyGovernorAdminTimelockController))
+                TimelockController(payable(governorAddresses.accessControlEmergencyGovernorWildcardTimelockController))
                     .PROPOSER_ROLE(),
                 getConfigAddress("gauntlet")
             )
         );
 
-        targets[1] = governorAddresses.accessControlEmergencyGovernorAdminTimelockController;
+        targets[1] = governorAddresses.accessControlEmergencyGovernorWildcardTimelockController;
         values[1] = 0;
         payloads[1] = abi.encodeCall(
             AccessControl.grantRole,
             (
-                TimelockController(payable(governorAddresses.accessControlEmergencyGovernorAdminTimelockController))
+                TimelockController(payable(governorAddresses.accessControlEmergencyGovernorWildcardTimelockController))
                     .CANCELLER_ROLE(),
+                getConfigAddress("gauntlet")
+            )
+        );
+
+        bytes memory data = abi.encodeCall(
+            TimelockController.scheduleBatch,
+            (
+                targets,
+                values,
+                payloads,
+                bytes32(0),
+                bytes32(0),
+                TimelockController(payable(governorAddresses.accessControlEmergencyGovernorWildcardTimelockController))
+                    .getMinDelay()
+            )
+        );
+
+        transaction.create(
+            true,
+            getSafe(),
+            governorAddresses.accessControlEmergencyGovernorWildcardTimelockController,
+            0,
+            data,
+            safeNonce++
+        );
+
+        // simulate timelock execution
+        for (uint256 i = 0; i < targets.length; i++) {
+            vm.prank(governorAddresses.accessControlEmergencyGovernorWildcardTimelockController);
+            (bool success,) = targets[i].call{value: values[i]}(payloads[i]);
+            require(success, "timelock execution simulation failed");
+        }
+
+        targets = new address[](5);
+        values = new uint256[](5);
+        payloads = new bytes[](5);
+
+        targets[0] = governorAddresses.accessControlEmergencyGovernor;
+        values[0] = 0;
+        payloads[0] = abi.encodeCall(
+            AccessControl.grantRole,
+            (
+                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).CAPS_EMERGENCY_ROLE(),
+                getConfigAddress("gauntlet")
+            )
+        );
+
+        targets[1] = governorAddresses.accessControlEmergencyGovernor;
+        values[1] = 0;
+        payloads[1] = abi.encodeCall(
+            AccessControl.grantRole,
+            (
+                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).LTV_EMERGENCY_ROLE(),
                 getConfigAddress("gauntlet")
             )
         );
@@ -73,46 +128,23 @@ contract DeployAndConfigureCapRiskSteward is CustomScriptBase {
         payloads[2] = abi.encodeCall(
             AccessControl.grantRole,
             (
-                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).CAPS_EMERGENCY_ROLE(),
+                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).HOOK_EMERGENCY_ROLE(),
                 getConfigAddress("gauntlet")
             )
         );
 
         targets[3] = governorAddresses.accessControlEmergencyGovernor;
         values[3] = 0;
-        payloads[3] = abi.encodeCall(
-            AccessControl.grantRole,
-            (
-                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).LTV_EMERGENCY_ROLE(),
-                getConfigAddress("gauntlet")
-            )
-        );
+        payloads[3] =
+            abi.encodeCall(AccessControl.grantRole, (IGovernance.setCaps.selector, governorAddresses.capRiskSteward));
 
         targets[4] = governorAddresses.accessControlEmergencyGovernor;
         values[4] = 0;
         payloads[4] = abi.encodeCall(
-            AccessControl.grantRole,
-            (
-                GovernorAccessControlEmergency(governorAddresses.accessControlEmergencyGovernor).HOOK_EMERGENCY_ROLE(),
-                getConfigAddress("gauntlet")
-            )
-        );
-
-        targets[5] = governorAddresses.accessControlEmergencyGovernor;
-        values[5] = 0;
-        payloads[5] =
-            abi.encodeCall(AccessControl.grantRole, (IGovernance.setCaps.selector, governorAddresses.capRiskSteward));
-
-        targets[6] = governorAddresses.accessControlEmergencyGovernor;
-        values[6] = 0;
-        payloads[6] = abi.encodeCall(
             AccessControl.grantRole, (IGovernance.setInterestRateModel.selector, governorAddresses.capRiskSteward)
         );
 
-        SafeTransaction transaction = new SafeTransaction();
-        safeNonce = safeNonce == 0 ? transaction.getNextNonce(getSafe()) : safeNonce;
-
-        bytes memory data = abi.encodeCall(
+        data = abi.encodeCall(
             TimelockController.scheduleBatch,
             (
                 targets,
