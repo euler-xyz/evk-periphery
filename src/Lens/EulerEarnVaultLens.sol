@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {IEulerEarn, IERC4626, MarketConfig, PendingUint192} from "euler-earn/interfaces/IEulerEarn.sol";
+import {
+    IEulerEarn, IERC4626, MarketConfig, PendingUint192, PendingAddress
+} from "euler-earn/interfaces/IEulerEarn.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {UtilsLens} from "./UtilsLens.sol";
 import {Utils} from "./Utils.sol";
@@ -32,6 +34,7 @@ contract EulerEarnVaultLens is Utils {
         result.totalShares = IEulerEarn(vault).totalSupply();
         result.totalAssets = IEulerEarn(vault).totalAssets();
         result.lostAssets = IEulerEarn(vault).lostAssets();
+        result.timelock = IEulerEarn(vault).timelock();
         result.performanceFee = IEulerEarn(vault).fee();
         result.feeReceiver = IEulerEarn(vault).feeRecipient();
         result.owner = IEulerEarn(vault).owner();
@@ -40,6 +43,19 @@ contract EulerEarnVaultLens is Utils {
         result.guardian = IEulerEarn(vault).guardian();
         result.evc = EVCUtil(vault).EVC();
         result.permit2 = IEulerEarn(vault).permit2Address();
+
+        PendingUint192 memory pendingTimelock = IEulerEarn(vault).pendingTimelock();
+        PendingAddress memory pendingGuardian = IEulerEarn(vault).pendingGuardian();
+
+        result.pendingTimelock = pendingTimelock.value;
+        result.pendingTimelockValidAt = pendingTimelock.validAt;
+        result.pendingGuardian = pendingGuardian.value;
+        result.pendingGuardianValidAt = pendingGuardian.validAt;
+
+        result.supplyQueue = new address[](IEulerEarn(vault).supplyQueueLength());
+        for (uint256 i; i < result.supplyQueue.length; ++i) {
+            result.supplyQueue[i] = address(IEulerEarn(vault).supplyQueue(i));
+        }
 
         result.strategies = new EulerEarnVaultStrategyInfo[](IEulerEarn(vault).withdrawQueueLength());
 
