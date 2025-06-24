@@ -435,6 +435,58 @@ abstract contract ScriptUtils is
         vm.stopBroadcast();
     }
 
+    function saveAddresses() internal {
+        vm.writeJson(serializeMultisigAddresses(multisigAddresses), getScriptFilePath("MultisigAddresses_output.json"));
+        vm.writeJson(serializeCoreAddresses(coreAddresses), getScriptFilePath("CoreAddresses_output.json"));
+        vm.writeJson(
+            serializePeripheryAddresses(peripheryAddresses), getScriptFilePath("PeripheryAddresses_output.json")
+        );
+        vm.writeJson(serializeGovernorAddresses(governorAddresses), getScriptFilePath("GovernorAddresses_output.json"));
+        vm.writeJson(serializeTokenAddresses(tokenAddresses), getScriptFilePath("TokenAddresses_output.json"));
+        vm.writeJson(serializeLensAddresses(lensAddresses), getScriptFilePath("LensAddresses_output.json"));
+        vm.writeJson(
+            serializeEulerSwapAddresses(eulerSwapAddresses), getScriptFilePath("EulerSwapAddresses_output.json")
+        );
+        vm.writeJson(serializeBridgeAddresses(bridgeAddresses), getScriptFilePath("BridgeAddresses_output.json"));
+        vm.writeJson(serializeBridgeConfigCache(), getScriptFilePath("BridgeConfigCache_output.json"));
+
+        if (isBroadcast() && !isLocalForkDeployment()) {
+            vm.createDir(getAddressesFilePath("", block.chainid), true);
+
+            vm.writeJson(
+                serializeMultisigAddresses(multisigAddresses),
+                getAddressesFilePath("MultisigAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeCoreAddresses(coreAddresses), getAddressesFilePath("CoreAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializePeripheryAddresses(peripheryAddresses),
+                getAddressesFilePath("PeripheryAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeGovernorAddresses(governorAddresses),
+                getAddressesFilePath("GovernorAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeTokenAddresses(tokenAddresses), getAddressesFilePath("TokenAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeLensAddresses(lensAddresses), getAddressesFilePath("LensAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeEulerSwapAddresses(eulerSwapAddresses),
+                getAddressesFilePath("EulerSwapAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeBridgeAddresses(bridgeAddresses), getAddressesFilePath("BridgeAddresses.json", block.chainid)
+            );
+
+            vm.createDir(string.concat(getAddressesDirPath(), "../config/bridge/"), true);
+            vm.writeJson(serializeBridgeConfigCache(), getBridgeConfigCacheJsonFilePath("BridgeConfigCache.json"));
+        }
+    }
+
     function getWETHAddress() internal view returns (address) {
         if (block.chainid == 1) {
             return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
