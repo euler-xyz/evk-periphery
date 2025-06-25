@@ -8,7 +8,6 @@ import {ManageCluster} from "./ManageCluster.s.sol";
 /// @dev NOTE: Deploy ETH IRM
 contract Cluster is ManageCluster {
     address internal constant yoETH = 0x3A43AEC53490CB9Fa922847385D82fe25d0E9De7;
-    address internal constant WETH_Base = 0x4200000000000000000000000000000000000006;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
@@ -19,14 +18,14 @@ contract Cluster is ManageCluster {
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [yoETH, WETH_Base];
+        cluster.assets = [WETH, yoETH];
     }
 
     function configureCluster() internal override {
         super.configureCluster();
 
         // define unit of account here
-        cluster.unitOfAccount = WETH_Base;
+        cluster.unitOfAccount = WETH;
 
         // define oracle providers here.
         // adapter names can be found in the relevant adapter contract (as returned by the `name` function).
@@ -42,15 +41,15 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            // cluster.irms[WETH_Base  ] = IRM_ADAPTIVE_USD;
+            cluster.irms[WETH] = IRM_ADAPTIVE_ETH;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //               0         1
-            //               USDC      yoUSD
-            /* 0  USDC   */ [LTV_ZERO, LTV_ZERO],
-            /* 1  yoUSD  */ [LTV_LOW, LTV_ZERO]
+            //               WETH      yoETH
+            /* 0  WETH   */ [LTV_ZERO, LTV_ZERO],
+            /* 1  yoETH  */ [LTV__LOW, LTV_ZERO]
         ];
     }
 }

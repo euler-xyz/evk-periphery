@@ -8,7 +8,6 @@ import {ManageCluster} from "./ManageCluster.s.sol";
 /// @dev NOTE: Deploy USD IRM on Base
 contract Cluster is ManageCluster {
     address internal constant yoUSD = 0x0000000f2eB9f69274678c76222B35eEc7588a65;
-    address internal constant USDC_Base = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
@@ -19,7 +18,7 @@ contract Cluster is ManageCluster {
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [yoUSD, USDC_Base];
+        cluster.assets = [USDC, yoUSD];
     }
 
     function configureCluster() internal override {
@@ -38,12 +37,12 @@ contract Cluster is ManageCluster {
         // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[USDC_Base ] = "0x7931F7B211000CA3700d538D6BB058Ca402b5805";
+        cluster.oracleProviders[USDC ] = "0x7931F7B211000CA3700d538D6BB058Ca402b5805";
         cluster.oracleProviders[yoUSD] = "ExternalVault";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            cluster.irms[USDC_Base  ] = IRM_ADAPTIVE_USD;
+            cluster.irms[USDC] = IRM_ADAPTIVE_USD;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
@@ -51,7 +50,7 @@ contract Cluster is ManageCluster {
             //               0         1
             //               USDC      yoUSD
             /* 0  USDC   */ [LTV_ZERO, LTV_ZERO],
-            /* 1  yoUSD  */ [LTV_LOW, LTV_ZERO]
+            /* 1  yoUSD  */ [LTV__LOW, LTV_ZERO]
         ];
     }
 }

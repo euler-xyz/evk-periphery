@@ -42,16 +42,18 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            // cluster.irms[WETH_Base  ] = IRM_ADAPTIVE_USD;
+            cluster.irms[WETH   ] = IRM_ADAPTIVE_ETH;
+            cluster.irms[pufETH ] = IRM_ADAPTIVE_ETH;
+            cluster.irms[xpufETH] = IRM_ADAPTIVE_ETH;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //               0         1
-            //               WETH      pufETH      xpufETH
-            /* 0  WETH   */ [LTV_ZERO, LTV_LOW, LTV_LOW],
-            /* 1  pufETH */ [LTV_LOW, LTV_ZERO, LTV_ZERO],
-            /* 2  xpufETH*/ [LTV_LOW, LTV_HIGH, LTV_ZERO]
+            //               0         1         2
+            //               WETH      pufETH    xpufETH
+            /* 0  WETH   */ [LTV_ZERO, LTV__LOW, LTV__LOW],
+            /* 1  pufETH */ [LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 2  xpufETH*/ [LTV__LOW, LTV_HIGH, LTV_ZERO]
         ];
     }
 }

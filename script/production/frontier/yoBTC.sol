@@ -8,7 +8,7 @@ import {ManageCluster} from "./ManageCluster.s.sol";
 /// @dev NOTE: Deploy BTC IRM
 contract Cluster is ManageCluster {
     address internal constant yoBTC = 0xbCbc8cb4D1e8ED048a6276a5E94A3e952660BcbC;
-    address internal constant cbBTC_Base = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf ;
+    address internal constant cbBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf ;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
@@ -19,14 +19,14 @@ contract Cluster is ManageCluster {
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [yoBTC, cbBTC_Base];
+        cluster.assets = [cbBTC, yoBTC];
     }
 
     function configureCluster() internal override {
         super.configureCluster();
 
         // define unit of account here
-        cluster.unitOfAccount = cbBTC_Base;
+        cluster.unitOfAccount = cbBTC;
 
         // define oracle providers here.
         // adapter names can be found in the relevant adapter contract (as returned by the `name` function).
@@ -42,15 +42,15 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            // cluster.irms[WETH_Base  ] = IRM_ADAPTIVE_USD;
+            cluster.irms[cbBTC] = IRM_ADAPTIVE_BTC;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //               0         1
-            //               USDC      yoUSD
-            /* 0  USDC   */ [LTV_ZERO, LTV_ZERO],
-            /* 1  yoUSD  */ [LTV_LOW, LTV_ZERO]
+            //               cbBTC     yoBTC
+            /* 0  cbBTC  */ [LTV_ZERO, LTV_ZERO],
+            /* 1  yoBTC  */ [LTV__LOW, LTV_ZERO]
         ];
     }
 }

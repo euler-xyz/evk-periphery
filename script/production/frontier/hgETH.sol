@@ -39,20 +39,21 @@ contract Cluster is ManageCluster {
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
         cluster.oracleProviders[hgETH] = "ExternalVault";
-        cluster.oracleProviders[PT_hgETH_26JUN2026] = "TODO";
+        cluster.oracleProviders[PT_hgETH_26JUN2026] = "0x0a521133c4f6505dd730be3296cb48e4d8a776f3";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            // cluster.irms[WETH_Base  ] = IRM_ADAPTIVE_USD;
+            cluster.irms[WETH ] = IRM_ADAPTIVE_ETH;
+            cluster.irms[hgETH] = IRM_ADAPTIVE_ETH;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //                          0         1
             //                          WETH      hgETH      PT_hgETH_26JUN2026
-            /* 0  WETH   */            [LTV_ZERO, LTV_LOW, LTV_ZERO],
-            /* 1  hgETH  */            [LTV_LOW, LTV_ZERO, LTV_ZERO],
-            /* 2  PT_hgETH_26JUN2026*/ [LTV_LOW, LTV_HIGH, LTV_ZERO]
+            /* 0  WETH   */            [LTV_ZERO, LTV__LOW, LTV_ZERO],
+            /* 1  hgETH  */            [LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 2  PT_hgETH_26JUN2026*/ [LTV__LOW, LTV_HIGH, LTV_ZERO]
         ];
     }
 }
