@@ -27,7 +27,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = getDeployer(); //governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -72,7 +72,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[WETH  ] = 50_000;
         cluster.supplyCaps[wstETH] = 30_000;
         cluster.supplyCaps[weETH ] = 30_000;
-        cluster.supplyCaps[WBTC  ] = 1_000;
+        cluster.supplyCaps[WBTC  ] = 600;
         cluster.supplyCaps[ARB   ] = 10_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
@@ -81,7 +81,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[WETH  ] = 45_000;
         cluster.borrowCaps[wstETH] = 15_000;
         cluster.borrowCaps[weETH ] = 15_000;
-        cluster.borrowCaps[WBTC  ] = 900;
+        cluster.borrowCaps[WBTC  ] = 540;
         cluster.borrowCaps[ARB   ] = 8_000_000;
 
         // define IRM classes here and assign them to the assets
