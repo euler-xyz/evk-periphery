@@ -8,6 +8,7 @@ import {ManageCluster} from "./ManageCluster.s.sol";
 /// @dev NOTE: Deploy ETH IRM
 contract Cluster is ManageCluster {
     address internal constant hgETH = 0xc824A08dB624942c5E5F330d56530cD1598859fD;
+    address internal constant rsETH = 0xA1290d69c65A6Fe4DF752f95823fae25cB99e5A7;
     address internal constant PT_hgETH_26JUN2026 = 0x5b1578E2604B91bd7b24F86F0E5EF6C024bB3a14;
 
     function defineCluster() internal override {
@@ -38,7 +39,7 @@ contract Cluster is ManageCluster {
         // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[hgETH] = "ExternalVault";
+        cluster.oracleProviders[hgETH] = "ExternalVault|0x013F30a593718D962c0CeeDe0a66f5f9EF5451b5";
         cluster.oracleProviders[PT_hgETH_26JUN2026] = "0x0a521133c4f6505dd730be3296cb48e4d8a776f3";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly

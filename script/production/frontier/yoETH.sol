@@ -37,7 +37,7 @@ contract Cluster is ManageCluster {
         // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[yoETH] = "ExternalVault";
+        cluster.oracleProviders[yoETH] = "ExternalVault|";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {

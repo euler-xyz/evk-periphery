@@ -38,7 +38,7 @@ contract Cluster is ManageCluster {
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
         cluster.oracleProviders[USDC ] = "0x7931F7B211000CA3700d538D6BB058Ca402b5805";
-        cluster.oracleProviders[yoUSD] = "ExternalVault";
+        cluster.oracleProviders[yoUSD] = "ExternalVault|";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
