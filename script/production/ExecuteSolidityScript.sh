@@ -48,9 +48,10 @@ for rpc_url in "${rpc_urls_array[@]}"; do
         continue
     fi
 
-    echo "Executing the script for RPC URL: $rpc_url"
+    chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+
+    echo "Executing the script for chain id: $chainId"
     if script/utils/executeForgeScript.sh "$scriptPath" "$@"; then
-        chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
         deployment_dir="script/deployments/$deployment_name/$chainId"
         broadcast_dir="broadcast/${scriptName}/$chainId"
         jsonName="${scriptName%.s.*}"
