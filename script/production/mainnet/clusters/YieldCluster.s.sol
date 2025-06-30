@@ -158,13 +158,13 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[mBASIS                   ] = 3_000_000;
         cluster.supplyCaps[mEDGE                    ] = 0;
         cluster.supplyCaps[mMEV                     ] = 0;
-        cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 6_000_000;
+        cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 0;
         cluster.supplyCaps[PT_USDe_31JUL2025        ] = 8_000_000;
-        cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 40_000_000;
+        cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 0;
         cluster.supplyCaps[PT_sUSDe_31JULY2025      ] = 40_000_000;
-        cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 60_000_000;
+        cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 0;
         cluster.supplyCaps[PT_eUSDe_14AUG2025       ] = 70_000_000;
-        cluster.supplyCaps[PT_cUSDO_19JUN2025       ] = 70_000_000;
+        cluster.supplyCaps[PT_cUSDO_19JUN2025       ] = 0;
         cluster.supplyCaps[PT_cUSDO_20NOV2025       ] = 100_000_000;
         cluster.supplyCaps[PT_syrupUSDC_28AUG2025   ] = 15_000_000;
         cluster.supplyCaps[PT_USDS_14AUG2025        ] = 20_000_000;
@@ -191,13 +191,13 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[mBASIS                   ] = 900_000;
         cluster.borrowCaps[mEDGE                    ] = 0;
         cluster.borrowCaps[mMEV                     ] = 0;
-        cluster.borrowCaps[PT_USD0PlusPlus_26JUN2025] = type(uint256).max;
+        cluster.borrowCaps[PT_USD0PlusPlus_26JUN2025] = 0;
         cluster.borrowCaps[PT_USDe_31JUL2025        ] = type(uint256).max;
-        cluster.borrowCaps[PT_sUSDe_29MAY2025       ] = type(uint256).max;
+        cluster.borrowCaps[PT_sUSDe_29MAY2025       ] = 0;
         cluster.borrowCaps[PT_sUSDe_31JULY2025      ] = type(uint256).max;
-        cluster.borrowCaps[PT_eUSDe_29MAY2025       ] = type(uint256).max;
+        cluster.borrowCaps[PT_eUSDe_29MAY2025       ] = 0;
         cluster.borrowCaps[PT_eUSDe_14AUG2025       ] = type(uint256).max;
-        cluster.borrowCaps[PT_cUSDO_19JUN2025       ] = type(uint256).max;
+        cluster.borrowCaps[PT_cUSDO_19JUN2025       ] = 0;
         cluster.borrowCaps[PT_cUSDO_20NOV2025       ] = type(uint256).max;
         cluster.borrowCaps[PT_syrupUSDC_28AUG2025   ] = type(uint256).max;
         cluster.borrowCaps[PT_USDS_14AUG2025        ] = type(uint256).max;
@@ -249,9 +249,7 @@ contract Cluster is ManageCluster {
         cluster.spreadLTV = 0.02e4;
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            cluster.spreadLTVOverride[23][i] = 0.025e4; // PT_sUSDe_29MAY2025 as collateral
             cluster.spreadLTVOverride[24][i] = 0.025e4; // PT_sUSDe_31JULY2025 as collateral
-            cluster.spreadLTVOverride[25][i] = 0.025e4; // PT_eUSDe_29MAY2025 as collateral
             cluster.spreadLTVOverride[26][i] = 0.025e4; // PT_eUSDe_14AUG2025 as collateral
         }
 
@@ -262,17 +260,10 @@ contract Cluster is ManageCluster {
         cluster.spreadLTVOverride[22][11] = 0.01e4; // PT_USDe_31JUL2025/USDe
         cluster.spreadLTVOverride[22][12] = 0.01e4; // PT_USDe_31JUL2025/eUSDe
         cluster.spreadLTVOverride[22][13] = 0.01e4; // PT_USDe_31JUL2025/sUSDe
-
-        cluster.spreadLTVOverride[23][11] = 0.01e4; // PT_sUSDe_29MAY2025/USDe
-        cluster.spreadLTVOverride[23][12] = 0.01e4; // PT_sUSDe_29MAY2025/eUSDe
-        cluster.spreadLTVOverride[23][13] = 0.01e4; // PT_sUSDe_29MAY2025/sUSDe
         
         cluster.spreadLTVOverride[24][11] = 0.01e4; // PT_sUSDe_31JULY2025/USDe
         cluster.spreadLTVOverride[24][12] = 0.01e4; // PT_sUSDe_31JULY2025/eUSDe
         cluster.spreadLTVOverride[24][13] = 0.01e4; // PT_sUSDe_31JULY2025/sUSDe
-
-        cluster.spreadLTVOverride[25][11] = 0.01e4; // PT_eUSDe_29MAY2025/USDe
-        cluster.spreadLTVOverride[25][12] = 0.01e4; // PT_eUSDe_29MAY2025/eUSDe
 
         cluster.spreadLTVOverride[26][11] = 0.01e4; // PT_eUSDe_14AUG2025/USDe
         cluster.spreadLTVOverride[26][12] = 0.01e4; // PT_eUSDe_14AUG2025/eUSDe
@@ -289,7 +280,6 @@ contract Cluster is ManageCluster {
         }
 
         cluster.borrowLTVsOverride[10][9] = 0.86e4; // USD0PlusPlus/USD0
-        cluster.borrowLTVsOverride[21][9] = 0.84e4; // PT_USD0PlusPlus_26JUN2025/USD0
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
@@ -316,13 +306,13 @@ contract Cluster is ManageCluster {
         /* 18 mBASIS                    */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.900e4, 0.00e4, 0.00e4, 0.90e4, 0.900e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 19 mEDGE                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 20 mMEV                      */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 21 PT_USD0PlusPlus_26JUN2025 */ [uint16(0.84e4), 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.84e4, 0.90e4, 0.00e4, 0.840e4, 0.00e4, 0.00e4, 0.84e4, 0.840e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 21 PT_USD0PlusPlus_26JUN2025 */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 22 PT_USDe_31JUL2025         */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.940e4, 0.92e4, 0.92e4, 0.90e4, 0.900e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 23 PT_sUSDe_29MAY2025        */ [uint16(0.88e4), 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.925e4, 0.92e4, 0.94e4, 0.88e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 23 PT_sUSDe_29MAY2025        */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 24 PT_sUSDe_31JULY2025       */ [uint16(0.88e4), 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.925e4, 0.92e4, 0.94e4, 0.88e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 25 PT_eUSDe_29MAY2025        */ [uint16(0.88e4), 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.935e4, 0.94e4, 0.00e4, 0.88e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 25 PT_eUSDe_29MAY2025        */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 26 PT_eUSDe_14AUG2025        */ [uint16(0.88e4), 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.935e4, 0.94e4, 0.00e4, 0.88e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 27 PT_cUSDO_19JUN2025        */ [uint16(0.88e4), 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 27 PT_cUSDO_19JUN2025        */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 28 PT_cUSDO_20NOV2025        */ [uint16(0.88e4), 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.88e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 29 PT_syrupUSDC_28AUG2025    */ [uint16(0.88e4), 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.88e4, 0.00e4, 0.880e4, 0.00e4, 0.00e4, 0.88e4, 0.880e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 30 PT_USDS_14AUG2025         */ [uint16(0.92e4), 0.92e4, 0.92e4, 0.92e4, 0.92e4, 0.95e4, 0.95e4, 0.95e4, 0.95e4, 0.92e4, 0.00e4, 0.920e4, 0.00e4, 0.00e4, 0.92e4, 0.920e4, 0.00e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
