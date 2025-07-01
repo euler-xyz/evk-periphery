@@ -76,11 +76,11 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[weETH ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
         cluster.oracleProviders[ezETH ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
         cluster.oracleProviders[RETH  ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
-        cluster.oracleProviders[wsuperOETHb] = "ExternalVault|0x5A3AD0dA327b48e295961487B4ee1B0F6646e25D"; // Fixed Oracle
+        cluster.oracleProviders[wsuperOETHb] = "ExternalVault|0x5A3AD0dA327b48e295961487B4ee1B0F6646e25D";
         cluster.oracleProviders[USDC  ] = "ChainlinkOracle";
-        cluster.oracleProviders[USDT0  ] = "0x94dae37fdf8302c5800661a93de43b77d8709925"; // "ChainlinkOracle";
+        cluster.oracleProviders[USDT0  ] = "0x94dae37fdf8302c5800661a93de43b77d8709925";
         cluster.oracleProviders[EURC  ] = "ChainlinkOracle";
-        cluster.oracleProviders[cbBTC ] = "ChainlinkOracle";
+        cluster.oracleProviders[cbBTC ] = "0xedcD625e06c487A68b5d9f2a5b020E9BE00b95A7";
         cluster.oracleProviders[LBTC  ] = "CrossAdapter=RedstoneClassicOracle+ChainlinkOracle";
         cluster.oracleProviders[AERO  ] = "ChainlinkOracle";
         cluster.oracleProviders[USDS  ] = "0x847BD1550634c35Ea5d6528B0414e0BE69584010";

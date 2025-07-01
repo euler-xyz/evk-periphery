@@ -574,11 +574,11 @@ abstract contract ScriptUtils is
         if (adapter == address(0) || counter > 1) {
             if (isExternalVault && bytes(provider).length == bytes("ExternalVault|").length + 42) {
                 adapter = _toAddress(_substring(provider, bytes("ExternalVault|").length, type(uint256).max));
+                counter = 0;
             } else if (bytes(provider).length == 42) {
                 adapter = _toAddress(provider);
+                counter = 0;
             }
-
-            counter = 0;
         }
 
         if ((adapter == address(0) && bytes(provider).length != bytes("ExternalVault|").length) || counter > 1) {
