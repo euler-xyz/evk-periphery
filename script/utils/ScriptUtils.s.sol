@@ -18,7 +18,7 @@ import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {IEVault, IGovernance} from "evk/EVault/IEVault.sol";
 import {EulerRouter, Governable} from "euler-price-oracle/EulerRouter.sol";
-import {SafeTransaction} from "./SafeUtils.s.sol";
+import {SafeTransaction, SafeUtil} from "./SafeUtils.s.sol";
 import {BaseFactory} from "../../src/BaseFactory/BaseFactory.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
@@ -407,7 +407,7 @@ abstract contract ScriptUtils is
     TokenAddresses internal tokenAddresses;
     GovernorAddresses internal governorAddresses;
     EulerSwapAddresses internal eulerSwapAddresses;
-    uint256 internal safeNonce = getSafeNonce();
+    uint256 internal safeNonce;
 
     constructor() {
         multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
@@ -419,6 +419,12 @@ abstract contract ScriptUtils is
         governorAddresses = deserializeGovernorAddresses(getAddressesJson("GovernorAddresses.json"));
         eulerSwapAddresses = deserializeEulerSwapAddresses(getAddressesJson("EulerSwapAddresses.json"));
         deserializeBridgeConfigCache(getBridgeConfigCacheJson("BridgeConfigCache.json"));
+
+        safeNonce = getSafeNonce();
+        if (safeNonce == 0) {
+            SafeUtil util = new SafeUtil();
+            safeNonce = util.getNextNonce(getSafe());
+        }
     }
 
     modifier broadcast() {
@@ -943,8 +949,6 @@ abstract contract BatchBuilder is ScriptUtils {
         address payable timelock = payable(getTimelock());
 
         dumpBatch(safe);
-
-        safeNonce = safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce;
 
         if (timelock == address(0) || !allowTimelock) {
             console.log("Executing the batch via Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);

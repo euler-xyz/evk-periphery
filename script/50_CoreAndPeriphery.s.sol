@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {BatchBuilder, Vm, console} from "./utils/ScriptUtils.s.sol";
-import {SafeMultisendBuilder, SafeTransaction, SafeUtil} from "./utils/SafeUtils.s.sol";
+import {SafeMultisendBuilder, SafeTransaction} from "./utils/SafeUtils.s.sol";
 import {LayerZeroUtil} from "./utils/LayerZeroUtils.s.sol";
 import {ERC20BurnableMintableDeployer, RewardTokenDeployer} from "./00_ERC20.s.sol";
 import {Integrations} from "./01_Integrations.s.sol";
@@ -1030,14 +1030,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         executeBatch();
 
         if (multisendItemExists()) {
-            address safe = getSafe();
-
-            if (safeNonce == 0) {
-                SafeUtil util = new SafeUtil();
-                safeNonce = util.getNextNonce(safe);
-            }
-
-            executeMultisend(safe, safeNonce++);
+            executeMultisend(getSafe(), safeNonce++);
         }
 
         saveAddresses();
