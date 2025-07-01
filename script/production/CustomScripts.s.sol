@@ -3,6 +3,13 @@
 pragma solidity ^0.8.0;
 
 import {BatchBuilder} from "../utils/ScriptUtils.s.sol";
+import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
+import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
+import {IGovernance} from "evk/EVault/IEVault.sol";
+import {SafeTransaction} from "../utils/SafeUtils.s.sol";
+import {FactoryGovernor} from "../../src/Governor/FactoryGovernor.sol";
+import {CapRiskSteward} from "../../src/Governor/CapRiskSteward.sol";
+import {GovernorAccessControlEmergency} from "../../src/Governor/GovernorAccessControlEmergency.sol";
 
 abstract contract CustomScriptBase is BatchBuilder {
     function run() public {
@@ -13,12 +20,20 @@ abstract contract CustomScriptBase is BatchBuilder {
     function execute() public virtual {}
 }
 
-import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
-import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
-import {IGovernance} from "evk/EVault/IEVault.sol";
-import {SafeTransaction} from "../utils/SafeUtils.s.sol";
-import {CapRiskSteward} from "../../src/Governor/CapRiskSteward.sol";
-import {GovernorAccessControlEmergency} from "../../src/Governor/GovernorAccessControlEmergency.sol";
+contract UnpauseEVaultFactory is CustomScriptBase {
+    function execute() public override {
+        SafeTransaction transaction = new SafeTransaction();
+
+        transaction.create(
+            true,
+            getSafe(),
+            governorAddresses.eVaultFactoryGovernor,
+            0,
+            abi.encodeCall(FactoryGovernor.unpause, (coreAddresses.eVaultFactory)),
+            safeNonce++
+        );
+    }
+}
 
 contract DeployAndConfigureCapRiskSteward is CustomScriptBase {
     function execute() public override {
@@ -43,7 +58,6 @@ contract DeployAndConfigureCapRiskSteward is CustomScriptBase {
         stopBroadcast();
 
         SafeTransaction transaction = new SafeTransaction();
-        safeNonce = safeNonce == 0 ? transaction.getNextNonce(getSafe()) : safeNonce;
         address[] memory targets = new address[](2);
         uint256[] memory values = new uint256[](2);
         bytes[] memory payloads = new bytes[](2);
