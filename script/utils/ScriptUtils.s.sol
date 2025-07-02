@@ -420,10 +420,11 @@ abstract contract ScriptUtils is
         eulerSwapAddresses = deserializeEulerSwapAddresses(getAddressesJson("EulerSwapAddresses.json"));
         deserializeBridgeConfigCache(getBridgeConfigCacheJson("BridgeConfigCache.json"));
 
+        address safe = getSafe(false);
         safeNonce = getSafeNonce();
-        if (safeNonce == 0) {
+        if (safe != address(0) && safeNonce == 0) {
             SafeUtil util = new SafeUtil();
-            safeNonce = util.getNextNonce(getSafe());
+            safeNonce = util.getNextNonce(safe);
         }
     }
 
