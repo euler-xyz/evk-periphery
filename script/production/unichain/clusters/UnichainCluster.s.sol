@@ -75,10 +75,10 @@ contract Cluster is ManageCluster {
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC  ] = 100_000_000;
         cluster.supplyCaps[USDT0 ] = 100_000_000;
-        cluster.supplyCaps[sUSDC ] = 10_000_000;
+        cluster.supplyCaps[sUSDC ] = 40_000_000;
         cluster.supplyCaps[WETH  ] = 20_000;
         cluster.supplyCaps[wstETH] = 3_000;
-        cluster.supplyCaps[weETH ] = 20_000;
+        cluster.supplyCaps[weETH ] = 30_000;
         cluster.supplyCaps[rsETH ] = 2_000;
         cluster.supplyCaps[ezETH ] = 2_000;
         cluster.supplyCaps[WBTC  ] = 100;
@@ -87,10 +87,10 @@ contract Cluster is ManageCluster {
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC  ] = 90_000_000;
         cluster.borrowCaps[USDT0 ] = 90_000_000;
-        cluster.borrowCaps[sUSDC ] = 8_000_000;
+        cluster.borrowCaps[sUSDC ] = 32_000_000;
         cluster.borrowCaps[WETH  ] = 18_000;
         cluster.borrowCaps[wstETH] = 750;
-        cluster.borrowCaps[weETH ] = 5_000;
+        cluster.borrowCaps[weETH ] = 12_000;
         cluster.borrowCaps[rsETH ] = 500;
         cluster.borrowCaps[ezETH ] = 500;
         cluster.borrowCaps[WBTC  ] = 90;
@@ -104,8 +104,11 @@ contract Cluster is ManageCluster {
             // Base=0.00% APY,  Kink(80.00%)=1.50% APY  Max=40.00% APY
             uint256[4] memory irmSUSDC= [uint256(0), uint256(137312259),  uint256(11863395757), uint256(3435973836)];
 
-            // Base=0% APY  Kink(90%)=2.40% APY  Max=80.00% APY
-            uint256[4] memory irmWETH = [uint256(0), uint256(194425692),  uint256(41617711740), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=2.70% APY  Max=40.00% APY
+            uint256[4] memory irmWETH = [uint256(0), uint256(218407859),  uint256(22859618857), uint256(3865470566)];
+
+            // Base=0.00% APY,  Kink(40.00%)=1.00% APY  Max=80.00% APY
+            uint256[4] memory irmWEETH = [uint256(0), uint256(183536557),  uint256(7105566128), uint256(1717986918)];
 
             // Base=0% APY  Kink(25%)=0.50% APY  Max=80.00% APY
             uint256[4] memory irmLST  = [uint256(0), uint256(147194492),  uint256(5733274237), uint256(1073741824)];
@@ -121,7 +124,7 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[sUSDC ] = irmSUSDC;
             cluster.kinkIRMParams[WETH  ] = irmWETH;
             cluster.kinkIRMParams[wstETH] = irmLST;
-            cluster.kinkIRMParams[weETH ] = irmLST;
+            cluster.kinkIRMParams[weETH ] = irmWEETH;
             cluster.kinkIRMParams[rsETH ] = irmLST;
             cluster.kinkIRMParams[ezETH ] = irmLST;
             cluster.kinkIRMParams[WBTC  ] = irmBTC;

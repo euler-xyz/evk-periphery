@@ -37,7 +37,7 @@ if ! script/utils/checkEnvironment.sh "$@"; then
     exit 1
 fi
 
-eulerEarnCompilerOptions="--optimize --optimizer-runs 800 --use 0.8.27 --out out-euler-earn"
+eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 800 --use 0.8.26 --out out-euler-earn"
 eulerSwapCompilerOptions="--optimize --optimizer-runs 1000000 --use 0.8.27 --out out-euler-swap"
 
 while true; do
@@ -817,14 +817,11 @@ while true; do
                     scriptName=${baseName}.s.sol:LensEulerEarnVaultDeployer
                     jsonName=08_LensEulerEarnVault
                     
-                    read -p "Enter the Oracle Lens address: " oracle_lens
                     read -p "Enter the Utils Lens address: " utils_lens
 
                     jq -n \
-                        --arg oracleLens "$oracle_lens" \
                         --arg utilsLens "$utils_lens" \
                         '{
-                            oracleLens: $oracleLens,
                             utilsLens: $utilsLens
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
@@ -1198,46 +1195,26 @@ while true; do
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         20)
-            echo "Deploying Euler Earn implementation..."
+            echo "Deploying Euler Earn factory..."
 
-            baseName=20_EulerEarnImplementation
+            baseName=20_EulerEarnFactory
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
             read -p "Enter the EVC address: " evc
-            read -p "Enter the Balance Tracker address: " balance_tracker
             read -p "Enter the Permit2 address: " permit2
-            read -p "Enter the isHarvestCoolDownCheckOn flag (t/f): " is_harvest_cool_down_check_on
-
-            forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
-
-            jq -n \
-                --arg evc "$evc" \
-                --arg balanceTracker "$balance_tracker" \
-                --arg permit2 "$permit2" \
-                --argjson isHarvestCoolDownCheckOn "$(jq -n --argjson val \"$isHarvestCoolDownCheckOn\" 'if $val != "f" then true else false end')" \
-                '{
-                    evc: $evc,
-                    balanceTracker: $balanceTracker,
-                    permit2: $permit2,
-                    isHarvestCoolDownCheckOn: $isHarvestCoolDownCheckOn
-                }' --indent 4 > script/${jsonName}_input.json
-            ;;
-        21)
-            echo "Deploying Euler Earn factory..."
-
-            baseName=21_EulerEarnFactory
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
-
-            read -p "Enter the Euler Earn implementation address: " euler_earn_implementation
+            read -p "Enter the Perspective address: " perspective
 
             forge compile lib/euler-earn/src $eulerEarnCompilerOptions
 
             jq -n \
-                --arg eulerEarnImplementation "$euler_earn_implementation" \
+                --arg evc "$evc" \
+                --arg permit2 "$permit2" \
+                --arg evc "$perspective" \
                 '{
-                    eulerEarnImplementation: $eulerEarnImplementation
+                    evc: $evc,
+                    permit2: $permit2,
+                    perspective: $perspective
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         50)
@@ -1298,7 +1275,7 @@ while true; do
                 if [ "$deploy_euler_swap_v1" = "y" ]; then
                     read -p "Enter the Uniswap V4 Pool Manager address (default: address(0) or look up https://docs.uniswap.org/contracts/v4/deployments): " uniswap_pool_manager
                     read -p "Enter the EulerSwap fee owner (default: DAO multisig): " euler_swap_fee_owner
-                    read -p "Enter the EulerSwap fee recipient setter (default: address(0)): " euler_swap_fee_recipient_setter
+                    read -p "Enter the EulerSwap fee recipient setter (default: DAO multisig): " euler_swap_fee_recipient_setter
                 fi
             fi
 
@@ -1315,7 +1292,7 @@ while true; do
             deploy_euler_swap_v1=${deploy_euler_swap_v1:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
             euler_swap_fee_owner=${euler_swap_fee_owner:-$multisig_dao}
-            euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$addressZero}
+            euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$multisig_dao}
 
             if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force

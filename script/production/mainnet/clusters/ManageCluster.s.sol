@@ -69,11 +69,13 @@ abstract contract Addresses {
     address internal constant PT_solvBTC_26DEC2024 = 0x23e479ddcda990E8523494895759bD98cD2fDBF6;
     address internal constant PT_USD0PlusPlus_30JAN2025 = 0x61439b9575278054D69c9176d88FaFaf8319E4b7;
     address internal constant PT_USD0PlusPlus_26JUN2025 = 0xf696FE29Ef85E892b5926313897D178288faA07e;
+    address internal constant PT_USDe_31JUL2025 = 0x917459337CaAC939D41d7493B3999f571D20D667;
     address internal constant PT_sUSDe_29MAY2025 = 0xb7de5dFCb74d25c2f21841fbd6230355C50d9308;
     address internal constant PT_sUSDe_31JULY2025 = 0x3b3fB9C57858EF816833dC91565EFcd85D96f634;
     address internal constant PT_eUSDe_29MAY2025 = 0x50D2C7992b802Eef16c04FeADAB310f31866a545;
     address internal constant PT_eUSDe_14AUG2025 = 0x14Bdc3A3AE09f5518b923b69489CBcAfB238e617;
     address internal constant PT_cUSDO_19JUN2025 = 0x933B9FfEE0Ad3Ef8E4DBb52688ea905826D73755;
+    address internal constant PT_cUSDO_20NOV2025 = 0xB10DA2F9147f9cf2B8826877Cd0c95c18A0f42dc;
     address internal constant PT_syrupUSDC_28AUG2025 = 0xCcE7D12f683c6dAe700154f0BAdf779C0bA1F89A;
     address internal constant PT_USDS_14AUG2025 = 0xFfEc096c087C13Cc268497B89A613cACE4DF9A48;
 }
