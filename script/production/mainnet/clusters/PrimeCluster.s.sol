@@ -100,10 +100,10 @@ contract Cluster is ManageCluster {
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH   ] = 100_000;
         cluster.supplyCaps[wstETH ] = 12_500;
-        cluster.supplyCaps[cbETH  ] = 12_500;
+        cluster.supplyCaps[cbETH  ] = 6_250;
         cluster.supplyCaps[weETH  ] = 18_000;
         cluster.supplyCaps[ezETH  ] = 13_000;
-        cluster.supplyCaps[RETH   ] = 6_250;
+        cluster.supplyCaps[RETH   ] = 3_130;
         cluster.supplyCaps[mETH   ] = 6_250;
         cluster.supplyCaps[rsETH  ] = 36_000;
         cluster.supplyCaps[ETHx   ] = 2_500;
@@ -111,8 +111,8 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDC   ] = 75_000_000;
         cluster.supplyCaps[USDT   ] = 50_000_000;
         cluster.supplyCaps[wM     ] = 5_000_000;
-        cluster.supplyCaps[USDS   ] = 10_000_000;
-        cluster.supplyCaps[sUSDS  ] = 8_000_000;
+        cluster.supplyCaps[USDS   ] = 5_000_000;
+        cluster.supplyCaps[sUSDS  ] = 4_000_000;
         cluster.supplyCaps[USDtb  ] = 20_000_000;
         cluster.supplyCaps[rlUSD  ] = 25_000_000;
         cluster.supplyCaps[WBTC   ] = 600;
@@ -122,10 +122,10 @@ contract Cluster is ManageCluster {
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[WETH   ] = 90_000;
         cluster.borrowCaps[wstETH ] = 5_000;
-        cluster.borrowCaps[cbETH  ] = 5_000;
+        cluster.borrowCaps[cbETH  ] = 2_500;
         cluster.borrowCaps[weETH  ] = 4_500;
         cluster.borrowCaps[ezETH  ] = 3_120;
-        cluster.borrowCaps[RETH   ] = 2_500;
+        cluster.borrowCaps[RETH   ] = 1_250;
         cluster.borrowCaps[mETH   ] = 0;
         cluster.borrowCaps[rsETH  ] = 9_000;
         cluster.borrowCaps[ETHx   ] = 0;
@@ -133,8 +133,8 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDC   ] = 67_500_000;
         cluster.borrowCaps[USDT   ] = 45_000_000;
         cluster.borrowCaps[wM     ] = 4_500_000;
-        cluster.borrowCaps[USDS   ] = 9_000_000;
-        cluster.borrowCaps[sUSDS  ] = 3_200_000;
+        cluster.borrowCaps[USDS   ] = 4_500_000;
+        cluster.borrowCaps[sUSDS  ] = 1_600_000;
         cluster.borrowCaps[USDtb  ] = 18_000_000;
         cluster.borrowCaps[rlUSD  ] = 23_000_000;
         cluster.borrowCaps[WBTC   ] = 510;
