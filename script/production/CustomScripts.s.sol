@@ -6,7 +6,7 @@ import {BatchBuilder} from "../utils/ScriptUtils.s.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {IGovernance} from "evk/EVault/IEVault.sol";
-import {SafeTransaction} from "../utils/SafeUtils.s.sol";
+import {SafeTransaction, SafeMultisendBuilder} from "../utils/SafeUtils.s.sol";
 import {FactoryGovernor} from "../../src/Governor/FactoryGovernor.sol";
 import {CapRiskSteward} from "../../src/Governor/CapRiskSteward.sol";
 import {GovernorAccessControlEmergency} from "../../src/Governor/GovernorAccessControlEmergency.sol";
