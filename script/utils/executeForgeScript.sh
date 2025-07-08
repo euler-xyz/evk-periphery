@@ -124,6 +124,11 @@ if [[ "$@" == *"--no-stub-oracle"* ]]; then
     no_stub_oracle="--no-stub-oracle"
 fi
 
+if [[ "$@" == *"--skip-oft-hub-chain-config"* ]]; then
+    set -- "${@/--skip-oft-hub-chain-config/}"
+    skip_oft_hub_chain_config="--skip-oft-hub-chain-config"
+fi
+
 if [[ -n "$safe_address" ]] || [[ -n "$simulate_safe_address" ]]; then
     if [[ "$@" != *"--ffi"* ]]; then
         set -- "$@" --ffi
@@ -137,7 +142,7 @@ if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce 
     risk_steward_address=$risk_steward_address \
     emergency_ltv_collateral=$emergency_ltv_collateral emergency_ltv_borrowing=$emergency_ltv_borrowing \
     emergency_caps=$emergency_caps emergency_operations=$emergency_operations \
-    vault_address=$vault_address no_stub_oracle=$no_stub_oracle \
+    vault_address=$vault_address no_stub_oracle=$no_stub_oracle skip_oft_hub_chain_config=$skip_oft_hub_chain_config \
     forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
     exit 1
 fi

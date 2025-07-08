@@ -239,6 +239,10 @@ abstract contract ScriptExtended is Script {
             || _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
     }
 
+    function getSkipOFTHubChainConfig() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config", string("")), "--skip-oft-hub-chain-config");
+    }
+
     function getConfigAddress(string memory key) internal view returns (address) {
         return getConfigAddress(key, block.chainid);
     }
