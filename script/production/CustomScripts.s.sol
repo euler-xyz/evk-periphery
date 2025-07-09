@@ -20,6 +20,40 @@ abstract contract CustomScriptBase is BatchBuilder {
     function execute() public virtual {}
 }
 
+import {MockERC20Mintable} from "../utils/MockERC20Mintable.sol";
+import {IEVault} from "evk/EVault/IEVault.sol";
+import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
+
+contract X is CustomScriptBase {
+    function execute() public override broadcast {
+        address[] memory tokens = new address[](3);
+        tokens[0] = 0x83235A46726803c1980A28cE283D90f6281b2530;
+        tokens[1] = 0xcEdc4054676d39716AEF0347b319487989797119;
+        tokens[2] = 0x67D6FeeC2936e3F014a087c442FdC4774C1C30C4;
+
+        address[] memory vaults = new address[](3);
+        vaults[0] = 0xF8B65DebBE84f52E7256AEdd251d067440E75023;
+        vaults[1] = 0xB17e948876d623e56d909717157664CE000f0a5C;
+        vaults[2] = 0x7545F4ee5d8D234E6e7e704C8e033D9740251BA6;
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            MockERC20Mintable(tokens[i]).mint(getDeployer(), uint256(1e6) * 10 ** MockERC20Mintable(tokens[i]).decimals());
+            MockERC20Mintable(tokens[i]).approve(vaults[i], type(uint256).max);
+        }
+
+        address subaccount = address(uint160(getDeployer()) ^ 1);
+        IEVault(vaults[0]).deposit(uint256(1e6) * 10 ** MockERC20Mintable(tokens[0]).decimals(), getDeployer());
+        IEVault(vaults[1]).deposit(uint256(1e6) * 10 ** MockERC20Mintable(tokens[1]).decimals(), getDeployer());
+        IEVault(vaults[2]).deposit(uint256(1e6) * 10 ** MockERC20Mintable(tokens[0]).decimals(), subaccount);
+
+        IEVC(coreAddresses.evc).enableCollateral(subaccount, vaults[2]);
+        IEVC(coreAddresses.evc).enableController(subaccount, vaults[1]);
+        IEVC(coreAddresses.evc).call(
+            vaults[1], subaccount, 0, abi.encodeCall(IEVault(vaults[1]).borrow, (uint256(0.1e6) * 10 ** MockERC20Mintable(tokens[1]).decimals(), getDeployer()))
+        );
+    }
+}
+
 contract UnpauseEVaultFactory is CustomScriptBase {
     function execute() public override {
         SafeTransaction transaction = new SafeTransaction();
