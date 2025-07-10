@@ -37,7 +37,7 @@ if ! script/utils/checkEnvironment.sh "$@"; then
     exit 1
 fi
 
-eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 800 --use 0.8.26 --out out-euler-earn"
+eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26 --out out-euler-earn"
 eulerSwapCompilerOptions="--optimize --optimizer-runs 1000000 --use 0.8.27 --out out-euler-swap"
 
 while true; do
@@ -1275,7 +1275,7 @@ while true; do
                 if [ "$deploy_euler_swap_v1" = "y" ]; then
                     read -p "Enter the Uniswap V4 Pool Manager address (default: address(0) or look up https://docs.uniswap.org/contracts/v4/deployments): " uniswap_pool_manager
                     read -p "Enter the EulerSwap fee owner (default: DAO multisig): " euler_swap_fee_owner
-                    read -p "Enter the EulerSwap fee recipient setter (default: address(0)): " euler_swap_fee_recipient_setter
+                    read -p "Enter the EulerSwap fee recipient setter (default: DAO multisig): " euler_swap_fee_recipient_setter
                 fi
             fi
 
@@ -1292,7 +1292,7 @@ while true; do
             deploy_euler_swap_v1=${deploy_euler_swap_v1:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
             euler_swap_fee_owner=${euler_swap_fee_owner:-$multisig_dao}
-            euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$addressZero}
+            euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$multisig_dao}
 
             if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force

@@ -380,14 +380,20 @@ struct EulerEarnVaultInfoFull {
     uint256 totalShares;
     uint256 totalAssets;
     uint256 lostAssets;
+    uint256 timelock;
     uint256 performanceFee;
     address feeReceiver;
-    address skimRecipient;
+    address owner;
     address creator;
     address curator;
     address guardian;
     address evc;
     address permit2;
+    uint256 pendingTimelock;
+    uint256 pendingTimelockValidAt;
+    address pendingGuardian;
+    uint256 pendingGuardianValidAt;
+    address[] supplyQueue;
     EulerEarnVaultStrategyInfo[] strategies;
 }
 
@@ -398,6 +404,5 @@ struct EulerEarnVaultStrategyInfo {
     uint256 pendingAllocationCap;
     uint256 pendingAllocationCapValidAt;
     uint256 removableAt;
-    bool enabled;
     VaultInfoERC4626 info;
 }

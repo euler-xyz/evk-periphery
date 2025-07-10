@@ -239,6 +239,26 @@ abstract contract ScriptExtended is Script {
             || _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
     }
 
+    function getSkipOFTHubChainConfig() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config", string("")), "--skip-oft-hub-chain-config");
+    }
+
+    function getFromBlock() internal view returns (uint256) {
+        return vm.envOr("from_block", uint256(0));
+    }
+
+    function getToBlock() internal view returns (uint256) {
+        return vm.envOr("to_block", uint256(0));
+    }
+
+    function getConfigAddress(string memory key) internal view returns (address) {
+        return getConfigAddress(key, block.chainid);
+    }
+
+    function getConfigAddress(string memory key, uint256 chainId) internal view returns (address) {
+        return getAddressFromJson(getConfigAddressesJson("MultisigAddresses.json", chainId), string.concat(".", key));
+    }
+
     function getAddressesDirPath() internal view returns (string memory) {
         string memory path = vm.envOr("ADDRESSES_DIR_PATH", string(""));
         path =

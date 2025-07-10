@@ -18,7 +18,7 @@ import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {IEVault, IGovernance} from "evk/EVault/IEVault.sol";
 import {EulerRouter, Governable} from "euler-price-oracle/EulerRouter.sol";
-import {SafeTransaction} from "./SafeUtils.s.sol";
+import {SafeTransaction, SafeUtil} from "./SafeUtils.s.sol";
 import {BaseFactory} from "../../src/BaseFactory/BaseFactory.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
@@ -70,6 +70,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address oracleAdapterRegistry;
         address externalVaultRegistry;
         address kinkIRMFactory;
+        address kinkyIRMFactory;
         address adaptiveCurveIRMFactory;
         address irmRegistry;
         address swapper;
@@ -94,6 +95,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "oracleAdapterRegistry", Addresses.oracleAdapterRegistry);
         result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
         result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
+        result = vm.serializeAddress("peripheryAddresses", "kinkyIRMFactory", Addresses.kinkyIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "adaptiveCurveIRMFactory", Addresses.adaptiveCurveIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "irmRegistry", Addresses.irmRegistry);
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
@@ -133,6 +135,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             oracleAdapterRegistry: getAddressFromJson(json, ".oracleAdapterRegistry"),
             externalVaultRegistry: getAddressFromJson(json, ".externalVaultRegistry"),
             kinkIRMFactory: getAddressFromJson(json, ".kinkIRMFactory"),
+            kinkyIRMFactory: getAddressFromJson(json, ".kinkyIRMFactory"),
             adaptiveCurveIRMFactory: getAddressFromJson(json, ".adaptiveCurveIRMFactory"),
             irmRegistry: getAddressFromJson(json, ".irmRegistry"),
             swapper: getAddressFromJson(json, ".swapper"),
@@ -404,7 +407,7 @@ abstract contract ScriptUtils is
     TokenAddresses internal tokenAddresses;
     GovernorAddresses internal governorAddresses;
     EulerSwapAddresses internal eulerSwapAddresses;
-    uint256 internal safeNonce = getSafeNonce();
+    uint256 internal safeNonce;
 
     constructor() {
         multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
@@ -416,6 +419,13 @@ abstract contract ScriptUtils is
         governorAddresses = deserializeGovernorAddresses(getAddressesJson("GovernorAddresses.json"));
         eulerSwapAddresses = deserializeEulerSwapAddresses(getAddressesJson("EulerSwapAddresses.json"));
         deserializeBridgeConfigCache(getBridgeConfigCacheJson("BridgeConfigCache.json"));
+
+        address safe = getSafe(false);
+        safeNonce = getSafeNonce();
+        if (safe != address(0) && safeNonce == 0) {
+            SafeUtil util = new SafeUtil();
+            safeNonce = util.getNextNonce(safe);
+        }
     }
 
     modifier broadcast() {
@@ -430,6 +440,58 @@ abstract contract ScriptUtils is
 
     function stopBroadcast() internal {
         vm.stopBroadcast();
+    }
+
+    function saveAddresses() internal {
+        vm.writeJson(serializeMultisigAddresses(multisigAddresses), getScriptFilePath("MultisigAddresses_output.json"));
+        vm.writeJson(serializeCoreAddresses(coreAddresses), getScriptFilePath("CoreAddresses_output.json"));
+        vm.writeJson(
+            serializePeripheryAddresses(peripheryAddresses), getScriptFilePath("PeripheryAddresses_output.json")
+        );
+        vm.writeJson(serializeGovernorAddresses(governorAddresses), getScriptFilePath("GovernorAddresses_output.json"));
+        vm.writeJson(serializeTokenAddresses(tokenAddresses), getScriptFilePath("TokenAddresses_output.json"));
+        vm.writeJson(serializeLensAddresses(lensAddresses), getScriptFilePath("LensAddresses_output.json"));
+        vm.writeJson(
+            serializeEulerSwapAddresses(eulerSwapAddresses), getScriptFilePath("EulerSwapAddresses_output.json")
+        );
+        vm.writeJson(serializeBridgeAddresses(bridgeAddresses), getScriptFilePath("BridgeAddresses_output.json"));
+        vm.writeJson(serializeBridgeConfigCache(), getScriptFilePath("BridgeConfigCache_output.json"));
+
+        if (isBroadcast() && !isLocalForkDeployment()) {
+            vm.createDir(getAddressesFilePath("", block.chainid), true);
+
+            vm.writeJson(
+                serializeMultisigAddresses(multisigAddresses),
+                getAddressesFilePath("MultisigAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeCoreAddresses(coreAddresses), getAddressesFilePath("CoreAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializePeripheryAddresses(peripheryAddresses),
+                getAddressesFilePath("PeripheryAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeGovernorAddresses(governorAddresses),
+                getAddressesFilePath("GovernorAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeTokenAddresses(tokenAddresses), getAddressesFilePath("TokenAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeLensAddresses(lensAddresses), getAddressesFilePath("LensAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeEulerSwapAddresses(eulerSwapAddresses),
+                getAddressesFilePath("EulerSwapAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeBridgeAddresses(bridgeAddresses), getAddressesFilePath("BridgeAddresses.json", block.chainid)
+            );
+
+            vm.createDir(string.concat(getAddressesDirPath(), "../config/bridge/"), true);
+            vm.writeJson(serializeBridgeConfigCache(), getBridgeConfigCacheJsonFilePath("BridgeConfigCache.json"));
+        }
     }
 
     function getWETHAddress() internal view returns (address) {
@@ -464,6 +526,11 @@ abstract contract ScriptUtils is
             }
             // hyperEVM
             if (block.chainid == 999) {
+                return address(0);
+            }
+
+            // TAC
+            if (block.chainid == 239) {
                 return address(0);
             }
         }
@@ -514,11 +581,11 @@ abstract contract ScriptUtils is
         if (adapter == address(0) || counter > 1) {
             if (isExternalVault && bytes(provider).length == bytes("ExternalVault|").length + 42) {
                 adapter = _toAddress(_substring(provider, bytes("ExternalVault|").length, type(uint256).max));
+                counter = 0;
             } else if (bytes(provider).length == 42) {
                 adapter = _toAddress(provider);
+                counter = 0;
             }
-
-            counter = 0;
         }
 
         if ((adapter == address(0) && bytes(provider).length != bytes("ExternalVault|").length) || counter > 1) {
@@ -883,8 +950,6 @@ abstract contract BatchBuilder is ScriptUtils {
         address payable timelock = payable(getTimelock());
 
         dumpBatch(safe);
-
-        safeNonce = safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce;
 
         if (timelock == address(0) || !allowTimelock) {
             console.log("Executing the batch via Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);

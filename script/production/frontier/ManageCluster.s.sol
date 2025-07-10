@@ -11,21 +11,37 @@ abstract contract Addresses {
     address internal immutable WETH;
     address internal immutable USDC;
     address internal immutable USDT;
+    address internal immutable IRM_ADAPTIVE_USD;
+    address internal immutable IRM_ADAPTIVE_USD_YB;
+    address internal immutable IRM_ADAPTIVE_ETH;
+    address internal immutable IRM_ADAPTIVE_BTC;
 
     constructor() {
         if (block.chainid == 1) {
             WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
             USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
             USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+        } else if (block.chainid == 8453) {
+            WETH = 0x4200000000000000000000000000000000000006;
+            USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+        }
+
+        if (block.chainid == 1) {
+            IRM_ADAPTIVE_USD = 0x66d56E8Acad6a8fb6914753317cD3277D458E540;
+            IRM_ADAPTIVE_USD_YB = 0x2F9E82B49b542736216DA531EBAC2b6B32f43060;
+            IRM_ADAPTIVE_ETH = 0xF1a82e49c565511DF5aA36eF2b23ba9e4aF0985B;
+            IRM_ADAPTIVE_BTC = 0x6098DEAEB73A1C26626e4a3B87495BD3d6AdA8b3;
+        } else if (block.chainid == 8453) {
+            IRM_ADAPTIVE_USD = 0x17365A5319BB317490dBb000F8073A845E7a1012;
+            IRM_ADAPTIVE_USD_YB = 0x72C9D7c1e9e954c9Dc85E49dB76fF614a335d2a5;
+            IRM_ADAPTIVE_ETH = 0xb70de5cEcA993c08BceE4296E3fEbcc9D7C0AdCD;
+            IRM_ADAPTIVE_BTC = 0x26472E20e09a01AA50a0F2C4d96E99ac58268a8D;
         }
     }
 
     uint16 internal constant LTV_ZERO = 0.0e4;
     uint16 internal constant LTV__LOW = 0.91e4;
     uint16 internal constant LTV_HIGH = 0.95e4;
-
-    address internal constant IRM_ADAPTIVE_USD = 0x66d56E8Acad6a8fb6914753317cD3277D458E540;
-    address internal constant IRM_ADAPTIVE_USD_YB = 0x2F9E82B49b542736216DA531EBAC2b6B32f43060;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {

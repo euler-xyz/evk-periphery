@@ -16,5 +16,7 @@ interface IEulerKinkyIRMFactory is IFactory {
     /// @param kink Utilization at which the slope of the interest rate function changes. In type(uint32).max scale.
     /// @param cutoff Interest rate in second percent yield (SPY) at which the interest rate function is capped
     /// @return The deployment address.
-    function deploy(uint256 baseRate, uint256 slope, uint256 shape, uint32 kink, uint256 cutoff) external returns (address);
+    function deploy(uint256 baseRate, uint256 slope, uint256 shape, uint32 kink, uint256 cutoff)
+        external
+        returns (address);
 }
