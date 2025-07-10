@@ -134,7 +134,12 @@ if [[ "$@" == *"--to-block"* ]]; then
     set -- $(echo "$@" | sed "s/--to-block $to_block//")
 fi
 
-if [[ -n "$safe_address" ]] || [[ -n "$simulate_safe_address" ]]; then
+if [[ "$@" == *"--path "* ]]; then
+    path=$(echo "$@" | grep -o -- '--path [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s#--path $path##")
+fi
+
+if [[ -n "$safe_address" ]] || [[ -n "$simulate_safe_address" ]] || [[ -n "$path" ]]; then
     if [[ "$@" != *"--ffi"* ]]; then
         set -- "$@" --ffi
     fi
@@ -148,7 +153,7 @@ if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce 
     emergency_ltv_collateral=$emergency_ltv_collateral emergency_ltv_borrowing=$emergency_ltv_borrowing \
     emergency_caps=$emergency_caps emergency_operations=$emergency_operations \
     vault_address=$vault_address no_stub_oracle=$no_stub_oracle skip_oft_hub_chain_config=$skip_oft_hub_chain_config \
-    to_block=$to_block \
+    to_block=$to_block path=$path \
     forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
     exit 1
 fi

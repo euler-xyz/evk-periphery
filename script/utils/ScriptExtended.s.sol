@@ -251,6 +251,10 @@ abstract contract ScriptExtended is Script {
         return vm.envOr("to_block", uint256(0));
     }
 
+    function getPath() internal view returns (string memory) {
+        return vm.envOr("path", string(""));
+    }
+
     function getConfigAddress(string memory key) internal view returns (address) {
         return getConfigAddress(key, block.chainid);
     }

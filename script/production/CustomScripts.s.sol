@@ -22,18 +22,21 @@ abstract contract CustomScriptBase is BatchBuilder {
 
 contract MergeSafeBatchBuilderFiles is CustomScriptBase, SafeMultisendBuilder {
     function execute() public override {
-        string memory basePath = "deployments/default/1/output/SafeBatchBuilder_220_0xcAD001c30E96765aC90307669d578219D4fb1DCe_";
+        address safe = getSafe();
+        string memory basePath = string.concat(
+            vm.projectRoot(), "/", getPath(), "/SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), "_"
+        );
 
-        for (uint256 i = 0; i < 10; i++) {
-            string memory path = string.concat(basePath, vm.toString(i), ".json");
-            string memory json = getScriptFile(path);
-            bytes memory data = vm.parseJsonBytes(json, ".transactions[0].data");
+        for (uint256 i = 0; vm.exists(string.concat(basePath, vm.toString(i), ".json")); i++) {
+            string memory json = vm.readFile(string.concat(basePath, vm.toString(i), ".json"));
             address target = vm.parseJsonAddress(json, ".transactions[0].to");
+            uint256 value = vm.parseJsonUint(json, ".transactions[0].value");
+            bytes memory data = vm.parseJsonBytes(json, ".transactions[0].data");
 
-            addMultisendItem(target, data);
+            addMultisendItem(target, value, data);
         }
 
-        executeMultisend(getSafe(), safeNonce++);
+        executeMultisend(safe, safeNonce++);
     }
 }
 
