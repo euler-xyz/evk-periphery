@@ -132,15 +132,17 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[PT_eUSDe_29MAY2025       ] = "CrossAdapter=PendleUniversalOracle+PythOracle";
         cluster.oracleProviders[PT_eUSDe_14AUG2025       ] = "0x29e1163590eb05c84747ede225a11ce555b36ce8";
         cluster.oracleProviders[PT_cUSDO_19JUN2025       ] = "CrossAdapter=PendleUniversalOracle+FixedRateOracle";
-        cluster.oracleProviders[PT_cUSDO_20NOV2025       ] = "0x673222872a407775feab95a7a98f930a2cec53f4";
-        cluster.oracleProviders[PT_syrupUSDC_28AUG2025   ] = "0xe635E116D38ED5db736E620dD5c839a9A119f3F5";
-        cluster.oracleProviders[PT_USDS_14AUG2025        ] = "0x011088B8725eef48cAdFf5fb290E186B2AEd83f5";
+        cluster.oracleProviders[PT_cUSDO_20NOV2025       ] = "0x673222872a407775feab95a7a98f930a2cec53f4"; //"CrossAdapter=PendleUniversalOracle+FixedRateOracle";
+        cluster.oracleProviders[PT_syrupUSDC_28AUG2025   ] = "0xe635E116D38ED5db736E620dD5c839a9A119f3F5"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
+        cluster.oracleProviders[PT_USDS_14AUG2025        ] = "0x011088B8725eef48cAdFf5fb290E186B2AEd83f5"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
+        
+        cluster.oracleProviders[sBUIDL                   ] = "ExternalVault|0x1CF7192cF739675186653D453828C0A670ed5Cd9";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[USDC                     ] = 225_000_000;
+        cluster.supplyCaps[USDC                     ] = 300_000_000;
         cluster.supplyCaps[USDT                     ] = 50_000_000;
         cluster.supplyCaps[PYUSD                    ] = 5_000_000;
-        cluster.supplyCaps[rlUSD                    ] = 150_000_000;
+        cluster.supplyCaps[rlUSD                    ] = 200_000_000;
         cluster.supplyCaps[wM                       ] = 5_000_000;
         cluster.supplyCaps[USDS                     ] = 5_000_000;
         cluster.supplyCaps[sUSDS                    ] = 8_000_000;
@@ -163,17 +165,17 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_sUSDe_29MAY2025       ] = 0;
         cluster.supplyCaps[PT_sUSDe_31JULY2025      ] = 40_000_000;
         cluster.supplyCaps[PT_eUSDe_29MAY2025       ] = 0;
-        cluster.supplyCaps[PT_eUSDe_14AUG2025       ] = 70_000_000;
+        cluster.supplyCaps[PT_eUSDe_14AUG2025       ] = 35_000_000;
         cluster.supplyCaps[PT_cUSDO_19JUN2025       ] = 0;
         cluster.supplyCaps[PT_cUSDO_20NOV2025       ] = 100_000_000;
-        cluster.supplyCaps[PT_syrupUSDC_28AUG2025   ] = 15_000_000;
-        cluster.supplyCaps[PT_USDS_14AUG2025        ] = 20_000_000;
+        cluster.supplyCaps[PT_syrupUSDC_28AUG2025   ] = 45_000_000;
+        cluster.supplyCaps[PT_USDS_14AUG2025        ] = 10_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[USDC                     ] = 200_000_000;
+        cluster.borrowCaps[USDC                     ] = 270_000_000;
         cluster.borrowCaps[USDT                     ] = 45_000_000;
         cluster.borrowCaps[PYUSD                    ] = 4_500_000;
-        cluster.borrowCaps[rlUSD                    ] = 100_000_000;
+        cluster.borrowCaps[rlUSD                    ] = 180_000_000;
         cluster.borrowCaps[wM                       ] = 4_500_000;
         cluster.borrowCaps[USDS                     ] = 4_500_000;
         cluster.borrowCaps[sUSDS                    ] = 2_400_000;
@@ -324,7 +326,8 @@ contract Cluster is ManageCluster {
         //                                 0                1       2       3       4       5       6       7       8       9       10      11      12      13      14      15      16      17      18      19      20      21      22      23      24      25      26      27      28      29      30      31      32      33      34      35
         //                                 USDC             USDT    PYUSD   rlUSD   wM      USDS    sUSDS   DAI     sDAI    USD0    USD0++  USDe    eUSDe   sUSDe   USDtb   rUSD    srUSD syrupUSDC mBASIS  mEDGE   mMEV    PT_USD0PlusPlus_26JUN2025 PT_sUSDe_29MAY2025 PT_USDe_31JUL2025 PT_sUSDe_31JULY2025 PT_eUSDe_29MAY2025 PT_eUSDe_14AUG2025 PT_cUSDO_19JUN2025 PT_cUSDO_20NOV2025 PT_syrupUSDC_28AUG2025 PT_USDS_14AUG2025
         /* 0  Prime USDC                */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 1  Prime USDT                */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
+        /* 1  Prime USDT                */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 2  RWA sBUIDL                */ [uint16(0.95e4), 0.95e4, 0.95e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
     }
 
