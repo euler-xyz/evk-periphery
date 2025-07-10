@@ -136,8 +136,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[PT_syrupUSDC_28AUG2025   ] = "0xe635E116D38ED5db736E620dD5c839a9A119f3F5"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
         cluster.oracleProviders[PT_USDS_14AUG2025        ] = "0x011088B8725eef48cAdFf5fb290E186B2AEd83f5"; //"CrossAdapter=PendleUniversalOracle+PythOracle";
         
-        
-        cluster.oracleProviders[sBUIDL                   ] = "ExternalVault|";
+        cluster.oracleProviders[sBUIDL                   ] = "ExternalVault|0x1CF7192cF739675186653D453828C0A670ed5Cd9";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC                     ] = 300_000_000;

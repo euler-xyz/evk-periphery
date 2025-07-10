@@ -101,8 +101,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[cbBTC  ] = "0xd0156a894f2d14b127a8c37360d6879891f62efa"; // "CrossAdapter=FixedRateOracle+ChainlinkOracle";
         cluster.oracleProviders[LBTC   ] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
         
-        
-        cluster.oracleProviders[sBUIDL ] = "ExternalVault|";
+        cluster.oracleProviders[sBUIDL ] = "ExternalVault|0x1CF7192cF739675186653D453828C0A670ed5Cd9";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH   ] = 100_000;
