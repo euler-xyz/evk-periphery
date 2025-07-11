@@ -129,9 +129,34 @@ if [[ "$@" == *"--skip-oft-hub-chain-config"* ]]; then
     skip_oft_hub_chain_config="--skip-oft-hub-chain-config"
 fi
 
+if [[ "$@" == *"--from-block"* ]]; then
+    from_block=$(echo "$@" | grep -o '\--from-block [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--from-block $from_block//")
+fi
+
 if [[ "$@" == *"--to-block"* ]]; then
     to_block=$(echo "$@" | grep -o '\--to-block [^ ]*' | cut -d ' ' -f 2)
     set -- $(echo "$@" | sed "s/--to-block $to_block//")
+fi
+
+if [[ "$@" == *"--source-wallet"* ]]; then
+    source_wallet=$(echo "$@" | grep -o '\--source-wallet [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--source-wallet $source_wallet//")
+fi
+
+if [[ "$@" == *"--destination-wallet"* ]]; then
+    destination_wallet=$(echo "$@" | grep -o '\--destination-wallet [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--destination-wallet $destination_wallet//")
+fi
+
+if [[ "$@" == *"--source-account-id"* ]]; then
+    source_account_id=$(echo "$@" | grep -o '\--source-account-id [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--source-account-id $source_account_id//")
+fi
+
+if [[ "$@" == *"--destination-account-id"* ]]; then
+    destination_account_id=$(echo "$@" | grep -o '\--destination-account-id [^ ]*' | cut -d ' ' -f 2)
+    set -- $(echo "$@" | sed "s/--destination-account-id $destination_account_id//")
 fi
 
 if [[ "$@" == *"--path "* ]]; then
@@ -149,11 +174,12 @@ if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce 
     safe_owner_simulate=$safe_owner_simulate skip_pending_simulation=$skip_pending_simulation \
     simulate_safe_address=$simulate_safe_address simulate_timelock_address=$simulate_timelock_address \
     timelock_address=$timelock_address timelock_id=$timelock_id timelock_salt=$timelock_salt \
-    risk_steward_address=$risk_steward_address \
+    risk_steward_address=$risk_steward_address path=$path \
     emergency_ltv_collateral=$emergency_ltv_collateral emergency_ltv_borrowing=$emergency_ltv_borrowing \
     emergency_caps=$emergency_caps emergency_operations=$emergency_operations \
     vault_address=$vault_address no_stub_oracle=$no_stub_oracle skip_oft_hub_chain_config=$skip_oft_hub_chain_config \
-    to_block=$to_block path=$path \
+    from_block=$from_block to_block=$to_block source_wallet=$source_wallet destination_wallet=$destination_wallet \
+    source_account_id=$source_account_id destination_account_id=$destination_account_id \
     forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
     exit 1
 fi
