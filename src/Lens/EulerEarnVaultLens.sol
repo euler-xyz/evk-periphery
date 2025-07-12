@@ -60,19 +60,44 @@ contract EulerEarnVaultLens is Utils {
         result.strategies = new EulerEarnVaultStrategyInfo[](IEulerEarn(vault).withdrawQueueLength());
 
         for (uint256 i; i < result.strategies.length; ++i) {
-            IERC4626 strategy = IEulerEarn(vault).withdrawQueue(i);
-            MarketConfig memory config = IEulerEarn(vault).config(strategy);
-            PendingUint192 memory pendingConfig = IEulerEarn(vault).pendingCap(strategy);
-
-            result.strategies[i].strategy = address(strategy);
-            result.strategies[i].assetsAllocated = strategy.previewRedeem(strategy.balanceOf(vault));
-            result.strategies[i].currentAllocationCap = config.cap;
-            result.strategies[i].pendingAllocationCap = pendingConfig.value;
-            result.strategies[i].pendingAllocationCapValidAt = pendingConfig.validAt;
-            result.strategies[i].removableAt = config.removableAt;
-            result.strategies[i].info = utilsLens.getVaultInfoERC4626(result.strategies[i].strategy);
+            result.strategies[i] = getStrategyInfo(vault, address(IEulerEarn(vault).withdrawQueue(i)));
         }
 
         return result;
+    }
+
+    function getStrategiesInfo(address vault, address[] calldata strategies)
+        public
+        view
+        returns (EulerEarnVaultStrategyInfo[] memory)
+    {
+        EulerEarnVaultStrategyInfo[] memory result = new EulerEarnVaultStrategyInfo[](strategies.length);
+
+        for (uint256 i; i < strategies.length; ++i) {
+            result[i] = getStrategyInfo(vault, strategies[i]);
+        }
+
+        return result;
+    }
+
+    function getStrategyInfo(address _vault, address _strategy)
+        public
+        view
+        returns (EulerEarnVaultStrategyInfo memory)
+    {
+        IEulerEarn vault = IEulerEarn(_vault);
+        IERC4626 strategy = IERC4626(_strategy);
+        MarketConfig memory config = vault.config(strategy);
+        PendingUint192 memory pendingConfig = vault.pendingCap(strategy);
+
+        return EulerEarnVaultStrategyInfo({
+            strategy: _strategy,
+            assetsAllocated: strategy.previewRedeem(strategy.balanceOf(_vault)),
+            currentAllocationCap: config.cap,
+            pendingAllocationCap: pendingConfig.value,
+            pendingAllocationCapValidAt: pendingConfig.validAt,
+            removableAt: config.removableAt,
+            info: utilsLens.getVaultInfoERC4626(_strategy)
+        });
     }
 }

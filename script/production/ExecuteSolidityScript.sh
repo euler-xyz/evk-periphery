@@ -73,6 +73,13 @@ for rpc_url in "${rpc_urls_array[@]}"; do
             mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
         done
 
+        for txt_file in script/*.txt; do
+            txtFileName=$(basename "$txt_file")
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$txtFileName")
+
+            mv "$txt_file" "$deployment_dir/output/${txtFileName%.txt}_$counter.txt"
+        done
+
         for csv_file in script/*.csv; do
             csvFileName=$(basename "$csv_file")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$csvFileName")

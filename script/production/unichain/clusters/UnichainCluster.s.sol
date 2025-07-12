@@ -75,7 +75,7 @@ contract Cluster is ManageCluster {
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC  ] = 100_000_000;
         cluster.supplyCaps[USDT0 ] = 100_000_000;
-        cluster.supplyCaps[sUSDC ] = 40_000_000;
+        cluster.supplyCaps[sUSDC ] = 80_000_000;
         cluster.supplyCaps[WETH  ] = 20_000;
         cluster.supplyCaps[wstETH] = 3_000;
         cluster.supplyCaps[weETH ] = 30_000;
@@ -87,7 +87,7 @@ contract Cluster is ManageCluster {
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC  ] = 90_000_000;
         cluster.borrowCaps[USDT0 ] = 90_000_000;
-        cluster.borrowCaps[sUSDC ] = 32_000_000;
+        cluster.borrowCaps[sUSDC ] = 64_000_000;
         cluster.borrowCaps[WETH  ] = 18_000;
         cluster.borrowCaps[wstETH] = 750;
         cluster.borrowCaps[weETH ] = 12_000;
