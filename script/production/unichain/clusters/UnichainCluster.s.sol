@@ -73,7 +73,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[UNI   ] = "0x7e262cd6226328aaf4ea5c993a952e18dd633bc8";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[USDC  ] = 100_000_000;
+        cluster.supplyCaps[USDC  ] = 150_000_000;
         cluster.supplyCaps[USDT0 ] = 100_000_000;
         cluster.supplyCaps[sUSDC ] = 80_000_000;
         cluster.supplyCaps[WETH  ] = 20_000;
@@ -85,7 +85,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[UNI   ] = 500_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[USDC  ] = 90_000_000;
+        cluster.borrowCaps[USDC  ] = 135_000_000;
         cluster.borrowCaps[USDT0 ] = 90_000_000;
         cluster.borrowCaps[sUSDC ] = 64_000_000;
         cluster.borrowCaps[WETH  ] = 18_000;

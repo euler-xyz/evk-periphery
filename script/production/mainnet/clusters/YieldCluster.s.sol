@@ -154,8 +154,8 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDtb                    ] = 10_000_000;
         cluster.supplyCaps[rUSD                     ] = 30_000_000;
         cluster.supplyCaps[srUSD                    ] = 30_000_000;
-        cluster.supplyCaps[syrupUSDC                ] = 10_000_000;
-        cluster.supplyCaps[mBASIS                   ] = 3_000_000;
+        cluster.supplyCaps[syrupUSDC                ] = 5_000_000;
+        cluster.supplyCaps[mBASIS                   ] = 1_500_000;
         cluster.supplyCaps[mEDGE                    ] = 0;
         cluster.supplyCaps[mMEV                     ] = 0;
         cluster.supplyCaps[PT_USD0PlusPlus_26JUN2025] = 0;
@@ -187,7 +187,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDtb                    ] = 9_000_000;
         cluster.borrowCaps[rUSD                     ] = 27_000_000;
         cluster.borrowCaps[srUSD                    ] = type(uint256).max;
-        cluster.borrowCaps[syrupUSDC                ] = 9_000_000;
+        cluster.borrowCaps[syrupUSDC                ] = 4_500_000;
         cluster.borrowCaps[mBASIS                   ] = 900_000;
         cluster.borrowCaps[mEDGE                    ] = 0;
         cluster.borrowCaps[mMEV                     ] = 0;
