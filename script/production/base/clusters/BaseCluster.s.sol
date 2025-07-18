@@ -137,8 +137,8 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(25%)=4.60% APY  Max=848.77% APY
             uint256[4] memory irmETH_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
 
-            // Base=0% APY,  Kink(90%)=5.00% APY  Max=80.00% APY
-            uint256[4] memory irmUSD       = [uint256(0), uint256(399976852),  uint256(39767751304), uint256(3865470566)];
+            // Base=0% APY,  Kink(90%)=6.50% APY  Max=40.00% APY
+            uint256[4] memory irmUSD       = [uint256(0), uint256(516261061),  uint256(20178940043), uint256(3865470566)];
 
             // Base=0% APY,  Kink(25%)=2.50% APY  Max=100.00% APY
             uint256[4] memory irmBTC_LRT   = [uint256(0), uint256(728739169), uint256(6575907893), uint256(1073741824)];

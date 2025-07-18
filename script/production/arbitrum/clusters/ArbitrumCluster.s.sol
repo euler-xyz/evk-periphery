@@ -103,11 +103,11 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(50%)=1.00% APY  Max=40.00% APY
             uint256[4] memory irmETH_LST = [uint256(0), uint256(146829246),  uint256(4818228676), uint256(2147483648)];
 
-            // Base=0% APY,  Kink(90%)=6.00% APY  Max=40.00% APY
-            uint256[4] memory irmUSD_1   = [uint256(0), uint256(477682641),  uint256(20526145828), uint256(3865470566)];
+            // Base=0% APY,  Kink(90%)=6.50% APY  Max=40.00% APY
+            uint256[4] memory irmUSD_1   = [uint256(0), uint256(516261061),  uint256(20178940043), uint256(3865470566)];
 
-            // Base=0% APY,  Kink(80%)=1.50% APY  Max=40.00% APY
-            uint256[4] memory irmUSD_2   = [uint256(0), uint256(137312259),  uint256(11863395757), uint256(3435973836)];
+            // Base=0% APY,  Kink(80%)=2.00% APY  Max=40.00% APY
+            uint256[4] memory irmUSD_2   = [uint256(0), uint256(182632435),  uint256(11682115056), uint256(3435973836)];
 
             // Base=0% APY,  Kink(80%)=5.00% APY  Max=80.00% APY
             uint256[4] memory irmDEFI    = [uint256(0), uint256(449973958),  uint256(19883875652), uint256(3435973836)];

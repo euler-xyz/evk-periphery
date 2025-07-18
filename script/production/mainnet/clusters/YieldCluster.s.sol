@@ -207,19 +207,19 @@ contract Cluster is ManageCluster {
         // define IRM classes here and assign them to the assets
         {
             // Base=0.00% APY,  Kink(90.00%)=7.50% APY  Max=40.00% APY
-            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(0), uint256(592877497), uint256(19489392122), uint256(3865470566)];
+            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(0), uint256(630918865), uint256(10785505476), uint256(3865470566)];
 
             // Base=0% APY,  Kink(30%)=12.75% APY  Max=848.77% APY
             uint256[4] memory irm_USD_3_MEGA_YIELD = [uint256(0), uint256(2951312420), uint256(22450463582), uint256(1288490188)];
 
-            // Base=0.00% APY,  Kink(85.00%)=7.00% APY  Max=40.00% APY
-            uint256[4] memory irm_eUSDe            = [uint256(0), uint256(587285771), uint256(13222240360), uint256(3650722201)];
+            // Base=0.00% APY,  Kink(85.00%)=7.50% APY  Max=40.00% APY
+            uint256[4] memory irm_eUSDe            = [uint256(0), uint256(627752644), uint256(12992928081), uint256(3650722201)];
 
             // Base=0% APY,  Kink(30%)=2.00% APY  Max=80.00% APY
             uint256[4] memory irm_sUSDe            = [uint256(0), uint256(487019827), uint256(5986640502), uint256(1288490188)];
 
-            // Base=0% APY,  Kink(90%)=7.00% APY  Max=40.00% APY
-            uint256[4] memory irm_rUSD             = [uint256(0), uint256(554658784), uint256(19833360540), uint256(3865470566)];
+            // Base=0% APY,  Kink(90%)=7.50% APY  Max=40.00% APY
+            uint256[4] memory irm_rUSD             = [uint256(0), uint256(592877497), uint256(19489392122), uint256(3865470566)];
 
             // Base=0% APY,  Kink(90%)=1.50% APY  Max=80.00% APY
             uint256[4] memory irm_syrupUSDC        = [uint256(0), uint256(122055342), uint256(42269044890), uint256(3865470566)];
