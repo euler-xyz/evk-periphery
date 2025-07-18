@@ -540,8 +540,6 @@ contract SafeMultisendBuilder is SafeUtil {
 
         console.log("\nExecuting the multicall via Safe (%s)", safe);
 
-        _simulateMultisend(safe);
-
         SafeTransaction transaction = new SafeTransaction();
 
         _dumpMultisendBatchBuilderFile(
@@ -549,7 +547,7 @@ contract SafeMultisendBuilder is SafeUtil {
         );
 
         transaction.create(
-            false, safe, _getMultisendAddress(block.chainid), _getMultisendValue(), _getMultisendCalldata(), safeNonce
+            false, safe, _getMultisendAddress(block.chainid), _getMultisendValue(), _getMultisendCalldata(), safeNonce++
         );
 
         delete multisendItems;

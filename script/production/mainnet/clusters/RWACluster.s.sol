@@ -64,13 +64,13 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDC  ] = 100_000_000; 
         cluster.supplyCaps[USDT  ] = 100_000_000;
         cluster.supplyCaps[rlUSD ] = 100_000_000;
-        cluster.supplyCaps[sBUIDL] = 100_000_000;
+        cluster.supplyCaps[sBUIDL] = 1_100_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC  ] = 90_000_00;
         cluster.borrowCaps[USDT  ] = 90_000_00;
         cluster.borrowCaps[rlUSD ] = 90_000_00;
-        cluster.borrowCaps[sBUIDL] = 90_000_00;
+        cluster.borrowCaps[sBUIDL] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
         {
@@ -80,7 +80,6 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[USDC  ] = irm;
             cluster.kinkIRMParams[USDT  ] = irm;
             cluster.kinkIRMParams[rlUSD ] = irm;
-            cluster.kinkIRMParams[sBUIDL] = irm;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down

@@ -1,5 +1,7 @@
 {
-  "externalVaults": [],
+  "externalVaults": [
+    "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2"
+  ],
   "irms": [
     "0xF1a82e49c565511DF5aA36eF2b23ba9e4aF0985B",
     "0xF1a82e49c565511DF5aA36eF2b23ba9e4aF0985B",

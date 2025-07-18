@@ -380,6 +380,7 @@ struct EulerEarnVaultInfoFull {
     uint256 totalShares;
     uint256 totalAssets;
     uint256 lostAssets;
+    uint256 availableAssets;
     uint256 timelock;
     uint256 performanceFee;
     address feeReceiver;
@@ -399,7 +400,8 @@ struct EulerEarnVaultInfoFull {
 
 struct EulerEarnVaultStrategyInfo {
     address strategy;
-    uint256 assetsAllocated;
+    uint256 allocatedAssets;
+    uint256 availableAssets;
     uint256 currentAllocationCap;
     uint256 pendingAllocationCap;
     uint256 pendingAllocationCapValidAt;

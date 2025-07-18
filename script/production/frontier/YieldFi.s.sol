@@ -5,19 +5,19 @@ pragma solidity ^0.8.0;
 import {ManageCluster} from "./ManageCluster.s.sol";
 
 contract Cluster is ManageCluster {
-    address internal constant DOLA  = 0x865377367054516e17014CcdED1e7d814EDC9ce4;
-    address internal constant sDOLA = 0xb45ad160634c528Cc3D2926d9807104FA3157305;
+    address internal constant yUSD     = 0x19Ebd191f7A24ECE672ba13A302212b5eF7F35cb;
+    address internal constant PT_yUSD  = 0xD1d0fF7BB555f57A9604CE06bca704ab97A0049A;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/frontier/sDOLA.json";
+        cluster.clusterAddressesPath = "/script/production/frontier/YieldFi.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other
         // arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [USDC, USDT, DOLA, sDOLA];
+        cluster.assets = [USDC, USDT, yUSD, PT_yUSD];
     }
 
     function configureCluster() internal override {
@@ -36,35 +36,35 @@ contract Cluster is ManageCluster {
         // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[USDC                ] = "0xD35657aE033A86FFa8fc6Bc767C5eb57C7c3D4B8";
-        cluster.oracleProviders[USDT                ] = "0x575Ffc02361368A2708c00bC7e299d1cD1c89f8A";
-        cluster.oracleProviders[DOLA                ] = "0x6E91fBd747B6bEa1720b324c54Fb66a1619bcb36";
-        cluster.oracleProviders[sDOLA               ] = "ExternalVault|0x6E91fBd747B6bEa1720b324c54Fb66a1619bcb36";
+        cluster.oracleProviders[USDC      ] = "0xD35657aE033A86FFa8fc6Bc767C5eb57C7c3D4B8";
+        cluster.oracleProviders[USDT      ] = "0x575Ffc02361368A2708c00bC7e299d1cD1c89f8A";
+        cluster.oracleProviders[yUSD      ] = "ExternalVault|0xD35657aE033A86FFa8fc6Bc767C5eb57C7c3D4B8";
+        cluster.oracleProviders[PT_yUSD   ] = "0x5Bc6C01611dC945eA2F05d9e5d670846bD3a554C";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
             // Base=0% APY  Kink(90%)=2.7% APY  Max=40.00% APY
             //cluster.kinkIRMParams[WETH] = [uint256(0), uint256(218407859), uint256(22859618857), uint256(3865470566)];
 
-            cluster.irms[USDC  ] = IRM_ADAPTIVE_USD;
-            cluster.irms[USDT  ] = IRM_ADAPTIVE_USD;
-            cluster.irms[DOLA  ] = IRM_ADAPTIVE_USD;
+            cluster.irms[USDC   ] = IRM_ADAPTIVE_USD;
+            cluster.irms[USDT   ] = IRM_ADAPTIVE_USD;
+            cluster.irms[yUSD   ] = IRM_ADAPTIVE_USD_YB;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //               0          1         2         3
-            //               USDC       USDT      DOLA      sDOLA
-            /* 0  USDC    */ [LTV_ZERO, LTV_HIGH, LTV__LOW, LTV_ZERO],
-            /* 1  USDT    */ [LTV_HIGH, LTV_ZERO, LTV__LOW, LTV_ZERO],
-            /* 2  DOLA    */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO],
-            /* 3  sDOLA   */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO]
+            //                  0         1         2         3
+            //                  USDC      USDT      yUSD      PT_yUSD
+            /* 0  USDC      */ [LTV_ZERO, LTV_HIGH, LTV_ZERO, LTV_ZERO],
+            /* 1  USDT      */ [LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 2  yUSD      */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO],
+            /* 3  PT_yUSD   */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         cluster.externalLTVs = [
         //                     0         1         2         3
-        //                     USDC      USDT      DOLA      sDOLA
+        //                     USDC      USDT      yUSD      PT_yUSD
         /* 0  Prime USDC   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO],
         /* 1  Prime USDT   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO]
         ];

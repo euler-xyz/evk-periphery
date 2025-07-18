@@ -22,8 +22,6 @@ contract Cluster is ManageCluster {
     function configureCluster() internal override {
         super.configureCluster();
 
-        cluster.vaultsGovernor = getDeployer();
-
         // define unit of account here
         cluster.unitOfAccount = EUL;
 
@@ -41,8 +39,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            // Base=0% APY  Kink(90%)=5.0% APY  Max=20.00% APY
-            cluster.kinkIRMParams[EUL] = [uint256(0), uint256(399976852), uint256(9852092153), uint256(3865470566)];
+            // Base=0% APY  Kink(95%)=6.0% APY  Max=12.00% APY
+            cluster.kinkIRMParams[EUL] = [uint256(0), uint256(452541449), uint256(8124741138), uint256(4080218931)];
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
