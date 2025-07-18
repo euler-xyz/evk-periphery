@@ -251,6 +251,26 @@ abstract contract ScriptExtended is Script {
         return vm.envOr("to_block", uint256(0));
     }
 
+    function getSourceWallet() internal view returns (address) {
+        return vm.envOr("source_wallet", address(0));
+    }
+
+    function getDestinationWallet() internal view returns (address) {
+        return vm.envOr("destination_wallet", address(0));
+    }
+
+    function getSourceAccountId() internal view returns (uint8) {
+        return uint8(vm.envOr("source_account_id", uint256(0)));
+    }
+
+    function getDestinationAccountId() internal view returns (uint8) {
+        return uint8(vm.envOr("destination_account_id", uint256(0)));
+    }
+
+    function getPath() internal view returns (string memory) {
+        return vm.envOr("path", string(""));
+    }
+
     function getConfigAddress(string memory key) internal view returns (address) {
         return getConfigAddress(key, block.chainid);
     }

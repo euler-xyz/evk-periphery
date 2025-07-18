@@ -472,7 +472,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- OFT Adapter already deployed. Skipping...");
         }
 
-        if (containsOftHubChainId(block.chainid) && bridgeAddresses.oftAdapter != address(0) && !getSkipOFTHubChainConfig()) {
+        if (
+            containsOftHubChainId(block.chainid) && bridgeAddresses.oftAdapter != address(0)
+                && !getSkipOFTHubChainConfig()
+        ) {
             console.log("+ Attempting to configure OFT Adapter on chain %s", block.chainid);
 
             LayerZeroUtil lzUtil = new LayerZeroUtil();

@@ -24,6 +24,7 @@ abstract contract Addresses {
         } else if (block.chainid == 8453) {
             WETH = 0x4200000000000000000000000000000000000006;
             USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+            USDT = 0x102d758f688a4C1C5a80b116bD945d4455460282;
         }
 
         if (block.chainid == 1) {

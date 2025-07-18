@@ -5,23 +5,25 @@ pragma solidity ^0.8.0;
 import {ManageCluster} from "./ManageCluster.s.sol";
 
 contract Cluster is ManageCluster {
-    address internal constant DOLA  = 0x865377367054516e17014CcdED1e7d814EDC9ce4;
-    address internal constant sDOLA = 0xb45ad160634c528Cc3D2926d9807104FA3157305;
+    address internal constant sUSDS  = 0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD;
+    address internal constant PT_USDS_14AUG2025 = 0xFfEc096c087C13Cc268497B89A613cACE4DF9A48;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/frontier/sDOLA.json";
+        cluster.clusterAddressesPath = "/script/production/frontier/Spark.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other
         // arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [USDC, USDT, DOLA, sDOLA];
+        cluster.assets = [USDC, USDT, sUSDS, PT_USDS_14AUG2025];
     }
 
     function configureCluster() internal override {
         super.configureCluster();
+
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -36,10 +38,10 @@ contract Cluster is ManageCluster {
         // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[USDC                ] = "0xD35657aE033A86FFa8fc6Bc767C5eb57C7c3D4B8";
-        cluster.oracleProviders[USDT                ] = "0x575Ffc02361368A2708c00bC7e299d1cD1c89f8A";
-        cluster.oracleProviders[DOLA                ] = "0x6E91fBd747B6bEa1720b324c54Fb66a1619bcb36";
-        cluster.oracleProviders[sDOLA               ] = "ExternalVault|0x6E91fBd747B6bEa1720b324c54Fb66a1619bcb36";
+        cluster.oracleProviders[USDC ] = "0xD35657aE033A86FFa8fc6Bc767C5eb57C7c3D4B8";
+        cluster.oracleProviders[USDT ] = "0x575Ffc02361368A2708c00bC7e299d1cD1c89f8A";
+        cluster.oracleProviders[sUSDS] = "ExternalVault|0xF58F4d2Cd0ee43624dc442e726871B115DBDd9f0";
+        cluster.oracleProviders[PT_USDS_14AUG2025] = "0x5B12cE5FDaFb14399e0fFe6a5410fBEC63f6B066";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
@@ -48,23 +50,22 @@ contract Cluster is ManageCluster {
 
             cluster.irms[USDC  ] = IRM_ADAPTIVE_USD;
             cluster.irms[USDT  ] = IRM_ADAPTIVE_USD;
-            cluster.irms[DOLA  ] = IRM_ADAPTIVE_USD;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //               0          1         2         3
-            //               USDC       USDT      DOLA      sDOLA
-            /* 0  USDC    */ [LTV_ZERO, LTV_HIGH, LTV__LOW, LTV_ZERO],
-            /* 1  USDT    */ [LTV_HIGH, LTV_ZERO, LTV__LOW, LTV_ZERO],
-            /* 2  DOLA    */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO],
-            /* 3  sDOLA   */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO]
+            //               USDC       USDT      sUSDS     PT_USDS
+            /* 0  USDC    */ [LTV_ZERO, LTV_HIGH, LTV_ZERO, LTV_ZERO],
+            /* 1  USDT    */ [LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 2  sUSDS   */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 3  PT_USDS */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         cluster.externalLTVs = [
-        //                     0         1         2         3
-        //                     USDC      USDT      DOLA      sDOLA
+        //                     0         1         2         3    
+        //                     USDC      USDT      sUSDS     PT_USDS
         /* 0  Prime USDC   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO],
         /* 1  Prime USDT   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO]
         ];

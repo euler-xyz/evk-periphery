@@ -17,7 +17,7 @@ contract Cluster is ManageCluster {
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [USDC, mMEV, PT_mMEV];
+        cluster.assets = [USDC, USDT, mMEV, PT_mMEV];
     }
 
     function configureCluster() internal override {
@@ -37,6 +37,7 @@ contract Cluster is ManageCluster {
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
         cluster.oracleProviders[USDC   ] = "0xD35657aE033A86FFa8fc6Bc767C5eb57C7c3D4B8";
+        cluster.oracleProviders[USDT   ] = "0x575Ffc02361368A2708c00bC7e299d1cD1c89f8A";
         cluster.oracleProviders[mMEV   ] = "0xf5c2dfd1740d18ad7cf23fba76cc11d877802937";
         cluster.oracleProviders[PT_mMEV] = "0x8c6ba8c189fc9f88fc72533ea60b9c4134a650f0";
 
@@ -46,16 +47,26 @@ contract Cluster is ManageCluster {
             //cluster.kinkIRMParams[WETH] = [uint256(0), uint256(218407859), uint256(22859618857), uint256(3865470566)];
 
             cluster.irms[USDC] = IRM_ADAPTIVE_USD;
+            cluster.irms[USDT] = IRM_ADAPTIVE_USD;
             cluster.irms[mMEV] = IRM_ADAPTIVE_USD_YB;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //               0          1         2
-            //               USDC       mMEV      PT_mMEV
-            /* 0  USDC    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 1  mMEV    */ [LTV__LOW, LTV_ZERO, LTV_ZERO],
-            /* 2  PT_mMEV */ [LTV__LOW, LTV_HIGH, LTV_ZERO]
+            //               0          1         2         3
+            //               USDC       USDT      mMEV      PT_mMEV
+            /* 0  USDC    */ [LTV_ZERO, LTV_HIGH, LTV_ZERO, LTV_ZERO],
+            /* 1  USDT    */ [LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 2  mMEV    */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 3  PT_mMEV */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO]
+        ];
+
+        // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
+        cluster.externalLTVs = [
+        //                     0         1         2         3
+        //                     USDC      USDT      mMEV      PT_mMEV
+        /* 0  Prime USDC   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO],
+        /* 1  Prime USDT   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO]
         ];
     }
 }
