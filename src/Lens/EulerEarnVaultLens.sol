@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {
-    IEulerEarn, IERC4626, MarketConfig, PendingUint192, PendingAddress
+    IEulerEarn, IERC4626, MarketConfig, PendingUint136, PendingAddress
 } from "euler-earn/interfaces/IEulerEarn.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {UtilsLens} from "./UtilsLens.sol";
@@ -34,6 +34,12 @@ contract EulerEarnVaultLens is Utils {
         result.totalShares = IEulerEarn(vault).totalSupply();
         result.totalAssets = IEulerEarn(vault).totalAssets();
         result.lostAssets = IEulerEarn(vault).lostAssets();
+
+        if (result.lostAssets > 0) {
+            uint256 coveredLostAssets = IEulerEarn(vault).convertToAssets(IEulerEarn(vault).balanceOf(address(1)));
+            result.lostAssets = result.lostAssets > coveredLostAssets ? result.lostAssets - coveredLostAssets : 0;
+        }
+
         result.timelock = IEulerEarn(vault).timelock();
         result.performanceFee = IEulerEarn(vault).fee();
         result.feeReceiver = IEulerEarn(vault).feeRecipient();
@@ -44,7 +50,7 @@ contract EulerEarnVaultLens is Utils {
         result.evc = EVCUtil(vault).EVC();
         result.permit2 = IEulerEarn(vault).permit2Address();
 
-        PendingUint192 memory pendingTimelock = IEulerEarn(vault).pendingTimelock();
+        PendingUint136 memory pendingTimelock = IEulerEarn(vault).pendingTimelock();
         PendingAddress memory pendingGuardian = IEulerEarn(vault).pendingGuardian();
 
         result.pendingTimelock = pendingTimelock.value;
@@ -61,6 +67,7 @@ contract EulerEarnVaultLens is Utils {
 
         for (uint256 i; i < result.strategies.length; ++i) {
             result.strategies[i] = getStrategyInfo(vault, address(IEulerEarn(vault).withdrawQueue(i)));
+            result.availableAssets += result.strategies[i].availableAssets;
         }
 
         return result;
@@ -88,11 +95,17 @@ contract EulerEarnVaultLens is Utils {
         IEulerEarn vault = IEulerEarn(_vault);
         IERC4626 strategy = IERC4626(_strategy);
         MarketConfig memory config = vault.config(strategy);
-        PendingUint192 memory pendingConfig = vault.pendingCap(strategy);
+        PendingUint136 memory pendingConfig = vault.pendingCap(strategy);
+
+        uint256 allocatedAssets = strategy.previewRedeem(config.balance);
+        uint256 availableAssets = strategy.maxWithdraw(_vault);
+
+        availableAssets = availableAssets > allocatedAssets ? allocatedAssets : availableAssets;
 
         return EulerEarnVaultStrategyInfo({
             strategy: _strategy,
-            assetsAllocated: strategy.previewRedeem(strategy.balanceOf(_vault)),
+            allocatedAssets: allocatedAssets,
+            availableAssets: availableAssets,
             currentAllocationCap: config.cap,
             pendingAllocationCap: pendingConfig.value,
             pendingAllocationCapValidAt: pendingConfig.validAt,
