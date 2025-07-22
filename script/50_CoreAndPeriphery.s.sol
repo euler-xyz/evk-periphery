@@ -99,9 +99,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         int256 adjustmentSpeed;
     }
 
-    mapping(uint256 chainId => bool isHarvestCoolDownCheckOn) internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON;
-    uint256[1] internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS = [1];
-
     address internal constant BURN_ADDRESS = address(0xdead);
     uint256 internal constant EUL_HUB_CHAIN_ID = 1;
     uint8 internal constant EUL_DECIMALS = 18;
@@ -138,11 +135,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     AdaptiveCurveIRMParams[] internal DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS;
 
     constructor() {
-        for (uint256 i = 0; i < EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS.length; ++i) {
-            uint256 chainId = EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS[i];
-            EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON[chainId] = true;
-        }
-
         for (uint256 i = 0; i < IRM_INITIAL_RATES_AT_TARGET.length; ++i) {
             DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.push(
                 AdaptiveCurveIRMParams({
