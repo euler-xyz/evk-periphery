@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import {BatchBuilder, IEVC, IEVault, console} from "../utils/ScriptUtils.s.sol";
+import {ScriptUtils, BatchBuilder, IEVC, IEVault, console} from "../utils/ScriptUtils.s.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {IGovernance} from "evk/EVault/IEVault.sol";
@@ -10,6 +11,7 @@ import {SafeTransaction, SafeMultisendBuilder} from "../utils/SafeUtils.s.sol";
 import {FactoryGovernor} from "../../src/Governor/FactoryGovernor.sol";
 import {CapRiskSteward} from "../../src/Governor/CapRiskSteward.sol";
 import {GovernorAccessControlEmergency} from "../../src/Governor/GovernorAccessControlEmergency.sol";
+import {LayerZeroSendEUL} from "../utils/LayerZeroUtils.s.sol";
 
 abstract contract CustomScriptBase is BatchBuilder {
     function run() public {
@@ -18,6 +20,46 @@ abstract contract CustomScriptBase is BatchBuilder {
     }
 
     function execute() public virtual {}
+}
+
+contract BridgeEULToLabsMultisig is ScriptUtils, SafeMultisendBuilder {
+    function run(uint256 dstChainId, uint256 amountNoDecimals) public {
+        uint256[] memory dstChainIds = new uint256[](1);
+        uint256[] memory amountsNoDecimals = new uint256[](1);
+        dstChainIds[0] = dstChainId;
+        amountsNoDecimals[0] = amountNoDecimals;
+        execute(dstChainIds, amountsNoDecimals);
+    }
+
+    function run(uint256[] memory dstChainIds, uint256[] memory amountsNoDecimals) public {
+        require(
+            dstChainIds.length == amountsNoDecimals.length, "dstChainIds and amountsNoDecimals must have the same length"
+        );
+        execute(dstChainIds, amountsNoDecimals);
+    }
+
+    function execute(uint256[] memory dstChainIds, uint256[] memory amountsNoDecimals) public {
+        LayerZeroSendEUL util = new LayerZeroSendEUL();
+        address safe = getSafe(false);
+
+        for (uint256 i = 0; i < dstChainIds.length; ++i) {
+            uint256 dstChainId = dstChainIds[i];
+            uint256 amount = amountsNoDecimals[i] * 1e18;
+            address dstAddress =
+                deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json", dstChainId)).labs;
+
+            if (safe == address(0)) {
+                util.run(dstChainId, dstAddress, amount);
+            } else {
+                (address to, uint256 value, bytes memory rawCalldata) =
+                    util.getSendCalldata(dstChainId, dstAddress, amount, 1e4);
+                addMultisendItem(tokenAddresses.EUL, abi.encodeCall(IERC20.approve, (to, amount)));
+                addMultisendItem(to, value, rawCalldata);
+            }
+        }
+
+        if (multisendItemExists()) executeMultisend(safe, safeNonce++, false);
+    }
 }
 
 contract MigratePosition is BatchBuilder {
@@ -29,12 +71,10 @@ contract MigratePosition is BatchBuilder {
         destinationIds[0] = getDestinationAccountId();
 
         execute(sourceIds, destinationIds);
-        saveAddresses();
     }
 
     function run(uint8[] calldata sourceIds, uint8[] calldata destinationIds) public {
         execute(sourceIds, destinationIds);
-        saveAddresses();
     }
 
     function execute(uint8[] memory sourceIds, uint8[] memory destinationIds) public {
@@ -94,14 +134,17 @@ contract MigratePosition is BatchBuilder {
 
         console.log(result);
         vm.writeFile(string.concat(vm.projectRoot(), "/script/MigrationInstruction.txt"), result);
-        dumpBatch(destinationWallet);
 
         // simulation
         vm.prank(sourceWallet);
         IEVC(coreAddresses.evc).setOperator(sourceWalletPrefix, destinationWallet, bitfield);
 
-        if (isBatchViaSafe()) executeBatchViaSafe(false);
-        else executeBatchPrank(destinationWallet);
+        if (isBatchViaSafe()) {
+            executeBatchViaSafe(false);
+        } else {
+            dumpBatch(destinationWallet);
+            executeBatchPrank(destinationWallet);
+        }
     }
 
     function _migratePosition(

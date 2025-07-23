@@ -412,9 +412,8 @@ contract SafeTransaction is SafeUtil {
             (bool success, bytes memory result) = transaction.to.call{value: transaction.value}(transaction.data);
             require(success, string(result));
         } else {
-            MultisendMock multisendMock = new MultisendMock(transaction.safe);
-            (bool success, bytes memory result) =
-                address(multisendMock).call{value: transaction.value}(transaction.data);
+            address multisendMock = address(new MultisendMock(transaction.safe));
+            (bool success, bytes memory result) = multisendMock.call{value: transaction.value}(transaction.data);
             require(success, string(result));
         }
     }
@@ -536,11 +535,17 @@ contract SafeMultisendBuilder is SafeUtil {
     }
 
     function executeMultisend(address safe, uint256 safeNonce) public {
+        executeMultisend(safe, safeNonce, true);
+    }
+
+    function executeMultisend(address safe, uint256 safeNonce, bool isSimulation) public {
         if (multisendItems.length == 0) return;
 
         console.log("\nExecuting the multicall via Safe (%s)", safe);
 
         SafeTransaction transaction = new SafeTransaction();
+
+        if (!isSimulation) transaction.setSimulationOff();
 
         _dumpMultisendBatchBuilderFile(
             safe, string.concat("SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), ".json")
