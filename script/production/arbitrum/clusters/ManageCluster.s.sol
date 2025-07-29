@@ -16,6 +16,7 @@ abstract contract Addresses {
     address internal constant weETH = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe;
     address internal constant rsETH = 0x4186BFC76E2E237523CBC30FD220FE055156b41F;
     address internal constant tETH = 0xd09ACb80C1E8f2291862c4978A008791c9167003;
+    address internal constant ezETH = 0x2416092f143378750bb29b79eD961ab195CcEea5;
     address internal constant WBTC = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
     address internal constant ARB = 0x912CE59144191C1204E64559FE8253a0e49E6548;
 }
