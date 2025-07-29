@@ -107,16 +107,16 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[sBUIDL ] = "ExternalVault|0x1CF7192cF739675186653D453828C0A670ed5Cd9";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[WETH       ] = 100_000;
-        cluster.supplyCaps[wstETH     ] = 12_500;
-        cluster.supplyCaps[cbETH      ] = 6_250;
-        cluster.supplyCaps[weETH      ] = 18_000;
-        cluster.supplyCaps[ezETH      ] = 13_000;
-        cluster.supplyCaps[RETH       ] = 3_130;
+        cluster.supplyCaps[WETH       ] = 75_000;
+        cluster.supplyCaps[wstETH     ] = 10_000;
+        cluster.supplyCaps[cbETH      ] = 4_690;
+        cluster.supplyCaps[weETH      ] = 13_500;
+        cluster.supplyCaps[ezETH      ] = 9_750;
+        cluster.supplyCaps[RETH       ] = 2_350;
         cluster.supplyCaps[mETH       ] = 6_250;
-        cluster.supplyCaps[rsETH      ] = 36_000;
+        cluster.supplyCaps[rsETH      ] = 27_000;
         cluster.supplyCaps[ETHx       ] = 2_500;
-        cluster.supplyCaps[tETH       ] = 18_000;
+        cluster.supplyCaps[tETH       ] = 13_500;
         cluster.supplyCaps[USDC       ] = 75_000_000;
         cluster.supplyCaps[USDT       ] = 50_000_000;
         cluster.supplyCaps[wM         ] = 5_000_000;
@@ -132,16 +132,16 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[LBTC       ] = 600;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WETH       ] = 90_000;
+        cluster.borrowCaps[WETH       ] = 67_500;
         cluster.borrowCaps[wstETH     ] = 5_000;
-        cluster.borrowCaps[cbETH      ] = 2_500;
-        cluster.borrowCaps[weETH      ] = 4_500;
-        cluster.borrowCaps[ezETH      ] = 3_120;
-        cluster.borrowCaps[RETH       ] = 1_250;
+        cluster.borrowCaps[cbETH      ] = 1_880;
+        cluster.borrowCaps[weETH      ] = 3_380;
+        cluster.borrowCaps[ezETH      ] = 2_340;
+        cluster.borrowCaps[RETH       ] = 938;
         cluster.borrowCaps[mETH       ] = 0;
-        cluster.borrowCaps[rsETH      ] = 9_000;
+        cluster.borrowCaps[rsETH      ] = 6_750;
         cluster.borrowCaps[ETHx       ] = 0;
-        cluster.borrowCaps[tETH       ] = 3_000;
+        cluster.borrowCaps[tETH       ] = 2_250;
         cluster.borrowCaps[USDC       ] = 67_500_000;
         cluster.borrowCaps[USDT       ] = 45_000_000;
         cluster.borrowCaps[wM         ] = 4_500_000;

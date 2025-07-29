@@ -60,16 +60,16 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[ezETH ] = "0x255bee201d2526bbf2753df6a6057f23431a3e1c";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[WETH  ] = 50_000;
-        cluster.supplyCaps[wstETH] = 20_000;
-        cluster.supplyCaps[rsETH ] = 10_000;
-        cluster.supplyCaps[ezETH ] = 10_000;
+        cluster.supplyCaps[WETH  ] = 37_500;
+        cluster.supplyCaps[wstETH] = 15_000;
+        cluster.supplyCaps[rsETH ] = 7_500;
+        cluster.supplyCaps[ezETH ] = 7_500;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WETH  ] = 45_000;
-        cluster.borrowCaps[wstETH] = 18_000;
-        cluster.borrowCaps[rsETH ] = 9_000;
-        cluster.borrowCaps[ezETH ] = 9_000;
+        cluster.borrowCaps[WETH  ] = 33_000;
+        cluster.borrowCaps[wstETH] = 13_500;
+        cluster.borrowCaps[rsETH ] = 6_750;
+        cluster.borrowCaps[ezETH ] = 6_750;
 
         // define IRM classes here and assign them to the assets
         {

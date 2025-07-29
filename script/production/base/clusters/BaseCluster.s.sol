@@ -87,13 +87,13 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[SUSDS ] = "0xdbcC3537800134A316f8D01eDa38d07c8d34174c";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[WETH  ] = 15_000;
-        cluster.supplyCaps[wstETH] = 5_000;
-        cluster.supplyCaps[cbETH ] = 5_000;
-        cluster.supplyCaps[weETH ] = 5_000;
-        cluster.supplyCaps[ezETH ] = 5_000;
-        cluster.supplyCaps[RETH  ] = 5_000;
-        cluster.supplyCaps[wsuperOETHb] = 2_500;
+        cluster.supplyCaps[WETH  ] = 11_300;
+        cluster.supplyCaps[wstETH] = 3_750;
+        cluster.supplyCaps[cbETH ] = 3_750;
+        cluster.supplyCaps[weETH ] = 3_750;
+        cluster.supplyCaps[ezETH ] = 3_750;
+        cluster.supplyCaps[RETH  ] = 3_750;
+        cluster.supplyCaps[wsuperOETHb] = 1_880;
         cluster.supplyCaps[USDC  ] = 60_000_000;
         cluster.supplyCaps[USDT0  ] = 6_000_000;
         cluster.supplyCaps[EURC  ] = 20_000_000;
@@ -104,13 +104,13 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[SUSDS ] = 20_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WETH  ] = 12_700;
-        cluster.borrowCaps[wstETH] = 2_000;
-        cluster.borrowCaps[cbETH ] = 2_000;
-        cluster.borrowCaps[weETH ] = 1_250;
-        cluster.borrowCaps[ezETH ] = 1_250;
-        cluster.borrowCaps[RETH  ] = 2_000;
-        cluster.borrowCaps[wsuperOETHb] = 625;
+        cluster.borrowCaps[WETH  ] = 9_530;
+        cluster.borrowCaps[wstETH] = 1_500;
+        cluster.borrowCaps[cbETH ] = 1_500;
+        cluster.borrowCaps[weETH ] = 938;
+        cluster.borrowCaps[ezETH ] = 938;
+        cluster.borrowCaps[RETH  ] = 1_500;
+        cluster.borrowCaps[wsuperOETHb] = 469;
         cluster.borrowCaps[USDC  ] = 54_000_000;
         cluster.borrowCaps[USDT0  ] = 5_400_000;
         cluster.borrowCaps[EURC  ] = 18_000_000;
