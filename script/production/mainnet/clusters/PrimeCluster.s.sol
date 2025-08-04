@@ -133,7 +133,7 @@ contract Cluster is ManageCluster {
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[WETH       ] = 67_500;
-        cluster.borrowCaps[wstETH     ] = 5_000;
+        cluster.borrowCaps[wstETH     ] = 7_500;
         cluster.borrowCaps[cbETH      ] = 1_880;
         cluster.borrowCaps[weETH      ] = 3_380;
         cluster.borrowCaps[ezETH      ] = 2_340;
