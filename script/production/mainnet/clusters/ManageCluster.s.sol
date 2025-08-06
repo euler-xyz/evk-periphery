@@ -63,6 +63,7 @@ abstract contract Addresses {
     address internal constant eBTC = 0x657e8C867D8B37dCC18fA4Caead9C45EB088C642;
     address internal constant solvBTC = 0x7A56E1C57C7475CCf742a1832B028F0456652F97;
     address internal constant pumpBTC = 0xF469fBD2abcd6B9de8E169d128226C0Fc90a012e;
+    address internal constant xAUt = 0x68749665FF8D2d112Fa859AA293F07A622782F38;
     address internal constant PT_corn_LBTC_26DEC2024 = 0x332A8ee60EdFf0a11CF3994b1b846BBC27d3DcD6;
     address internal constant PT_eBTC_26DEC2024 = 0xB997B3418935A1Df0F914Ee901ec83927c1509A0;
     address internal constant PT_corn_pumpBTC_26DEC2024 = 0xa76f0C6e5f286bFF151b891d2A0245077F1Ad74c;
