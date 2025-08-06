@@ -27,6 +27,7 @@ abstract contract Addresses {
     address internal constant mTBILL = 0xDD629E5241CbC5919847783e6C96B2De4754e438;
     address internal constant USDe = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
     address internal constant eUSDe = 0x90D2af7d622ca3141efA4d8f1F24d86E5974Cc8F;
+    address internal constant pUSDe = 0xA62B204099277762d1669d283732dCc1B3AA96CE;
     address internal constant wUSDM = 0x57F5E098CaD7A3D1Eed53991D4d66C45C9AF7812;
     address internal constant EURC = 0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c;
     address internal constant sUSDe = 0x9D39A5DE30e57443BfF2A8307A4256c8797A3497;
@@ -82,6 +83,7 @@ abstract contract Addresses {
     address internal constant PT_syrupUSDC_28AUG2025 = 0xCcE7D12f683c6dAe700154f0BAdf779C0bA1F89A;
     address internal constant PT_USDS_14AUG2025 = 0xFfEc096c087C13Cc268497B89A613cACE4DF9A48;
     address internal constant PT_tUSDe_25SEP2025 = 0xd0a4B74A6B62aA2b6C02349463D9041606608F36;
+    address internal constant PT_pUSDe_16OCT2025 = 0xF3f491e5608f8B8a6Fd9E9d66a4a4036d7FD282C;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}
