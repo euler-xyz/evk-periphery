@@ -33,7 +33,8 @@ contract BridgeEULToLabsMultisig is ScriptUtils, SafeMultisendBuilder {
 
     function run(uint256[] memory dstChainIds, uint256[] memory amountsNoDecimals) public {
         require(
-            dstChainIds.length == amountsNoDecimals.length, "dstChainIds and amountsNoDecimals must have the same length"
+            dstChainIds.length == amountsNoDecimals.length,
+            "dstChainIds and amountsNoDecimals must have the same length"
         );
         execute(dstChainIds, amountsNoDecimals);
     }
