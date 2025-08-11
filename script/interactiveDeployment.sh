@@ -779,10 +779,16 @@ while true; do
                         --arg eVaultFactory "$eVaultFactory" \
                         --arg oracleAdapterRegistry "$oracle_adapter_registry" \
                         --arg kinkIRMFactory "$kink_irm_factory" \
+                        --arg adaptiveCurveIRMFactory "$adaptive_curve_irm_factory" \
+                        --arg kinkyIRMFactory "$kinky_irm_factory" \
+                        --arg fixedCyclicalBinaryIRMFactory "$fixed_cyclical_binary_irm_factory" \
                         '{
                             eVaultFactory: $eVaultFactory,
                             oracleAdapterRegistry: $oracleAdapterRegistry,
-                            kinkIRMFactory: $kinkIRMFactory
+                            kinkIRMFactory: $kinkIRMFactory,
+                            adaptiveCurveIRMFactory: $adaptiveCurveIRMFactory,
+                            kinkyIRMFactory: $kinkyIRMFactory,
+                            fixedCyclicalBinaryIRMFactory: $fixedCyclicalBinaryIRMFactory
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 1)

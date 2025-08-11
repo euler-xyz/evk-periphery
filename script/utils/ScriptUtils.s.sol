@@ -71,6 +71,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address externalVaultRegistry;
         address kinkIRMFactory;
         address kinkyIRMFactory;
+        address fixedCyclicalBinaryIRMFactory;
         address adaptiveCurveIRMFactory;
         address irmRegistry;
         address swapper;
@@ -96,6 +97,9 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
         result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "kinkyIRMFactory", Addresses.kinkyIRMFactory);
+        result = vm.serializeAddress(
+            "peripheryAddresses", "fixedCyclicalBinaryIRMFactory", Addresses.fixedCyclicalBinaryIRMFactory
+        );
         result = vm.serializeAddress("peripheryAddresses", "adaptiveCurveIRMFactory", Addresses.adaptiveCurveIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "irmRegistry", Addresses.irmRegistry);
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
@@ -136,6 +140,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             externalVaultRegistry: getAddressFromJson(json, ".externalVaultRegistry"),
             kinkIRMFactory: getAddressFromJson(json, ".kinkIRMFactory"),
             kinkyIRMFactory: getAddressFromJson(json, ".kinkyIRMFactory"),
+            fixedCyclicalBinaryIRMFactory: getAddressFromJson(json, ".fixedCyclicalBinaryIRMFactory"),
             adaptiveCurveIRMFactory: getAddressFromJson(json, ".adaptiveCurveIRMFactory"),
             irmRegistry: getAddressFromJson(json, ".irmRegistry"),
             swapper: getAddressFromJson(json, ".swapper"),

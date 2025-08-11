@@ -92,7 +92,7 @@ contract IRMFixedCyclicalBinaryTest is Test, MathTesting {
 
         vm.warp(timeElapsed);
 
-        uint cyclesElapsed = timeElapsed / (primaryDuration + secondaryDuration);
+        uint256 cyclesElapsed = timeElapsed / (primaryDuration + secondaryDuration);
 
         if (timeElapsed - cyclesElapsed * (primaryDuration + secondaryDuration) <= primaryDuration) {
             assertEq(getIr(), PRIMARY_RATE);

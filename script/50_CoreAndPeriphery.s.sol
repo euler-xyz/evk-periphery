@@ -922,8 +922,12 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (lensAddresses.irmLens == address(0)) {
             console.log("+ Deploying LensIRM...");
             LensIRMDeployer deployer = new LensIRMDeployer();
-            lensAddresses.irmLens =
-                deployer.deploy(peripheryAddresses.kinkIRMFactory, peripheryAddresses.adaptiveCurveIRMFactory);
+            lensAddresses.irmLens = deployer.deploy(
+                peripheryAddresses.kinkIRMFactory,
+                peripheryAddresses.adaptiveCurveIRMFactory,
+                peripheryAddresses.kinkyIRMFactory,
+                peripheryAddresses.fixedCyclicalBinaryIRMFactory
+            );
         } else {
             console.log("- LensIRM already deployed. Skipping...");
         }

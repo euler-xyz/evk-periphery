@@ -170,7 +170,9 @@ struct InterestRateInfo {
 enum InterestRateModelType {
     UNKNOWN,
     KINK,
-    ADAPTIVE_CURVE
+    ADAPTIVE_CURVE,
+    KINKY,
+    FIXED_CYCLICAL_BINARY
 }
 
 struct InterestRateModelDetailedInfo {
@@ -193,6 +195,22 @@ struct AdaptiveCurveIRMInfo {
     int256 maxRateAtTarget;
     int256 curveSteepness;
     int256 adjustmentSpeed;
+}
+
+struct KinkyIRMInfo {
+    uint256 baseRate;
+    uint256 slope;
+    uint256 shape;
+    uint256 kink;
+    uint256 cutoff;
+}
+
+struct FixedCyclicalBinaryIRMInfo {
+    uint256 primaryRate;
+    uint256 secondaryRate;
+    uint256 primaryDuration;
+    uint256 secondaryDuration;
+    uint256 startTimestamp;
 }
 
 struct AccountRewardInfo {
