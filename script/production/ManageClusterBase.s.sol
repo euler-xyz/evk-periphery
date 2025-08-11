@@ -45,7 +45,9 @@ abstract contract ManageClusterBase is BatchBuilder {
         bool forceZeroGovernors;
         mapping(address asset => string provider) oracleProviders;
         mapping(address asset => uint256 supplyCapNoDecimals) supplyCaps;
+        mapping(address asset => bool supplyCapEncoded) supplyCapEncoded;
         mapping(address asset => uint256 borrowCapNoDecimals) borrowCaps;
+        mapping(address asset => bool borrowCapEncoded) borrowCapEncoded;
         mapping(address asset => address feeReceiverOverride) feeReceiverOverride;
         mapping(address asset => uint16 interestFeeOverride) interestFeeOverride;
         mapping(address asset => uint16 maxLiquidationDiscountOverride) maxLiquidationDiscountOverride;
@@ -83,8 +85,8 @@ abstract contract ManageClusterBase is BatchBuilder {
         defineCluster();
         loadCluster();
         configureCluster();
-        encodeAmountCaps(cluster.assets, cluster.supplyCaps);
-        encodeAmountCaps(cluster.assets, cluster.borrowCaps);
+        encodeAmountCaps(cluster.assets, cluster.supplyCaps, cluster.supplyCapEncoded);
+        encodeAmountCaps(cluster.assets, cluster.borrowCaps, cluster.borrowCapEncoded);
 
         checkClusterDataSanity();
         simulatePendingTransactions();

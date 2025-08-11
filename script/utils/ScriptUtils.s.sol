@@ -688,12 +688,15 @@ abstract contract ScriptUtils is
         return result;
     }
 
-    function encodeAmountCaps(address[] storage assets, mapping(address => uint256 amountsNoDecimals) storage caps)
-        internal
-    {
+    function encodeAmountCaps(
+        address[] storage assets,
+        mapping(address => uint256 amountsNoDecimals) storage caps,
+        mapping(address => bool) storage encoded
+    ) internal {
         for (uint256 i = 0; i < assets.length; ++i) {
             address asset = assets[i];
-            caps[asset] = encodeAmountCap(asset, caps[asset], true);
+            if (!encoded[asset]) caps[asset] = encodeAmountCap(asset, caps[asset], true);
+            encoded[asset] = true;
         }
     }
 
