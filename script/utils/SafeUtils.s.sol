@@ -234,7 +234,8 @@ contract SafeUtil is ScriptExtended {
         if (
             block.chainid == 1 || block.chainid == 10 || block.chainid == 100 || block.chainid == 130
                 || block.chainid == 137 || block.chainid == 146 || block.chainid == 42161 || block.chainid == 43114
-                || block.chainid == 480 || block.chainid == 56 || block.chainid == 57073 || block.chainid == 8453
+                || block.chainid == 480 || block.chainid == 56 || block.chainid == 57073 || block.chainid == 59144
+                || block.chainid == 8453
         ) {
             return "https://safe-client.safe.global/";
         } else if (block.chainid == 1923) {
