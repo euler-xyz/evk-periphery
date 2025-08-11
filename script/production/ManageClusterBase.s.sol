@@ -45,7 +45,9 @@ abstract contract ManageClusterBase is BatchBuilder {
         bool forceZeroGovernors;
         mapping(address asset => string provider) oracleProviders;
         mapping(address asset => uint256 supplyCapNoDecimals) supplyCaps;
+        mapping(address asset => bool supplyCapEncoded) supplyCapEncoded;
         mapping(address asset => uint256 borrowCapNoDecimals) borrowCaps;
+        mapping(address asset => bool borrowCapEncoded) borrowCapEncoded;
         mapping(address asset => address feeReceiverOverride) feeReceiverOverride;
         mapping(address asset => uint16 interestFeeOverride) interestFeeOverride;
         mapping(address asset => uint16 maxLiquidationDiscountOverride) maxLiquidationDiscountOverride;
@@ -83,8 +85,8 @@ abstract contract ManageClusterBase is BatchBuilder {
         defineCluster();
         loadCluster();
         configureCluster();
-        encodeAmountCaps(cluster.assets, cluster.supplyCaps);
-        encodeAmountCaps(cluster.assets, cluster.borrowCaps);
+        encodeAmountCaps(cluster.assets, cluster.supplyCaps, cluster.supplyCapEncoded);
+        encodeAmountCaps(cluster.assets, cluster.borrowCaps, cluster.borrowCapEncoded);
 
         checkClusterDataSanity();
         simulatePendingTransactions();
@@ -174,10 +176,17 @@ abstract contract ManageClusterBase is BatchBuilder {
         {
             KinkIRMDeployer deployer = new KinkIRMDeployer();
             for (uint256 i = 0; i < cluster.assets.length; ++i) {
-                uint256[4] storage p = cluster.kinkIRMParams[cluster.assets[i]];
-                address irm = p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0
-                    ? cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]]
-                    : cluster.irmsArr[i];
+                address asset = cluster.assets[i];
+                uint256[4] storage p = cluster.kinkIRMParams[asset];
+                address irm;
+
+                if (p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0) {
+                    irm = cluster.kinkIRMMap[p[0]][p[1]][p[2]][p[3]];
+                } else if (cluster.irms[asset] == address(0)) {
+                    irm = cluster.irmsArr[i];
+                } else {
+                    irm = cluster.irms[asset];
+                }
 
                 // only deploy those IRMs that haven't been deployed or cached yet
                 if (irm == address(0) && (p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0)) {
@@ -455,7 +464,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         view
         returns (address, address, bool)
     {
-        if (base == quote) return (base, address(0), false);
+        if (base == quote || _strEq(provider, "")) return (base, address(0), false);
 
         address adapter = getValidAdapter(base, quote, provider);
         bool useStub = false;
@@ -464,20 +473,24 @@ abstract contract ManageClusterBase is BatchBuilder {
             base = IEVault(base).asset();
         }
 
-        string memory name = EulerRouter(adapter).name();
-        if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle")) {
-            useStub = true;
-        } else if (_strEq(name, "CrossAdapter")) {
-            address baseCross = CrossAdapter(adapter).oracleBaseCross();
-            address crossBase = CrossAdapter(adapter).oracleCrossQuote();
-
-            name = EulerRouter(baseCross).name();
-            if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle") || _strEq(name, "CrossAdapter")) {
+        if (adapter != address(0)) {
+            string memory name = EulerRouter(adapter).name();
+            if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle")) {
                 useStub = true;
-            } else {
-                name = EulerRouter(crossBase).name();
+            } else if (_strEq(name, "CrossAdapter")) {
+                address baseCross = CrossAdapter(adapter).oracleBaseCross();
+                address crossBase = CrossAdapter(adapter).oracleCrossQuote();
+
+                name = EulerRouter(baseCross).name();
                 if (_strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle") || _strEq(name, "CrossAdapter")) {
                     useStub = true;
+                } else {
+                    name = EulerRouter(crossBase).name();
+                    if (
+                        _strEq(name, "PythOracle") || _strEq(name, "RedstoneCoreOracle") || _strEq(name, "CrossAdapter")
+                    ) {
+                        useStub = true;
+                    }
                 }
             }
         }
@@ -780,13 +793,14 @@ abstract contract ManageClusterBase is BatchBuilder {
     function simulatePendingTransactions() internal {
         if (isSkipPendingSimulation()) return;
 
-        if (isBatchViaSafe()) {
-            SafeTransaction safeUtil = new SafeTransaction();
-            if (!safeUtil.isTransactionServiceAPIAvailable()) return;
+        SafeTransaction safeUtil = new SafeTransaction();
+        if (!safeUtil.isTransactionServiceAPIAvailable()) return;
 
+        address safe = getSimulateSafe();
+        if (safe != address(0)) {
             vm.recordLogs();
             console.log("Simulating pending safe transactions");
-            SafeTransaction.TransactionSimple[] memory transactions = safeUtil.getPendingTransactions(getSafe());
+            SafeTransaction.TransactionSimple[] memory transactions = safeUtil.getPendingTransactions(safe);
 
             for (uint256 i = 0; i < transactions.length; ++i) {
                 try safeUtil.simulate(
@@ -795,11 +809,13 @@ abstract contract ManageClusterBase is BatchBuilder {
                     transactions[i].to,
                     transactions[i].value,
                     transactions[i].data
-                ) {} catch {}
+                ) {} catch {
+                    console.log("Error simulating pending safe transaction");
+                }
             }
         }
 
-        address payable timelock = payable(getTimelock());
+        address payable timelock = payable(getSimulateTimelock());
         if (timelock != address(0)) {
             console.log("Simulating pending timelock transactions");
 
@@ -826,17 +842,17 @@ abstract contract ManageClusterBase is BatchBuilder {
 
                     if (!TimelockController(timelock).isOperationPending(id)) continue;
 
-                    (address target, uint256 value, bytes memory data, bytes32 predecessor, uint256 delay) =
+                    (address target, uint256 value, bytes memory data, bytes32 predecessor,) =
                         abi.decode(ethLogs[i].data, (address, uint256, bytes, bytes32, uint256));
 
-                    vm.store(
-                        timelock,
-                        keccak256(abi.encode(uint256(id), uint256(1))),
-                        bytes32(uint256(block.timestamp - delay))
-                    );
+                    vm.store(timelock, keccak256(abi.encode(uint256(id), uint256(1))), bytes32(block.timestamp));
 
-                    vm.deal(address(this), value);
-                    try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {} catch {}
+                    vm.deal(getDeployer(), value);
+                    vm.prank(getDeployer());
+                    try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {}
+                    catch {
+                        console.log("Error executing already scheduled timelock transaction");
+                    }
                 }
 
                 fromBlock += 1e4;
@@ -850,16 +866,18 @@ abstract contract ManageClusterBase is BatchBuilder {
                         || !TimelockController(timelock).isOperationPending(logs[i].topics[1])
                 ) continue;
 
-                (address target, uint256 value, bytes memory data, bytes32 predecessor, uint256 delay) =
+                (address target, uint256 value, bytes memory data, bytes32 predecessor,) =
                     abi.decode(logs[i].data, (address, uint256, bytes, bytes32, uint256));
 
                 bytes32 id = logs[i].topics[1];
-                vm.store(
-                    timelock, keccak256(abi.encode(uint256(id), uint256(1))), bytes32(uint256(block.timestamp - delay))
-                );
+                vm.store(timelock, keccak256(abi.encode(uint256(id), uint256(1))), bytes32(uint256(block.timestamp)));
 
-                vm.deal(address(this), value);
-                try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {} catch {}
+                vm.deal(getDeployer(), value);
+                vm.prank(getDeployer());
+                try TimelockController(timelock).execute(target, value, data, predecessor, bytes32(0)) {}
+                catch {
+                    console.log("Error executing not yet scheduled timelock transaction");
+                }
             }
         }
     }

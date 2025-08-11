@@ -174,7 +174,7 @@ contract SafeUtil is ScriptExtended {
 
         TransactionSimple[] memory transactions = new TransactionSimple[](counter);
         counter = 0;
-        for (uint256 i = 0; i < transactions.length; ++i) {
+        for (uint256 i = 0; i < length; ++i) {
             if (
                 !vm.keyExists(string(response), _indexedKey(".results", i, ".type"))
                     || !_strEq(vm.parseJsonString(string(response), _indexedKey(".results", i, ".type")), "TRANSACTION")
@@ -234,13 +234,16 @@ contract SafeUtil is ScriptExtended {
         if (
             block.chainid == 1 || block.chainid == 10 || block.chainid == 100 || block.chainid == 130
                 || block.chainid == 137 || block.chainid == 146 || block.chainid == 42161 || block.chainid == 43114
-                || block.chainid == 480 || block.chainid == 56 || block.chainid == 57073 || block.chainid == 8453
+                || block.chainid == 480 || block.chainid == 56 || block.chainid == 57073 || block.chainid == 59144
+                || block.chainid == 8453
         ) {
             return "https://safe-client.safe.global/";
         } else if (block.chainid == 1923) {
             return "https://gateway.safe.optimism.io/";
         } else if (block.chainid == 21000000) {
             return "https://safe-cgw-corn.safe.onchainden.com/";
+        } else if (block.chainid == 239) {
+            return "https://gateway.safe.tac.build/";
         } else if (block.chainid == 60808) {
             return "https://gateway.safe.gobob.xyz/";
         } else if (block.chainid == 80094) {
@@ -409,6 +412,10 @@ contract SafeTransaction is SafeUtil {
             vm.prank(transaction.safe);
             (bool success, bytes memory result) = transaction.to.call{value: transaction.value}(transaction.data);
             require(success, string(result));
+        } else {
+            address multisendMock = address(new MultisendMock(transaction.safe));
+            (bool success, bytes memory result) = multisendMock.call{value: transaction.value}(transaction.data);
+            require(success, string(result));
         }
     }
 
@@ -529,20 +536,24 @@ contract SafeMultisendBuilder is SafeUtil {
     }
 
     function executeMultisend(address safe, uint256 safeNonce) public {
+        executeMultisend(safe, safeNonce, true);
+    }
+
+    function executeMultisend(address safe, uint256 safeNonce, bool isSimulation) public {
         if (multisendItems.length == 0) return;
 
         console.log("\nExecuting the multicall via Safe (%s)", safe);
 
-        _simulateMultisend(safe);
-
         SafeTransaction transaction = new SafeTransaction();
+
+        if (!isSimulation) transaction.setSimulationOff();
 
         _dumpMultisendBatchBuilderFile(
             safe, string.concat("SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), ".json")
         );
 
         transaction.create(
-            false, safe, _getMultisendAddress(block.chainid), _getMultisendValue(), _getMultisendCalldata(), safeNonce
+            false, safe, _getMultisendAddress(block.chainid), _getMultisendValue(), _getMultisendCalldata(), safeNonce++
         );
 
         delete multisendItems;
@@ -616,5 +627,54 @@ contract SafeMultisendBuilder is SafeUtil {
         }
 
         return vm.serializeString("content", "transactions", transactions);
+    }
+}
+
+contract MultisendMock is ScriptExtended {
+    address internal immutable msgSender;
+
+    constructor(address _msgSender) {
+        msgSender = _msgSender;
+    }
+
+    function multiSend(bytes memory transactions) public payable {
+        uint256 length;
+        uint256 i;
+
+        assembly {
+            length := mload(transactions)
+            i := 0x20
+        }
+
+        while (i < length) {
+            uint256 operation;
+            uint256 to;
+            uint256 value;
+            uint256 dataLength;
+            uint256 data;
+
+            assembly {
+                operation := shr(0xf8, mload(add(transactions, i)))
+                to := shr(0x60, mload(add(transactions, add(i, 0x01))))
+                value := mload(add(transactions, add(i, 0x15)))
+                dataLength := mload(add(transactions, add(i, 0x35)))
+                data := add(transactions, add(i, 0x55))
+            }
+
+            if (operation == 0) {
+                vm.prank(msgSender);
+            } else {
+                vm.prank(msgSender, true);
+            }
+
+            assembly {
+                let success := 0
+                switch operation
+                case 0 { success := call(gas(), to, value, data, dataLength, 0, 0) }
+                case 1 { success := delegatecall(gas(), to, data, dataLength, 0, 0) }
+                if eq(success, 0) { revert(0, 0) }
+                i := add(i, add(0x55, dataLength))
+            }
+        }
     }
 }

@@ -37,7 +37,8 @@ if ! script/utils/checkEnvironment.sh "$@"; then
     exit 1
 fi
 
-eulerEarnCompilerOptions="--optimize --optimizer-runs 400 --use 0.8.27 --out out-euler-earn"
+eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26 --out out-euler-earn"
+eulerSwapCompilerOptions="--optimize --optimizer-runs 1000000 --use 0.8.27 --out out-euler-swap"
 
 while true; do
     echo ""
@@ -816,14 +817,11 @@ while true; do
                     scriptName=${baseName}.s.sol:LensEulerEarnVaultDeployer
                     jsonName=08_LensEulerEarnVault
                     
-                    read -p "Enter the Oracle Lens address: " oracle_lens
                     read -p "Enter the Utils Lens address: " utils_lens
 
                     jq -n \
-                        --arg oracleLens "$oracle_lens" \
                         --arg utilsLens "$utils_lens" \
                         '{
-                            oracleLens: $oracleLens,
                             utilsLens: $utilsLens
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
@@ -1197,46 +1195,26 @@ while true; do
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         20)
-            echo "Deploying Euler Earn implementation..."
+            echo "Deploying Euler Earn factory..."
 
-            baseName=20_EulerEarnImplementation
+            baseName=20_EulerEarnFactory
             scriptName=${baseName}.s.sol
             jsonName=$baseName
 
             read -p "Enter the EVC address: " evc
-            read -p "Enter the Balance Tracker address: " balance_tracker
             read -p "Enter the Permit2 address: " permit2
-            read -p "Enter the isHarvestCoolDownCheckOn flag (t/f): " is_harvest_cool_down_check_on
-
-            forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
-
-            jq -n \
-                --arg evc "$evc" \
-                --arg balanceTracker "$balance_tracker" \
-                --arg permit2 "$permit2" \
-                --argjson isHarvestCoolDownCheckOn "$(jq -n --argjson val \"$isHarvestCoolDownCheckOn\" 'if $val != "f" then true else false end')" \
-                '{
-                    evc: $evc,
-                    balanceTracker: $balanceTracker,
-                    permit2: $permit2,
-                    isHarvestCoolDownCheckOn: $isHarvestCoolDownCheckOn
-                }' --indent 4 > script/${jsonName}_input.json
-            ;;
-        21)
-            echo "Deploying Euler Earn factory..."
-
-            baseName=21_EulerEarnFactory
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
-
-            read -p "Enter the Euler Earn implementation address: " euler_earn_implementation
+            read -p "Enter the Perspective address: " perspective
 
             forge compile lib/euler-earn/src $eulerEarnCompilerOptions
 
             jq -n \
-                --arg eulerEarnImplementation "$euler_earn_implementation" \
+                --arg evc "$evc" \
+                --arg permit2 "$permit2" \
+                --arg evc "$perspective" \
                 '{
-                    eulerEarnImplementation: $eulerEarnImplementation
+                    evc: $evc,
+                    permit2: $permit2,
+                    perspective: $perspective
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         50)
@@ -1263,6 +1241,7 @@ while true; do
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 eulerEarnFactory=${eulerEarnFactory:-$addressZero}
+                eulerSwapV1Factory=$(jq -r '.eulerSwapV1Factory' "$addresses_dir_path/EulerSwapAddresses.json" 2>/dev/null)
             fi
 
             if [ -z "$multisig_dao" ] || [ "$multisig_dao" == "$addressZero" ]; then
@@ -1290,6 +1269,16 @@ while true; do
                 read -p "Should deploy and configure OFT Adapter? (y/n) (default: n): " deploy_oft
             fi
 
+            if [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ]; then
+                read -p "Should deploy EulerSwap V1? (y/n) (default: n): " deploy_euler_swap_v1
+                
+                if [ "$deploy_euler_swap_v1" = "y" ]; then
+                    read -p "Enter the Uniswap V4 Pool Manager address (default: address(0) or look up https://docs.uniswap.org/contracts/v4/deployments): " uniswap_pool_manager
+                    read -p "Enter the EulerSwap fee owner (default: DAO multisig): " euler_swap_fee_owner
+                    read -p "Enter the EulerSwap fee recipient setter (default: DAO multisig): " euler_swap_fee_recipient_setter
+                fi
+            fi
+
             multisig_dao=${multisig_dao:-$addressZero}
             multisig_labs=${multisig_labs:-$addressZero}
             multisig_security_council=${multisig_security_council:-$addressZero}
@@ -1300,9 +1289,17 @@ while true; do
             uniswap_router_v3=${uniswap_router_v3:-$addressZero}
             init_price=${init_price:-1000000000000000000}
             deploy_oft=${deploy_oft:-n}
+            deploy_euler_swap_v1=${deploy_euler_swap_v1:-n}
+            uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
+            euler_swap_fee_owner=${euler_swap_fee_owner:-$multisig_dao}
+            euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$multisig_dao}
 
             if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
+            fi
+
+            if [ -z "$eulerSwapFactory_v1" ] || [ "$eulerSwapFactory_v1" == "$addressZero" ]; then
+                forge compile lib/euler-swap/src $eulerSwapCompilerOptions --force
             fi
 
             if [[ "$@" != *"--ffi"* ]]; then
@@ -1320,6 +1317,10 @@ while true; do
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
                 --arg initPrice "$init_price" \
                 --argjson deployOFT "$(jq -n --argjson val \"$deploy_oft\" 'if $val == "y" then true else false end')" \
+                --argjson deployEulerSwapV1 "$(jq -n --argjson val \"$deploy_euler_swap_v1\" 'if $val == "y" then true else false end')" \
+                --arg uniswapPoolManager "$uniswap_pool_manager" \
+                --arg eulerSwapFeeOwner "$euler_swap_fee_owner" \
+                --arg eulerSwapFeeRecipientSetter "$euler_swap_fee_recipient_setter" \
                 '{
                     multisigDAO: $multisigDAO,
                     multisigLabs: $multisigLabs,
@@ -1330,7 +1331,11 @@ while true; do
                     uniswapV2Router: $uniswapRouterV2,
                     uniswapV3Router: $uniswapRouterV3,
                     feeFlowInitPrice: $initPrice,
-                    deployOFT: $deployOFT
+                    deployOFT: $deployOFT,
+                    deployEulerSwapV1: $deployEulerSwapV1,
+                    uniswapPoolManager: $uniswapPoolManager,
+                    eulerSwapFeeOwner: $eulerSwapFeeOwner,
+                    eulerSwapFeeRecipientSetter: $eulerSwapFeeRecipientSetter
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         51)

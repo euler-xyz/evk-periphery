@@ -11,6 +11,7 @@ abstract contract ScriptExtended is Script {
     mapping(uint256 => uint256) private forks;
     address private deployerAddress;
     address private safeSignerAddress;
+    bool private noStubOracle;
 
     constructor() {
         vm.pauseGasMetering();
@@ -66,11 +67,15 @@ abstract contract ScriptExtended is Script {
         return getSafe(true);
     }
 
-    function getSafe(bool failOnNotFound) internal view returns (address safe) {
-        string memory safeAddress = vm.envOr("SAFE_ADDRESS", string(""));
+    function getSafe(bool failOnNotFound) internal view returns (address) {
+        return _getSafe("SAFE_ADDRESS", "safe_address", failOnNotFound);
+    }
+
+    function _getSafe(string memory env, string memory key, bool failOnNotFound) internal view returns (address safe) {
+        string memory safeAddress = vm.envOr(env, string(""));
 
         if (_strEq(safeAddress, string(""))) {
-            safeAddress = vm.envOr("safe_address", string(""));
+            safeAddress = vm.envOr(key, string(""));
 
             if (bytes(safeAddress).length > 0 && bytes(safeAddress).length < 42) {
                 if (_strEq(safeAddress, "steward") || _strEq(safeAddress, "Steward")) {
@@ -103,7 +108,11 @@ abstract contract ScriptExtended is Script {
     }
 
     function getTimelock() internal view returns (address timelock) {
-        string memory timelockAddress = vm.envOr("timelock_address", string(""));
+        return _getTimelock("timelock_address");
+    }
+
+    function _getTimelock(string memory key) internal view returns (address timelock) {
+        string memory timelockAddress = vm.envOr(key, string(""));
 
         if (bytes(timelockAddress).length > 0 && bytes(timelockAddress).length < 42) {
             if (_strEq(timelockAddress, "admin") || _strEq(timelockAddress, "Admin")) {
@@ -130,7 +139,11 @@ abstract contract ScriptExtended is Script {
     }
 
     function getRiskSteward() internal view returns (address riskSteward) {
-        string memory riskStewardAddress = vm.envOr("risk_steward_address", string(""));
+        return _getRiskSteward("risk_steward_address");
+    }
+
+    function _getRiskSteward(string memory key) internal view returns (address riskSteward) {
+        string memory riskStewardAddress = vm.envOr(key, string(""));
 
         if (bytes(riskStewardAddress).length > 0 && bytes(riskStewardAddress).length < 42) {
             if (_strEq(riskStewardAddress, "default")) riskStewardAddress = "capRiskSteward";
@@ -180,6 +193,16 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("skip_pending_simulation", string("")), "--skip-pending-simulation");
     }
 
+    function getSimulateSafe() internal view returns (address) {
+        address safe = _getSafe("", "simulate_safe_address", false);
+        return safe == address(0) ? getSafe(false) : safe;
+    }
+
+    function getSimulateTimelock() internal view returns (address) {
+        address timelock = _getTimelock("simulate_timelock_address");
+        return timelock == address(0) ? getTimelock() : timelock;
+    }
+
     function isEmergency() internal view returns (bool) {
         return isEmergencyLTVCollateral() || isEmergencyLTVBorrowing() || isEmergencyCaps() || isEmergencyOperations();
     }
@@ -207,9 +230,53 @@ abstract contract ScriptExtended is Script {
         return _toAddress(vaultAddress);
     }
 
+    function setNoStubOracle(bool value) internal {
+        noStubOracle = value;
+    }
+
     function isNoStubOracle() internal view returns (bool) {
-        return (block.chainid != 1 && block.chainid != 8453)
+        return noStubOracle || (block.chainid != 1 && block.chainid != 8453)
             || _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
+    }
+
+    function getSkipOFTHubChainConfig() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config", string("")), "--skip-oft-hub-chain-config");
+    }
+
+    function getFromBlock() internal view returns (uint256) {
+        return vm.envOr("from_block", uint256(0));
+    }
+
+    function getToBlock() internal view returns (uint256) {
+        return vm.envOr("to_block", uint256(0));
+    }
+
+    function getSourceWallet() internal view returns (address) {
+        return vm.envOr("source_wallet", address(0));
+    }
+
+    function getDestinationWallet() internal view returns (address) {
+        return vm.envOr("destination_wallet", address(0));
+    }
+
+    function getSourceAccountId() internal view returns (uint8) {
+        return uint8(vm.envOr("source_account_id", uint256(0)));
+    }
+
+    function getDestinationAccountId() internal view returns (uint8) {
+        return uint8(vm.envOr("destination_account_id", uint256(0)));
+    }
+
+    function getPath() internal view returns (string memory) {
+        return vm.envOr("path", string(""));
+    }
+
+    function getConfigAddress(string memory key) internal view returns (address) {
+        return getConfigAddress(key, block.chainid);
+    }
+
+    function getConfigAddress(string memory key, uint256 chainId) internal view returns (address) {
+        return getAddressFromJson(getConfigAddressesJson("MultisigAddresses.json", chainId), string.concat(".", key));
     }
 
     function getAddressesDirPath() internal view returns (string memory) {

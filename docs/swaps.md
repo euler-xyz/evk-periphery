@@ -2,7 +2,7 @@
 
 The `Swapper` and `SwapVerifier` contracts are helpers for executing swaps and swaps-to-repay operations on EVK vaults, using EVC batches.
 
-## Security and trust boundries
+## Security and trust boundaries
 
 The `Swapper` contract is not trusted. From the protocol's perspective, it is a black box. Provided with a token to sell, it is supposed to execute the swap and return the bought token either as a balance available for deposit or as repaid debt. No assumptions are made about how the swap is performed or about the security of the `Swapper` code. In fact, the `Swapper` has no access control and allows anyone to remove any token balance it holds at any time. The provided implementation is just a reference; users are generally free to use any swapper they choose.
 
@@ -34,7 +34,7 @@ The general steps to use the `Swapper` contract are following:
 
 The `Swapper` contract should implement the `ISwapper` interface. This ensures, that users could potentially provide their own implementations of the swapper contract in the UI, without needing to modify the FE code.
 
-The main function is `swap()`, which takes a swap definition in a `SwapParams` struct. The params define a handler to use, swapping mode, bought and sold tokens, the amounts etc. See [ISwapper natspec](../src/Swaps/ISwapper.sol) for details. Note, that some parameters might be ignored in certain modes or by certain handlers, while others (`amountOut`) might have differrent semantics in certain modes.
+The main function is `swap()`, which takes a swap definition in a `SwapParams` struct. The params define a handler to use, swapping mode, bought and sold tokens, the amounts etc. See [ISwapper natspec](../src/Swaps/ISwapper.sol) for details. Note, that some parameters might be ignored in certain modes or by certain handlers, while others (`amountOut`) might have different semantics in certain modes.
 
 The interface also defines helper functions like `sweep`, `deposit`, `repay` and `repayAndDeposit` which allow consuming the contract's balance.
 
@@ -45,7 +45,7 @@ Finally a `multicall` function allows chaining all of the above to execute compl
 The swaps can be performed in one of 3 modes:
 - exact input 
 
-  In this mode, all of the provided input token is expected to be swapped for an unknown amount of the output token. The proceeds are expected to be sent to a vault, to be skimmed by the user, or back to the swapper contract. The latter option is useful when performing complex, multi-stage swaps, where the output token is accumulated in the swapper before being consumed at the end of the operation. Note that the available handler (`GenericHandler`) executes a payload encoded off-chain, so a lot of the parameters passed to the `swap` funtion will be ignored and only the amount of input token encoded in the payload will be swapped, even if the swapper holds more.
+  In this mode, all of the provided input token is expected to be swapped for an unknown amount of the output token. The proceeds are expected to be sent to a vault, to be skimmed by the user, or back to the swapper contract. The latter option is useful when performing complex, multi-stage swaps, where the output token is accumulated in the swapper before being consumed at the end of the operation. Note that the available handler (`GenericHandler`) executes a payload encoded off-chain, so a lot of the parameters passed to the `swap` function will be ignored and only the amount of input token encoded in the payload will be swapped, even if the swapper holds more.
 
 - exact output
 
@@ -111,7 +111,7 @@ F2. Swap deposits from one EVault (A) to exact amount of another (B)
   - `A.withdraw` to the swapper contract. The amount must cover all of the estimated swap costs with some extra, to account for slippage
   - `swapper.multicall` with the following items:
     - `Swapper.swap` - `exact input` on the generic handler with the off-chain payload
-    - `Swapper.swap` - `exact output` on one of the supportin handlers (Uni V2/V3) with the user specified `amountOut`. The receiver can be either the swapper contract or B vault.
+    - `Swapper.swap` - `exact output` on one of the supporting handlers (Uni V2/V3) with the user specified `amountOut`. The receiver can be either the swapper contract or B vault.
     - `Swapper.sweep` the output token, into the B vault
   - `SwapVerifier.verifyAmountMinAndSkim` check a minimum required amount was bought and claim the funds for the user. Because exact output swaps are not guaranteed to be exact always, a small slippage could be allowed.
 
