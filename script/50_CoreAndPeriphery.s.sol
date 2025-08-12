@@ -34,7 +34,7 @@ import {EVaultFactoryGovernorDeployer, TimelockControllerDeployer} from "./12_Go
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {OFTAdapterUpgradeableDeployer, MintBurnOFTAdapterDeployer} from "./14_OFT.s.sol";
 import {EdgeFactoryDeployer} from "./15_EdgeFactory.s.sol";
-import {EulerEarnFactory} from "./20_EulerEarnFactory.s.sol";
+import {EulerEarnFactoryDeployer} from "./20_EulerEarnFactory.s.sol";
 import {EulerSwapImplementationDeployer} from "./21_EulerSwapImplementation.s.sol";
 import {EulerSwapFactoryDeployer} from "./22_EulerSwapFactory.s.sol";
 import {EulerSwapPeripheryDeployer} from "./23_EulerSwapPeriphery.s.sol";
@@ -858,7 +858,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
         if (coreAddresses.eulerEarnFactory == address(0)) {
             console.log("+ Deploying EulerEarn factory...");
-            EulerEarnFactory deployer = new EulerEarnFactory();
+            EulerEarnFactoryDeployer deployer = new EulerEarnFactoryDeployer();
             coreAddresses.eulerEarnFactory =
                 deployer.deploy(coreAddresses.evc, coreAddresses.permit2, peripheryAddresses.evkFactoryPerspective);
         } else {

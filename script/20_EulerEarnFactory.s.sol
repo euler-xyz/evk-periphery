@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 
-contract EulerEarnFactory is ScriptUtils {
+contract EulerEarnFactoryDeployer is ScriptUtils {
     function run() public broadcast returns (address eulerEarnfactory) {
         string memory inputScriptFileName = "21_EulerEarnFactory_input.json";
         string memory outputScriptFileName = "21_EulerEarnFactory_output.json";

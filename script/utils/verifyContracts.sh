@@ -62,6 +62,7 @@ function verify_contract {
         curl -d "address=$contractAddress" "$verifier_url?module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
     fi
 
+    sleep 5
     return $result
 }
 
@@ -209,7 +210,7 @@ function verify_broadcast {
                         0)
                             # try to verify as EulerEarnFactory
                             contractName=EulerEarnFactory
-                            constructorBytesSize=96
+                            constructorBytesSize=128
                             ;;
                         *)
                             break
