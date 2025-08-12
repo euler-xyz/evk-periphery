@@ -781,6 +781,49 @@ abstract contract ManageClusterBase is BatchBuilder {
             }
         }
 
+        if (getCheckPhasedOutVaults()) {
+            for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+                bool notPhasedOut;
+
+                for (uint256 j = 0; j < cluster.vaults.length; ++j) {
+                    if (IEVault(cluster.vaults[i]).LTVLiquidation(cluster.vaults[j]) > 0) {
+                        notPhasedOut = true;
+                        break;
+                    }
+                }
+
+                for (uint256 j = 0; j < cluster.vaults.length; ++j) {
+                    if (IEVault(cluster.vaults[j]).LTVLiquidation(cluster.vaults[i]) > 0) {
+                        notPhasedOut = true;
+                        break;
+                    }
+                }
+
+                if (!notPhasedOut) {
+                    console.log("Phased out vault found: %s %s", cluster.vaults[i], IEVault(cluster.vaults[i]).symbol());
+                }
+            }
+
+            for (uint256 i = 0; i < cluster.externalVaults.length; ++i) {
+                bool notPhasedOut;
+
+                for (uint256 j = 0; j < cluster.vaults.length; ++j) {
+                    if (IEVault(cluster.vaults[j]).LTVLiquidation(cluster.externalVaults[i]) > 0) {
+                        notPhasedOut = true;
+                        break;
+                    }
+                }
+
+                if (!notPhasedOut) {
+                    console.log(
+                        "Phased out external vault found: %s %s",
+                        cluster.externalVaults[i],
+                        IEVault(cluster.externalVaults[i]).symbol()
+                    );
+                }
+            }
+        }
+
         require(bytes(cluster.clusterAddressesPath).length != 0, "Invalid cluster addresses path");
         require(
             cluster.forceZeroGovernors
