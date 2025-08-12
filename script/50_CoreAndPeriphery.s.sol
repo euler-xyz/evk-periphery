@@ -656,6 +656,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 && peripheryAddresses.oracleAdapterRegistry == address(0)
                 && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0)
                 && peripheryAddresses.kinkyIRMFactory == address(0)
+                && peripheryAddresses.fixedCyclicalBinaryIRMFactory == address(0)
                 && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
                 && peripheryAddresses.governorAccessControlEmergencyFactory == address(0)
                 && peripheryAddresses.capRiskStewardFactory == address(0)
@@ -669,6 +670,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             peripheryAddresses.externalVaultRegistry = peripheryContracts.externalVaultRegistry;
             peripheryAddresses.kinkIRMFactory = peripheryContracts.kinkIRMFactory;
             peripheryAddresses.kinkyIRMFactory = peripheryContracts.kinkyIRMFactory;
+            peripheryAddresses.fixedCyclicalBinaryIRMFactory = peripheryContracts.fixedCyclicalBinaryIRMFactory;
             peripheryAddresses.adaptiveCurveIRMFactory = peripheryContracts.adaptiveCurveIRMFactory;
             peripheryAddresses.irmRegistry = peripheryContracts.irmRegistry;
             peripheryAddresses.governorAccessControlEmergencyFactory =
