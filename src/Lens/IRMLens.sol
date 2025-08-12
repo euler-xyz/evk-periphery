@@ -6,15 +6,18 @@ import {Utils} from "./Utils.sol";
 import {IFactory} from "../BaseFactory/interfaces/IFactory.sol";
 import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {IRMAdaptiveCurve} from "../IRM/IRMAdaptiveCurve.sol";
+import {IRMFixedCyclicalBinary} from "../IRM/IRMFixedCyclicalBinary.sol";
 import "./LensTypes.sol";
 
 contract IRMLens is Utils {
     address public immutable kinkIRMFactory;
     address public immutable adaptiveCurveIRMFactory;
+    address public immutable fixedCyclicalBinaryIRMFactory;
 
-    constructor(address _kinkIRMFactory, address _adaptiveCurveIRMFactory) {
+    constructor(address _kinkIRMFactory, address _adaptiveCurveIRMFactory, address _fixedCyclicalBinaryIRMFactory) {
         kinkIRMFactory = _kinkIRMFactory;
         adaptiveCurveIRMFactory = _adaptiveCurveIRMFactory;
+        fixedCyclicalBinaryIRMFactory = _fixedCyclicalBinaryIRMFactory;
     }
 
     function getInterestRateModelInfo(address irm) public view returns (InterestRateModelDetailedInfo memory) {
@@ -46,6 +49,17 @@ contract IRMLens is Utils {
                     maxRateAtTarget: IRMAdaptiveCurve(irm).MAX_RATE_AT_TARGET(),
                     curveSteepness: IRMAdaptiveCurve(irm).CURVE_STEEPNESS(),
                     adjustmentSpeed: IRMAdaptiveCurve(irm).ADJUSTMENT_SPEED()
+                })
+            );
+        } else if (IFactory(fixedCyclicalBinaryIRMFactory).isValidDeployment(irm)) {
+            result.interestRateModelType = InterestRateModelType.FIXED_CYCLICAL_BINARY;
+            result.interestRateModelParams = abi.encode(
+                FixedCyclicalBinaryIRMInfo({
+                    primaryRate: IRMFixedCyclicalBinary(irm).primaryRate(),
+                    secondaryRate: IRMFixedCyclicalBinary(irm).secondaryRate(),
+                    primaryDuration: IRMFixedCyclicalBinary(irm).primaryDuration(),
+                    secondaryDuration: IRMFixedCyclicalBinary(irm).secondaryDuration(),
+                    startTimestamp: IRMFixedCyclicalBinary(irm).startTimestamp()
                 })
             );
         }

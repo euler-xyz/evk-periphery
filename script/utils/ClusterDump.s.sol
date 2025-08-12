@@ -27,7 +27,8 @@ contract ClusterDump is ScriptUtils {
             coreAddresses.eVaultFactory,
             peripheryAddresses.oracleAdapterRegistry,
             peripheryAddresses.kinkIRMFactory,
-            peripheryAddresses.adaptiveCurveIRMFactory
+            peripheryAddresses.adaptiveCurveIRMFactory,
+            peripheryAddresses.fixedCyclicalBinaryIRMFactory
         );
         address vaultLens = lenses[4];
 

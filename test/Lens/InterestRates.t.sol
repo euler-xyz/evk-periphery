@@ -9,6 +9,7 @@ import {RPow} from "../../lib/euler-vault-kit/src/EVault/shared/lib/RPow.sol";
 import "../../src/Lens/LensTypes.sol";
 import {EulerKinkIRMFactory} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
 import {EulerIRMAdaptiveCurveFactory} from "../../src/IRMFactory/EulerIRMAdaptiveCurveFactory.sol";
+import {EulerFixedCyclicalBinaryIRMFactory} from "../../src/IRMFactory/EulerFixedCyclicalBinaryIRMFactory.sol";
 import {AccountLens} from "../../src/Lens/AccountLens.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
 import {IRMLens} from "../../src/Lens/IRMLens.sol";
@@ -26,6 +27,7 @@ contract InterestRates is EVaultTestBase {
 
     EulerKinkIRMFactory public irmFactory;
     EulerIRMAdaptiveCurveFactory public irmAdaptiveCurveFactory;
+    EulerFixedCyclicalBinaryIRMFactory public fixedCyclicalBinaryIRMFactory;
     AccountLens public accountLens;
     OracleLens public oracleLens;
     IRMLens public irmLens;
@@ -39,9 +41,10 @@ contract InterestRates is EVaultTestBase {
 
         irmFactory = new EulerKinkIRMFactory();
         irmAdaptiveCurveFactory = new EulerIRMAdaptiveCurveFactory();
+        fixedCyclicalBinaryIRMFactory = new EulerFixedCyclicalBinaryIRMFactory();
         accountLens = new AccountLens();
         oracleLens = new OracleLens(address(0));
-        irmLens = new IRMLens(address(irmFactory), address(irmAdaptiveCurveFactory));
+        irmLens = new IRMLens(address(irmFactory), address(irmAdaptiveCurveFactory), address(fixedCyclicalBinaryIRMFactory));
         utilsLens = new UtilsLens(address(factory), address(oracleLens));
         vaultLens = new VaultLens(address(oracleLens), address(utilsLens), address(irmLens));
 

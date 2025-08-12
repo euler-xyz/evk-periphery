@@ -19,8 +19,9 @@ contract Lenses is ScriptUtils {
         address oracleAdapterRegistry = vm.parseJsonAddress(json, ".oracleAdapterRegistry");
         address kinkIRMFactory = vm.parseJsonAddress(json, ".kinkIRMFactory");
         address adaptiveCurveIRMFactory = vm.parseJsonAddress(json, ".adaptiveCurveIRMFactory");
+        address fixedCyclicalBinaryIRMFactory = vm.parseJsonAddress(json, ".fixedCyclicalBinaryIRMFactory");
 
-        lenses = execute(eVaultFactory, oracleAdapterRegistry, kinkIRMFactory, adaptiveCurveIRMFactory);
+        lenses = execute(eVaultFactory, oracleAdapterRegistry, kinkIRMFactory, adaptiveCurveIRMFactory, fixedCyclicalBinaryIRMFactory);
 
         string memory object;
         object = vm.serializeAddress("lenses", "accountLens", lenses[0]);
@@ -36,21 +37,23 @@ contract Lenses is ScriptUtils {
         address eVaultFactory,
         address oracleAdapterRegistry,
         address kinkIRMFactory,
-        address adaptiveCurveIRMFactory
+        address adaptiveCurveIRMFactory,
+        address fixedCyclicalBinaryIRMFactory
     ) public broadcast returns (address[] memory lenses) {
-        lenses = execute(eVaultFactory, oracleAdapterRegistry, kinkIRMFactory, adaptiveCurveIRMFactory);
+        lenses = execute(eVaultFactory, oracleAdapterRegistry, kinkIRMFactory, adaptiveCurveIRMFactory, fixedCyclicalBinaryIRMFactory);
     }
 
     function execute(
         address eVaultFactory,
         address oracleAdapterRegistry,
         address kinkIRMFactory,
-        address adaptiveCurveIRMFactory
+        address adaptiveCurveIRMFactory,
+        address fixedCyclicalBinaryIRMFactory
     ) public returns (address[] memory lenses) {
         lenses = new address[](6);
         lenses[0] = address(new AccountLens());
         lenses[1] = address(new OracleLens(oracleAdapterRegistry));
-        lenses[2] = address(new IRMLens(kinkIRMFactory, adaptiveCurveIRMFactory));
+        lenses[2] = address(new IRMLens(kinkIRMFactory, adaptiveCurveIRMFactory, fixedCyclicalBinaryIRMFactory));
         lenses[3] = address(new UtilsLens(eVaultFactory, address(lenses[1])));
         lenses[4] = address(new VaultLens(address(lenses[1]), address(lenses[3]), address(lenses[2])));
         lenses[5] = address(new EulerEarnVaultLens(address(lenses[3])));
@@ -107,24 +110,25 @@ contract LensIRMDeployer is ScriptUtils {
         string memory json = getScriptFile(inputScriptFileName);
         address kinkIRMFactory = vm.parseJsonAddress(json, ".kinkIRMFactory");
         address adaptiveCurveIRMFactory = vm.parseJsonAddress(json, ".adaptiveCurveIRMFactory");
+        address fixedCyclicalBinaryIRMFactory = vm.parseJsonAddress(json, ".fixedCyclicalBinaryIRMFactory");
 
-        irmLens = execute(kinkIRMFactory, adaptiveCurveIRMFactory);
+        irmLens = execute(kinkIRMFactory, adaptiveCurveIRMFactory, fixedCyclicalBinaryIRMFactory);
 
         string memory object;
         object = vm.serializeAddress("lens", "irmLens", irmLens);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address kinkIRMFactory, address adaptiveCurveIRMFactory)
+    function deploy(address kinkIRMFactory, address adaptiveCurveIRMFactory, address fixedCyclicalBinaryIRMFactory)
         public
         broadcast
         returns (address irmLens)
     {
-        irmLens = execute(kinkIRMFactory, adaptiveCurveIRMFactory);
+        irmLens = execute(kinkIRMFactory, adaptiveCurveIRMFactory, fixedCyclicalBinaryIRMFactory);
     }
 
-    function execute(address kinkIRMFactory, address adaptiveCurveIRMFactory) public returns (address irmLens) {
-        irmLens = address(new IRMLens(kinkIRMFactory, adaptiveCurveIRMFactory));
+    function execute(address kinkIRMFactory, address adaptiveCurveIRMFactory, address fixedCyclicalBinaryIRMFactory) public returns (address irmLens) {
+        irmLens = address(new IRMLens(kinkIRMFactory, adaptiveCurveIRMFactory, fixedCyclicalBinaryIRMFactory));
     }
 }
 
