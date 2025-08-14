@@ -24,7 +24,7 @@ contract Cluster is ManageCluster {
     function configureCluster() internal override {
         super.configureCluster();
 
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = getDeployer();
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x060DB084bF41872861f175d83f3cb1B5566dfEA3;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -47,34 +47,49 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            // Base=0% APY  Kink(90%)=2.7% APY  Max=40.00% APY
-            //cluster.kinkIRMParams[WETH] = [uint256(0), uint256(218407859), uint256(22859618857), uint256(3865470566)];
+            // Base=0% APY  Kink(90%)=7.5% APY  Max=70.00% APY
+            uint256[4] memory irm = [uint256(0), uint256(592877497), uint256(19489392122), uint256(3865470566)];
 
-            cluster.irms[USDC  ] = IRM_ADAPTIVE_USD;
-            cluster.irms[USDT  ] = IRM_ADAPTIVE_USD;
-            cluster.irms[USDai ] = IRM_ADAPTIVE_USD;
-            cluster.irms[USDe  ] = IRM_ADAPTIVE_USD;
+            cluster.kinkIRMParams[USDC] = irm;
+            cluster.kinkIRMParams[USDT] = irm;
+            cluster.kinkIRMParams[USDe] = irm;
         }
+
+        cluster.supplyCaps[USDC  ] = 50_000_000;
+        cluster.supplyCaps[USDT  ] = 50_000_000;
+        cluster.supplyCaps[USDai ] = 50_000_000;
+        cluster.supplyCaps[sUSDai] = 50_000_000;
+        cluster.supplyCaps[USDe  ] = 50_000_000;
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //               0          1         2         3         4
             //               USDC       USDT      USDai     sUSDai    USDe
-            /* 0  USDC    */ [LTV_ZERO, LTV_HIGH, LTV__LOW, LTV_ZERO, LTV__LOW],
-            /* 1  USDT    */ [LTV_HIGH, LTV_ZERO, LTV__LOW, LTV_ZERO, LTV__LOW],
-            /* 2  USDai   */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV__LOW],
-            /* 3  sUSDai  */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO, LTV__LOW],
-            /* 4  USDe    */ [LTV__LOW, LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO]
+            /* 0  USDC    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 1  USDT    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 2  USDai   */ [0.940e4,  0.905e4,  LTV_ZERO, LTV_ZERO, 0.905e4 ],
+            /* 3  sUSDai  */ [0.850e4,  0.800e4,  LTV_ZERO, LTV_ZERO, 0.800e4 ],
+            /* 4  USDe    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO]
+        ];
+
+        cluster.borrowLTVsOverride = [
+            //               0          1         2         3         4
+            //               USDC       USDT      USDai     sUSDai    USDe
+            /* 0  USDC    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 1  USDT    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 2  USDai   */ [0.915e4,  0.880e4,  LTV_ZERO, LTV_ZERO, 0.880e4 ],
+            /* 3  sUSDai  */ [0.800e4,  0.750e4,  LTV_ZERO, LTV_ZERO, 0.750e4 ],
+            /* 4  USDe    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         cluster.externalLTVs = [
         //                     0         1         2         3         4
         //                     USDC      USDT      USDai     sUSDai    USDe
-        /* 0  Euler USDC   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-        /* 1  Euler USDT   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-        /* 2  Escrow USDAi */ [LTV_ZERO, LTV_ZERO, LTV_HIGH, LTV_ZERO, LTV_ZERO],
-        /* 3  Escrow USDe  */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_HIGH]
+        /* 0  Euler USDC   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+        /* 1  Euler USDT   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+        /* 2  Escrow USDAi */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+        /* 3  Escrow USDe  */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
     }
 }
