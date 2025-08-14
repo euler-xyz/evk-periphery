@@ -155,15 +155,15 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[syrupUSDC                ] = 5_000_000;
         cluster.supplyCaps[mBASIS                   ] = 0;
         cluster.supplyCaps[PT_USDe_31JUL2025        ] = 8_000_000;
-        cluster.supplyCaps[PT_USDe_25SEP2025        ] = 50_000_000;
+        cluster.supplyCaps[PT_USDe_25SEP2025        ] = 80_000_000;
         cluster.supplyCaps[PT_sUSDe_31JULY2025      ] = 40_000_000;
         cluster.supplyCaps[PT_sUSDe_25SEP2025       ] = 40_000_000;
         cluster.supplyCaps[PT_eUSDe_14AUG2025       ] = 35_000_000;
         cluster.supplyCaps[PT_cUSDO_20NOV2025       ] = 120_000_000;
         cluster.supplyCaps[PT_syrupUSDC_28AUG2025   ] = 45_000_000;
         cluster.supplyCaps[PT_USDS_14AUG2025        ] = 0;
-        cluster.supplyCaps[PT_tUSDe_25SEP2025       ] = 40_000_000;
-        cluster.supplyCaps[PT_pUSDe_16OCT2025       ] = 20_000_000;
+        cluster.supplyCaps[PT_tUSDe_25SEP2025       ] = 60_000_000;
+        cluster.supplyCaps[PT_pUSDe_16OCT2025       ] = 30_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC                     ] = 270_000_000;
@@ -199,39 +199,42 @@ contract Cluster is ManageCluster {
         // define IRM classes here and assign them to the assets
         {
             // Base=0.00% APY,  Kink(90.00%)=8.00% APY  Max=15.00% APY
-            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(0), uint256(630918865), uint256(4633519165), uint256(3865470566)];
+            uint256[4] memory irm_USD_1_MEGA_YIELD_OLD = [uint256(0), uint256(630918865), uint256(4633519165), uint256(3865470566)];
+
+            // Base=5.00% APY,  Kink(90.00%)=10.00% APY  Max=20.00% APY
+            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(1546098748700445000), uint256(381366399), uint256(6419794564), uint256(3865470566)];
 
             // Base=0% APY,  Kink(30%)=12.75% APY  Max=848.77% APY
             uint256[4] memory irm_USD_3_MEGA_YIELD = [uint256(0), uint256(2951312420), uint256(22450463582), uint256(1288490188)];
 
-            // Base=0.00% APY,  Kink(85.00%)=7.50% APY  Max=40.00% APY
-            uint256[4] memory irm_eUSDe            = [uint256(0), uint256(627752644), uint256(12992928081), uint256(3650722201)];
+            // Base=5.00% APY,  Kink(90.00%)=10.00% APY  Max=15.00% APY
+            uint256[4] memory irm_USDC_USDT        = [uint256(1546098748700445000), uint256(381366399), uint256(3279699693), uint256(3865470566)];
+
+            // Base=5.00% APY,  Kink(90.00%)=10.00% APY  Max=40.00% APY
+            uint256[4] memory irm_eUSDe_rUSD       = [uint256(1546098748700445000), uint256(381366399), uint256(17793200339), uint256(3865470566)];
 
             // Base=0% APY,  Kink(30%)=2.00% APY  Max=80.00% APY
             uint256[4] memory irm_sUSDe            = [uint256(0), uint256(487019827), uint256(5986640502), uint256(1288490188)];
 
-            // Base=0% APY,  Kink(90%)=7.50% APY  Max=40.00% APY
-            uint256[4] memory irm_rUSD             = [uint256(0), uint256(592877497), uint256(19489392122), uint256(3865470566)];
-
             // Base=0% APY,  Kink(90%)=1.50% APY  Max=80.00% APY
             uint256[4] memory irm_syrupUSDC        = [uint256(0), uint256(122055342), uint256(42269044890), uint256(3865470566)];
 
-            cluster.kinkIRMParams[USDC        ] = irm_USD_1_MEGA_YIELD;
-            cluster.kinkIRMParams[USDT        ] = irm_USD_1_MEGA_YIELD;
+            cluster.kinkIRMParams[USDC        ] = irm_USDC_USDT;
+            cluster.kinkIRMParams[USDT        ] = irm_USDC_USDT;
             cluster.kinkIRMParams[PYUSD       ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[rlUSD       ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[wM          ] = irm_USD_1_MEGA_YIELD;
-            cluster.kinkIRMParams[USDS        ] = irm_USD_1_MEGA_YIELD;
+            cluster.kinkIRMParams[USDS        ] = irm_USD_1_MEGA_YIELD_OLD;
             cluster.kinkIRMParams[sUSDS       ] = irm_USD_3_MEGA_YIELD;
-            cluster.kinkIRMParams[DAI         ] = irm_USD_1_MEGA_YIELD;
+            cluster.kinkIRMParams[DAI         ] = irm_USD_1_MEGA_YIELD_OLD;
             cluster.kinkIRMParams[sDAI        ] = irm_USD_3_MEGA_YIELD;
-            cluster.kinkIRMParams[USD0        ] = irm_USD_1_MEGA_YIELD;
+            cluster.kinkIRMParams[USD0        ] = irm_USD_1_MEGA_YIELD_OLD;
             cluster.kinkIRMParams[USD0PlusPlus] = irm_USD_3_MEGA_YIELD;
             cluster.kinkIRMParams[USDe        ] = irm_USD_1_MEGA_YIELD;
-            cluster.kinkIRMParams[eUSDe       ] = irm_eUSDe;
+            cluster.kinkIRMParams[eUSDe       ] = irm_eUSDe_rUSD;
             cluster.kinkIRMParams[sUSDe       ] = irm_sUSDe;
             cluster.kinkIRMParams[USDtb       ] = irm_USD_1_MEGA_YIELD;
-            cluster.kinkIRMParams[rUSD        ] = irm_rUSD;
+            cluster.kinkIRMParams[rUSD        ] = irm_eUSDe_rUSD;
             cluster.kinkIRMParams[syrupUSDC   ] = irm_syrupUSDC;
             cluster.kinkIRMParams[mBASIS      ] = irm_USD_3_MEGA_YIELD;
         }
