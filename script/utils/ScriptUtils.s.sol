@@ -89,6 +89,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address termsOfUseSigner;
         address governorAccessControlEmergencyFactory;
         address capRiskStewardFactory;
+        address eulerEarnPublicAllocator;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -131,6 +132,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             Addresses.governorAccessControlEmergencyFactory
         );
         result = vm.serializeAddress("peripheryAddresses", "capRiskStewardFactory", Addresses.capRiskStewardFactory);
+        result =
+            vm.serializeAddress("peripheryAddresses", "eulerEarnPublicAllocator", Addresses.eulerEarnPublicAllocator);
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -157,7 +160,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             edgeFactoryPerspective: getAddressFromJson(json, ".edgeFactoryPerspective"),
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner"),
             governorAccessControlEmergencyFactory: getAddressFromJson(json, ".governorAccessControlEmergencyFactory"),
-            capRiskStewardFactory: getAddressFromJson(json, ".capRiskStewardFactory")
+            capRiskStewardFactory: getAddressFromJson(json, ".capRiskStewardFactory"),
+            eulerEarnPublicAllocator: getAddressFromJson(json, ".eulerEarnPublicAllocator")
         });
     }
 }
