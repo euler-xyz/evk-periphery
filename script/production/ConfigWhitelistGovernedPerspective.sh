@@ -16,6 +16,12 @@ eval 'set -- $SCRIPT_ARGS'
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
 
+if [[ "$@" != *"--earn"* && "$@" != *"--evk"* ]]; then
+    echo "Error: Either --earn or --evk option must be provided"
+    echo "Usage: $0 <csv_file_path> [--earn|--evk] [other_options...]"
+    exit 1
+fi
+
 if [[ "$@" == *"--earn"* ]]; then
     governed_perspective=$(jq -r '.eulerEarnGovernedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
 else
