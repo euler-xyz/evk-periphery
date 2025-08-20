@@ -167,7 +167,7 @@ contract Cluster is ManageCluster {
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC                     ] = 270_000_000;
-        cluster.borrowCaps[USDT                     ] = 45_000_000;
+        cluster.borrowCaps[USDT                     ] = 75_000_000;
         cluster.borrowCaps[PYUSD                    ] = 4_500_000;
         cluster.borrowCaps[rlUSD                    ] = 180_000_000;
         cluster.borrowCaps[wM                       ] = 4_500_000;
