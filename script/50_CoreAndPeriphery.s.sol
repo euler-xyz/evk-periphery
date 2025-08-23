@@ -856,13 +856,13 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- EulerUngovernedNzxPerspective already deployed. Skipping...");
         }
 
-        if (coreAddresses.eulerEarnFactory == address(0)) {
-            console.log("+ Deploying EulerEarn factory...");
+        if (coreAddresses.eulerEarnFactory == address(0) && peripheryAddresses.eulerEarnPublicAllocator == address(0)) {
+            console.log("+ Deploying EulerEarn factory and public allocator...");
             EulerEarnFactoryDeployer deployer = new EulerEarnFactoryDeployer();
-            coreAddresses.eulerEarnFactory =
+            (coreAddresses.eulerEarnFactory, peripheryAddresses.eulerEarnPublicAllocator) =
                 deployer.deploy(coreAddresses.evc, coreAddresses.permit2, peripheryAddresses.evkFactoryPerspective);
         } else {
-            console.log("- EulerEarn factory already deployed. Skipping...");
+            console.log("- EulerEarn factory and public allocator already deployed. Skipping...");
             if (vm.isDir("out-euler-earn")) vm.removeDir("out-euler-earn", true);
         }
 
