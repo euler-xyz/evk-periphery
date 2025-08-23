@@ -60,13 +60,13 @@ contract HookTargetMarketStatusTest is Test {
         assertEq(hookTarget.marketStatus(), MARKET_STATUS_OPEN);
     }
 
-    function test_UpdateMarketStatus_UnauthorizedCaller() public {
+    function test_Update_UnauthorizedCaller() public {
         vm.prank(unauthorizedCaller);
         vm.expectRevert(DataStreamsVerifier.UnauthorizedCaller.selector);
         hookTarget.update("");
     }
 
-    function test_UpdateMarketStatus_WithRealReport() public {
+    function test_Update_WithRealReport() public {
         // Store initial state
         uint32 initialMarketStatus = hookTarget.marketStatus();
         uint64 initialTimestamp = hookTarget.lastUpdatedTimestamp();
@@ -86,7 +86,7 @@ contract HookTargetMarketStatusTest is Test {
         assertTrue(newTimestamp != initialTimestamp, "Timestamp should have been updated");
     }
 
-    function test_UpdateMarketStatus_FeedIdMismatch() public {
+    function test_Update_FeedIdMismatch() public {
         // Create a hook target with a different feed ID than what we'll send
         bytes32 wrongFeedId = keccak256("wrong-feed-id");
         HookTargetMarketStatus wrongFeedHook =
@@ -99,7 +99,7 @@ contract HookTargetMarketStatusTest is Test {
         wrongFeedHook.update(fullReport);
     }
 
-    function test_UpdateMarketStatus_InvalidVersion() public {
+    function test_Update_InvalidVersion() public {
         bytes memory invalidVersionRequest = _createMockVerifyRequestWithVersion(7); // V7 instead of V8
 
         vm.prank(authorizedCaller);
