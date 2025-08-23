@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {HookTargetMarketStatus} from "../../src/HookTarget/HookTargetMarketStatus.sol";
+import {DataStreamsVerifier} from "../../src/Chainlink/DataStreamsVerifier.sol";
 
 /// @title Real Verifier Proxy Interface
 /// @notice Interface for the actual Chainlink verifier proxy on mainnet
@@ -40,7 +41,6 @@ contract HookTargetMarketStatusTest is Test {
         assertEq(hookTarget.AUTHORIZED_CALLER(), authorizedCaller);
         assertEq(address(hookTarget.VERIFIER_PROXY()), verifierProxy);
         assertEq(hookTarget.FEED_ID(), feedId);
-        // Note: LINK_TOKEN might be address(0) if no fee manager is set up
         assertEq(hookTarget.marketStatus(), 0);
         assertEq(hookTarget.lastUpdatedTimestamp(), 0);
     }
@@ -62,8 +62,8 @@ contract HookTargetMarketStatusTest is Test {
 
     function test_UpdateMarketStatus_UnauthorizedCaller() public {
         vm.prank(unauthorizedCaller);
-        vm.expectRevert(HookTargetMarketStatus.UnauthorizedCaller.selector);
-        hookTarget.updateMarketStatus("");
+        vm.expectRevert(DataStreamsVerifier.UnauthorizedCaller.selector);
+        hookTarget.update("");
     }
 
     function test_UpdateMarketStatus_WithRealReport() public {
@@ -71,11 +71,11 @@ contract HookTargetMarketStatusTest is Test {
         uint32 initialMarketStatus = hookTarget.marketStatus();
         uint64 initialTimestamp = hookTarget.lastUpdatedTimestamp();
 
-        // Call updateMarketStatus with the real report and expect the event
+        // Call update with the real report and expect the event
         vm.prank(authorizedCaller);
         vm.expectEmit(true, false, false, true);
         emit HookTargetMarketStatus.MarketStatusUpdated(MARKET_STATUS_PAUSED, 1755716669381000000);
-        hookTarget.updateMarketStatus(fullReport);
+        hookTarget.update(fullReport);
 
         // Check if the market status was updated
         uint32 newMarketStatus = hookTarget.marketStatus();
@@ -96,15 +96,15 @@ contract HookTargetMarketStatusTest is Test {
         // since the report contains the correct feed ID but the contract expects a different one
         vm.prank(authorizedCaller);
         vm.expectRevert(HookTargetMarketStatus.FeedIdMismatch.selector);
-        wrongFeedHook.updateMarketStatus(fullReport);
+        wrongFeedHook.update(fullReport);
     }
 
     function test_UpdateMarketStatus_InvalidVersion() public {
         bytes memory invalidVersionRequest = _createMockVerifyRequestWithVersion(7); // V7 instead of V8
 
         vm.prank(authorizedCaller);
-        vm.expectRevert(HookTargetMarketStatus.InvalidPriceFeedVersion.selector);
-        hookTarget.updateMarketStatus(invalidVersionRequest);
+        vm.expectRevert(DataStreamsVerifier.InvalidPriceFeedVersion.selector);
+        hookTarget.update(invalidVersionRequest);
     }
 
     function test_Fallback_MarketPaused() public {
