@@ -2,13 +2,12 @@
 
 pragma solidity ^0.8.0;
 
-import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {DataStreamsVerifier} from "../Chainlink/DatastreamsVerifier.sol";
 import {IHookTarget} from "evk/interfaces/IHookTarget.sol";
 
 /// @title HookTargetMarketStatus
 /// @notice Contract for verifying V8 reports and managing market status
-contract HookTargetMarketStatus is Ownable, DataStreamsVerifier, IHookTarget {
+contract HookTargetMarketStatus is DataStreamsVerifier, IHookTarget {
     /// @notice Thrown when the feed ID in the report doesn't match the contract's feed ID
     error FeedIdMismatch();
 
@@ -40,7 +39,6 @@ contract HookTargetMarketStatus is Ownable, DataStreamsVerifier, IHookTarget {
     /// @param _verifierProxy Address of the verifier proxy contract
     /// @param _feedId Unique identifier for the price feed
     constructor(address _authorizedCaller, address payable _verifierProxy, bytes32 _feedId)
-        Ownable(msg.sender)
         DataStreamsVerifier(_authorizedCaller, _verifierProxy, 8)
     {
         FEED_ID = _feedId;

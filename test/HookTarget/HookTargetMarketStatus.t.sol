@@ -5,12 +5,25 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {HookTargetMarketStatus} from "../../src/HookTarget/HookTargetMarketStatus.sol";
 import {DataStreamsVerifier} from "../../src/Chainlink/DataStreamsVerifier.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {MockERC20Mintable} from "../../script/utils/MockERC20Mintable.sol";
 
 /// @title Real Verifier Proxy Interface
 /// @notice Interface for the actual Chainlink verifier proxy on mainnet
 interface IVerifierProxy {
     function verify(bytes calldata payload, bytes calldata parameterPayload) external payable returns (bytes memory);
     function s_feeManager() external view returns (address);
+}
+
+/// @title Mock Fee Manager for testing
+contract MockFeeManager {
+    address public immutable i_linkAddress;
+    address public immutable i_rewardManager;
+
+    constructor(address _linkAddress, address _rewardManager) {
+        i_linkAddress = _linkAddress;
+        i_rewardManager = _rewardManager;
+    }
 }
 
 contract HookTargetMarketStatusTest is Test {
@@ -122,6 +135,142 @@ contract HookTargetMarketStatusTest is Test {
         vm.expectRevert(HookTargetMarketStatus.MarketPaused.selector);
         (bool success,) = address(hookTarget).call("");
         assertTrue(success);
+    }
+
+    function test_RecoverToken_OwnerOnly() public {
+        // Test that non-owner cannot call recoverToken
+        vm.prank(unauthorizedCaller);
+        vm.expectRevert(); // Not owner
+        hookTarget.recoverToken(address(0x1), unauthorizedCaller, 1000);
+    }
+
+    function test_RecoverToken_DifferentTokens() public {
+        // Deploy multiple mock ERC20 tokens
+        MockERC20Mintable token1 = new MockERC20Mintable(address(this), "Token1", "TK1", 18);
+        MockERC20Mintable token2 = new MockERC20Mintable(address(this), "Token2", "TK2", 6);
+
+        // Deploy a mock fee manager
+        address mockRewardManager = makeAddr("mockRewardManager");
+        MockFeeManager mockFeeManager = new MockFeeManager(address(token1), mockRewardManager);
+
+        // Mock the s_feeManager call to return our mock fee manager
+        vm.mockCall(
+            verifierProxy,
+            abi.encodeWithSelector(IVerifierProxy.s_feeManager.selector),
+            abi.encode(address(mockFeeManager))
+        );
+
+        // Create a new hook target to test the constructor
+        HookTargetMarketStatus newHookTarget =
+            new HookTargetMarketStatus(authorizedCaller, payable(verifierProxy), feedId);
+
+        // Transfer some tokens to the contract
+        uint256 amount1 = 1000e18;
+        uint256 amount2 = 500e6;
+        token1.mint(address(newHookTarget), amount1);
+        token2.mint(address(newHookTarget), amount2);
+
+        // Verify the contract has the tokens
+        assertEq(token1.balanceOf(address(newHookTarget)), amount1);
+        assertEq(token2.balanceOf(address(newHookTarget)), amount2);
+
+        // Test recovering token1
+        vm.prank(address(this)); // this contract is owner
+        newHookTarget.recoverToken(address(token1), authorizedCaller, amount1);
+
+        // Verify token1 was transferred
+        assertEq(token1.balanceOf(authorizedCaller), amount1);
+        assertEq(token1.balanceOf(address(newHookTarget)), 0);
+
+        // Test recovering token2 to a different address
+        address recipient2 = makeAddr("recipient2");
+        vm.prank(address(this)); // this contract is owner
+        newHookTarget.recoverToken(address(token2), recipient2, amount2);
+
+        // Verify token2 was transferred
+        assertEq(token2.balanceOf(recipient2), amount2);
+        assertEq(token2.balanceOf(address(newHookTarget)), 0);
+    }
+
+    function test_LinkTokenAssignment() public {
+        // Deploy a mock ERC20 token
+        MockERC20Mintable linkToken = new MockERC20Mintable(address(this), "Chainlink", "LINK", 18);
+
+        // Deploy a mock fee manager
+        MockFeeManager mockFeeManager = new MockFeeManager(address(linkToken), makeAddr("mockRewardManager"));
+
+        // Mock the s_feeManager call to return our mock fee manager
+        vm.mockCall(
+            verifierProxy,
+            abi.encodeWithSelector(IVerifierProxy.s_feeManager.selector),
+            abi.encode(address(mockFeeManager))
+        );
+
+        // Create a new hook target to test the constructor
+        HookTargetMarketStatus newHookTarget =
+            new HookTargetMarketStatus(authorizedCaller, payable(verifierProxy), feedId);
+
+        // Verify the LINK_TOKEN was assigned correctly
+        assertEq(newHookTarget.LINK_TOKEN(), address(linkToken));
+    }
+
+    function test_LinkTokenApproval() public {
+        // Deploy a mock ERC20 token
+        MockERC20Mintable linkToken = new MockERC20Mintable(address(this), "Chainlink", "LINK", 18);
+
+        // Deploy a mock fee manager
+        address mockRewardManager = makeAddr("mockRewardManager");
+        MockFeeManager mockFeeManager = new MockFeeManager(address(linkToken), mockRewardManager);
+
+        // Mock the s_feeManager call to return our mock fee manager
+        vm.mockCall(
+            verifierProxy,
+            abi.encodeWithSelector(IVerifierProxy.s_feeManager.selector),
+            abi.encode(address(mockFeeManager))
+        );
+
+        // Create a new hook target to test the constructor
+        HookTargetMarketStatus newHookTarget =
+            new HookTargetMarketStatus(authorizedCaller, payable(verifierProxy), feedId);
+
+        // Verify the allowance was given to the reward manager
+        uint256 allowance = linkToken.allowance(address(newHookTarget), mockRewardManager);
+        assertEq(allowance, type(uint256).max);
+    }
+
+    function test_LinkTokenRecovery() public {
+        // Deploy a mock ERC20 token
+        MockERC20Mintable linkToken = new MockERC20Mintable(address(this), "Chainlink", "LINK", 18);
+
+        // Deploy a mock fee manager
+        address mockRewardManager = makeAddr("mockRewardManager");
+        MockFeeManager mockFeeManager = new MockFeeManager(address(linkToken), mockRewardManager);
+
+        // Mock the s_feeManager call to return our mock fee manager
+        vm.mockCall(
+            verifierProxy,
+            abi.encodeWithSelector(IVerifierProxy.s_feeManager.selector),
+            abi.encode(address(mockFeeManager))
+        );
+
+        // Create a new hook target to test the constructor
+        HookTargetMarketStatus newHookTarget =
+            new HookTargetMarketStatus(authorizedCaller, payable(verifierProxy), feedId);
+
+        // Transfer some tokens to the contract
+        uint256 amount = 1000;
+        linkToken.mint(address(newHookTarget), amount);
+
+        // Verify the contract has the tokens
+        assertEq(linkToken.balanceOf(address(newHookTarget)), amount);
+
+        // Test the actual recovery
+        vm.prank(address(this)); // this contract is owner
+        newHookTarget.recoverToken(address(linkToken), authorizedCaller, amount);
+
+        // Verify the tokens were transferred
+        assertEq(linkToken.balanceOf(authorizedCaller), amount);
+        assertEq(linkToken.balanceOf(address(newHookTarget)), 0);
     }
 
     // ============ Helper Functions ============

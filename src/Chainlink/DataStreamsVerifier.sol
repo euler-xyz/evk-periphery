@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {IERC20, SafeERC20} from "openzeppelin-contracts/token/ERC20/extensions/ERC20Wrapper.sol";
-import {Context} from "openzeppelin-contracts/utils/Context.sol";
 
 /// @title Verifier Proxy Interface
 /// @notice Interface for interacting with Chainlink's verifier proxy contract
@@ -33,7 +33,7 @@ interface IFeeManager {
 
 /// @title DataStreamsVerifier
 /// @notice Abstract contract for verifying Chainlink Data Streams reports and managing authorization/fee logic
-abstract contract DataStreamsVerifier is Context {
+abstract contract DataStreamsVerifier is Ownable {
     using SafeERC20 for IERC20;
 
     /// @notice Thrown when an unauthorized address attempts to call update
@@ -58,7 +58,9 @@ abstract contract DataStreamsVerifier is Context {
     /// @param _authorizedCaller Address authorized to verify reports
     /// @param _verifierProxy Address of the verifier proxy contract
     /// @param _expectedVersion Expected version of the report
-    constructor(address _authorizedCaller, address payable _verifierProxy, uint16 _expectedVersion) {
+    constructor(address _authorizedCaller, address payable _verifierProxy, uint16 _expectedVersion)
+        Ownable(msg.sender)
+    {
         AUTHORIZED_CALLER = _authorizedCaller;
         VERIFIER_PROXY = IVerifierProxy(_verifierProxy);
         EXPECTED_VERSION = _expectedVersion;
@@ -70,6 +72,14 @@ abstract contract DataStreamsVerifier is Context {
             address rewardManager = IFeeManager(feeManager).i_rewardManager();
             IERC20(LINK_TOKEN).forceApprove(rewardManager, type(uint256).max);
         }
+    }
+
+    /// @notice Allows the owner to recover any ERC20 tokens sent to this contract
+    /// @param _token The address of the token to recover
+    /// @param _to The address to send the tokens to
+    /// @param _amount The amount of tokens to recover
+    function recoverToken(address _token, address _to, uint256 _amount) external onlyOwner {
+        IERC20(_token).safeTransfer(_to, _amount);
     }
 
     /// @notice Updates state by verifying a Data Streams report
