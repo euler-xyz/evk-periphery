@@ -234,7 +234,8 @@ contract SafeUtil is ScriptExtended {
         if (
             block.chainid == 1 || block.chainid == 10 || block.chainid == 100 || block.chainid == 130
                 || block.chainid == 137 || block.chainid == 146 || block.chainid == 42161 || block.chainid == 43114
-                || block.chainid == 480 || block.chainid == 56 || block.chainid == 57073 || block.chainid == 8453
+                || block.chainid == 480 || block.chainid == 56 || block.chainid == 57073 || block.chainid == 59144
+                || block.chainid == 8453
         ) {
             return "https://safe-client.safe.global/";
         } else if (block.chainid == 1923) {
@@ -412,9 +413,8 @@ contract SafeTransaction is SafeUtil {
             (bool success, bytes memory result) = transaction.to.call{value: transaction.value}(transaction.data);
             require(success, string(result));
         } else {
-            MultisendMock multisendMock = new MultisendMock(transaction.safe);
-            (bool success, bytes memory result) =
-                address(multisendMock).call{value: transaction.value}(transaction.data);
+            address multisendMock = address(new MultisendMock(transaction.safe));
+            (bool success, bytes memory result) = multisendMock.call{value: transaction.value}(transaction.data);
             require(success, string(result));
         }
     }
@@ -536,20 +536,24 @@ contract SafeMultisendBuilder is SafeUtil {
     }
 
     function executeMultisend(address safe, uint256 safeNonce) public {
+        executeMultisend(safe, safeNonce, true);
+    }
+
+    function executeMultisend(address safe, uint256 safeNonce, bool isSimulation) public {
         if (multisendItems.length == 0) return;
 
         console.log("\nExecuting the multicall via Safe (%s)", safe);
 
-        _simulateMultisend(safe);
-
         SafeTransaction transaction = new SafeTransaction();
+
+        if (!isSimulation) transaction.setSimulationOff();
 
         _dumpMultisendBatchBuilderFile(
             safe, string.concat("SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), ".json")
         );
 
         transaction.create(
-            false, safe, _getMultisendAddress(block.chainid), _getMultisendValue(), _getMultisendCalldata(), safeNonce
+            false, safe, _getMultisendAddress(block.chainid), _getMultisendValue(), _getMultisendCalldata(), safeNonce++
         );
 
         delete multisendItems;

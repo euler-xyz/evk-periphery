@@ -24,6 +24,11 @@ abstract contract Addresses {
         } else if (block.chainid == 8453) {
             WETH = 0x4200000000000000000000000000000000000006;
             USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+            USDT = 0x102d758f688a4C1C5a80b116bD945d4455460282;
+        } else if (block.chainid == 42161) {
+            WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+            USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
+            USDT = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
         }
 
         if (block.chainid == 1) {
@@ -36,6 +41,11 @@ abstract contract Addresses {
             IRM_ADAPTIVE_USD_YB = 0x72C9D7c1e9e954c9Dc85E49dB76fF614a335d2a5;
             IRM_ADAPTIVE_ETH = 0xb70de5cEcA993c08BceE4296E3fEbcc9D7C0AdCD;
             IRM_ADAPTIVE_BTC = 0x26472E20e09a01AA50a0F2C4d96E99ac58268a8D;
+        } else if (block.chainid == 42161) {
+            IRM_ADAPTIVE_USD = 0x2D76638aA2fA9Ce16417485d46Ed8EEDC1Db1AA4;
+            IRM_ADAPTIVE_USD_YB = 0x0a473bbcBa1c89ffbD7AfACdD6CBE019Ab5F2dD4;
+            IRM_ADAPTIVE_ETH = 0xF583692cCa56b084cb1f9D4C3e3939C43f73409D;
+            IRM_ADAPTIVE_BTC = 0xE1f126e815D4BF8CCE2F94552196EcA9a7c1B96c;
         }
     }
 

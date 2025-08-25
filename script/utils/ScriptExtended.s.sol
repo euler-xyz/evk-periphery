@@ -239,6 +239,42 @@ abstract contract ScriptExtended is Script {
             || _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
     }
 
+    function getSkipOFTHubChainConfig() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config", string("")), "--skip-oft-hub-chain-config");
+    }
+
+    function getCheckPhasedOutVaults() internal view returns (bool) {
+        return _strEq(vm.envOr("check_phased_out_vaults", string("")), "--check-phased-out-vaults");
+    }
+
+    function getFromBlock() internal view returns (uint256) {
+        return vm.envOr("from_block", uint256(0));
+    }
+
+    function getToBlock() internal view returns (uint256) {
+        return vm.envOr("to_block", uint256(0));
+    }
+
+    function getSourceWallet() internal view returns (address) {
+        return vm.envOr("source_wallet", address(0));
+    }
+
+    function getDestinationWallet() internal view returns (address) {
+        return vm.envOr("destination_wallet", address(0));
+    }
+
+    function getSourceAccountId() internal view returns (uint8) {
+        return uint8(vm.envOr("source_account_id", uint256(0)));
+    }
+
+    function getDestinationAccountId() internal view returns (uint8) {
+        return uint8(vm.envOr("destination_account_id", uint256(0)));
+    }
+
+    function getPath() internal view returns (string memory) {
+        return vm.envOr("path", string(""));
+    }
+
     function getConfigAddress(string memory key) internal view returns (address) {
         return getConfigAddress(key, block.chainid);
     }

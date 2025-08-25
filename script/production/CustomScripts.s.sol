@@ -2,14 +2,16 @@
 
 pragma solidity ^0.8.0;
 
-import {BatchBuilder} from "../utils/ScriptUtils.s.sol";
+import {ScriptUtils, BatchBuilder, IEVC, IEVault, console} from "../utils/ScriptUtils.s.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {IGovernance} from "evk/EVault/IEVault.sol";
-import {SafeTransaction} from "../utils/SafeUtils.s.sol";
+import {SafeTransaction, SafeMultisendBuilder} from "../utils/SafeUtils.s.sol";
 import {FactoryGovernor} from "../../src/Governor/FactoryGovernor.sol";
 import {CapRiskSteward} from "../../src/Governor/CapRiskSteward.sol";
 import {GovernorAccessControlEmergency} from "../../src/Governor/GovernorAccessControlEmergency.sol";
+import {LayerZeroSendEUL} from "../utils/LayerZeroUtils.s.sol";
 
 abstract contract CustomScriptBase is BatchBuilder {
     function run() public {
@@ -18,6 +20,206 @@ abstract contract CustomScriptBase is BatchBuilder {
     }
 
     function execute() public virtual {}
+}
+
+contract BridgeEULToLabsMultisig is ScriptUtils, SafeMultisendBuilder {
+    function run(uint256 dstChainId, uint256 amountNoDecimals) public {
+        uint256[] memory dstChainIds = new uint256[](1);
+        uint256[] memory amountsNoDecimals = new uint256[](1);
+        dstChainIds[0] = dstChainId;
+        amountsNoDecimals[0] = amountNoDecimals;
+        execute(dstChainIds, amountsNoDecimals);
+    }
+
+    function run(uint256[] memory dstChainIds, uint256[] memory amountsNoDecimals) public {
+        require(
+            dstChainIds.length == amountsNoDecimals.length,
+            "dstChainIds and amountsNoDecimals must have the same length"
+        );
+        execute(dstChainIds, amountsNoDecimals);
+    }
+
+    function execute(uint256[] memory dstChainIds, uint256[] memory amountsNoDecimals) public {
+        LayerZeroSendEUL util = new LayerZeroSendEUL();
+        address safe = getSafe(false);
+
+        for (uint256 i = 0; i < dstChainIds.length; ++i) {
+            uint256 dstChainId = dstChainIds[i];
+            uint256 amount = amountsNoDecimals[i] * 1e18;
+            address dstAddress =
+                deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json", dstChainId)).labs;
+
+            if (safe == address(0)) {
+                util.run(dstChainId, dstAddress, amount);
+            } else {
+                (address to, uint256 value, bytes memory rawCalldata) =
+                    util.getSendCalldata(dstChainId, dstAddress, amount, 1e4);
+                addMultisendItem(tokenAddresses.EUL, abi.encodeCall(IERC20.approve, (to, amount)));
+                addMultisendItem(to, value, rawCalldata);
+            }
+        }
+
+        if (multisendItemExists()) executeMultisend(safe, safeNonce++, false);
+    }
+}
+
+contract MigratePosition is BatchBuilder {
+    function run() public {
+        uint8[] memory sourceIds = new uint8[](1);
+        uint8[] memory destinationIds = new uint8[](1);
+
+        sourceIds[0] = getSourceAccountId();
+        destinationIds[0] = getDestinationAccountId();
+
+        execute(sourceIds, destinationIds);
+    }
+
+    function run(uint8[] calldata sourceIds, uint8[] calldata destinationIds) public {
+        execute(sourceIds, destinationIds);
+    }
+
+    function execute(uint8[] memory sourceIds, uint8[] memory destinationIds) public {
+        require(
+            sourceIds.length == destinationIds.length && sourceIds.length > 0,
+            "sourceIds and destinationIds must have the same length and be less than or equal to 5"
+        );
+
+        address sourceWallet = getSourceWallet();
+        bytes19 sourceWalletPrefix = IEVC(coreAddresses.evc).getAddressPrefix(sourceWallet);
+        address destinationWallet = getDestinationWallet();
+
+        uint256 bitfield;
+        for (uint8 i = 0; i < sourceIds.length; ++i) {
+            bitfield |= 1 << sourceIds[i];
+        }
+
+        for (uint8 i = 0; i < sourceIds.length; ++i) {
+            _migratePosition(sourceWallet, sourceIds[i], destinationWallet, destinationIds[i]);
+        }
+
+        string memory result = string.concat(
+            "IMPORTANT: before proceeding, you must trust the destination wallet ",
+            vm.toString(destinationWallet),
+            "!\n\n"
+        );
+        result = string.concat(result, "Step 1: give control over your account to the destination wallet\n");
+        result = string.concat(
+            result,
+            "Go to the block explorer dedicated to your network and paste the EVC address: ",
+            vm.toString(coreAddresses.evc),
+            "\n"
+        );
+        result = string.concat(
+            result,
+            "Click 'Contract' and then 'Write Contract'. Find 'setOperator' function. Paste the following input data:\n"
+        );
+        result = string.concat(result, "    setOperator/payableAmount: 0\n");
+        result = string.concat(result, "    addressPrefix: ", _substring(vm.toString(sourceWalletPrefix), 0, 40), "\n");
+        result = string.concat(result, "    operator: ", vm.toString(destinationWallet), "\n");
+        result = string.concat(result, "    operatorBitField: ", vm.toString(bitfield), "\n");
+        result = string.concat(result, "Connect your source wallet, click 'Write' and execute the transaction.\n\n");
+        result = string.concat(result, "Step 2: pull the position from the source account to the destination account\n");
+        result = string.concat(
+            result,
+            "Go to the block explorer dedicated to your network and paste the EVC address: ",
+            vm.toString(coreAddresses.evc),
+            "\n"
+        );
+        result = string.concat(
+            result,
+            "Click 'Contract' and then 'Write Contract'. Find 'batch' function. Paste the following input data:\n"
+        );
+        result = string.concat(result, "    batch/payableAmount: 0\n");
+        result = string.concat(result, "    items: ", toString(getBatchItems()), "\n");
+        result = string.concat(result, "Connect your destination wallet, click 'Write' and execute the transaction.\n");
+
+        console.log(result);
+        vm.writeFile(string.concat(vm.projectRoot(), "/script/MigrationInstruction.txt"), result);
+
+        // simulation
+        vm.prank(sourceWallet);
+        IEVC(coreAddresses.evc).setOperator(sourceWalletPrefix, destinationWallet, bitfield);
+
+        if (isBatchViaSafe()) {
+            executeBatchViaSafe(false);
+        } else {
+            dumpBatch(destinationWallet);
+            executeBatchPrank(destinationWallet);
+        }
+    }
+
+    function _migratePosition(
+        address sourceWallet,
+        uint8 sourceAccountId,
+        address destinationWallet,
+        uint8 destinationAccountId
+    ) internal {
+        address sourceAccount = address(uint160(sourceWallet) ^ sourceAccountId);
+        address destinationAccount = address(uint160(destinationWallet) ^ destinationAccountId);
+        address[] memory collaterals = IEVC(coreAddresses.evc).getCollaterals(sourceAccount);
+        address[] memory controllers = IEVC(coreAddresses.evc).getControllers(sourceAccount);
+
+        for (uint256 i = 0; i < collaterals.length; ++i) {
+            uint256 amount = IEVault(collaterals[i]).balanceOf(sourceAccount);
+            if (amount == 0) continue;
+
+            addBatchItem(
+                coreAddresses.evc,
+                address(0),
+                abi.encodeCall(IEVC.enableCollateral, (destinationAccount, collaterals[i]))
+            );
+            addBatchItem(
+                collaterals[i],
+                sourceAccount,
+                abi.encodeCall(IEVault(collaterals[i]).transfer, (destinationAccount, amount))
+            );
+            addBatchItem(
+                coreAddresses.evc, address(0), abi.encodeCall(IEVC.disableCollateral, (sourceAccount, collaterals[i]))
+            );
+        }
+
+        for (uint256 i = 0; i < controllers.length; ++i) {
+            if (IEVault(controllers[i]).debtOf(sourceAccount) == 0) continue;
+
+            addBatchItem(
+                coreAddresses.evc,
+                address(0),
+                abi.encodeCall(IEVC.enableController, (destinationAccount, controllers[i]))
+            );
+            addBatchItem(
+                controllers[i],
+                destinationAccount,
+                abi.encodeCall(IEVault(controllers[i]).pullDebt, (type(uint256).max, sourceAccount))
+            );
+            addBatchItem(controllers[i], sourceAccount, abi.encodeCall(IEVault(controllers[i]).disableController, ()));
+        }
+
+        addBatchItem(
+            coreAddresses.evc,
+            address(0),
+            abi.encodeCall(IEVC.setAccountOperator, (sourceAccount, destinationWallet, false))
+        );
+    }
+}
+
+contract MergeSafeBatchBuilderFiles is CustomScriptBase, SafeMultisendBuilder {
+    function execute() public override {
+        address safe = getSafe();
+        string memory basePath = string.concat(
+            vm.projectRoot(), "/", getPath(), "/SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), "_"
+        );
+
+        for (uint256 i = 0; vm.exists(string.concat(basePath, vm.toString(i), ".json")); i++) {
+            string memory json = vm.readFile(string.concat(basePath, vm.toString(i), ".json"));
+            address target = vm.parseJsonAddress(json, ".transactions[0].to");
+            uint256 value = vm.parseJsonUint(json, ".transactions[0].value");
+            bytes memory data = vm.parseJsonBytes(json, ".transactions[0].data");
+
+            addMultisendItem(target, value, data);
+        }
+
+        executeMultisend(safe, safeNonce++);
+    }
 }
 
 contract UnpauseEVaultFactory is CustomScriptBase {

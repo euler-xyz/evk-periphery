@@ -34,7 +34,7 @@ import {EVaultFactoryGovernorDeployer, TimelockControllerDeployer} from "./12_Go
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {OFTAdapterUpgradeableDeployer, MintBurnOFTAdapterDeployer} from "./14_OFT.s.sol";
 import {EdgeFactoryDeployer} from "./15_EdgeFactory.s.sol";
-import {EulerEarnFactory} from "./20_EulerEarnFactory.s.sol";
+import {EulerEarnFactoryDeployer} from "./20_EulerEarnFactory.s.sol";
 import {EulerSwapImplementationDeployer} from "./21_EulerSwapImplementation.s.sol";
 import {EulerSwapFactoryDeployer} from "./22_EulerSwapFactory.s.sol";
 import {EulerSwapPeripheryDeployer} from "./23_EulerSwapPeriphery.s.sol";
@@ -99,9 +99,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         int256 adjustmentSpeed;
     }
 
-    mapping(uint256 chainId => bool isHarvestCoolDownCheckOn) internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON;
-    uint256[1] internal EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS = [1];
-
     address internal constant BURN_ADDRESS = address(0xdead);
     uint256 internal constant EUL_HUB_CHAIN_ID = 1;
     uint8 internal constant EUL_DECIMALS = 18;
@@ -138,11 +135,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     AdaptiveCurveIRMParams[] internal DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS;
 
     constructor() {
-        for (uint256 i = 0; i < EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS.length; ++i) {
-            uint256 chainId = EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON_CHAIN_IDS[i];
-            EULER_EARN_HARVEST_COOL_DOWN_CHECK_ON[chainId] = true;
-        }
-
         for (uint256 i = 0; i < IRM_INITIAL_RATES_AT_TARGET.length; ++i) {
             DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.push(
                 AdaptiveCurveIRMParams({
@@ -472,7 +464,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- OFT Adapter already deployed. Skipping...");
         }
 
-        if (containsOftHubChainId(block.chainid) && bridgeAddresses.oftAdapter != address(0)) {
+        if (
+            containsOftHubChainId(block.chainid) && bridgeAddresses.oftAdapter != address(0)
+                && !getSkipOFTHubChainConfig()
+        ) {
             console.log("+ Attempting to configure OFT Adapter on chain %s", block.chainid);
 
             LayerZeroUtil lzUtil = new LayerZeroUtil();
@@ -661,6 +656,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 && peripheryAddresses.oracleAdapterRegistry == address(0)
                 && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0)
                 && peripheryAddresses.kinkyIRMFactory == address(0)
+                && peripheryAddresses.fixedCyclicalBinaryIRMFactory == address(0)
                 && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
                 && peripheryAddresses.governorAccessControlEmergencyFactory == address(0)
                 && peripheryAddresses.capRiskStewardFactory == address(0)
@@ -674,6 +670,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             peripheryAddresses.externalVaultRegistry = peripheryContracts.externalVaultRegistry;
             peripheryAddresses.kinkIRMFactory = peripheryContracts.kinkIRMFactory;
             peripheryAddresses.kinkyIRMFactory = peripheryContracts.kinkyIRMFactory;
+            peripheryAddresses.fixedCyclicalBinaryIRMFactory = peripheryContracts.fixedCyclicalBinaryIRMFactory;
             peripheryAddresses.adaptiveCurveIRMFactory = peripheryContracts.adaptiveCurveIRMFactory;
             peripheryAddresses.irmRegistry = peripheryContracts.irmRegistry;
             peripheryAddresses.governorAccessControlEmergencyFactory =
@@ -859,13 +856,13 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- EulerUngovernedNzxPerspective already deployed. Skipping...");
         }
 
-        if (coreAddresses.eulerEarnFactory == address(0)) {
-            console.log("+ Deploying EulerEarn factory...");
-            EulerEarnFactory deployer = new EulerEarnFactory();
-            coreAddresses.eulerEarnFactory =
+        if (coreAddresses.eulerEarnFactory == address(0) && peripheryAddresses.eulerEarnPublicAllocator == address(0)) {
+            console.log("+ Deploying EulerEarn factory and public allocator...");
+            EulerEarnFactoryDeployer deployer = new EulerEarnFactoryDeployer();
+            (coreAddresses.eulerEarnFactory, peripheryAddresses.eulerEarnPublicAllocator) =
                 deployer.deploy(coreAddresses.evc, coreAddresses.permit2, peripheryAddresses.evkFactoryPerspective);
         } else {
-            console.log("- EulerEarn factory already deployed. Skipping...");
+            console.log("- EulerEarn factory and public allocator already deployed. Skipping...");
             if (vm.isDir("out-euler-earn")) vm.removeDir("out-euler-earn", true);
         }
 
@@ -927,8 +924,12 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (lensAddresses.irmLens == address(0)) {
             console.log("+ Deploying LensIRM...");
             LensIRMDeployer deployer = new LensIRMDeployer();
-            lensAddresses.irmLens =
-                deployer.deploy(peripheryAddresses.kinkIRMFactory, peripheryAddresses.adaptiveCurveIRMFactory);
+            lensAddresses.irmLens = deployer.deploy(
+                peripheryAddresses.kinkIRMFactory,
+                peripheryAddresses.adaptiveCurveIRMFactory,
+                peripheryAddresses.kinkyIRMFactory,
+                peripheryAddresses.fixedCyclicalBinaryIRMFactory
+            );
         } else {
             console.log("- LensIRM already deployed. Skipping...");
         }

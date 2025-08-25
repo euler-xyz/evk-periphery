@@ -73,36 +73,36 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[UNI   ] = "0x7e262cd6226328aaf4ea5c993a952e18dd633bc8";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[USDC  ] = 100_000_000;
+        cluster.supplyCaps[USDC  ] = 150_000_000;
         cluster.supplyCaps[USDT0 ] = 100_000_000;
-        cluster.supplyCaps[sUSDC ] = 40_000_000;
-        cluster.supplyCaps[WETH  ] = 20_000;
-        cluster.supplyCaps[wstETH] = 3_000;
-        cluster.supplyCaps[weETH ] = 30_000;
-        cluster.supplyCaps[rsETH ] = 2_000;
-        cluster.supplyCaps[ezETH ] = 2_000;
+        cluster.supplyCaps[sUSDC ] = 80_000_000;
+        cluster.supplyCaps[WETH  ] = 15_000;
+        cluster.supplyCaps[wstETH] = 1_130;
+        cluster.supplyCaps[weETH ] = 22_500;
+        cluster.supplyCaps[rsETH ] = 1_500;
+        cluster.supplyCaps[ezETH ] = 1_500;
         cluster.supplyCaps[WBTC  ] = 100;
-        cluster.supplyCaps[UNI   ] = 500_000;
+        cluster.supplyCaps[UNI   ] = 250_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[USDC  ] = 90_000_000;
+        cluster.borrowCaps[USDC  ] = 135_000_000;
         cluster.borrowCaps[USDT0 ] = 90_000_000;
-        cluster.borrowCaps[sUSDC ] = 32_000_000;
-        cluster.borrowCaps[WETH  ] = 18_000;
-        cluster.borrowCaps[wstETH] = 750;
-        cluster.borrowCaps[weETH ] = 12_000;
-        cluster.borrowCaps[rsETH ] = 500;
-        cluster.borrowCaps[ezETH ] = 500;
+        cluster.borrowCaps[sUSDC ] = 64_000_000;
+        cluster.borrowCaps[WETH  ] = 13_500;
+        cluster.borrowCaps[wstETH] = 290;
+        cluster.borrowCaps[weETH ] = 9_000;
+        cluster.borrowCaps[rsETH ] = 375;
+        cluster.borrowCaps[ezETH ] = 375;
         cluster.borrowCaps[WBTC  ] = 90;
-        cluster.borrowCaps[UNI   ] = 400_000;
+        cluster.borrowCaps[UNI   ] = 200_000;
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0.00% APY,  Kink(90.00%)=6.00% APY  Max=40.00% APY
-            uint256[4] memory irmUSD  = [uint256(0), uint256(477682641),  uint256(20526145828), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=6.50% APY  Max=40.00% APY
+            uint256[4] memory irmUSD  = [uint256(0), uint256(516261061),  uint256(20178940043), uint256(3865470566)];
 
-            // Base=0.00% APY,  Kink(80.00%)=1.50% APY  Max=40.00% APY
-            uint256[4] memory irmSUSDC= [uint256(0), uint256(137312259),  uint256(11863395757), uint256(3435973836)];
+            // Base=0.00% APY,  Kink(80.00%)=2.00% APY  Max=40.00% APY
+            uint256[4] memory irmSUSDC= [uint256(0), uint256(182632435),  uint256(11682115056), uint256(3435973836)];
 
             // Base=0.00% APY,  Kink(90.00%)=2.70% APY  Max=40.00% APY
             uint256[4] memory irmWETH = [uint256(0), uint256(218407859),  uint256(22859618857), uint256(3865470566)];
