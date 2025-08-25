@@ -46,6 +46,9 @@ abstract contract Addresses {
     address internal constant wUSDL = 0x7751E2F4b8ae93EF6B79d86419d42FE3295A4559;
     address internal constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address internal constant sDAI = 0x83F20F44975D03b1b09e64809B757c47f942BEeA;
+    address internal constant AUSD = 0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a;
+    address internal constant frxUSD = 0xCAcd6fd266aF91b8AeD52aCCc382b4e165586E29;
+    address internal constant sfrxUSD = 0xcf62F905562626CfcDD2261162a51fd02Fc9c5b6;
     address internal constant deUSD = 0x15700B564Ca08D9439C58cA5053166E8317aa138;
     address internal constant sdeUSD = 0x5C5b196aBE0d54485975D1Ec29617D42D9198326;
     address internal constant USDtb = 0xC139190F447e929f090Edeb554D95AbB8b18aC1C;
