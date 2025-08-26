@@ -52,7 +52,7 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
             //                          0         1
             //                          WETH      hgETH      PT_hgETH_26JUN2026
-            /* 0  WETH   */            [LTV_ZERO, LTV__LOW, LTV_ZERO],
+            /* 0  WETH   */            [LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 1  hgETH  */            [LTV__LOW, LTV_ZERO, LTV_ZERO],
             /* 2  PT_hgETH_26JUN2026*/ [LTV__LOW, LTV_HIGH, LTV_ZERO]
         ];
