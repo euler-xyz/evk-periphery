@@ -8,6 +8,9 @@ import {IHookTarget} from "evk/interfaces/IHookTarget.sol";
 /// @title HookTargetMarketStatus
 /// @notice Contract for verifying V8 reports and managing market status
 contract HookTargetMarketStatus is DataStreamsVerifier, IHookTarget {
+    /// @notice Thrown when the liquidator is not authorized
+    error NotAuthorized();
+
     /// @notice Thrown when the feed ID in the report doesn't match the contract's feed ID
     error FeedIdMismatch();
 
@@ -28,6 +31,9 @@ contract HookTargetMarketStatus is DataStreamsVerifier, IHookTarget {
     /// @notice The unique identifier for this price feed
     bytes32 public immutable FEED_ID;
 
+    /// @notice Address authorized to call liquidate function
+    address public immutable AUTHORIZED_LIQUIDATOR;
+
     /// @notice Current market status (0 = unknown, 1 = closed, 2 = open)
     uint32 public marketStatus;
 
@@ -35,18 +41,32 @@ contract HookTargetMarketStatus is DataStreamsVerifier, IHookTarget {
     uint64 public lastUpdatedTimestamp;
 
     /// @notice Initializes the contract with required parameters
-    /// @param _authorizedCaller Address authorized to call update function
+    /// @param _authorizedLiquidator Address authorized to call liquidate function
+    /// @param _authorizedUpdater Address authorized to call update function
     /// @param _verifierProxy Address of the verifier proxy contract
     /// @param _feedId Unique identifier for the price feed
-    constructor(address _authorizedCaller, address payable _verifierProxy, bytes32 _feedId)
-        DataStreamsVerifier(_authorizedCaller, _verifierProxy, 8)
+    constructor(address _authorizedLiquidator, address _authorizedUpdater, address _verifierProxy, bytes32 _feedId)
+        DataStreamsVerifier(_authorizedUpdater, _verifierProxy, 8)
     {
         FEED_ID = _feedId;
+        AUTHORIZED_LIQUIDATOR = _authorizedLiquidator;
     }
 
     /// @notice Fallback function that only allows execution when market is open
     fallback() external {
-        if (marketStatus != MARKET_STATUS_OPEN) revert MarketPaused();
+        _verifyMarketStatus();
+    }
+
+    /// @notice Intercepts EVault liquidate operations to authenticate the caller (liquidator)
+    function liquidate(address, address, uint256, uint256) external view {
+        address msgSender;
+        assembly {
+            msgSender := shr(96, calldataload(sub(calldatasize(), 20)))
+        }
+
+        if (msgSender != AUTHORIZED_LIQUIDATOR && msgSender != owner()) revert NotAuthorized();
+
+        _verifyMarketStatus();
     }
 
     /// @notice Checks if this contract is a valid hook target.
@@ -100,5 +120,10 @@ contract HookTargetMarketStatus is DataStreamsVerifier, IHookTarget {
             lastUpdatedTimestamp = _lastUpdatedTimestamp;
             emit MarketStatusUpdated(_marketStatus, _lastUpdatedTimestamp);
         }
+    }
+
+    /// @notice Verifies that the market is open
+    function _verifyMarketStatus() internal view {
+        if (marketStatus != MARKET_STATUS_OPEN) revert MarketPaused();
     }
 }

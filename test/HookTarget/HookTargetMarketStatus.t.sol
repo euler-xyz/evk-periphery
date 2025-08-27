@@ -30,15 +30,16 @@ contract HookTargetMarketStatusTest is Test {
     HookTargetMarketStatus public hookTarget;
 
     address public authorizedCaller = makeAddr("authorizedCaller");
+    address public authorizedLiquidator = makeAddr("authorizedLiquidator");
     address public unauthorizedCaller = makeAddr("unauthorizedCaller");
     address public verifierProxy;
     uint256 public forkId;
     bytes32 public feedId;
     bytes public fullReport;
 
-    uint32 public constant MARKET_STATUS_CLOSED = 0;
-    uint32 public constant MARKET_STATUS_OPEN = 1;
-    uint32 public constant MARKET_STATUS_PAUSED = 2;
+    uint32 public constant MARKET_STATUS_UNKNOWN = 0;
+    uint32 public constant MARKET_STATUS_CLOSED = 1;
+    uint32 public constant MARKET_STATUS_OPEN = 2;
 
     function setUp() public {
         forkId = vm.createSelectFork("https://sepolia.drpc.org", 9027340);
@@ -47,12 +48,14 @@ contract HookTargetMarketStatusTest is Test {
         fullReport =
             hex"00090d9e8d96765a0c49e03a6ae05c82e8f8de70cf179baa632f18313e54bd6900000000000000000000000000000000000000000000000000000000017bb160000000000000000000000000000000000000000000000000000000030000000100000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000002200000000000000000000000000000000000000000000000000000000000000280000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001200008b8ad9dc4061d1064033c3abc8a4e3f056e5b61d8533e8190eb96ef3b330b0000000000000000000000000000000000000000000000000000000068a61c3f0000000000000000000000000000000000000000000000000000000068a61c3f000000000000000000000000000000000000000000000000000043baeb9411f3000000000000000000000000000000000000000000000000002c120032ecd8be0000000000000000000000000000000000000000000000000000000068cda93f000000000000000000000000000000000000000000000000185d8f0234afbb4000000000000000000000000000000000000000000000000c40ef6663854c00000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000274e2c23e2b06d8b046ca61c703d795292cb65bef37dd1fc2531178ab6295b67c2ece305fb66c24656f5b4a31e114a1b6e890b40b21055df4ff4f15bb49f192eb000000000000000000000000000000000000000000000000000000000000000264f15301dfe51cd05948018b169ae3e52586a3fd51fc2a86a6be1fe2192c616310728c33f7d7e2dd5e49342ca4a6be2b615c6f3ddc99ca0df29ed6e9a6d19e45";
 
-        hookTarget = new HookTargetMarketStatus(authorizedCaller, payable(verifierProxy), feedId);
+        hookTarget = new HookTargetMarketStatus(authorizedLiquidator, authorizedCaller, verifierProxy, feedId);
     }
 
     function test_Constructor() public view {
         assertEq(hookTarget.AUTHORIZED_CALLER(), authorizedCaller);
+        assertEq(hookTarget.AUTHORIZED_LIQUIDATOR(), authorizedLiquidator);
         assertEq(address(hookTarget.VERIFIER_PROXY()), verifierProxy);
+        assertEq(hookTarget.EXPECTED_VERSION(), 8);
         assertEq(hookTarget.FEED_ID(), feedId);
         assertEq(hookTarget.marketStatus(), 0);
         assertEq(hookTarget.lastUpdatedTimestamp(), 0);
@@ -87,7 +90,7 @@ contract HookTargetMarketStatusTest is Test {
         // Call update with the real report and expect the event
         vm.prank(authorizedCaller);
         vm.expectEmit(true, false, false, true);
-        emit HookTargetMarketStatus.MarketStatusUpdated(MARKET_STATUS_PAUSED, 1755716669381000000);
+        emit HookTargetMarketStatus.MarketStatusUpdated(MARKET_STATUS_OPEN, 1755716669381000000);
         hookTarget.update(fullReport);
 
         // Check if the market status was updated
@@ -103,7 +106,7 @@ contract HookTargetMarketStatusTest is Test {
         // Create a hook target with a different feed ID than what we'll send
         bytes32 wrongFeedId = keccak256("wrong-feed-id");
         HookTargetMarketStatus wrongFeedHook =
-            new HookTargetMarketStatus(authorizedCaller, payable(verifierProxy), wrongFeedId);
+            new HookTargetMarketStatus(authorizedLiquidator, authorizedCaller, verifierProxy, wrongFeedId);
 
         // Use the real report data - this should fail at the feed ID check
         // since the report contains the correct feed ID but the contract expects a different one
@@ -120,20 +123,87 @@ contract HookTargetMarketStatusTest is Test {
         hookTarget.update(invalidVersionRequest);
     }
 
-    function test_Fallback_MarketPaused() public {
-        // Set market to paused
+    function test_Fallback_MarketOpen() public {
+        // Set market to open
         vm.prank(address(this));
-        hookTarget.setMarketStatus(MARKET_STATUS_PAUSED);
+        hookTarget.setMarketStatus(MARKET_STATUS_OPEN);
 
-        // Try to call fallback function
+        // Try to call fallback function - should succeed when market is open
         (bool success,) = address(hookTarget).call("");
         assertTrue(success);
     }
 
-    function test_Fallback_MarketNotPaused() public {
-        // Market is closed by default, so fallback should revert
+    function test_Fallback_MarketNotOpen() public {
+        // Market is unknown by default, so fallback should revert
         vm.expectRevert(HookTargetMarketStatus.MarketPaused.selector);
         (bool success,) = address(hookTarget).call("");
+        assertTrue(success);
+    }
+
+    function test_Liquidate_AuthorizedLiquidator() public {
+        // Set market to open
+        vm.prank(address(this));
+        hookTarget.setMarketStatus(MARKET_STATUS_OPEN);
+
+        // Create calldata with the liquidate function call
+        bytes memory liquidateCallData = abi.encodeWithSelector(
+            hookTarget.liquidate.selector,
+            address(0x1), // target
+            address(0x2), // asset
+            1000, // amount
+            500 // maxIn
+        );
+
+        // Append the authorized liquidator address at the end
+        bytes memory callDataWithSender = abi.encodePacked(liquidateCallData, authorizedLiquidator);
+
+        // Call the function with the proper calldata structure
+        (bool success,) = address(hookTarget).call(callDataWithSender);
+        assertTrue(success);
+    }
+
+    function test_Liquidate_Owner() public {
+        // Set market to open
+        vm.prank(address(this));
+        hookTarget.setMarketStatus(MARKET_STATUS_OPEN);
+
+        // Create calldata with the liquidate function call
+        bytes memory liquidateCallData = abi.encodeWithSelector(
+            hookTarget.liquidate.selector,
+            address(0x1), // target
+            address(0x2), // asset
+            1000, // amount
+            500 // maxIn
+        );
+
+        // Append the owner address at the end
+        bytes memory callDataWithSender = abi.encodePacked(liquidateCallData, address(this));
+
+        // Call the function with the proper calldata structure
+        (bool success,) = address(hookTarget).call(callDataWithSender);
+        assertTrue(success);
+    }
+
+    function test_Liquidate_UnauthorizedCaller() public {
+        // Set market to open
+        vm.prank(address(this));
+        hookTarget.setMarketStatus(MARKET_STATUS_OPEN);
+
+        // Create calldata with the liquidate function call
+        bytes memory liquidateCallData = abi.encodeWithSelector(
+            hookTarget.liquidate.selector,
+            address(0x1), // target
+            address(0x2), // asset
+            1000, // amount
+            500 // maxIn
+        );
+
+        // Append an unauthorized caller address at the end
+        bytes memory callDataWithSender = abi.encodePacked(liquidateCallData, unauthorizedCaller);
+
+        // Call the function with the proper calldata structure - should revert
+        vm.expectRevert(HookTargetMarketStatus.NotAuthorized.selector);
+        (bool success,) = address(hookTarget).call(callDataWithSender);
         assertTrue(success);
     }
 
@@ -162,7 +232,7 @@ contract HookTargetMarketStatusTest is Test {
 
         // Create a new hook target to test the constructor
         HookTargetMarketStatus newHookTarget =
-            new HookTargetMarketStatus(authorizedCaller, payable(verifierProxy), feedId);
+            new HookTargetMarketStatus(authorizedLiquidator, authorizedCaller, verifierProxy, feedId);
 
         // Transfer some tokens to the contract
         uint256 amount1 = 1000e18;
@@ -208,7 +278,7 @@ contract HookTargetMarketStatusTest is Test {
 
         // Create a new hook target to test the constructor
         HookTargetMarketStatus newHookTarget =
-            new HookTargetMarketStatus(authorizedCaller, payable(verifierProxy), feedId);
+            new HookTargetMarketStatus(authorizedLiquidator, authorizedCaller, verifierProxy, feedId);
 
         // Verify the LINK_TOKEN was assigned correctly
         assertEq(newHookTarget.LINK_TOKEN(), address(linkToken));
@@ -231,7 +301,7 @@ contract HookTargetMarketStatusTest is Test {
 
         // Create a new hook target to test the constructor
         HookTargetMarketStatus newHookTarget =
-            new HookTargetMarketStatus(authorizedCaller, payable(verifierProxy), feedId);
+            new HookTargetMarketStatus(authorizedLiquidator, authorizedCaller, verifierProxy, feedId);
 
         // Verify the allowance was given to the reward manager
         uint256 allowance = linkToken.allowance(address(newHookTarget), mockRewardManager);
@@ -255,7 +325,7 @@ contract HookTargetMarketStatusTest is Test {
 
         // Create a new hook target to test the constructor
         HookTargetMarketStatus newHookTarget =
-            new HookTargetMarketStatus(authorizedCaller, payable(verifierProxy), feedId);
+            new HookTargetMarketStatus(authorizedLiquidator, authorizedCaller, verifierProxy, feedId);
 
         // Transfer some tokens to the contract
         uint256 amount = 1000;
