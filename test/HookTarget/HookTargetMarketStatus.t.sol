@@ -207,6 +207,74 @@ contract HookTargetMarketStatusTest is Test {
         assertTrue(success);
     }
 
+    function test_Liquidate_AuthorizedLiquidator_MarketClosed() public {
+        // Set market to closed
+        vm.prank(address(this));
+        hookTarget.setMarketStatus(MARKET_STATUS_CLOSED);
+
+        // Create calldata with the liquidate function call
+        bytes memory liquidateCallData = abi.encodeWithSelector(
+            hookTarget.liquidate.selector,
+            address(0x1), // target
+            address(0x2), // asset
+            1000, // amount
+            500 // maxIn
+        );
+
+        // Append the authorized liquidator address at the end
+        bytes memory callDataWithSender = abi.encodePacked(liquidateCallData, authorizedLiquidator);
+
+        // Call the function with the proper calldata structure - should revert due to market being closed
+        vm.expectRevert(HookTargetMarketStatus.MarketPaused.selector);
+        (bool success,) = address(hookTarget).call(callDataWithSender);
+        assertTrue(success);
+    }
+
+    function test_Liquidate_Owner_MarketClosed() public {
+        // Set market to closed
+        vm.prank(address(this));
+        hookTarget.setMarketStatus(MARKET_STATUS_CLOSED);
+
+        // Create calldata with the liquidate function call
+        bytes memory liquidateCallData = abi.encodeWithSelector(
+            hookTarget.liquidate.selector,
+            address(0x1), // target
+            address(0x2), // asset
+            1000, // amount
+            500 // maxIn
+        );
+
+        // Append the owner address at the end
+        bytes memory callDataWithSender = abi.encodePacked(liquidateCallData, address(this));
+
+        // Call the function with the proper calldata structure - should revert due to market being closed
+        vm.expectRevert(HookTargetMarketStatus.MarketPaused.selector);
+        (bool success,) = address(hookTarget).call(callDataWithSender);
+        assertTrue(success);
+    }
+
+    function test_Liquidate_AuthorizedLiquidator_MarketUnknown() public {
+        // Market is unknown by default (status = 0)
+        assertEq(hookTarget.marketStatus(), MARKET_STATUS_UNKNOWN);
+
+        // Create calldata with the liquidate function call
+        bytes memory liquidateCallData = abi.encodeWithSelector(
+            hookTarget.liquidate.selector,
+            address(0x1), // target
+            address(0x2), // asset
+            1000, // amount
+            500 // maxIn
+        );
+
+        // Append the authorized liquidator address at the end
+        bytes memory callDataWithSender = abi.encodePacked(liquidateCallData, authorizedLiquidator);
+
+        // Call the function with the proper calldata structure - should revert due to market being unknown
+        vm.expectRevert(HookTargetMarketStatus.MarketPaused.selector);
+        (bool success,) = address(hookTarget).call(callDataWithSender);
+        assertTrue(success);
+    }
+
     function test_RecoverToken_OwnerOnly() public {
         // Test that non-owner cannot call recoverToken
         vm.prank(unauthorizedCaller);
