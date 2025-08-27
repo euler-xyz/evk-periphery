@@ -25,7 +25,7 @@ contract Cluster is ManageCluster {
         super.configureCluster();
 
         // define unit of account here
-        cluster.unitOfAccount = USD;
+        cluster.unitOfAccount = WBTC;
 
         // define oracle providers here.
         // adapter names can be found in the relevant adapter contract (as returned by the `name` function).
@@ -37,12 +37,14 @@ contract Cluster is ManageCluster {
         // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[uniBTC] = "0x7b123D1850aAb204e7Cd426FC2259141338F771b";
-        cluster.oracleProviders[PT_uniBTC_18DEC2025] = "0x880CF45D19Ad344953C5B6694B39f9B7BD2563c9";
+        cluster.oracleProviders[uniBTC] = "0xD802AD35342C39765B74205483c8f8558Fd3c311";
+        cluster.oracleProviders[PT_uniBTC_18DEC2025] = "0xF51f47ed3f7412EB10Cd2C0B6a7D190524D43bDc";
 
         // unibtc to btc 0xeB2de8d8D64582A27CfA68E5A87a0cfDf7c1Ea1F
         // pt to unibtc 0xD86BbBaC0C5aAb992fA2cA4Fb49156B3AA19E4cD
         // btc to usd 0x0484Df76f561443d93548D86740b5C4A826e5A33
+        // pt to wbtc 0xF51f47ed3f7412EB10Cd2C0B6a7D190524D43bDc
+        // uni to wbtc 0xD802AD35342C39765B74205483c8f8558Fd3c311
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {

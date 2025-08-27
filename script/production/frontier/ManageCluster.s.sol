@@ -11,6 +11,7 @@ abstract contract Addresses {
     address internal immutable WETH;
     address internal immutable USDC;
     address internal immutable USDT;
+    address internal immutable WBTC;
     address internal immutable IRM_ADAPTIVE_USD;
     address internal immutable IRM_ADAPTIVE_USD_YB;
     address internal immutable IRM_ADAPTIVE_ETH;
