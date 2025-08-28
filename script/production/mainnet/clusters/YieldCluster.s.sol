@@ -219,9 +219,6 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(30%)=12.75% APY  Max=848.77% APY
             uint256[4] memory irm_USD_3_MEGA_YIELD = [uint256(0), uint256(2951312420), uint256(22450463582), uint256(1288490188)];
 
-            // Base=5.00% APY,  Kink(90.00%)=10.00% APY  Max=15.00% APY
-            uint256[4] memory irm_USD_1_MEGA_YIELD_NEW = [uint256(1546098748700445000), uint256(381366399), uint256(3279699693), uint256(3865470566)];
-
             // Base=5.00% APY,  Kink(90.00%)=10.00% APY  Max=40.00% APY
             uint256[4] memory irm_eUSDe_rUSD       = [uint256(1546098748700445000), uint256(381366399), uint256(17793200339), uint256(3865470566)];
 
@@ -231,8 +228,8 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(90%)=1.50% APY  Max=80.00% APY
             uint256[4] memory irm_syrupUSDC        = [uint256(0), uint256(122055342), uint256(42269044890), uint256(3865470566)];
 
-            cluster.kinkIRMParams[USDC        ] = irm_USD_1_MEGA_YIELD_NEW;
-            cluster.kinkIRMParams[USDT        ] = irm_USD_1_MEGA_YIELD_NEW;
+            cluster.kinkIRMParams[USDC        ] = irm_USD_1_MEGA_YIELD;
+            cluster.kinkIRMParams[USDT        ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[PYUSD       ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[rlUSD       ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[wM          ] = irm_USD_1_MEGA_YIELD;
@@ -249,8 +246,8 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[rUSD        ] = irm_eUSDe_rUSD;
             cluster.kinkIRMParams[syrupUSDC   ] = irm_syrupUSDC;
             cluster.kinkIRMParams[mBASIS      ] = irm_USD_3_MEGA_YIELD;
-            cluster.kinkIRMParams[AUSD        ] = irm_USD_1_MEGA_YIELD_NEW;
-            cluster.kinkIRMParams[frxUSD      ] = irm_USD_1_MEGA_YIELD_NEW;
+            cluster.kinkIRMParams[AUSD        ] = irm_USD_1_MEGA_YIELD;
+            cluster.kinkIRMParams[frxUSD      ] = irm_USD_1_MEGA_YIELD;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
