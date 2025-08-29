@@ -85,7 +85,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[wstETH] = 22_500;
         cluster.supplyCaps[weETH ] = 22_500;
         cluster.supplyCaps[rsETH ] = 60;
-        cluster.supplyCaps[tETH  ] = 100;
+        cluster.supplyCaps[tETH  ] = 150;
         cluster.supplyCaps[ezETH ] = 375;
         cluster.supplyCaps[WBTC  ] = 600;
         cluster.supplyCaps[ARB   ] = 10_000_000;
@@ -99,7 +99,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[wstETH] = 11_000;
         cluster.borrowCaps[weETH ] = 11_000;
         cluster.borrowCaps[rsETH ] = 30;
-        cluster.borrowCaps[tETH  ] = 50;
+        cluster.borrowCaps[tETH  ] = 75;
         cluster.borrowCaps[ezETH ] = 180;
         cluster.borrowCaps[WBTC  ] = 540;
         cluster.borrowCaps[ARB   ] = 8_000_000;
