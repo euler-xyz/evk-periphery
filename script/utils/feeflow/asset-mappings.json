@@ -1,0 +1,309 @@
+{
+  "cross-chain:0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf": {
+    "baseAsset": "8453:0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+    "equivalents": [
+      {
+        "assetKey": "1:0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+        "chainId": "1",
+        "chainName": "Ethereum"
+      }
+    ],
+    "discoveredAt": "2025-08-29T20:59:04.613Z"
+  },
+  "cross-chain:0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a": {
+    "baseAsset": "1:0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+    "equivalents": [
+      {
+        "assetKey": "43114:0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "43114:0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "43114:0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      }
+    ],
+    "discoveredAt": "2025-08-29T20:59:38.360Z"
+  },
+  "cross-chain:0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34": {
+    "baseAsset": "56:0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34",
+    "equivalents": [
+      {
+        "assetKey": "80094:0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34",
+        "chainId": "80094",
+        "chainName": "Berachain"
+      }
+    ],
+    "discoveredAt": "2025-08-29T21:00:21.925Z"
+  },
+  "cross-chain:0x4200000000000000000000000000000000000006": {
+    "baseAsset": "130:0x4200000000000000000000000000000000000006",
+    "equivalents": [
+      {
+        "assetKey": "1923:0x4200000000000000000000000000000000000006",
+        "chainId": "1923",
+        "chainName": "Swellchain"
+      },
+      {
+        "assetKey": "8453:0x4200000000000000000000000000000000000006",
+        "chainId": "8453",
+        "chainName": "Base"
+      },
+      {
+        "assetKey": "1923:0x4200000000000000000000000000000000000006",
+        "chainId": "1923",
+        "chainName": "Swellchain"
+      }
+    ],
+    "discoveredAt": "2025-08-29T21:01:21.190Z"
+  },
+  "cross-chain:0x2416092f143378750bb29b79eD961ab195CcEea5": {
+    "baseAsset": "59144:0x2416092f143378750bb29b79eD961ab195CcEea5",
+    "equivalents": [
+      {
+        "assetKey": "1923:0x2416092f143378750bb29b79eD961ab195CcEea5",
+        "chainId": "1923",
+        "chainName": "Swellchain"
+      },
+      {
+        "assetKey": "8453:0x2416092f143378750bb29b79eD961ab195CcEea5",
+        "chainId": "8453",
+        "chainName": "Base"
+      },
+      {
+        "assetKey": "130:0x2416092f143378750bb29b79eD961ab195CcEea5",
+        "chainId": "130",
+        "chainName": "Unichain"
+      }
+    ],
+    "discoveredAt": "2025-08-29T21:00:55.892Z"
+  },
+  "cross-chain:0xecAc9C5F704e954931349Da37F60E39f515c11c1": {
+    "baseAsset": "80094:0xecAc9C5F704e954931349Da37F60E39f515c11c1",
+    "equivalents": [
+      {
+        "assetKey": "8453:0xecAc9C5F704e954931349Da37F60E39f515c11c1",
+        "chainId": "8453",
+        "chainName": "Base"
+      },
+      {
+        "assetKey": "239:0xecAc9C5F704e954931349Da37F60E39f515c11c1",
+        "chainId": "239",
+        "chainName": "TAC"
+      }
+    ],
+    "discoveredAt": "2025-08-29T21:01:05.528Z"
+  },
+  "cross-chain:0x0555E30da8f98308EdB960aa94C0Db47230d2B9c": {
+    "baseAsset": "80094:0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
+    "equivalents": [
+      {
+        "assetKey": "130:0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
+        "chainId": "130",
+        "chainName": "Unichain"
+      }
+    ],
+    "discoveredAt": "2025-08-29T21:00:20.506Z"
+  },
+  "cross-chain:0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": {
+    "baseAsset": "1:0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "equivalents": [
+      {
+        "assetKey": "43114:0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "43114:0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "1923:0x9ab96A4668456896d45c301Bc3A15Cee76AA7B8D",
+        "chainId": "1923",
+        "chainName": "Swellchain"
+      },
+      {
+        "assetKey": "43114:0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "43114:0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "1923:0x9ab96A4668456896d45c301Bc3A15Cee76AA7B8D",
+        "chainId": "1923",
+        "chainName": "Swellchain"
+      }
+    ]
+  },
+  "cross-chain:0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": {
+    "baseAsset": "1:0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "equivalents": [
+      {
+        "assetKey": "1923:0x4200000000000000000000000000000000000006",
+        "chainId": "1923",
+        "chainName": "Swellchain"
+      },
+      {
+        "assetKey": "239:0x61D66bC21fED820938021B06e9b2291f3FB91945",
+        "chainId": "239",
+        "chainName": "TAC"
+      },
+      {
+        "assetKey": "43114:0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "1923:0x4200000000000000000000000000000000000006",
+        "chainId": "1923",
+        "chainName": "Swellchain"
+      },
+      {
+        "assetKey": "43114:0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "239:0x61D66bC21fED820938021B06e9b2291f3FB91945",
+        "chainId": "239",
+        "chainName": "TAC"
+      },
+      {
+        "assetKey": "43114:0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "239:0x61D66bC21fED820938021B06e9b2291f3FB91945",
+        "chainId": "239",
+        "chainName": "TAC"
+      }
+    ]
+  },
+  "cross-chain:0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": {
+    "baseAsset": "1:0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+    "equivalents": [
+      {
+        "assetKey": "43114:0x152b9d0FdC40C096757F570A51E494bd4b943E50",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "130:0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
+        "chainId": "130",
+        "chainName": "Unichain"
+      },
+      {
+        "assetKey": "43114:0x152b9d0FdC40C096757F570A51E494bd4b943E50",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "130:0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
+        "chainId": "130",
+        "chainName": "Unichain"
+      },
+      {
+        "assetKey": "43114:0x152b9d0FdC40C096757F570A51E494bd4b943E50",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      },
+      {
+        "assetKey": "130:0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
+        "chainId": "130",
+        "chainName": "Unichain"
+      }
+    ]
+  },
+  "cross-chain:0xdAC17F958D2ee523a2206206994597C13D831ec7": {
+    "baseAsset": "1:0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "equivalents": [
+      {
+        "assetKey": "239:0xAF988C3f7CB2AceAbB15f96b19388a259b6C438f",
+        "chainId": "239",
+        "chainName": "TAC"
+      },
+      {
+        "assetKey": "239:0xAF988C3f7CB2AceAbB15f96b19388a259b6C438f",
+        "chainId": "239",
+        "chainName": "TAC"
+      },
+      {
+        "assetKey": "239:0xAF988C3f7CB2AceAbB15f96b19388a259b6C438f",
+        "chainId": "239",
+        "chainName": "TAC"
+      }
+    ]
+  },
+  "cross-chain:0xA1290d69c65A6Fe4DF752f95823fae25cB99e5A7": {
+    "baseAsset": "1:0xA1290d69c65A6Fe4DF752f95823fae25cB99e5A7",
+    "equivalents": [
+      {
+        "assetKey": "239:0x5448BBf60Ee2edBCd32F032f3294982f4ad1119e",
+        "chainId": "239",
+        "chainName": "TAC"
+      },
+      {
+        "assetKey": "239:0x5448BBf60Ee2edBCd32F032f3294982f4ad1119e",
+        "chainId": "239",
+        "chainName": "TAC"
+      },
+      {
+        "assetKey": "239:0x5448BBf60Ee2edBCd32F032f3294982f4ad1119e",
+        "chainId": "239",
+        "chainName": "TAC"
+      }
+    ]
+  },
+  "cross-chain:0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee": {
+    "baseAsset": "1:0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
+    "equivalents": [
+      {
+        "assetKey": "1923:0xA6cB988942610f6731e664379D15fFcfBf282b44",
+        "chainId": "1923",
+        "chainName": "Swellchain"
+      },
+      {
+        "assetKey": "130:0x7DCC39B4d1C53CB31e1aBc0e358b43987FEF80f7",
+        "chainId": "130",
+        "chainName": "Unichain"
+      },
+      {
+        "assetKey": "1923:0xA6cB988942610f6731e664379D15fFcfBf282b44",
+        "chainId": "1923",
+        "chainName": "Swellchain"
+      },
+      {
+        "assetKey": "1923:0xA6cB988942610f6731e664379D15fFcfBf282b44",
+        "chainId": "1923",
+        "chainName": "Swellchain"
+      },
+      {
+        "assetKey": "130:0x7DCC39B4d1C53CB31e1aBc0e358b43987FEF80f7",
+        "chainId": "130",
+        "chainName": "Unichain"
+      }
+    ]
+  },
+  "cross-chain:0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c": {
+    "baseAsset": "1:0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c",
+    "equivalents": [
+      {
+        "assetKey": "43114:0xC891EB4cbdEFf6e073e859e987815Ed1505c2ACD",
+        "chainId": "43114",
+        "chainName": "Avalanche"
+      }
+    ]
+  }
+}
