@@ -411,6 +411,30 @@ contract HookTargetMarketStatusTest is Test {
         assertEq(linkToken.balanceOf(address(newHookTarget)), 0);
     }
 
+    function test_SetMarketStatus_SameStatus() public {
+        // Set market to open first
+        vm.prank(address(this));
+        hookTarget.setMarketStatus(MARKET_STATUS_OPEN);
+
+        vm.warp(block.timestamp + 1000);
+
+        // Try to set the same status again - should revert
+        vm.prank(address(this));
+        vm.expectRevert(HookTargetMarketStatus.MarketStatusInvalid.selector);
+        hookTarget.setMarketStatus(MARKET_STATUS_OPEN);
+    }
+
+    function test_SetMarketStatus_SameTimestamp() public {
+        // Set market to open first
+        vm.prank(address(this));
+        hookTarget.setMarketStatus(MARKET_STATUS_OPEN);
+
+        // Try to set the same status again - should revert
+        vm.prank(address(this));
+        vm.expectRevert(HookTargetMarketStatus.MarketStatusInvalid.selector);
+        hookTarget.setMarketStatus(MARKET_STATUS_CLOSED);
+    }
+
     // ============ Helper Functions ============
 
     function _createMockVerifyRequestWithVersion(uint16 version) internal pure returns (bytes memory) {

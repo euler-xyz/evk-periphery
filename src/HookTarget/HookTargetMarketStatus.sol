@@ -17,6 +17,9 @@ contract HookTargetMarketStatus is DataStreamsVerifier, IHookTarget {
     /// @notice Thrown when the price data is invalid (e.g., expired or not yet valid)
     error PriceDataInvalid();
 
+    /// @notice Thrown when the market status is invalid
+    error MarketStatusInvalid();
+
     /// @notice Thrown when the market is paused and operations are not allowed
     error MarketPaused();
 
@@ -115,10 +118,12 @@ contract HookTargetMarketStatus is DataStreamsVerifier, IHookTarget {
     /// @param _marketStatus The new market status to set
     /// @param _lastUpdatedTimestamp The timestamp from the report
     function _setMarketStatus(uint32 _marketStatus, uint64 _lastUpdatedTimestamp) internal {
-        if (marketStatus != _marketStatus && lastUpdatedTimestamp <= _lastUpdatedTimestamp) {
+        if (marketStatus != _marketStatus && lastUpdatedTimestamp < _lastUpdatedTimestamp) {
             marketStatus = _marketStatus;
             lastUpdatedTimestamp = _lastUpdatedTimestamp;
             emit MarketStatusUpdated(_marketStatus, _lastUpdatedTimestamp);
+        } else {
+            revert MarketStatusInvalid();
         }
     }
 
