@@ -58,9 +58,7 @@ abstract contract DataStreamsVerifier is Ownable {
     /// @param _authorizedCaller Address authorized to verify reports
     /// @param _verifierProxy Address of the verifier proxy contract
     /// @param _expectedVersion Expected version of the report
-    constructor(address _authorizedCaller, address payable _verifierProxy, uint16 _expectedVersion)
-        Ownable(msg.sender)
-    {
+    constructor(address _authorizedCaller, address _verifierProxy, uint16 _expectedVersion) Ownable(msg.sender) {
         AUTHORIZED_CALLER = _authorizedCaller;
         VERIFIER_PROXY = IVerifierProxy(_verifierProxy);
         EXPECTED_VERSION = _expectedVersion;
@@ -102,7 +100,6 @@ abstract contract DataStreamsVerifier is Ownable {
         if (reportVersion != EXPECTED_VERSION) revert InvalidPriceFeedVersion();
 
         // Verify the report on-chain using Chainlink's verifier
-        return
-            VERIFIER_PROXY.verify{value: 0}(_rawReport, LINK_TOKEN == address(0) ? bytes("") : abi.encode(LINK_TOKEN));
+        return VERIFIER_PROXY.verify(_rawReport, LINK_TOKEN == address(0) ? bytes("") : abi.encode(LINK_TOKEN));
     }
 }
