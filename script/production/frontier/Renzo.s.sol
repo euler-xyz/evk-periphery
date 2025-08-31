@@ -51,5 +51,12 @@ contract Cluster is ManageCluster {
             /* 0  WETH   */ [LTV_ZERO, LTV_ZERO],
             /* 1  ezETH  */ [LTV_HIGH, LTV_ZERO]
         ];
+
+        // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
+        cluster.externalLTVs = [
+        //                     0         1
+        //                     WETH      ezETH
+        /* 0  Prime WETH   */ [LTV_HIGH, LTV_ZERO]
+        ];
     }
 }

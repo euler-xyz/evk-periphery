@@ -18,7 +18,7 @@ import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {IEVault, IGovernance} from "evk/EVault/IEVault.sol";
 import {EulerRouter, Governable} from "euler-price-oracle/EulerRouter.sol";
-import {SafeTransaction} from "./SafeUtils.s.sol";
+import {SafeTransaction, SafeUtil} from "./SafeUtils.s.sol";
 import {BaseFactory} from "../../src/BaseFactory/BaseFactory.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
@@ -36,7 +36,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         address permit2;
         address eVaultImplementation;
         address eVaultFactory;
-        address eulerEarnImplementation;
         address eulerEarnFactory;
     }
 
@@ -48,7 +47,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
         result = vm.serializeAddress("coreAddresses", "permit2", Addresses.permit2);
         result = vm.serializeAddress("coreAddresses", "eVaultImplementation", Addresses.eVaultImplementation);
         result = vm.serializeAddress("coreAddresses", "eVaultFactory", Addresses.eVaultFactory);
-        result = vm.serializeAddress("coreAddresses", "eulerEarnImplementation", Addresses.eulerEarnImplementation);
         result = vm.serializeAddress("coreAddresses", "eulerEarnFactory", Addresses.eulerEarnFactory);
     }
 
@@ -61,7 +59,6 @@ abstract contract CoreAddressesLib is ScriptExtended {
             permit2: getAddressFromJson(json, ".permit2"),
             eVaultImplementation: getAddressFromJson(json, ".eVaultImplementation"),
             eVaultFactory: getAddressFromJson(json, ".eVaultFactory"),
-            eulerEarnImplementation: getAddressFromJson(json, ".eulerEarnImplementation"),
             eulerEarnFactory: getAddressFromJson(json, ".eulerEarnFactory")
         });
     }
@@ -73,6 +70,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address oracleAdapterRegistry;
         address externalVaultRegistry;
         address kinkIRMFactory;
+        address kinkyIRMFactory;
+        address fixedCyclicalBinaryIRMFactory;
         address adaptiveCurveIRMFactory;
         address irmRegistry;
         address swapper;
@@ -90,6 +89,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address termsOfUseSigner;
         address governorAccessControlEmergencyFactory;
         address capRiskStewardFactory;
+        address eulerEarnPublicAllocator;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -97,6 +97,10 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "oracleAdapterRegistry", Addresses.oracleAdapterRegistry);
         result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
         result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
+        result = vm.serializeAddress("peripheryAddresses", "kinkyIRMFactory", Addresses.kinkyIRMFactory);
+        result = vm.serializeAddress(
+            "peripheryAddresses", "fixedCyclicalBinaryIRMFactory", Addresses.fixedCyclicalBinaryIRMFactory
+        );
         result = vm.serializeAddress("peripheryAddresses", "adaptiveCurveIRMFactory", Addresses.adaptiveCurveIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "irmRegistry", Addresses.irmRegistry);
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
@@ -128,6 +132,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             Addresses.governorAccessControlEmergencyFactory
         );
         result = vm.serializeAddress("peripheryAddresses", "capRiskStewardFactory", Addresses.capRiskStewardFactory);
+        result =
+            vm.serializeAddress("peripheryAddresses", "eulerEarnPublicAllocator", Addresses.eulerEarnPublicAllocator);
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -136,6 +142,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             oracleAdapterRegistry: getAddressFromJson(json, ".oracleAdapterRegistry"),
             externalVaultRegistry: getAddressFromJson(json, ".externalVaultRegistry"),
             kinkIRMFactory: getAddressFromJson(json, ".kinkIRMFactory"),
+            kinkyIRMFactory: getAddressFromJson(json, ".kinkyIRMFactory"),
+            fixedCyclicalBinaryIRMFactory: getAddressFromJson(json, ".fixedCyclicalBinaryIRMFactory"),
             adaptiveCurveIRMFactory: getAddressFromJson(json, ".adaptiveCurveIRMFactory"),
             irmRegistry: getAddressFromJson(json, ".irmRegistry"),
             swapper: getAddressFromJson(json, ".swapper"),
@@ -152,7 +160,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             edgeFactoryPerspective: getAddressFromJson(json, ".edgeFactoryPerspective"),
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner"),
             governorAccessControlEmergencyFactory: getAddressFromJson(json, ".governorAccessControlEmergencyFactory"),
-            capRiskStewardFactory: getAddressFromJson(json, ".capRiskStewardFactory")
+            capRiskStewardFactory: getAddressFromJson(json, ".capRiskStewardFactory"),
+            eulerEarnPublicAllocator: getAddressFromJson(json, ".eulerEarnPublicAllocator")
         });
     }
 }
@@ -295,6 +304,29 @@ abstract contract MultisigAddressesLib is ScriptExtended {
     }
 }
 
+abstract contract EulerSwapAddressesLib is ScriptExtended {
+    struct EulerSwapAddresses {
+        address eulerSwapV1Implementation;
+        address eulerSwapV1Factory;
+        address eulerSwapV1Periphery;
+    }
+
+    function serializeEulerSwapAddresses(EulerSwapAddresses memory Addresses) internal returns (string memory result) {
+        result =
+            vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Implementation", Addresses.eulerSwapV1Implementation);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Factory", Addresses.eulerSwapV1Factory);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Periphery", Addresses.eulerSwapV1Periphery);
+    }
+
+    function deserializeEulerSwapAddresses(string memory json) internal pure returns (EulerSwapAddresses memory) {
+        return EulerSwapAddresses({
+            eulerSwapV1Implementation: getAddressFromJson(json, ".eulerSwapV1Implementation"),
+            eulerSwapV1Factory: getAddressFromJson(json, ".eulerSwapV1Factory"),
+            eulerSwapV1Periphery: getAddressFromJson(json, ".eulerSwapV1Periphery")
+        });
+    }
+}
+
 abstract contract BridgeAddressesLib is ScriptExtended {
     struct BridgeAddresses {
         address oftAdapter;
@@ -373,6 +405,7 @@ abstract contract ScriptUtils is
     BridgeAddressesLib,
     TokenAddressesLib,
     GovernorAddressesLib,
+    EulerSwapAddressesLib,
     BridgeConfigCache
 {
     MultisigAddresses internal multisigAddresses;
@@ -382,7 +415,8 @@ abstract contract ScriptUtils is
     BridgeAddresses internal bridgeAddresses;
     TokenAddresses internal tokenAddresses;
     GovernorAddresses internal governorAddresses;
-    uint256 internal safeNonce = getSafeNonce();
+    EulerSwapAddresses internal eulerSwapAddresses;
+    uint256 internal safeNonce;
 
     constructor() {
         multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
@@ -392,7 +426,15 @@ abstract contract ScriptUtils is
         bridgeAddresses = deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json"));
         tokenAddresses = deserializeTokenAddresses(getAddressesJson("TokenAddresses.json"));
         governorAddresses = deserializeGovernorAddresses(getAddressesJson("GovernorAddresses.json"));
+        eulerSwapAddresses = deserializeEulerSwapAddresses(getAddressesJson("EulerSwapAddresses.json"));
         deserializeBridgeConfigCache(getBridgeConfigCacheJson("BridgeConfigCache.json"));
+
+        address safe = getSafe(false);
+        safeNonce = getSafeNonce();
+        if (safe != address(0) && safeNonce == 0) {
+            SafeUtil util = new SafeUtil();
+            safeNonce = util.getNextNonce(safe);
+        }
     }
 
     modifier broadcast() {
@@ -407,6 +449,58 @@ abstract contract ScriptUtils is
 
     function stopBroadcast() internal {
         vm.stopBroadcast();
+    }
+
+    function saveAddresses() internal {
+        vm.writeJson(serializeMultisigAddresses(multisigAddresses), getScriptFilePath("MultisigAddresses_output.json"));
+        vm.writeJson(serializeCoreAddresses(coreAddresses), getScriptFilePath("CoreAddresses_output.json"));
+        vm.writeJson(
+            serializePeripheryAddresses(peripheryAddresses), getScriptFilePath("PeripheryAddresses_output.json")
+        );
+        vm.writeJson(serializeGovernorAddresses(governorAddresses), getScriptFilePath("GovernorAddresses_output.json"));
+        vm.writeJson(serializeTokenAddresses(tokenAddresses), getScriptFilePath("TokenAddresses_output.json"));
+        vm.writeJson(serializeLensAddresses(lensAddresses), getScriptFilePath("LensAddresses_output.json"));
+        vm.writeJson(
+            serializeEulerSwapAddresses(eulerSwapAddresses), getScriptFilePath("EulerSwapAddresses_output.json")
+        );
+        vm.writeJson(serializeBridgeAddresses(bridgeAddresses), getScriptFilePath("BridgeAddresses_output.json"));
+        vm.writeJson(serializeBridgeConfigCache(), getScriptFilePath("BridgeConfigCache_output.json"));
+
+        if (isBroadcast() && !isLocalForkDeployment()) {
+            vm.createDir(getAddressesFilePath("", block.chainid), true);
+
+            vm.writeJson(
+                serializeMultisigAddresses(multisigAddresses),
+                getAddressesFilePath("MultisigAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeCoreAddresses(coreAddresses), getAddressesFilePath("CoreAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializePeripheryAddresses(peripheryAddresses),
+                getAddressesFilePath("PeripheryAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeGovernorAddresses(governorAddresses),
+                getAddressesFilePath("GovernorAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeTokenAddresses(tokenAddresses), getAddressesFilePath("TokenAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeLensAddresses(lensAddresses), getAddressesFilePath("LensAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeEulerSwapAddresses(eulerSwapAddresses),
+                getAddressesFilePath("EulerSwapAddresses.json", block.chainid)
+            );
+            vm.writeJson(
+                serializeBridgeAddresses(bridgeAddresses), getAddressesFilePath("BridgeAddresses.json", block.chainid)
+            );
+
+            vm.createDir(string.concat(getAddressesDirPath(), "../config/bridge/"), true);
+            vm.writeJson(serializeBridgeConfigCache(), getBridgeConfigCacheJsonFilePath("BridgeConfigCache.json"));
+        }
     }
 
     function getWETHAddress() internal view returns (address) {
@@ -441,6 +535,16 @@ abstract contract ScriptUtils is
             }
             // hyperEVM
             if (block.chainid == 999) {
+                return address(0);
+            }
+
+            // TAC
+            if (block.chainid == 239) {
+                return address(0);
+            }
+
+            // Sepolia
+            if (block.chainid == 11155111) {
                 return address(0);
             }
         }
@@ -491,11 +595,11 @@ abstract contract ScriptUtils is
         if (adapter == address(0) || counter > 1) {
             if (isExternalVault && bytes(provider).length == bytes("ExternalVault|").length + 42) {
                 adapter = _toAddress(_substring(provider, bytes("ExternalVault|").length, type(uint256).max));
+                counter = 0;
             } else if (bytes(provider).length == 42) {
                 adapter = _toAddress(provider);
+                counter = 0;
             }
-
-            counter = 0;
         }
 
         if ((adapter == address(0) && bytes(provider).length != bytes("ExternalVault|").length) || counter > 1) {
@@ -598,12 +702,15 @@ abstract contract ScriptUtils is
         return result;
     }
 
-    function encodeAmountCaps(address[] storage assets, mapping(address => uint256 amountsNoDecimals) storage caps)
-        internal
-    {
+    function encodeAmountCaps(
+        address[] storage assets,
+        mapping(address => uint256 amountsNoDecimals) storage caps,
+        mapping(address => bool) storage encoded
+    ) internal {
         for (uint256 i = 0; i < assets.length; ++i) {
             address asset = assets[i];
-            caps[asset] = encodeAmountCap(asset, caps[asset], true);
+            if (!encoded[asset]) caps[asset] = encodeAmountCap(asset, caps[asset], true);
+            encoded[asset] = true;
         }
     }
 
@@ -758,6 +865,10 @@ abstract contract BatchBuilder is ScriptUtils {
         clearCriticalItems();
     }
 
+    function getBatchItems() internal view returns (IEVC.BatchItem[] memory) {
+        return batchItems;
+    }
+
     function clearBatchItems() internal {
         delete batchItems;
     }
@@ -783,10 +894,14 @@ abstract contract BatchBuilder is ScriptUtils {
     function executeBatchPrank(address caller) internal {
         if (batchItems.length == 0) return;
 
-        console.log("Pranking the batch execution as %s on the EVC (%s)\n", caller, coreAddresses.evc);
-
         for (uint256 i = 0; i < batchItems.length; ++i) {
-            batchItems[i].onBehalfOfAccount = caller;
+            if (
+                batchItems[i].onBehalfOfAccount != address(0)
+                    && !IEVC(coreAddresses.evc).haveCommonOwner(batchItems[i].onBehalfOfAccount, caller)
+                    && !IEVC(coreAddresses.evc).isAccountOperatorAuthorized(batchItems[i].onBehalfOfAccount, caller)
+            ) {
+                batchItems[i].onBehalfOfAccount = caller;
+            }
         }
 
         vm.prank(caller);
@@ -860,8 +975,6 @@ abstract contract BatchBuilder is ScriptUtils {
         address payable timelock = payable(getTimelock());
 
         dumpBatch(safe);
-
-        safeNonce = safeNonce == 0 ? transaction.getNextNonce(safe) : safeNonce;
 
         if (timelock == address(0) || !allowTimelock) {
             console.log("Executing the batch via Safe (%s) using the EVC (%s)\n", safe, coreAddresses.evc);
@@ -940,6 +1053,33 @@ abstract contract BatchBuilder is ScriptUtils {
         json = vm.serializeUint(key, "delay", timelockCalls[i].delay);
 
         vm.writeJson(vm.serializeString("timelockCalls", key, json), path);
+    }
+
+    function toString(IEVC.BatchItem[] memory items) internal pure returns (string memory) {
+        string memory result = "[";
+        for (uint256 i = 0; i < items.length; ++i) {
+            result = string.concat(result, toString(items[i]));
+            if (i < items.length - 1) {
+                result = string.concat(result, ",");
+            }
+        }
+        return string.concat(result, "]");
+    }
+
+    function toString(IEVC.BatchItem memory item) internal pure returns (string memory) {
+        return string(
+            abi.encodePacked(
+                "[\"",
+                vm.toString(item.targetContract),
+                "\",\"",
+                vm.toString(item.onBehalfOfAccount),
+                "\",",
+                vm.toString(item.value),
+                ",\"",
+                vm.toString(item.data),
+                "\"]"
+            )
+        );
     }
 
     function grantRole(address accessController, bytes32 role, address account) internal {

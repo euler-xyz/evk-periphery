@@ -100,9 +100,19 @@ contract HookTargetAccessControlKeyring is BaseHookTarget, SelectorAccessControl
     /// @dev If the EVC owner is not registered yet, the account is assumed to be the owner
     /// @param account The address to check credential for
     /// @return bool True if the EVC owner of the account has valid Keyring credential
-    function checkKeyringCredential(address account) external view returns (bool) {
+    function checkKeyringCredential(address account) public view returns (bool) {
         address owner = evc.getAccountOwner(account);
         return keyring.checkCredential(owner == address(0) ? account : owner, policyId);
+    }
+
+    /// @notice Checks if the EVC owner of the account has a valid Keyring credential or the account has the wildcard
+    /// role
+    /// @dev For the Keyring credential, if the EVC owner is not registered yet, the account is assumed to be the owner
+    /// @param account The address to check credential or wildcard role for
+    /// @return bool True if the EVC owner of the account has a valid Keyring credential or the account has the wildcard
+    /// role
+    function checkKeyringCredentialOrWildCard(address account) external view returns (bool) {
+        return hasRole(WILD_CARD, account) || checkKeyringCredential(account);
     }
 
     /// @notice Authenticates both the caller and the specified account for access control

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {EulerKinkIRMFactory} from "../src/IRMFactory/EulerKinkIRMFactory.sol";
+import {EulerKinkyIRMFactory} from "../src/IRMFactory/EulerKinkyIRMFactory.sol";
 import {EulerIRMAdaptiveCurveFactory} from "../src/IRMFactory/EulerIRMAdaptiveCurveFactory.sol";
 
 contract KinkIRMDeployer is ScriptUtils {
@@ -37,6 +38,48 @@ contract KinkIRMDeployer is ScriptUtils {
         returns (address irm)
     {
         irm = EulerKinkIRMFactory(kinkIRMFactory).deploy(baseRate, slope1, slope2, kink);
+    }
+}
+
+contract KinkyIRMDeployer is ScriptUtils {
+    function run() public broadcast returns (address irm) {
+        string memory inputScriptFileName = "04_KinkIRM_input.json";
+        string memory outputScriptFileName = "04_KinkIRM_output.json";
+        string memory json = getScriptFile(inputScriptFileName);
+        address kinkyIRMFactory = vm.parseJsonAddress(json, ".kinkyIRMFactory");
+        uint256 baseRate = vm.parseJsonUint(json, ".baseRate");
+        uint256 slope = vm.parseJsonUint(json, ".slope");
+        uint256 shape = vm.parseJsonUint(json, ".shape");
+        uint32 kink = uint32(vm.parseJsonUint(json, ".kink"));
+        uint256 cutoff = vm.parseJsonUint(json, ".cutoff");
+
+        irm = execute(kinkyIRMFactory, baseRate, slope, shape, kink, cutoff);
+
+        string memory object;
+        object = vm.serializeAddress("irm", "irm", irm);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(
+        address kinkyIRMFactory,
+        uint256 baseRate,
+        uint256 slope,
+        uint256 shape,
+        uint32 kink,
+        uint256 cutoff
+    ) public broadcast returns (address irm) {
+        irm = execute(kinkyIRMFactory, baseRate, slope, shape, kink, cutoff);
+    }
+
+    function execute(
+        address kinkyIRMFactory,
+        uint256 baseRate,
+        uint256 slope,
+        uint256 shape,
+        uint32 kink,
+        uint256 cutoff
+    ) public returns (address irm) {
+        irm = EulerKinkyIRMFactory(kinkyIRMFactory).deploy(baseRate, slope, shape, kink, cutoff);
     }
 }
 

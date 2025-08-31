@@ -51,6 +51,16 @@ abstract contract Utils {
             if (block.chainid == 999) {
                 return address(0);
             }
+
+            // TAC
+            if (block.chainid == 239) {
+                return address(0);
+            }
+
+            // Sepolia
+            if (block.chainid == 11155111) {
+                return address(0);
+            }
         }
 
         revert("getWETHAddress: Unsupported chain");
