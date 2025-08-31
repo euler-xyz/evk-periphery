@@ -100,6 +100,6 @@ abstract contract DataStreamsVerifier is Ownable {
         if (reportVersion != EXPECTED_VERSION) revert InvalidPriceFeedVersion();
 
         // Verify the report on-chain using Chainlink's verifier
-        return VERIFIER_PROXY.verify(_rawReport, LINK_TOKEN == address(0) ? bytes("") : abi.encode(LINK_TOKEN));
+        return VERIFIER_PROXY.verify(_rawReport, abi.encode(LINK_TOKEN));
     }
 }
