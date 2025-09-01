@@ -8,6 +8,19 @@ import {IHookTarget} from "evk/interfaces/IHookTarget.sol";
 /// @title HookTargetMarketStatus
 /// @notice Contract for verifying V8 reports and managing market status
 contract HookTargetMarketStatus is DataStreamsVerifier, IHookTarget {
+    /// @notice Struct for the V8 report
+    struct ReportV8 {
+        bytes32 feedId;
+        uint32 validFromTimestamp;
+        uint32 observationsTimestamp;
+        uint192 nativeFee;
+        uint192 linkFee;
+        uint32 expiresAt;
+        uint64 lastUpdateTimestamp;
+        int192 midPrice;
+        uint32 marketStatus;
+    }
+
     /// @notice Thrown when the liquidator is not authorized
     error NotAuthorized();
 
@@ -28,6 +41,9 @@ contract HookTargetMarketStatus is DataStreamsVerifier, IHookTarget {
     /// @param lastUpdatedTimestamp The timestamp of the last update
     event MarketStatusUpdated(uint256 indexed marketStatus, uint256 lastUpdatedTimestamp);
 
+    /// @notice The scale of the timestamp
+    uint64 public constant TIME_SCALE = 1e9;
+
     /// @notice Market status value representing "open"
     uint32 public constant MARKET_STATUS_OPEN = 2;
 
@@ -40,7 +56,7 @@ contract HookTargetMarketStatus is DataStreamsVerifier, IHookTarget {
     /// @notice Current market status (0 = unknown, 1 = closed, 2 = open)
     uint32 public marketStatus;
 
-    /// @notice Last updated timestamp
+    /// @notice Last updated timestamp (seconds)
     uint64 public lastUpdatedTimestamp;
 
     /// @notice Initializes the contract with required parameters
@@ -90,38 +106,28 @@ contract HookTargetMarketStatus is DataStreamsVerifier, IHookTarget {
         bytes memory returnDataCall = _verify(_rawReport);
 
         // Decode the V8 return data structure
-        (
-            bytes32 _feedId,
-            uint32 _validFromTimestamp,
-            ,
-            ,
-            ,
-            uint32 _expiresAt,
-            uint64 _lastUpdatedTimestamp,
-            ,
-            uint32 _marketStatus
-        ) = abi.decode(returnDataCall, (bytes32, uint32, uint32, uint192, uint192, uint32, uint64, int192, uint32));
+        ReportV8 memory report = abi.decode(returnDataCall, (ReportV8));
 
         // Verify that the feed ID matches the contract's feed ID
-        if (_feedId != FEED_ID) revert FeedIdMismatch();
+        if (report.feedId != FEED_ID) revert FeedIdMismatch();
 
         // Validate the expiration times
-        if (block.timestamp < _validFromTimestamp || block.timestamp > _expiresAt) {
+        if (block.timestamp < report.validFromTimestamp || block.timestamp > report.expiresAt) {
             revert PriceDataInvalid();
         }
 
         // Update market status
-        _setMarketStatus(_marketStatus, _lastUpdatedTimestamp);
+        _setMarketStatus(report.marketStatus, report.lastUpdateTimestamp / TIME_SCALE);
     }
 
     /// @notice Sets the market status and emits an event if changed and timestamp is not stale
     /// @param _marketStatus The new market status to set
-    /// @param _lastUpdatedTimestamp The timestamp from the report
-    function _setMarketStatus(uint32 _marketStatus, uint64 _lastUpdatedTimestamp) internal {
-        if (marketStatus != _marketStatus && lastUpdatedTimestamp < _lastUpdatedTimestamp) {
+    /// @param _timestamp The timestamp from the report
+    function _setMarketStatus(uint32 _marketStatus, uint64 _timestamp) internal {
+        if (marketStatus != _marketStatus && lastUpdatedTimestamp < _timestamp) {
             marketStatus = _marketStatus;
-            lastUpdatedTimestamp = _lastUpdatedTimestamp;
-            emit MarketStatusUpdated(_marketStatus, _lastUpdatedTimestamp);
+            lastUpdatedTimestamp = _timestamp;
+            emit MarketStatusUpdated(_marketStatus, _timestamp);
         } else {
             revert MarketStatusInvalid();
         }

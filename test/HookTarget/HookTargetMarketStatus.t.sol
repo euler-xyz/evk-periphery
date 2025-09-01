@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {HookTargetMarketStatus} from "../../src/HookTarget/HookTargetMarketStatus.sol";
 import {DataStreamsVerifier} from "../../src/Chainlink/DataStreamsVerifier.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
@@ -90,7 +90,7 @@ contract HookTargetMarketStatusTest is Test {
         // Call update with the real report and expect the event
         vm.prank(authorizedCaller);
         vm.expectEmit(true, false, false, true);
-        emit HookTargetMarketStatus.MarketStatusUpdated(MARKET_STATUS_OPEN, 1755716669381000000);
+        emit HookTargetMarketStatus.MarketStatusUpdated(MARKET_STATUS_OPEN, 1755716669);
         hookTarget.update(fullReport);
 
         // Check if the market status was updated

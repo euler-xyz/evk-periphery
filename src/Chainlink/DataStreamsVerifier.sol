@@ -51,6 +51,9 @@ abstract contract DataStreamsVerifier is Ownable {
     /// @notice Expected version of the report
     uint16 public immutable EXPECTED_VERSION;
 
+    /// @notice Address of the FeeManager contract for fee management
+    address public immutable FEE_MANAGER;
+
     /// @notice Cached LINK token address for fee management
     address public immutable LINK_TOKEN;
 
@@ -66,6 +69,7 @@ abstract contract DataStreamsVerifier is Ownable {
         // Set up fee management if available
         address feeManager = VERIFIER_PROXY.s_feeManager();
         if (feeManager != address(0)) {
+            FEE_MANAGER = feeManager;
             LINK_TOKEN = IFeeManager(feeManager).i_linkAddress();
             address rewardManager = IFeeManager(feeManager).i_rewardManager();
             IERC20(LINK_TOKEN).forceApprove(rewardManager, type(uint256).max);
@@ -100,6 +104,6 @@ abstract contract DataStreamsVerifier is Ownable {
         if (reportVersion != EXPECTED_VERSION) revert InvalidPriceFeedVersion();
 
         // Verify the report on-chain using Chainlink's verifier
-        return VERIFIER_PROXY.verify(_rawReport, abi.encode(LINK_TOKEN));
+        return VERIFIER_PROXY.verify(_rawReport, FEE_MANAGER == address(0) ? bytes("") : abi.encode(LINK_TOKEN));
     }
 }
