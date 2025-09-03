@@ -7,8 +7,6 @@ import {ISwapper} from "../../src/Swaps/ISwapper.sol";
 import {SwapperOwnable, Ownable, Swapper} from "../../src/Swaps/SwapperOwnable.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 
-
-/// @notice The tests operate on a fork. Create a .env file with FORK_RPC_URL as per fondry docs
 contract SwapperOwnableTest is EVaultTestBase  {
     function testSwapperOwnable() public {
         address owner = makeAddr("owner");
