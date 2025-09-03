@@ -27,6 +27,7 @@ abstract contract Addresses {
     address internal constant rsETH = 0x4186BFC76E2E237523CBC30FD220FE055156b41F;
     address internal constant tETH = 0xd09ACb80C1E8f2291862c4978A008791c9167003;
     address internal constant ezETH = 0x2416092f143378750bb29b79eD961ab195CcEea5;
+    address internal constant rETH = 0xEC70Dcb4A1EFa46b8F2D97C310C9c4790ba5ffA8;
     address internal constant WBTC = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
     address internal constant ARB = 0x912CE59144191C1204E64559FE8253a0e49E6548;
     address internal constant PT_USDai_20NOV2025 = 0x8b4Ca42bB3B1d789859f106222CF7DC5EEd48CCb;
