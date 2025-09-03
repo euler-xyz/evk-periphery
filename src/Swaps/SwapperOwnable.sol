@@ -11,9 +11,7 @@ import {ISwapper} from "./ISwapper.sol";
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Untrusted helper contract for EVK for performing swaps and swaps to repay. Ownable version.
-/// @dev Ownership is not transferrable not to violate external whitelistings
 contract SwapperOwnable is Swapper, EVCUtil, Ownable {
-    error OwnershipNotTransferrable();
 
     modifier onlyOwnerOrSelf() {
         if (msg.sender != address(this)) _checkOwner();
@@ -54,10 +52,6 @@ contract SwapperOwnable is Swapper, EVCUtil, Ownable {
     /// @inheritdoc ISwapper
     function multicall(bytes[] memory calls) public override onlyOwner {
         super.multicall(calls);
-    }
-
-    function transferOwnership(address) public pure override {
-        revert OwnershipNotTransferrable();
     }
 
     function _msgSender() internal view override (Context, EVCUtil) returns (address) {
