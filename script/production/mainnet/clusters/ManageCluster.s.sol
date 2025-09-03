@@ -57,6 +57,8 @@ abstract contract Addresses {
     address internal constant rUSD = 0x09D4214C03D01F49544C0448DBE3A27f768F2b34;
     address internal constant srUSD = 0x738d1115B90efa71AE468F1287fc864775e23a31;
     address internal constant syrupUSDC = 0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
+    address internal constant USD1 = 0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d;
+    address internal constant TBILL = 0xdd50C053C096CB04A3e3362E2b622529EC5f2e8a;
     address internal constant mBASIS = 0x2a8c22E3b10036f3AEF5875d04f8441d4188b656;
     address internal constant mEDGE = 0xbB51E2a15A9158EBE2b0Ceb8678511e063AB7a55;
     address internal constant mMEV = 0x030b69280892c888670EDCDCD8B69Fd8026A0BF3;
