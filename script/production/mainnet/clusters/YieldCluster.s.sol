@@ -151,7 +151,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[DAI                      ] = 5_000_000;
         cluster.supplyCaps[sDAI                     ] = 5_000_000;
         cluster.supplyCaps[USD0                     ] = 5_000_000;
-        cluster.supplyCaps[USD0PlusPlus             ] = 6_000_000;
+        cluster.supplyCaps[USD0PlusPlus             ] = 3_700_000;
         cluster.supplyCaps[USDe                     ] = 20_000_000;
         cluster.supplyCaps[eUSDe                    ] = 60_000_000;
         cluster.supplyCaps[sUSDe                    ] = 15_000_000;
