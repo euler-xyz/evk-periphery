@@ -7,12 +7,11 @@ import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {Swapper} from "./Swapper.sol";
 import {ISwapper} from "./ISwapper.sol";
 
-/// @title SwapperOwnableNonTransferrable
+/// @title SwapperOwnable
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Untrusted helper contract for EVK for performing swaps and swaps to repay. Ownable version.
 contract SwapperOwnable is Swapper, EVCUtil, Ownable {
-
     modifier onlyOwnerOrSelf() {
         if (msg.sender != address(this)) _checkOwner();
         _;
