@@ -125,7 +125,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDe       ] = 25_000_000;
         cluster.supplyCaps[sUSDe      ] = 8_000_000;
         cluster.supplyCaps[syrupUSDC  ] = 20_000_000;
-        cluster.supplyCaps[TBILL      ] = 10_000_000;
+        cluster.supplyCaps[TBILL      ] = 0;//10_000_000;
         cluster.supplyCaps[WBTC       ] = 600;
         cluster.supplyCaps[cbBTC      ] = 500;
         cluster.supplyCaps[LBTC       ] = 600;
@@ -150,7 +150,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDe       ] = 22_500_000;
         cluster.borrowCaps[sUSDe      ] = type(uint256).max;
         cluster.borrowCaps[syrupUSDC  ] = type(uint256).max;
-        cluster.borrowCaps[TBILL      ] = type(uint256).max;
+        cluster.borrowCaps[TBILL      ] = 0;//type(uint256).max;
         cluster.borrowCaps[WBTC       ] = 510;
         cluster.borrowCaps[cbBTC      ] = 425;
         cluster.borrowCaps[LBTC       ] = 150;

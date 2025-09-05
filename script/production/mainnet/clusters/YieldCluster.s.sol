@@ -168,7 +168,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[frxUSD                   ] = 10_000_000;
         cluster.supplyCaps[sfrxUSD                  ] = 15_000_000;
         cluster.supplyCaps[USD1                     ] = 10_000_000;
-        cluster.supplyCaps[TBILL                    ] = 45_000_000;
+        cluster.supplyCaps[TBILL                    ] = 0;//45_000_000;
         cluster.supplyCaps[PT_USDe_31JUL2025        ] = 0;
         cluster.supplyCaps[PT_USDe_25SEP2025        ] = 120_000_000;
         cluster.supplyCaps[PT_sUSDe_31JULY2025      ] = 0;
@@ -204,7 +204,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[frxUSD                   ] = 9_000_000;
         cluster.borrowCaps[sfrxUSD                  ] = type(uint256).max;
         cluster.borrowCaps[USD1                     ] = 9_000_000;
-        cluster.borrowCaps[TBILL                    ] = type(uint256).max;
+        cluster.borrowCaps[TBILL                    ] = 0;//type(uint256).max;
         cluster.borrowCaps[PT_USDe_31JUL2025        ] = 0;
         cluster.borrowCaps[PT_USDe_25SEP2025        ] = type(uint256).max;
         cluster.borrowCaps[PT_sUSDe_31JULY2025      ] = 0;
