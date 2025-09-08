@@ -20,6 +20,8 @@ import {
     LensUtilsDeployer,
     LensEulerEarnVaultDeployer
 } from "../08_Lenses.s.sol";
+import {VaultLens, VaultInfoFull} from "../../src/Lens/VaultLens.sol";
+import {AccountLens, AccountInfo, AccountMultipleVaultsInfo} from "../../src/Lens/AccountLens.sol";
 
 abstract contract CustomScriptBase is BatchBuilder {
     function run() public {
@@ -28,6 +30,24 @@ abstract contract CustomScriptBase is BatchBuilder {
     }
 
     function execute() public virtual {}
+}
+
+contract GetVaultInfoFull is ScriptUtils {
+    function run(address vault) public view returns (VaultInfoFull memory) {
+        return VaultLens(lensAddresses.vaultLens).getVaultInfoFull(vault);
+    }
+}
+
+contract GetAccountInfo is ScriptUtils {
+    function run(address account, address vault) public view returns (AccountInfo memory) {
+        return AccountLens(lensAddresses.accountLens).getAccountInfo(account, vault);
+    }
+}
+
+contract GetAccountEnabledVaultsInfo is ScriptUtils {
+    function run(address account, address vault) public view returns (AccountMultipleVaultsInfo memory) {
+        return AccountLens(lensAddresses.accountLens).getAccountEnabledVaultsInfo(account, vault);
+    }
 }
 
 contract BridgeEULToLabsMultisig is ScriptUtils, SafeMultisendBuilder {
