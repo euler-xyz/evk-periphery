@@ -7,6 +7,7 @@ import {ManageCluster} from "./ManageCluster.s.sol";
 contract Cluster is ManageCluster {
     address internal constant YU  = 0xE868084cf08F3c3db11f4B73a95473762d9463f7;
     address internal constant PT_YU_04SEP2025 = 0x076BdA095a434a7B00733115A0D679DE6478d9f8;
+    address internal constant PT_YU_04DEC2025 = 0xD7158ee345dab25B4fC95266C2bd8d062f243A13;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
@@ -17,7 +18,7 @@ contract Cluster is ManageCluster {
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [USDC, USDT, YU, PT_YU_04SEP2025];
+        cluster.assets = [USDC, USDT, YU, PT_YU_04SEP2025, PT_YU_04DEC2025];
     }
 
     function configureCluster() internal override {
@@ -40,6 +41,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[USDT            ] = "0x575Ffc02361368A2708c00bC7e299d1cD1c89f8A";
         cluster.oracleProviders[YU              ] = "0xFc9A5a244935CE0d62F1C1aFE8EFf0299cF604B6";
         cluster.oracleProviders[PT_YU_04SEP2025 ] = "0x0bE8Db7a0e2867A64a7f15de28cb178C28aa0387";
+        cluster.oracleProviders[PT_YU_04DEC2025 ] = "0xB0Bc38a7a68E4F88bb07c9a71B431067470e9576";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
@@ -53,20 +55,21 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //                          0         1         2         3
-            //                          USDC      USDT      YU        PT_YU_04SEP2025
-            /* 0  USDC              */ [LTV_ZERO, LTV_HIGH, LTV__LOW, LTV_ZERO],
-            /* 1  USDT              */ [LTV_HIGH, LTV_ZERO, LTV__LOW, LTV_ZERO],
-            /* 2  YU                */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO],
-            /* 3  PT_YU_04SEP2025   */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO]
+            //                          0         1         2         3         4
+            //                          USDC      USDT      YU        PT_YU_04SEP2025 PT_YU_04DEC2025
+            /* 0  USDC              */ [LTV_ZERO, LTV_HIGH, LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 1  USDT              */ [LTV_HIGH, LTV_ZERO, LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 2  YU                */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 3  PT_YU_04SEP2025   */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO, LTV_ZERO],
+            /* 4  PT_YU_04DEC2025   */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         cluster.externalLTVs = [
-        //                     0         1         2         3
-        //                     USDC      USDT      YU        PT_YU_04SEP2025
-        /* 0  Prime USDC   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO],
-        /* 1  Prime USDT   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO]
+        //                     0         1         2         3         4
+        //                     USDC      USDT      YU        PT_YU_04SEP2025 PT_YU_04DEC2025
+        /* 0  Prime USDC   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+        /* 1  Prime USDT   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
     }
 }
