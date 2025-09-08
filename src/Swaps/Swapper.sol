@@ -86,7 +86,11 @@ contract Swapper is GenericHandler, UniswapV2Handler, UniswapV3Handler {
     }
 
     /// @inheritdoc ISwapper
-    function repayAndDeposit(address token, address vault, uint256 repayAmount, address account) public virtual externalLock {
+    function repayAndDeposit(address token, address vault, uint256 repayAmount, address account)
+        public
+        virtual
+        externalLock
+    {
         _repayAndDeposit(token, vault, repayAmount, account);
     }
 

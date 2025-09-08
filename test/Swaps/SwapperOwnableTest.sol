@@ -7,11 +7,12 @@ import {ISwapper} from "../../src/Swaps/ISwapper.sol";
 import {SwapperOwnable, Ownable, Swapper} from "../../src/Swaps/SwapperOwnable.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 
-contract SwapperOwnableTest is EVaultTestBase  {
+contract SwapperOwnableTest is EVaultTestBase {
     function testSwapperOwnable() public {
         address owner = makeAddr("owner");
 
-        SwapperOwnable swapper = new SwapperOwnable(address(evc), owner, makeAddr("uniV2RouterStub"), makeAddr("uniV3RouterStub"));
+        SwapperOwnable swapper =
+            new SwapperOwnable(address(evc), owner, makeAddr("uniV2RouterStub"), makeAddr("uniV3RouterStub"));
 
         // only owner can call directly
 
