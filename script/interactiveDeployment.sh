@@ -1275,6 +1275,10 @@ while true; do
                 read -p "Should deploy and configure OFT Adapter? (y/n) (default: n): " deploy_oft
             fi
 
+            if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
+                read -p "Should deploy Euler Earn? (y/n) (default: n): " deploy_euler_earn
+            fi
+
             if [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ]; then
                 read -p "Should deploy EulerSwap V1? (y/n) (default: n): " deploy_euler_swap_v1
                 
@@ -1295,6 +1299,7 @@ while true; do
             uniswap_router_v3=${uniswap_router_v3:-$addressZero}
             init_price=${init_price:-1000000000000000000}
             deploy_oft=${deploy_oft:-n}
+            deploy_euler_earn=${deploy_euler_earn:-n}
             deploy_euler_swap_v1=${deploy_euler_swap_v1:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
             euler_swap_fee_owner=${euler_swap_fee_owner:-$multisig_dao}
@@ -1323,6 +1328,7 @@ while true; do
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
                 --arg initPrice "$init_price" \
                 --argjson deployOFT "$(jq -n --argjson val \"$deploy_oft\" 'if $val == "y" then true else false end')" \
+                --argjson deployEulerEarn "$(jq -n --argjson val \"$deploy_euler_earn\" 'if $val == "y" then true else false end')" \
                 --argjson deployEulerSwapV1 "$(jq -n --argjson val \"$deploy_euler_swap_v1\" 'if $val == "y" then true else false end')" \
                 --arg uniswapPoolManager "$uniswap_pool_manager" \
                 --arg eulerSwapFeeOwner "$euler_swap_fee_owner" \
@@ -1338,6 +1344,7 @@ while true; do
                     uniswapV3Router: $uniswapRouterV3,
                     feeFlowInitPrice: $initPrice,
                     deployOFT: $deployOFT,
+                    deployEulerEarn: $deployEulerEarn,
                     deployEulerSwapV1: $deployEulerSwapV1,
                     uniswapPoolManager: $uniswapPoolManager,
                     eulerSwapFeeOwner: $eulerSwapFeeOwner,

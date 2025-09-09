@@ -84,6 +84,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         address uniswapV3Router;
         uint256 feeFlowInitPrice;
         bool deployOFT;
+        bool deployEulerEarn;
         bool deployEulerSwapV1;
         address uniswapPoolManager;
         address eulerSwapFeeOwner;
@@ -171,6 +172,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
             feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice"),
             deployOFT: vm.parseJsonBool(json, ".deployOFT"),
+            deployEulerEarn: vm.parseJsonBool(json, ".deployEulerEarn"),
             deployEulerSwapV1: vm.parseJsonBool(json, ".deployEulerSwapV1"),
             uniswapPoolManager: vm.parseJsonAddress(json, ".uniswapPoolManager"),
             eulerSwapFeeOwner: vm.parseJsonAddress(json, ".eulerSwapFeeOwner"),
@@ -857,10 +859,15 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (coreAddresses.eulerEarnFactory == address(0) && peripheryAddresses.eulerEarnPublicAllocator == address(0)) {
-            console.log("+ Deploying EulerEarn factory and public allocator...");
-            EulerEarnFactoryDeployer deployer = new EulerEarnFactoryDeployer();
-            (coreAddresses.eulerEarnFactory, peripheryAddresses.eulerEarnPublicAllocator) =
-                deployer.deploy(coreAddresses.evc, coreAddresses.permit2, peripheryAddresses.evkFactoryPerspective);
+            if (input.deployEulerEarn) {
+                console.log("+ Deploying EulerEarn factory and public allocator...");
+                EulerEarnFactoryDeployer deployer = new EulerEarnFactoryDeployer();
+                (coreAddresses.eulerEarnFactory, peripheryAddresses.eulerEarnPublicAllocator) =
+                    deployer.deploy(coreAddresses.evc, coreAddresses.permit2, peripheryAddresses.evkFactoryPerspective);
+            } else {
+                console.log("- EulerEarn not deployed. Skipping...");
+                if (vm.isDir("out-euler-earn")) vm.removeDir("out-euler-earn", true);
+            }
         } else {
             console.log("- EulerEarn factory and public allocator already deployed. Skipping...");
             if (vm.isDir("out-euler-earn")) vm.removeDir("out-euler-earn", true);
@@ -870,11 +877,15 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             peripheryAddresses.eulerEarnFactoryPerspective == address(0)
                 && peripheryAddresses.eulerEarnGovernedPerspective == address(0)
         ) {
-            console.log("+ Deploying EulerEarnFactoryPerspective and Euler Earn GovernedPerspective...");
-            EulerEarnPerspectivesDeployer deployer = new EulerEarnPerspectivesDeployer();
-            address[] memory perspectives = deployer.deploy(coreAddresses.eulerEarnFactory);
-            peripheryAddresses.eulerEarnFactoryPerspective = perspectives[0];
-            peripheryAddresses.eulerEarnGovernedPerspective = perspectives[1];
+            if (input.deployEulerEarn) {
+                console.log("+ Deploying EulerEarnFactoryPerspective and Euler Earn GovernedPerspective...");
+                EulerEarnPerspectivesDeployer deployer = new EulerEarnPerspectivesDeployer();
+                address[] memory perspectives = deployer.deploy(coreAddresses.eulerEarnFactory);
+                peripheryAddresses.eulerEarnFactoryPerspective = perspectives[0];
+                peripheryAddresses.eulerEarnGovernedPerspective = perspectives[1];
+            } else {
+                console.log("- EulerEarn perspectives not deployed. Skipping...");
+            }
         } else {
             console.log("- At least one of the Euler Earn perspectives is already deployed. Skipping...");
         }
