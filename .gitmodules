@@ -37,4 +37,3 @@
 [submodule "lib/euler-earn"]
 	path = lib/euler-earn
 	url = https://github.com/euler-xyz/euler-earn
-	branch = development

@@ -15,6 +15,11 @@ fs_permissions = [
 
 gas_reports = ["*"]
 
+[profile.default.lint]
+severity = ["high", "med"]
+ignore = ["test/**/*.sol", "script/**/*.sol"]
+exclude_lints = ["erc20-unchecked-transfer", "unchecked-call"]
+
 [profile.default.fmt]
 line_length = 120
 tab_width = 4

@@ -170,7 +170,9 @@ struct InterestRateInfo {
 enum InterestRateModelType {
     UNKNOWN,
     KINK,
-    ADAPTIVE_CURVE
+    ADAPTIVE_CURVE,
+    KINKY,
+    FIXED_CYCLICAL_BINARY
 }
 
 struct InterestRateModelDetailedInfo {
@@ -193,6 +195,22 @@ struct AdaptiveCurveIRMInfo {
     int256 maxRateAtTarget;
     int256 curveSteepness;
     int256 adjustmentSpeed;
+}
+
+struct KinkyIRMInfo {
+    uint256 baseRate;
+    uint256 slope;
+    uint256 shape;
+    uint256 kink;
+    uint256 cutoff;
+}
+
+struct FixedCyclicalBinaryIRMInfo {
+    uint256 primaryRate;
+    uint256 secondaryRate;
+    uint256 primaryDuration;
+    uint256 secondaryDuration;
+    uint256 startTimestamp;
 }
 
 struct AccountRewardInfo {
@@ -380,24 +398,31 @@ struct EulerEarnVaultInfoFull {
     uint256 totalShares;
     uint256 totalAssets;
     uint256 lostAssets;
+    uint256 availableAssets;
+    uint256 timelock;
     uint256 performanceFee;
     address feeReceiver;
-    address skimRecipient;
+    address owner;
     address creator;
     address curator;
     address guardian;
     address evc;
     address permit2;
+    uint256 pendingTimelock;
+    uint256 pendingTimelockValidAt;
+    address pendingGuardian;
+    uint256 pendingGuardianValidAt;
+    address[] supplyQueue;
     EulerEarnVaultStrategyInfo[] strategies;
 }
 
 struct EulerEarnVaultStrategyInfo {
     address strategy;
-    uint256 assetsAllocated;
+    uint256 allocatedAssets;
+    uint256 availableAssets;
     uint256 currentAllocationCap;
     uint256 pendingAllocationCap;
     uint256 pendingAllocationCapValidAt;
     uint256 removableAt;
-    bool enabled;
     VaultInfoERC4626 info;
 }

@@ -62,6 +62,7 @@ function verify_contract {
         curl -d "address=$contractAddress" "$verifier_url?module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
     fi
 
+    sleep 5
     return $result
 }
 
@@ -136,6 +137,10 @@ function verify_broadcast {
                     contractName=IRMLinearKink
                     constructorBytesSize=128
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+                elif [[ $contractName == "EulerKinkyIRMFactory" || $function == "deploy(uint256,uint256,uint256,uint32,uint256)" ]]; then
+                    contractName=IRMLinearKink
+                    constructorBytesSize=160
+                    constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $contractName == "EulerIRMAdaptiveCurveFactory" || $function == "deploy(int256,int256,int256,int256,int256,int256)" ]]; then
                     contractName=IRMAdaptiveCurve
                     constructorBytesSize=192
@@ -194,18 +199,23 @@ function verify_broadcast {
         elif [[ $transactionType == "CREATE" && $verificationSuccessful != true ]]; then
             local initCode=$(echo $tx | jq -r '.transaction.input')
 
-            if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 1 ]; then
+            if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 2 ]; then
                 # try to verify as EulerEarn contracts
                 local src="lib/euler-earn/src"
-                local verificationOptions="--via-ir --num-of-optimizations 800 --compiler-version 0.8.26 --root lib/euler-earn"
-                local compilerOptions="--via-ir --optimize --optimizer-runs 800 --use 0.8.26"
+                local verificationOptions="--via-ir --num-of-optimizations 200 --compiler-version 0.8.26 --root lib/euler-earn"
+                local compilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26"
 
                 while true; do
                     case $eulerEarnIndex in
                         0)
                             # try to verify as EulerEarnFactory
                             contractName=EulerEarnFactory
-                            constructorBytesSize=96
+                            constructorBytesSize=128
+                            ;;
+                        1)
+                            # try to verify as PublicAllocator
+                            contractName=PublicAllocator
+                            constructorBytesSize=32
                             ;;
                         *)
                             break

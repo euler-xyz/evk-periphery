@@ -37,7 +37,7 @@ if ! script/utils/checkEnvironment.sh "$@"; then
     exit 1
 fi
 
-eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 800 --use 0.8.26 --out out-euler-earn"
+eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26 --out out-euler-earn"
 eulerSwapCompilerOptions="--optimize --optimizer-runs 1000000 --use 0.8.27 --out out-euler-swap"
 
 while true; do
@@ -779,10 +779,16 @@ while true; do
                         --arg eVaultFactory "$eVaultFactory" \
                         --arg oracleAdapterRegistry "$oracle_adapter_registry" \
                         --arg kinkIRMFactory "$kink_irm_factory" \
+                        --arg adaptiveCurveIRMFactory "$adaptive_curve_irm_factory" \
+                        --arg kinkyIRMFactory "$kinky_irm_factory" \
+                        --arg fixedCyclicalBinaryIRMFactory "$fixed_cyclical_binary_irm_factory" \
                         '{
                             eVaultFactory: $eVaultFactory,
                             oracleAdapterRegistry: $oracleAdapterRegistry,
-                            kinkIRMFactory: $kinkIRMFactory
+                            kinkIRMFactory: $kinkIRMFactory,
+                            adaptiveCurveIRMFactory: $adaptiveCurveIRMFactory,
+                            kinkyIRMFactory: $kinkyIRMFactory,
+                            fixedCyclicalBinaryIRMFactory: $fixedCyclicalBinaryIRMFactory
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 1)

@@ -78,22 +78,30 @@ contract OracleLens is Utils {
         }
 
         if (_strEq(name, "ChainlinkOracle")) {
+            (bool success, bytes memory result) =
+                IOracle(oracleAddress).feed().staticcall(abi.encodeCall(IOracle.description, ()));
+            string memory feedDescription = success && result.length >= 32 ? abi.decode(result, (string)) : "";
+
             oracleInfo = abi.encode(
                 ChainlinkOracleInfo({
                     base: IOracle(oracleAddress).base(),
                     quote: IOracle(oracleAddress).quote(),
                     feed: IOracle(oracleAddress).feed(),
-                    feedDescription: IOracle(IOracle(oracleAddress).feed()).description(),
+                    feedDescription: feedDescription,
                     maxStaleness: IOracle(oracleAddress).maxStaleness()
                 })
             );
         } else if (_strEq(name, "ChainlinkInfrequentOracle")) {
+            (bool success, bytes memory result) =
+                IOracle(oracleAddress).feed().staticcall(abi.encodeCall(IOracle.description, ()));
+            string memory feedDescription = success && result.length >= 32 ? abi.decode(result, (string)) : "";
+
             oracleInfo = abi.encode(
                 ChainlinkInfrequentOracleInfo({
                     base: IOracle(oracleAddress).base(),
                     quote: IOracle(oracleAddress).quote(),
                     feed: IOracle(oracleAddress).feed(),
-                    feedDescription: IOracle(IOracle(oracleAddress).feed()).description(),
+                    feedDescription: feedDescription,
                     maxStaleness: IOracle(oracleAddress).maxStaleness()
                 })
             );
