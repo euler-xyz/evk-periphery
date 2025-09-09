@@ -247,8 +247,8 @@ function verify_broadcast {
             if [ -d "out-euler-swap" ] && ([ ! -d "out-euler-earn" ] || [ $eulerEarnIndex -gt 1 ]); then
                 # try to verify as EulerSwap contracts
                 local src="lib/euler-swap/src"
-                local verificationOptions="--num-of-optimizations 1000000 --compiler-version 0.8.27 --root lib/euler-swap"
-                local compilerOptions="--optimize --optimizer-runs 1000000 --use 0.8.27"
+                local verificationOptions="--num-of-optimizations 10000 --compiler-version 0.8.27 --root lib/euler-swap"
+                local compilerOptions="--optimize --optimizer-runs 10000 --use 0.8.27"
 
                 while true; do
                     case $eulerSwapIndex in

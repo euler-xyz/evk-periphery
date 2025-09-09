@@ -38,7 +38,7 @@ if ! script/utils/checkEnvironment.sh "$@"; then
 fi
 
 eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26 --out out-euler-earn"
-eulerSwapCompilerOptions="--optimize --optimizer-runs 1000000 --use 0.8.27 --out out-euler-swap"
+eulerSwapCompilerOptions="--optimize --optimizer-runs 10000 --use 0.8.27 --evm-version london --out out-euler-swap"
 
 while true; do
     echo ""
