@@ -25,6 +25,7 @@ contract Cluster is ManageCluster {
             rsETH,
             tETH,
             ezETH,
+            rETH,
             WBTC,
             ARB
         ];
@@ -73,6 +74,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[rsETH ] = "0xB84F6D77C823980E6fa40fe474c86138ECBb97D1";
         cluster.oracleProviders[tETH  ] = "0x5CAbb4FC26Db9d6b028dE7a9ae05164671d51D7a";
         cluster.oracleProviders[ezETH ] = "0x9C5321AB283283B75A83422e996234a6Cfa436BA";
+        cluster.oracleProviders[rETH  ] = "0x02a620D2e908E036DE1e3C4a5eCc0827B23634dE";
         cluster.oracleProviders[WBTC  ] = "0xcE111096Cd2260436EA475fA6C70A284692D1887";
         cluster.oracleProviders[ARB   ] = "0x0fc12120957A8603905C7e089c2CB010c694c889";
 
@@ -85,8 +87,9 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[wstETH] = 22_500;
         cluster.supplyCaps[weETH ] = 22_500;
         cluster.supplyCaps[rsETH ] = 60;
-        cluster.supplyCaps[tETH  ] = 100;
+        cluster.supplyCaps[tETH  ] = 150;
         cluster.supplyCaps[ezETH ] = 375;
+        cluster.supplyCaps[rETH  ] = 300;
         cluster.supplyCaps[WBTC  ] = 600;
         cluster.supplyCaps[ARB   ] = 10_000_000;
 
@@ -99,8 +102,9 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[wstETH] = 11_000;
         cluster.borrowCaps[weETH ] = 11_000;
         cluster.borrowCaps[rsETH ] = 30;
-        cluster.borrowCaps[tETH  ] = 50;
+        cluster.borrowCaps[tETH  ] = 75;
         cluster.borrowCaps[ezETH ] = 180;
+        cluster.borrowCaps[rETH  ] = type(uint256).max;
         cluster.borrowCaps[WBTC  ] = 540;
         cluster.borrowCaps[ARB   ] = 8_000_000;
 
@@ -134,6 +138,7 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[rsETH ] = irmETH_LST;
             cluster.kinkIRMParams[tETH  ] = irmETH_LST;
             cluster.kinkIRMParams[ezETH ] = irmETH_LST;
+            cluster.kinkIRMParams[rETH  ] = irmETH_LST;
             cluster.kinkIRMParams[WBTC  ] = irmBTC;
             cluster.kinkIRMParams[ARB   ] = irmDEFI;
         }
@@ -146,20 +151,21 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0               1       2       3       4       5        6       7       8        9       10      11
-        //                USDC            USDT0   sUSDS   sUSDC   WETH    wstETH   weETH   rsETH   tETH     ezETH   WBTC    ARB
-        /* 0  USDC    */ [uint16(0.00e4), 0.96e4, 0.96e4, 0.96e4, 0.86e4, 0.840e4, 0.84e4, 0.00e4, 0.000e4, 0.00e4, 0.86e4, 0.65e4],
-        /* 1  USDT0   */ [uint16(0.96e4), 0.00e4, 0.94e4, 0.94e4, 0.86e4, 0.840e4, 0.84e4, 0.00e4, 0.000e4, 0.00e4, 0.86e4, 0.65e4],
-        /* 2  sUSDS   */ [uint16(0.96e4), 0.94e4, 0.00e4, 0.94e4, 0.84e4, 0.820e4, 0.81e4, 0.00e4, 0.000e4, 0.00e4, 0.84e4, 0.65e4],
-        /* 3  sUSDC   */ [uint16(0.96e4), 0.94e4, 0.94e4, 0.00e4, 0.84e4, 0.820e4, 0.81e4, 0.00e4, 0.000e4, 0.00e4, 0.84e4, 0.65e4],
-        /* 4  WETH    */ [uint16(0.86e4), 0.86e4, 0.84e4, 0.84e4, 0.00e4, 0.950e4, 0.94e4, 0.93e4, 0.930e4, 0.93e4, 0.86e4, 0.65e4],
-        /* 5  wstETH  */ [uint16(0.84e4), 0.84e4, 0.82e4, 0.82e4, 0.95e4, 0.000e4, 0.93e4, 0.92e4, 0.925e4, 0.92e4, 0.84e4, 0.65e4],
-        /* 6  weETH   */ [uint16(0.83e4), 0.83e4, 0.81e4, 0.81e4, 0.94e4, 0.930e4, 0.00e4, 0.91e4, 0.910e4, 0.91e4, 0.83e4, 0.65e4],
-        /* 7  rsETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.920e4, 0.91e4, 0.00e4, 0.910e4, 0.91e4, 0.00e4, 0.00e4],
-        /* 8  tETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.925e4, 0.91e4, 0.91e4, 0.000e4, 0.91e4, 0.00e4, 0.00e4],
-        /* 9  ezETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.920e4, 0.91e4, 0.91e4, 0.910e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 10 WBTC    */ [uint16(0.86e4), 0.86e4, 0.84e4, 0.84e4, 0.86e4, 0.840e4, 0.84e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.65e4],
-        /* 11 ARB     */ [uint16(0.65e4), 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.650e4, 0.65e4, 0.00e4, 0.000e4, 0.00e4, 0.65e4, 0.00e4]
+        //                0               1       2       3       4       5        6       7       8        9       10      11      12
+        //                USDC            USDT0   sUSDS   sUSDC   WETH    wstETH   weETH   rsETH   tETH     ezETH   rETH    WBTC    ARB
+        /* 0  USDC    */ [uint16(0.00e4), 0.96e4, 0.96e4, 0.96e4, 0.86e4, 0.840e4, 0.84e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.86e4, 0.65e4],
+        /* 1  USDT0   */ [uint16(0.96e4), 0.00e4, 0.94e4, 0.94e4, 0.86e4, 0.840e4, 0.84e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.86e4, 0.65e4],
+        /* 2  sUSDS   */ [uint16(0.96e4), 0.94e4, 0.00e4, 0.94e4, 0.84e4, 0.820e4, 0.81e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.84e4, 0.65e4],
+        /* 3  sUSDC   */ [uint16(0.96e4), 0.94e4, 0.94e4, 0.00e4, 0.84e4, 0.820e4, 0.81e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.84e4, 0.65e4],
+        /* 4  WETH    */ [uint16(0.86e4), 0.86e4, 0.84e4, 0.84e4, 0.00e4, 0.950e4, 0.94e4, 0.93e4, 0.930e4, 0.93e4, 0.93e4, 0.86e4, 0.65e4],
+        /* 5  wstETH  */ [uint16(0.84e4), 0.84e4, 0.82e4, 0.82e4, 0.95e4, 0.000e4, 0.93e4, 0.92e4, 0.925e4, 0.92e4, 0.92e4, 0.84e4, 0.65e4],
+        /* 6  weETH   */ [uint16(0.83e4), 0.83e4, 0.81e4, 0.81e4, 0.94e4, 0.930e4, 0.00e4, 0.91e4, 0.910e4, 0.91e4, 0.91e4, 0.83e4, 0.65e4],
+        /* 7  rsETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.920e4, 0.91e4, 0.00e4, 0.910e4, 0.91e4, 0.91e4, 0.00e4, 0.00e4],
+        /* 8  tETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.925e4, 0.91e4, 0.91e4, 0.000e4, 0.91e4, 0.91e4, 0.00e4, 0.00e4],
+        /* 9  ezETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.920e4, 0.91e4, 0.91e4, 0.910e4, 0.00e4, 0.91e4, 0.00e4, 0.00e4],
+        /* 10 rETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.920e4, 0.91e4, 0.91e4, 0.910e4, 0.91e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 11 WBTC    */ [uint16(0.86e4), 0.86e4, 0.84e4, 0.84e4, 0.86e4, 0.840e4, 0.84e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.65e4],
+        /* 12 ARB     */ [uint16(0.65e4), 0.65e4, 0.65e4, 0.65e4, 0.65e4, 0.650e4, 0.65e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.65e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 

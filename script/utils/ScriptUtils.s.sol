@@ -71,6 +71,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address externalVaultRegistry;
         address kinkIRMFactory;
         address kinkyIRMFactory;
+        address fixedCyclicalBinaryIRMFactory;
         address adaptiveCurveIRMFactory;
         address irmRegistry;
         address swapper;
@@ -88,6 +89,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address termsOfUseSigner;
         address governorAccessControlEmergencyFactory;
         address capRiskStewardFactory;
+        address eulerEarnPublicAllocator;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -96,6 +98,9 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
         result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "kinkyIRMFactory", Addresses.kinkyIRMFactory);
+        result = vm.serializeAddress(
+            "peripheryAddresses", "fixedCyclicalBinaryIRMFactory", Addresses.fixedCyclicalBinaryIRMFactory
+        );
         result = vm.serializeAddress("peripheryAddresses", "adaptiveCurveIRMFactory", Addresses.adaptiveCurveIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "irmRegistry", Addresses.irmRegistry);
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
@@ -127,6 +132,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             Addresses.governorAccessControlEmergencyFactory
         );
         result = vm.serializeAddress("peripheryAddresses", "capRiskStewardFactory", Addresses.capRiskStewardFactory);
+        result =
+            vm.serializeAddress("peripheryAddresses", "eulerEarnPublicAllocator", Addresses.eulerEarnPublicAllocator);
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -136,6 +143,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             externalVaultRegistry: getAddressFromJson(json, ".externalVaultRegistry"),
             kinkIRMFactory: getAddressFromJson(json, ".kinkIRMFactory"),
             kinkyIRMFactory: getAddressFromJson(json, ".kinkyIRMFactory"),
+            fixedCyclicalBinaryIRMFactory: getAddressFromJson(json, ".fixedCyclicalBinaryIRMFactory"),
             adaptiveCurveIRMFactory: getAddressFromJson(json, ".adaptiveCurveIRMFactory"),
             irmRegistry: getAddressFromJson(json, ".irmRegistry"),
             swapper: getAddressFromJson(json, ".swapper"),
@@ -152,7 +160,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             edgeFactoryPerspective: getAddressFromJson(json, ".edgeFactoryPerspective"),
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner"),
             governorAccessControlEmergencyFactory: getAddressFromJson(json, ".governorAccessControlEmergencyFactory"),
-            capRiskStewardFactory: getAddressFromJson(json, ".capRiskStewardFactory")
+            capRiskStewardFactory: getAddressFromJson(json, ".capRiskStewardFactory"),
+            eulerEarnPublicAllocator: getAddressFromJson(json, ".eulerEarnPublicAllocator")
         });
     }
 }
@@ -533,6 +542,16 @@ abstract contract ScriptUtils is
 
             // TAC
             if (block.chainid == 239) {
+                return address(0);
+            }
+
+            // Plasma
+            if (block.chainid == 9745) {
+                return address(0);
+            }
+
+            // Sepolia
+            if (block.chainid == 11155111) {
                 return address(0);
             }
         }

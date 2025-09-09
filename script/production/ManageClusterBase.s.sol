@@ -207,30 +207,33 @@ abstract contract ManageClusterBase is BatchBuilder {
             // desired.
             // recognize potentially pending transactions by looking up pendingResolvedVaults and
             // pendingConfiguredAdapters mappings
-            {
-                address oracleRouter = cluster.oracleRouters[i];
-                address unitOfAccount = IEVault(vault).unitOfAccount();
-                (address base, address adapter,) =
-                    computeRouterConfiguration(asset, unitOfAccount, cluster.oracleProviders[asset]);
 
-                // in case the vault asset is a valid external vault, resolve it in the router
-                if (
-                    asset != base && !pendingResolvedVaults[oracleRouter][asset][base]
-                        && isValidOracleRouter(oracleRouter) && EulerRouter(oracleRouter).resolvedVaults(asset) != base
-                ) {
-                    govSetResolvedVault(oracleRouter, asset, true);
-                    pendingResolvedVaults[oracleRouter][asset][base] = true;
-                }
-
-                // configure the oracle for the vault asset or the asset of the vault asset
-                if (
-                    !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] && isValidOracleRouter(oracleRouter)
-                        && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
-                ) {
-                    govSetConfig(oracleRouter, base, unitOfAccount, adapter);
-                    pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] = true;
-                }
-            }
+            // COMMENTED OUT SO THAT THE ROUTER IS ONLY CONFIGURED WHEN ACTUALLY NEEDED
+            //{
+            //    address oracleRouter = cluster.oracleRouters[i];
+            //    address unitOfAccount = IEVault(vault).unitOfAccount();
+            //    (address base, address adapter,) =
+            //        computeRouterConfiguration(asset, unitOfAccount, cluster.oracleProviders[asset]);
+            //
+            //    // in case the vault asset is a valid external vault, resolve it in the router
+            //    if (
+            //        asset != base && !pendingResolvedVaults[oracleRouter][asset][base]
+            //            && isValidOracleRouter(oracleRouter) && EulerRouter(oracleRouter).resolvedVaults(asset) !=
+            // base
+            //    ) {
+            //        govSetResolvedVault(oracleRouter, asset, true);
+            //        pendingResolvedVaults[oracleRouter][asset][base] = true;
+            //    }
+            //
+            //    // configure the oracle for the vault asset or the asset of the vault asset
+            //    if (
+            //        !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] && isValidOracleRouter(oracleRouter)
+            //            && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
+            //    ) {
+            //        govSetConfig(oracleRouter, base, unitOfAccount, adapter);
+            //        pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] = true;
+            //    }
+            //}
 
             // configure the vault by checking if current configuration differs from desired.
             // recognize potential overrides applicable per asset
@@ -521,32 +524,35 @@ abstract contract ManageClusterBase is BatchBuilder {
             // configure the oracle router for the collateral before setting the LTV. recognize potentially pending
             // transactions by looking up pendingResolvedVaults and pendingConfiguredAdapters mappings
 
-            // resolve the collateral vault in the router to be able to convert shares to assets
-            if (
-                !pendingResolvedVaults[oracleRouter][collateral][collateralAsset] && isValidOracleRouter(oracleRouter)
-                    && EulerRouter(oracleRouter).resolvedVaults(collateral) != collateralAsset
-            ) {
-                govSetResolvedVault(oracleRouter, collateral, true);
-                pendingResolvedVaults[oracleRouter][collateral][collateralAsset] = true;
-            }
+            if (currentBorrowLTV > 0 || borrowLTV > 0 || liquidationLTV > 0 || targetLiquidationLTV > 0) {
+                // resolve the collateral vault in the router to be able to convert shares to assets
+                if (
+                    !pendingResolvedVaults[oracleRouter][collateral][collateralAsset]
+                        && isValidOracleRouter(oracleRouter)
+                        && EulerRouter(oracleRouter).resolvedVaults(collateral) != collateralAsset
+                ) {
+                    govSetResolvedVault(oracleRouter, collateral, true);
+                    pendingResolvedVaults[oracleRouter][collateral][collateralAsset] = true;
+                }
 
-            // in case the collateral vault asset is a valid external vault, resolve it in the router
-            if (
-                collateralAsset != base && !pendingResolvedVaults[oracleRouter][collateralAsset][base]
-                    && isValidOracleRouter(oracleRouter)
-                    && EulerRouter(oracleRouter).resolvedVaults(collateralAsset) != base
-            ) {
-                govSetResolvedVault(oracleRouter, collateralAsset, true);
-                pendingResolvedVaults[oracleRouter][collateralAsset][base] = true;
-            }
+                // in case the collateral vault asset is a valid external vault, resolve it in the router
+                if (
+                    collateralAsset != base && !pendingResolvedVaults[oracleRouter][collateralAsset][base]
+                        && isValidOracleRouter(oracleRouter)
+                        && EulerRouter(oracleRouter).resolvedVaults(collateralAsset) != base
+                ) {
+                    govSetResolvedVault(oracleRouter, collateralAsset, true);
+                    pendingResolvedVaults[oracleRouter][collateralAsset][base] = true;
+                }
 
-            // configure the oracle for the collateral vault asset or the asset of the collateral vault asset
-            if (
-                !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] && isValidOracleRouter(oracleRouter)
-                    && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
-            ) {
-                govSetConfig(oracleRouter, base, unitOfAccount, adapter);
-                pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] = true;
+                // configure the oracle for the collateral vault asset or the asset of the collateral vault asset
+                if (
+                    !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] && isValidOracleRouter(oracleRouter)
+                        && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
+                ) {
+                    govSetConfig(oracleRouter, base, unitOfAccount, adapter);
+                    pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] = true;
+                }
             }
 
             // disregard the current liquidation LTV if currently ramping down, only compare target LTVs to figure out
@@ -781,6 +787,49 @@ abstract contract ManageClusterBase is BatchBuilder {
             }
         }
 
+        if (getCheckPhasedOutVaults()) {
+            for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+                bool notPhasedOut;
+
+                for (uint256 j = 0; j < cluster.vaults.length; ++j) {
+                    if (IEVault(cluster.vaults[i]).LTVLiquidation(cluster.vaults[j]) > 0) {
+                        notPhasedOut = true;
+                        break;
+                    }
+                }
+
+                for (uint256 j = 0; j < cluster.vaults.length; ++j) {
+                    if (IEVault(cluster.vaults[j]).LTVLiquidation(cluster.vaults[i]) > 0) {
+                        notPhasedOut = true;
+                        break;
+                    }
+                }
+
+                if (!notPhasedOut) {
+                    console.log("Phased out vault found: %s %s", cluster.vaults[i], IEVault(cluster.vaults[i]).symbol());
+                }
+            }
+
+            for (uint256 i = 0; i < cluster.externalVaults.length; ++i) {
+                bool notPhasedOut;
+
+                for (uint256 j = 0; j < cluster.vaults.length; ++j) {
+                    if (IEVault(cluster.vaults[j]).LTVLiquidation(cluster.externalVaults[i]) > 0) {
+                        notPhasedOut = true;
+                        break;
+                    }
+                }
+
+                if (!notPhasedOut) {
+                    console.log(
+                        "Phased out external vault found: %s %s",
+                        cluster.externalVaults[i],
+                        IEVault(cluster.externalVaults[i]).symbol()
+                    );
+                }
+            }
+        }
+
         require(bytes(cluster.clusterAddressesPath).length != 0, "Invalid cluster addresses path");
         require(
             cluster.forceZeroGovernors
@@ -830,7 +879,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                 timeDiff -= block.timestamp;
                 selectFork(block.chainid);
 
-                intervals = TimelockController(timelock).getMinDelay() / timeDiff + 1;
+                intervals = TimelockController(timelock).getMinDelay() / timeDiff + 5;
                 fromBlock = block.number - intervals * 1e4;
             }
 

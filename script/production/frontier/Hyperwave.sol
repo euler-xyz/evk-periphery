@@ -23,6 +23,8 @@ contract Cluster is ManageCluster {
     function configureCluster() internal override {
         super.configureCluster();
 
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x184d597Be309e11650ca6c935B483DcC05551578;
+
         // define unit of account here
         cluster.unitOfAccount = USD;
 

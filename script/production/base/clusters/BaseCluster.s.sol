@@ -88,37 +88,37 @@ contract Cluster is ManageCluster {
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH  ] = 11_300;
-        cluster.supplyCaps[wstETH] = 1_900;
-        cluster.supplyCaps[cbETH ] = 900;
+        cluster.supplyCaps[wstETH] = 950;
+        cluster.supplyCaps[cbETH ] = 450;
         cluster.supplyCaps[weETH ] = 3_750;
-        cluster.supplyCaps[ezETH ] = 1_900;
-        cluster.supplyCaps[RETH  ] = 1_900;
+        cluster.supplyCaps[ezETH ] = 1_000;
+        cluster.supplyCaps[RETH  ] = 1_000;
         cluster.supplyCaps[wsuperOETHb] = 900;
         cluster.supplyCaps[USDC  ] = 60_000_000;
         cluster.supplyCaps[USDT0  ] = 6_000_000;
         cluster.supplyCaps[EURC  ] = 20_000_000;
-        cluster.supplyCaps[cbBTC ] = 250;
-        cluster.supplyCaps[LBTC  ] = 100;
-        cluster.supplyCaps[AERO  ] = 1_000_000;
-        cluster.supplyCaps[USDS  ] = 20_000_000;
-        cluster.supplyCaps[SUSDS ] = 10_000_000;
+        cluster.supplyCaps[cbBTC ] = 125;
+        cluster.supplyCaps[LBTC  ] = 50;
+        cluster.supplyCaps[AERO  ] = 500_000;
+        cluster.supplyCaps[USDS  ] = 10_000_000;
+        cluster.supplyCaps[SUSDS ] = 5_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[WETH  ] = 9_530;
-        cluster.borrowCaps[wstETH] = 800;
-        cluster.borrowCaps[cbETH ] = 800;
+        cluster.borrowCaps[wstETH] = 400;
+        cluster.borrowCaps[cbETH ] = 400;
         cluster.borrowCaps[weETH ] = 938;
-        cluster.borrowCaps[ezETH ] = 500;
-        cluster.borrowCaps[RETH  ] = 800;
+        cluster.borrowCaps[ezETH ] = 300;
+        cluster.borrowCaps[RETH  ] = 400;
         cluster.borrowCaps[wsuperOETHb] = 200;
         cluster.borrowCaps[USDC  ] = 54_000_000;
         cluster.borrowCaps[USDT0  ] = 5_400_000;
         cluster.borrowCaps[EURC  ] = 18_000_000;
-        cluster.borrowCaps[cbBTC ] = 213;
-        cluster.borrowCaps[LBTC  ] = 30;
-        cluster.borrowCaps[AERO  ] = 800_000;
-        cluster.borrowCaps[USDS  ] = 18_000_000;
-        cluster.borrowCaps[SUSDS ] = 9_000_000;
+        cluster.borrowCaps[cbBTC ] = 110;
+        cluster.borrowCaps[LBTC  ] = 15;
+        cluster.borrowCaps[AERO  ] = 400_000;
+        cluster.borrowCaps[USDS  ] = 9_000_000;
+        cluster.borrowCaps[SUSDS ] = 4_500_000;
 
         // define IRM classes here and assign them to the assets
         {

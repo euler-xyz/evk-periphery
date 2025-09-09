@@ -97,15 +97,10 @@ contract EulerEarnVaultLens is Utils {
         MarketConfig memory config = vault.config(strategy);
         PendingUint136 memory pendingConfig = vault.pendingCap(strategy);
 
-        uint256 allocatedAssets = strategy.previewRedeem(config.balance);
-        uint256 availableAssets = strategy.maxWithdraw(_vault);
-
-        availableAssets = availableAssets > allocatedAssets ? allocatedAssets : availableAssets;
-
         return EulerEarnVaultStrategyInfo({
             strategy: _strategy,
-            allocatedAssets: allocatedAssets,
-            availableAssets: availableAssets,
+            allocatedAssets: vault.expectedSupplyAssets(strategy),
+            availableAssets: vault.maxWithdrawFromStrategy(strategy),
             currentAllocationCap: config.cap,
             pendingAllocationCap: pendingConfig.value,
             pendingAllocationCapValidAt: pendingConfig.validAt,

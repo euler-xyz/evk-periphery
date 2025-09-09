@@ -62,6 +62,7 @@ function verify_contract {
         curl -d "address=$contractAddress" "$verifier_url?module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
     fi
 
+    sleep 5
     return $result
 }
 
@@ -198,7 +199,7 @@ function verify_broadcast {
         elif [[ $transactionType == "CREATE" && $verificationSuccessful != true ]]; then
             local initCode=$(echo $tx | jq -r '.transaction.input')
 
-            if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 1 ]; then
+            if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 2 ]; then
                 # try to verify as EulerEarn contracts
                 local src="lib/euler-earn/src"
                 local verificationOptions="--via-ir --num-of-optimizations 200 --compiler-version 0.8.26 --root lib/euler-earn"
@@ -209,7 +210,12 @@ function verify_broadcast {
                         0)
                             # try to verify as EulerEarnFactory
                             contractName=EulerEarnFactory
-                            constructorBytesSize=96
+                            constructorBytesSize=128
+                            ;;
+                        1)
+                            # try to verify as PublicAllocator
+                            contractName=PublicAllocator
+                            constructorBytesSize=32
                             ;;
                         *)
                             break
