@@ -78,9 +78,11 @@ abstract contract Addresses {
     address internal constant PT_USD0PlusPlus_26JUN2025 = 0xf696FE29Ef85E892b5926313897D178288faA07e;
     address internal constant PT_USDe_31JUL2025 = 0x917459337CaAC939D41d7493B3999f571D20D667;
     address internal constant PT_USDe_25SEP2025 = 0xBC6736d346a5eBC0dEbc997397912CD9b8FAe10a;
+    address internal constant PT_USDe_27NOV2025 = 0x62C6E813b9589C3631Ba0Cdb013acdB8544038B7;
     address internal constant PT_sUSDe_29MAY2025 = 0xb7de5dFCb74d25c2f21841fbd6230355C50d9308;
     address internal constant PT_sUSDe_31JULY2025 = 0x3b3fB9C57858EF816833dC91565EFcd85D96f634;
     address internal constant PT_sUSDe_25SEP2025 = 0x9F56094C450763769BA0EA9Fe2876070c0fD5F77;
+    address internal constant PT_sUSDe_27NOV2025 = 0xe6A934089BBEe34F832060CE98848359883749B3;
     address internal constant PT_eUSDe_29MAY2025 = 0x50D2C7992b802Eef16c04FeADAB310f31866a545;
     address internal constant PT_eUSDe_14AUG2025 = 0x14Bdc3A3AE09f5518b923b69489CBcAfB238e617;
     address internal constant PT_cUSDO_19JUN2025 = 0x933B9FfEE0Ad3Ef8E4DBb52688ea905826D73755;
