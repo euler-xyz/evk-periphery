@@ -57,6 +57,11 @@ abstract contract Utils {
                 return address(0);
             }
 
+            // Plasma
+            if (block.chainid == 9745) {
+                return address(0);
+            }
+
             // Sepolia
             if (block.chainid == 11155111) {
                 return address(0);
