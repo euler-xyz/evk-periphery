@@ -54,8 +54,6 @@ contract Cluster is ManageCluster {
         cluster.interestFee = 0.1e4;
 
         cluster.interestFeeOverride[WETH] = 0;
-        cluster.interestFeeOverride[USDC] = 0;
-        cluster.interestFeeOverride[USDT] = 0;
 
         // define max liquidation discount here. if needed to be defined per asset, populate the maxLiquidationDiscountOverride mapping
         cluster.maxLiquidationDiscount = 0.15e4;

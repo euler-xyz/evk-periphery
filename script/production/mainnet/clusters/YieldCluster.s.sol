@@ -69,24 +69,6 @@ contract Cluster is ManageCluster {
         cluster.feeReceiver = address(0);
         cluster.interestFee = 0.1e4;
 
-        cluster.interestFeeOverride[USDC        ] = 0;
-        cluster.interestFeeOverride[USDT        ] = 0;
-        cluster.interestFeeOverride[PYUSD       ] = 0;
-        cluster.interestFeeOverride[rlUSD       ] = 0;
-        cluster.interestFeeOverride[wM          ] = 0;
-        cluster.interestFeeOverride[USDS        ] = 0;
-        cluster.interestFeeOverride[sUSDS       ] = 0.15e4;
-        cluster.interestFeeOverride[DAI         ] = 0;
-        cluster.interestFeeOverride[sDAI        ] = 0.15e4;
-        cluster.interestFeeOverride[USD0        ] = 0;
-        cluster.interestFeeOverride[USD0PlusPlus] = 0.15e4;
-        cluster.interestFeeOverride[USDe        ] = 0;
-        cluster.interestFeeOverride[eUSDe       ] = 0;
-        cluster.interestFeeOverride[sUSDe       ] = 0;
-        cluster.interestFeeOverride[rUSD        ] = 0;
-        cluster.interestFeeOverride[syrupUSDC   ] = 0;
-        cluster.interestFeeOverride[mBASIS      ] = 0.15e4;
-
         // define max liquidation discount here. if needed to be defined per asset, populate the maxLiquidationDiscountOverride mapping
         cluster.maxLiquidationDiscount = 0.15e4;
 
