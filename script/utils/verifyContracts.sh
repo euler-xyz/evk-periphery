@@ -59,10 +59,10 @@ function verify_contract {
     fi
 
     if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan*/api* ]]; then
-        curl -d "address=$contractAddress" "$verifier_url?module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
+        curl -d "address=$contractAddress" "$verifier_url&module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
     fi
 
-    sleep 5
+    #sleep 5
     return $result
 }
 
