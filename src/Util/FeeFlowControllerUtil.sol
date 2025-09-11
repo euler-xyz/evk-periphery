@@ -32,6 +32,10 @@ contract FeeFlowControllerUtil is EVCUtil, ReentrancyGuard {
     ) external nonReentrant returns (uint256) {
         uint256 paymentAmount = FeeFlowController(feeFlowController).getPrice();
 
+        if (paymentAmount > maxPaymentTokenAmount) {
+            revert FeeFlowController.MaxPaymentTokenAmountExceeded();
+        }
+
         if (paymentAmount > 0) {
             SafeERC20.safeTransferFrom(paymentToken, _msgSender(), address(this), paymentAmount);
         }
