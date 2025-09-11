@@ -93,7 +93,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDe  ] = 20_000_000;
         cluster.supplyCaps[USR   ] = 20_000_000;
         cluster.supplyCaps[USDai ] = 0;
-        cluster.supplyCaps[thBILL] = 0;
+        cluster.supplyCaps[thBILL] = 10_000_000;
         cluster.supplyCaps[sUSDe ] = 20_000_000;
         cluster.supplyCaps[syrupUSDC] = 20_000_000;
         cluster.supplyCaps[wstUSR ] = 5_000_000;
