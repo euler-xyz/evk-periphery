@@ -184,7 +184,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_syrupUSDC_28AUG2025   ] = 45_000_000;
         cluster.supplyCaps[PT_USDS_14AUG2025        ] = 0;
         cluster.supplyCaps[PT_tUSDe_25SEP2025       ] = 80_000_000;
-        cluster.supplyCaps[PT_pUSDe_16OCT2025       ] = 70_000_000;
+        cluster.supplyCaps[PT_pUSDe_16OCT2025       ] = 80_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC                     ] = 270_000_000;
