@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {EVaultTestBase} from "../../lib/euler-vault-kit/test/unit/evault/EVaultTestBase.t.sol";
 import {IEVault} from "../../lib/euler-vault-kit/src/EVault/IEVault.sol";
 import {FeeFlowController} from "fee-flow/FeeFlowController.sol";
-import {FeeFlowControllerUtil} from "../../src/Utils/FeeFlowControllerUtil.sol";
+import {FeeFlowControllerUtil} from "../../src/Util/FeeFlowControllerUtil.sol";
 import {TestERC20} from "evk-test/mocks/TestERC20.sol";
 import {IRMTestDefault} from "evk-test/mocks/IRMTestDefault.sol";
 
