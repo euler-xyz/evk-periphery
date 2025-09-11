@@ -77,6 +77,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address swapper;
         address swapVerifier;
         address feeFlowController;
+        address feeFlowControllerUtil;
         address evkFactoryPerspective;
         address governedPerspective;
         address escrowedCollateralPerspective;
@@ -106,6 +107,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
         result = vm.serializeAddress("peripheryAddresses", "swapVerifier", Addresses.swapVerifier);
         result = vm.serializeAddress("peripheryAddresses", "feeFlowController", Addresses.feeFlowController);
+        result = vm.serializeAddress("peripheryAddresses", "feeFlowControllerUtil", Addresses.feeFlowControllerUtil);
         result = vm.serializeAddress("peripheryAddresses", "evkFactoryPerspective", Addresses.evkFactoryPerspective);
         result = vm.serializeAddress("peripheryAddresses", "governedPerspective", Addresses.governedPerspective);
         result = vm.serializeAddress(
@@ -149,6 +151,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             swapper: getAddressFromJson(json, ".swapper"),
             swapVerifier: getAddressFromJson(json, ".swapVerifier"),
             feeFlowController: getAddressFromJson(json, ".feeFlowController"),
+            feeFlowControllerUtil: getAddressFromJson(json, ".feeFlowControllerUtil"),
             evkFactoryPerspective: getAddressFromJson(json, ".evkFactoryPerspective"),
             governedPerspective: getAddressFromJson(json, ".governedPerspective"),
             escrowedCollateralPerspective: getAddressFromJson(json, ".escrowedCollateralPerspective"),

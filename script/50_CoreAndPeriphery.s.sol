@@ -682,13 +682,15 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
         }
 
-        if (peripheryAddresses.feeFlowController == address(0)) {
+        if (
+            peripheryAddresses.feeFlowController == address(0) && peripheryAddresses.feeFlowControllerUtil == address(0)
+        ) {
             address paymentToken = bridgeAddresses.oftAdapter == address(0) ? getWETHAddress() : tokenAddresses.EUL;
 
             if (input.feeFlowInitPrice != 0 && paymentToken != address(0)) {
-                console.log("+ Deploying FeeFlow...");
+                console.log("+ Deploying FeeFlowController and FeeFlowControllerUtil...");
                 FeeFlow deployer = new FeeFlow();
-                peripheryAddresses.feeFlowController = deployer.deploy(
+                (peripheryAddresses.feeFlowController, peripheryAddresses.feeFlowControllerUtil) = deployer.deploy(
                     coreAddresses.evc,
                     input.feeFlowInitPrice,
                     paymentToken,
@@ -698,7 +700,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     FEE_FLOW_MIN_INIT_PRICE
                 );
             } else {
-                console.log("! feeFlowInitPrice or paymentToken is not set for FeeFlow deployment. Skipping...");
+                console.log(
+                    "! feeFlowInitPrice or paymentToken is not set for FeeFlowController and FeeFlowControllerUtil deployment. Skipping..."
+                );
             }
 
             address feeReceiver = peripheryAddresses.feeFlowController == address(0)
