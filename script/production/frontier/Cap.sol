@@ -7,8 +7,8 @@ import {ManageCluster} from "./ManageCluster.s.sol";
 contract Cluster is ManageCluster {
     address internal constant cUSD                = 0xcCcc62962d17b8914c62D74FfB843d73B2a3cccC;
     address internal constant stcUSD               = 0x88887bE419578051FF9F4eb6C858A951921D8888;
-    address internal constant PT_stcUSD_29JAN2026 = 0xc3c7e5e277d31cd24a3ac4cc9af3b6770f30ea33;
-    address internal constant PT_cUSD_29JAN2026   = 0x545a490f9ab534adf409a2e682bc4098f49952e3;
+    address internal constant PT_stcUSD_29JAN2026 = 0xC3c7E5E277d31CD24a3Ac4cC9af3B6770F30eA33;
+    address internal constant PT_cUSD_29JAN2026   = 0x545A490f9ab534AdF409A2E682bc4098f49952e3;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
