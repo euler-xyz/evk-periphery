@@ -85,7 +85,7 @@ contract SafeUtil is ScriptExtended {
 
     function getStatus(address safe) public returns (Status memory) {
         string memory endpoint = string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/");
-        (uint256 status, bytes memory response) = endpoint.get();
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
 
         require(status == 200, "getSafes: Failed to get safes");
 
@@ -103,7 +103,7 @@ contract SafeUtil is ScriptExtended {
     function getNextNonce(address safe) public returns (uint256) {
         string memory endpoint =
             string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false&limit=1");
-        (uint256 status, bytes memory response) = endpoint.get();
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
         require(status == 200, "getNextNonce: Failed to get last pending transaction");
 
         uint256 lastPendingNonce = vm.keyExists(string(response), _indexedKey(".results", 0, ".nonce"))
@@ -122,7 +122,7 @@ contract SafeUtil is ScriptExtended {
                 "/multisig-transactions/?executed=false&nonce=",
                 vm.toString(nonce)
             );
-            (status, response) = endpoint.get();
+            (status, response) = endpoint.get(getHeaders());
             require(status == 200, "getNextNonce: Failed to get pending transaction");
 
             if (!vm.keyExists(string(response), _indexedKey(".results", 0, ".nonce"))) return nonce;
@@ -133,7 +133,7 @@ contract SafeUtil is ScriptExtended {
 
     function getSafes(address owner) public returns (address[] memory) {
         string memory endpoint = string.concat(getOwnersAPIBaseURL(), vm.toString(owner), "/safes/");
-        (uint256 status, bytes memory response) = endpoint.get();
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
 
         require(status == 200, "getSafes: Failed to get safes");
 
@@ -142,7 +142,7 @@ contract SafeUtil is ScriptExtended {
 
     function getDelegates(address safe) public returns (address[] memory) {
         string memory endpoint = string.concat(getDelegatesAPIBaseURL(), "?safe=", vm.toString(safe));
-        (uint256 status, bytes memory response) = endpoint.get();
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
 
         require(status == 200, "getDelegates: Failed to get delegates");
 
@@ -158,8 +158,7 @@ contract SafeUtil is ScriptExtended {
 
     function getPendingTransactions(address safe) public returns (TransactionSimple[] memory) {
         string memory endpoint = string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/transactions/queued");
-        (uint256 status, bytes memory response) = endpoint.get();
-
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
         require(status == 200, "getPendingTransactions: Failed to get pending transactions");
 
         uint256 length = 0;
@@ -191,7 +190,7 @@ contract SafeUtil is ScriptExtended {
 
     function getTransaction(string memory txId) public returns (TransactionSimple memory) {
         string memory endpoint = string.concat(getTransactionsAPIBaseURL(), txId);
-        (uint256 status, bytes memory response) = endpoint.get();
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
 
         require(status == 200, "getTransaction: Failed to get transaction");
 
@@ -257,20 +256,21 @@ contract SafeUtil is ScriptExtended {
         return string.concat(getSafeBaseURL(), version, "/chains/", vm.toString(block.chainid), "/");
     }
 
-    function getHeaders() internal pure returns (string[] memory) {
-        string[] memory headers = new string[](2);
-        headers[0] = "Accept: application/json";
-        headers[1] = "Content-Type: application/json";
-        return headers;
-    }
+    function getHeaders() internal view returns (string[] memory) {
+        string[] memory headers;
+        string memory safeApiKey = vm.envOr("SAFE_API_KEY", string(""));
 
-    function getHeadersString() internal pure returns (string memory) {
-        string[] memory headers = getHeaders();
-        string memory headersString = " ";
-        for (uint256 i = 0; i < headers.length; i++) {
-            headersString = string.concat(headersString, "-H \"", headers[i], "\" ");
+        if (bytes(safeApiKey).length == 0) {
+            headers = new string[](2);
+        } else {
+            headers = new string[](3);
+            headers[2] = string.concat("Authorization: Bearer ", safeApiKey);
         }
-        return headersString;
+
+        headers[0] = "Accept: application/json";
+        headers[1] = "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
+
+        return headers;
     }
 
     function parseJsonAddressesFromValueKeys(string memory response, string memory key)
