@@ -59,10 +59,10 @@ function verify_contract {
     fi
 
     if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan*/api* ]]; then
-        curl -d "address=$contractAddress" "$verifier_url?module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
+        curl -d "address=$contractAddress" "$verifier_url&module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
     fi
 
-    sleep 5
+    #sleep 5
     return $result
 }
 
@@ -202,19 +202,19 @@ function verify_broadcast {
             if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 2 ]; then
                 # try to verify as EulerEarn contracts
                 local src="lib/euler-earn/src"
-                local verificationOptions="--via-ir --num-of-optimizations 200 --compiler-version 0.8.26 --root lib/euler-earn"
+                local verificationOptions="--via-ir --num-of-optimizations 200 --compiler-version 0.8.26"
                 local compilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26"
 
                 while true; do
                     case $eulerEarnIndex in
                         0)
                             # try to verify as EulerEarnFactory
-                            contractName=EulerEarnFactory
+                            contractName=lib/euler-earn/src/EulerEarnFactory.sol:EulerEarnFactory
                             constructorBytesSize=128
                             ;;
                         1)
                             # try to verify as PublicAllocator
-                            contractName=PublicAllocator
+                            contractName=lib/euler-earn/src/PublicAllocator.sol:PublicAllocator
                             constructorBytesSize=32
                             ;;
                         *)
@@ -247,24 +247,24 @@ function verify_broadcast {
             if [ -d "out-euler-swap" ] && ([ ! -d "out-euler-earn" ] || [ $eulerEarnIndex -gt 1 ]); then
                 # try to verify as EulerSwap contracts
                 local src="lib/euler-swap/src"
-                local verificationOptions="--num-of-optimizations 1000000 --compiler-version 0.8.27 --root lib/euler-swap"
+                local verificationOptions="--num-of-optimizations 1000000 --compiler-version 0.8.27"
                 local compilerOptions="--optimize --optimizer-runs 1000000 --use 0.8.27"
 
                 while true; do
                     case $eulerSwapIndex in
                         0)
                             # try to verify as EulerSwap
-                            contractName=EulerSwap
+                            contractName=lib/euler-swap/src/EulerSwap.sol:EulerSwap
                             constructorBytesSize=64
                             ;;
                         1)
                             # try to verify as EulerSwapFactory
-                            contractName=EulerSwapFactory
+                            contractName=lib/euler-swap/src/EulerSwapFactory.sol:EulerSwapFactory
                             constructorBytesSize=160
                             ;;
                         2)
                             # try to verify as EulerSwapPeriphery
-                            contractName=EulerSwapPeriphery
+                            contractName=lib/euler-swap/src/EulerSwapPeriphery.sol:EulerSwapPeriphery
                             constructorBytesSize=0
                             ;;
                         *)

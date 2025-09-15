@@ -4,29 +4,28 @@ pragma solidity ^0.8.0;
 
 import {ManageCluster} from "./ManageCluster.s.sol";
 
+/// @dev NOTE: Deploy PT-uniBTC_18DEC2025 oracle
 contract Cluster is ManageCluster {
-    address internal constant hwHLP    = 0x9FD7466f987Fd4C45a5BBDe22ED8aba5BC8D72d1;
-    address internal constant PT_hwHLP = 0x904673592a3FEbB74a30a73161e8C05A200C8961;
+    address internal constant uniBTC = 0x004E9C3EF86bc1ca1f0bB5C7662861Ee93350568;
+    address internal constant PT_uniBTC_18DEC2025 = 0xa42C63686F45C124f2034152B4BB0CC63CE3Ff52;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/frontier/Hyperwave.json";
+        cluster.clusterAddressesPath = "/script/production/frontier/uniBTC.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other
         // arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [USDC, USDT, hwHLP, PT_hwHLP];
+        cluster.assets = [WBTC, uniBTC, PT_uniBTC_18DEC2025];
     }
 
     function configureCluster() internal override {
         super.configureCluster();
 
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x184d597Be309e11650ca6c935B483DcC05551578;
-
         // define unit of account here
-        cluster.unitOfAccount = USD;
+        cluster.unitOfAccount = WBTC;
 
         // define oracle providers here.
         // adapter names can be found in the relevant adapter contract (as returned by the `name` function).
@@ -38,37 +37,35 @@ contract Cluster is ManageCluster {
         // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[USDC                ] = "0xD35657aE033A86FFa8fc6Bc767C5eb57C7c3D4B8";
-        cluster.oracleProviders[USDT                ] = "0x575Ffc02361368A2708c00bC7e299d1cD1c89f8A";
-        cluster.oracleProviders[hwHLP               ] = "0x2b04C8067D55203235baC0Db823b970e2d7e48B0";
-        cluster.oracleProviders[PT_hwHLP            ] = "0xF9dE4293f3a11D657AC403a8985FC2f5dD156cE6";
+        cluster.oracleProviders[uniBTC] = "0xD802AD35342C39765B74205483c8f8558Fd3c311";
+        cluster.oracleProviders[PT_uniBTC_18DEC2025] = "0xF51f47ed3f7412EB10Cd2C0B6a7D190524D43bDc";
+
+        // unibtc to btc 0xeB2de8d8D64582A27CfA68E5A87a0cfDf7c1Ea1F
+        // pt to unibtc 0xD86BbBaC0C5aAb992fA2cA4Fb49156B3AA19E4cD
+        // btc to usd 0x0484Df76f561443d93548D86740b5C4A826e5A33
+        // pt to wbtc 0xF51f47ed3f7412EB10Cd2C0B6a7D190524D43bDc
+        // uni to wbtc 0xD802AD35342C39765B74205483c8f8558Fd3c311
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            // Base=0% APY  Kink(90%)=2.7% APY  Max=40.00% APY
-            //cluster.kinkIRMParams[WETH] = [uint256(0), uint256(218407859), uint256(22859618857), uint256(3865470566)];
-
-            cluster.irms[USDC  ] = IRM_ADAPTIVE_USD;
-            cluster.irms[USDT  ] = IRM_ADAPTIVE_USD;
-            cluster.irms[hwHLP ] = IRM_ADAPTIVE_USD_YB;
+            cluster.irms[WBTC ] = IRM_ADAPTIVE_BTC;
+            cluster.irms[uniBTC] = IRM_ADAPTIVE_BTC;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //               0          1         2         3
-            //               USDC       USDT      hwHLP     PT_hwHLP
-            /* 0  USDC    */ [LTV_ZERO, LTV_HIGH, LTV__LOW, LTV_ZERO],
-            /* 1  USDT    */ [LTV_HIGH, LTV_ZERO, LTV__LOW, LTV_ZERO],
-            /* 2  hwHLP   */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO],
-            /* 5  PT_hwHLP*/ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO]
+            //                          0         1
+            //                          WBTC      uniBTC      PT_uniBTC_18DEC2025
+            /* 0  WBTC   */            [LTV_ZERO, LTV__LOW, LTV_ZERO],
+            /* 1  uniBTC  */            [LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 2  PT_uniBTC_18DEC2025*/ [LTV__LOW, LTV_HIGH, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         cluster.externalLTVs = [
-        //                     0         1         2         3
-        //                     USDC      USDT      hwHLP     PT_hwHLP
-        /* 0  Prime USDC   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO],
-        /* 1  Prime USDT   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO]
+        //                     0         1         2
+        //                     WBTC      uniBTC     PT_uniBTC_18DEC2025
+        /* 0  Prime WBTC   */ [LTV_HIGH, LTV_ZERO, LTV_ZERO]
         ];
     }
 }

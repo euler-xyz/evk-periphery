@@ -21,6 +21,7 @@ if [ -z "$DEPLOYMENT_RPC_URL" ]; then
 fi
 
 echo "$EXPORT_ENV_VARS"
+echo "export SAFE_API_KEY=$SAFE_API_KEY"
 echo "export SCRIPT_ARGS='$SCRIPT_ARGS'"
 
 if [ "$DEPLOYMENT_RPC_URL" == "local" ]; then

@@ -879,7 +879,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                 timeDiff -= block.timestamp;
                 selectFork(block.chainid);
 
-                intervals = TimelockController(timelock).getMinDelay() / timeDiff + 1;
+                intervals = TimelockController(timelock).getMinDelay() / timeDiff + 5;
                 fromBlock = block.number - intervals * 1e4;
             }
 

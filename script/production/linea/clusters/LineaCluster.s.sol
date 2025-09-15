@@ -62,7 +62,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[wstETH] = "0x9d7BB1b8b82A7C2409aE9d1133700e4e7Ea34ffE";
         cluster.oracleProviders[weETH ] = "0x2A00BA96A1779a3bCfB728906b22D1145ABCD659";
         cluster.oracleProviders[ezETH ] = "0xBb91e02922ab31F17554BEFA65a581CE0EDE32eD";
-        cluster.oracleProviders[wrsETH] = "0xB23fc49c0eA1BcD360c21EE1e31472e2b30D9524";
+        cluster.oracleProviders[wrsETH] = "0xC8127c71Cb0B896b08821d7f7eea0b05022Ad871";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH   ] = 20_000;
