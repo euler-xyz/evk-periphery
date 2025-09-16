@@ -16,8 +16,10 @@ contract Swap is ScriptUtils {
         string memory json = getScriptFile(inputScriptFileName);
         address uniswapRouterV2 = vm.parseJsonAddress(json, ".uniswapRouterV2");
         address uniswapRouterV3 = vm.parseJsonAddress(json, ".uniswapRouterV3");
+        address evc = vm.parseJsonAddress(json, ".evc");
+        address permit2 = vm.parseJsonAddress(json, ".permit2");
 
-        (swapper, swapVerifier) = execute(uniswapRouterV2, uniswapRouterV3);
+        (swapper, swapVerifier) = execute(evc, permit2, uniswapRouterV2, uniswapRouterV3);
 
         string memory object;
         object = vm.serializeAddress("swap", "swapper", swapper);
@@ -25,19 +27,19 @@ contract Swap is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address uniswapRouterV2, address uniswapRouterV3)
+    function deploy(address evc, address permit2, address uniswapRouterV2, address uniswapRouterV3)
         public
         broadcast
         returns (address swapper, address swapVerifier)
     {
-        (swapper, swapVerifier) = execute(uniswapRouterV2, uniswapRouterV3);
+        (swapper, swapVerifier) = execute(evc, permit2, uniswapRouterV2, uniswapRouterV3);
     }
 
-    function execute(address uniswapRouterV2, address uniswapRouterV3)
+    function execute(address evc, address permit2, address uniswapRouterV2, address uniswapRouterV3)
         public
         returns (address swapper, address swapVerifier)
     {
         swapper = address(new Swapper(uniswapRouterV2, uniswapRouterV3));
-        swapVerifier = address(new SwapVerifier());
+        swapVerifier = address(new SwapVerifier(evc, permit2));
     }
 }
