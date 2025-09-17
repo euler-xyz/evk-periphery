@@ -881,7 +881,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             peripheryAddresses.eulerEarnFactoryPerspective == address(0)
                 && peripheryAddresses.eulerEarnGovernedPerspective == address(0)
         ) {
-            if (input.deployEulerEarn) {
+            if (coreAddresses.eulerEarnFactory != address(0)) {
                 console.log("+ Deploying EulerEarnFactoryPerspective and Euler Earn GovernedPerspective...");
                 EulerEarnPerspectivesDeployer deployer = new EulerEarnPerspectivesDeployer();
                 address[] memory perspectives = deployer.deploy(coreAddresses.eulerEarnFactory);
