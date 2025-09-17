@@ -398,60 +398,121 @@ abstract contract ManageClusterBase is BatchBuilder {
         address emergencyVault = getEmergencyVaultAddress();
 
         if (isEmergencyLTVCollateral()) {
-            address collateral = emergencyVault;
+            address[] memory collaterals;
 
-            for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-                address vault = cluster.vaults[i];
-                (uint16 borrowLTV, uint16 liquidationLTV,, uint48 targetTimestamp,) = IEVault(vault).LTVFull(collateral);
+            if (emergencyVault == address(0)) {
+                collaterals = new address[](cluster.vaults.length + cluster.externalVaults.length);
+                for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+                    collaterals[i] = cluster.vaults[i];
+                }
+                for (uint256 i = 0; i < cluster.externalVaults.length; ++i) {
+                    collaterals[cluster.vaults.length + i] = cluster.externalVaults[i];
+                }
+            } else {
+                collaterals = new address[](1);
+                collaterals[0] = emergencyVault;
+            }
 
-                if (borrowLTV == 0) continue;
+            for (uint256 i = 0; i < collaterals.length; ++i) {
+                address collateral = collaterals[i];
 
-                setLTV(
-                    vault,
-                    collateral,
-                    0,
-                    liquidationLTV,
-                    targetTimestamp <= block.timestamp ? 0 : uint32(targetTimestamp - block.timestamp)
-                );
+                for (uint256 j = 0; j < cluster.vaults.length; ++j) {
+                    address vault = cluster.vaults[j];
+                    (uint16 borrowLTV, uint16 liquidationLTV,, uint48 targetTimestamp,) =
+                        IEVault(vault).LTVFull(collateral);
+
+                    if (borrowLTV == 0) continue;
+
+                    setLTV(
+                        vault,
+                        collateral,
+                        0,
+                        liquidationLTV,
+                        targetTimestamp <= block.timestamp ? 0 : uint32(targetTimestamp - block.timestamp)
+                    );
+                }
             }
         }
 
         if (isEmergencyLTVBorrowing()) {
-            address vault = emergencyVault;
-            address[] memory collaterals = IEVault(vault).LTVList();
+            address[] memory vaults;
 
-            for (uint256 i = 0; i < collaterals.length; ++i) {
-                address collateral = collaterals[i];
-                (uint16 borrowLTV, uint16 liquidationLTV,, uint48 targetTimestamp,) = IEVault(vault).LTVFull(collateral);
+            if (emergencyVault == address(0)) {
+                vaults = new address[](cluster.vaults.length);
+                for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+                    vaults[i] = cluster.vaults[i];
+                }
+            } else {
+                vaults = new address[](1);
+                vaults[0] = emergencyVault;
+            }
 
-                if (borrowLTV == 0) continue;
+            for (uint256 i = 0; i < vaults.length; ++i) {
+                address vault = vaults[i];
+                address[] memory collaterals = IEVault(vault).LTVList();
 
-                setLTV(
-                    vault,
-                    collateral,
-                    0,
-                    liquidationLTV,
-                    targetTimestamp <= block.timestamp ? 0 : uint32(targetTimestamp - block.timestamp)
-                );
+                for (uint256 j = 0; j < collaterals.length; ++j) {
+                    address collateral = collaterals[j];
+                    (uint16 borrowLTV, uint16 liquidationLTV,, uint48 targetTimestamp,) =
+                        IEVault(vault).LTVFull(collateral);
+
+                    if (borrowLTV == 0) continue;
+
+                    setLTV(
+                        vault,
+                        collateral,
+                        0,
+                        liquidationLTV,
+                        targetTimestamp <= block.timestamp ? 0 : uint32(targetTimestamp - block.timestamp)
+                    );
+                }
             }
         }
 
         if (isEmergencyCaps()) {
-            address vault = emergencyVault;
-            uint256 decimals = IEVault(vault).decimals();
-            (uint16 supplyCap, uint16 borrowCap) = IEVault(vault).caps();
+            address[] memory vaults;
 
-            if (supplyCap != decimals || borrowCap != decimals) {
-                setCaps(vault, uint16(decimals), uint16(decimals));
+            if (emergencyVault == address(0)) {
+                vaults = new address[](cluster.vaults.length);
+                for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+                    vaults[i] = cluster.vaults[i];
+                }
+            } else {
+                vaults = new address[](1);
+                vaults[0] = emergencyVault;
+            }
+
+            for (uint256 i = 0; i < vaults.length; ++i) {
+                address vault = vaults[i];
+                uint256 decimals = IEVault(vault).decimals();
+                (uint16 supplyCap, uint16 borrowCap) = IEVault(vault).caps();
+
+                if (supplyCap != decimals || borrowCap != decimals) {
+                    setCaps(vault, uint16(decimals), uint16(decimals));
+                }
             }
         }
 
         if (isEmergencyOperations()) {
-            address vault = emergencyVault;
-            (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
+            address[] memory vaults;
 
-            if (hookTarget != address(0) || hookedOps != OP_MAX_VALUE) {
-                setHookConfig(vault, address(0), OP_MAX_VALUE);
+            if (emergencyVault == address(0)) {
+                vaults = new address[](cluster.vaults.length);
+                for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+                    vaults[i] = cluster.vaults[i];
+                }
+            } else {
+                vaults = new address[](1);
+                vaults[0] = emergencyVault;
+            }
+
+            for (uint256 i = 0; i < vaults.length; ++i) {
+                address vault = vaults[i];
+                (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
+
+                if (hookTarget != address(0) || hookedOps != OP_MAX_VALUE) {
+                    setHookConfig(vault, address(0), OP_MAX_VALUE);
+                }
             }
         }
 

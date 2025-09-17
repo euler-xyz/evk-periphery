@@ -226,8 +226,11 @@ abstract contract ScriptExtended is Script {
     function getEmergencyVaultAddress() internal view returns (address) {
         string memory vaultAddress = vm.envOr("vault_address", string(""));
         require(isEmergency(), "getEmergencyVaultAddress: Emergency mode is not enabled");
-        require(bytes(vaultAddress).length == 42, "getEmergencyVaultAddress: Vault address is not set");
-        return _toAddress(vaultAddress);
+        require(
+            bytes(vaultAddress).length == 42 || _strEq(vaultAddress, "all"),
+            "getEmergencyVaultAddress: Vault address is not set"
+        );
+        return bytes(vaultAddress).length == 42 ? _toAddress(vaultAddress) : address(0);
     }
 
     function setNoStubOracle(bool value) internal {
