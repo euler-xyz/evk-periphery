@@ -609,6 +609,7 @@ abstract contract ManageClusterBase is BatchBuilder {
                 // configure the oracle for the collateral vault asset or the asset of the collateral vault asset
                 if (
                     !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] && isValidOracleRouter(oracleRouter)
+                        && (adapter != address(0) || isForceZeroOracle())
                         && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
                 ) {
                     govSetConfig(oracleRouter, base, unitOfAccount, adapter);

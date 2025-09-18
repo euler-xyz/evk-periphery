@@ -242,6 +242,10 @@ abstract contract ScriptExtended is Script {
             || _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
     }
 
+    function isForceZeroOracle() internal view returns (bool) {
+        return _strEq(vm.envOr("force_zero_oracle", string("")), "--force-zero-oracle");
+    }
+
     function getSkipOFTHubChainConfig() internal view returns (bool) {
         return _strEq(vm.envOr("skip_oft_hub_chain_config", string("")), "--skip-oft-hub-chain-config");
     }
