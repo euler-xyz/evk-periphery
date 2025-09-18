@@ -8,6 +8,7 @@ import {ManageCluster} from "./ManageCluster.s.sol";
 /// @dev NOTE: Deploy USD IRM on Base
 contract Cluster is ManageCluster {
     address internal constant yoUSD = 0x0000000f2eB9f69274678c76222B35eEc7588a65;
+    address internal constant PT_yoUSD_26MAR2026 = 0x0177055f7429D3bd6B19f2dd591127DB871A510e;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
@@ -18,7 +19,7 @@ contract Cluster is ManageCluster {
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [USDC, yoUSD];
+        cluster.assets = [USDC, yoUSD, PT_yoUSD_26MAR2026];
     }
 
     function configureCluster() internal override {
@@ -39,6 +40,7 @@ contract Cluster is ManageCluster {
         // of a string.
         cluster.oracleProviders[USDC ] = "0x7931F7B211000CA3700d538D6BB058Ca402b5805";
         cluster.oracleProviders[yoUSD] = "ExternalVault|";
+        cluster.oracleProviders[PT_yoUSD_26MAR2026] = "0xf4AbaE2F067820465E24e9d5772073f5dE633a9b";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
@@ -47,10 +49,11 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //               0         1
-            //               USDC      yoUSD
-            /* 0  USDC   */ [LTV_ZERO, LTV_ZERO],
-            /* 1  yoUSD  */ [LTV__LOW, LTV_ZERO]
+            //                 0         1         2
+            //                 USDC      yoUSD     PT_yoUSD_26MAR2026
+            /* 0  USDC     */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 1  yoUSD    */ [LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 2  PT_yoUSD */ [LTV__LOW, LTV_HIGH, LTV_ZERO]
         ];
     }
 }
