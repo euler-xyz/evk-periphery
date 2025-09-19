@@ -233,8 +233,8 @@ contract SafeUtil is ScriptExtended {
         if (
             block.chainid == 1 || block.chainid == 10 || block.chainid == 100 || block.chainid == 130
                 || block.chainid == 137 || block.chainid == 146 || block.chainid == 42161 || block.chainid == 43114
-                || block.chainid == 480 || block.chainid == 56 || block.chainid == 57073 || block.chainid == 59144
-                || block.chainid == 8453
+                || block.chainid == 480 || block.chainid == 56 || block.chainid == 5000 || block.chainid == 57073
+                || block.chainid == 59144 || block.chainid == 8453
         ) {
             return "https://safe-client.safe.global/";
         } else if (block.chainid == 1923) {
@@ -247,8 +247,10 @@ contract SafeUtil is ScriptExtended {
             return "https://gateway.safe.gobob.xyz/";
         } else if (block.chainid == 80094) {
             return "https://gateway.safe.berachain.com/";
+        } else if (block.chainid == 9745) {
+            return "https://gateway.stage.safe.protofire.io/";
         } else {
-            return "";
+            revert("getSafeBaseURL: Unsupported chain id");
         }
     }
 
@@ -583,7 +585,11 @@ contract SafeMultisendBuilder is SafeUtil {
     }
 
     function _getMultisendAddress(uint256 chainId) internal pure returns (address) {
-        if (chainId == 1 || chainId == 5 || chainId == 8453 || chainId == 42161 || chainId == 43114) {
+        if (
+            chainId == 1 || chainId == 10 || chainId == 100 || chainId == 130 || chainId == 137 || chainId == 146
+                || chainId == 42161 || chainId == 43114 || chainId == 480 || chainId == 56 || chainId == 5000
+                || chainId == 57073 || chainId == 59144 || chainId == 8453
+        ) {
             return 0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761;
         } else {
             revert("getMultisendAddress: Unsupported chain");

@@ -1305,11 +1305,11 @@ while true; do
             euler_swap_fee_owner=${euler_swap_fee_owner:-$multisig_dao}
             euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$multisig_dao}
 
-            if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
+            if { [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; } && [ "$deploy_euler_earn" = "y" ]; then
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
             fi
 
-            if [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ]; then
+            if { [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ]; } && [ "$deploy_euler_swap_v1" = "y" ]; then
                 forge compile lib/euler-swap/src $eulerSwapCompilerOptions --force
             fi
 

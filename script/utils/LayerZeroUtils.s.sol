@@ -32,6 +32,7 @@ contract LayerZeroUtil is ScriptExtended {
         address receiveUln302;
     }
 
+    uint256 internal constant DVN_VERSION = 2;
     uint256 internal constant MAX_DEPLOYMENTS = 10;
 
     function getRawMetadata() public returns (string memory) {
@@ -125,6 +126,7 @@ contract LayerZeroUtil is ScriptExtended {
             for (uint256 j = 0; j < keys.length; ++j) {
                 if (
                     _strEq(metadata.readStringOr(string.concat(key, ".", keys[j], ".canonicalName"), ""), dvns[i])
+                        && metadata.readUintOr(string.concat(key, ".", keys[j], ".version"), 0) == DVN_VERSION
                         && !metadata.readBoolOr(string.concat(key, ".", keys[j], ".lzReadCompatible"), false)
                         && !metadata.readBoolOr(string.concat(key, ".", keys[j], ".deprecated"), false)
                 ) {
