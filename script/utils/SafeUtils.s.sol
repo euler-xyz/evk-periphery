@@ -234,7 +234,7 @@ contract SafeUtil is ScriptExtended {
             block.chainid == 1 || block.chainid == 10 || block.chainid == 100 || block.chainid == 130
                 || block.chainid == 137 || block.chainid == 146 || block.chainid == 42161 || block.chainid == 43114
                 || block.chainid == 480 || block.chainid == 56 || block.chainid == 5000 || block.chainid == 57073
-                || block.chainid == 59144 || block.chainid == 8453
+                || block.chainid == 59144 || block.chainid == 8453 || block.chainid == 9745
         ) {
             return "https://safe-client.safe.global/";
         } else if (block.chainid == 1923) {
@@ -247,8 +247,6 @@ contract SafeUtil is ScriptExtended {
             return "https://gateway.safe.gobob.xyz/";
         } else if (block.chainid == 80094) {
             return "https://gateway.safe.berachain.com/";
-        } else if (block.chainid == 9745) {
-            return "https://gateway.stage.safe.protofire.io/";
         } else {
             revert("getSafeBaseURL: Unsupported chain id");
         }
