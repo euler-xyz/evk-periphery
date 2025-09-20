@@ -414,6 +414,13 @@ contract DeployAndConfigureCapRiskSteward is CustomScriptBase {
     }
 }
 
+contract RedeployAccountLens is CustomScriptBase {
+    function execute() public override {
+        LensAccountDeployer deployer = new LensAccountDeployer();
+        lensAddresses.accountLens = deployer.deploy();
+    }
+}
+
 contract RedeployOracleUtilsAndVaultLenses is CustomScriptBase {
     function execute() public override {
         {
