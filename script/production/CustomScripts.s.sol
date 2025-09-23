@@ -265,7 +265,7 @@ contract UnpauseEVaultFactory is CustomScriptBase {
     }
 }
 
-contract DeployAndConfigureCapRiskSteward is CustomScriptBase {
+contract DeployAndConfigureCRSAndGACE is CustomScriptBase {
     function execute() public override {
         require(getConfigAddress("riskSteward") != address(0), "Risk steward config address not found");
         require(getConfigAddress("gauntlet") != address(0), "Gauntlet config address not found");
