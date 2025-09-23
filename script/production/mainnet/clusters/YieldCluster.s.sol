@@ -215,14 +215,11 @@ contract Cluster is ManageCluster {
             // Base=0.00% APY,  Kink(90.00%)=8.00% APY  Max=15.00% APY
             uint256[4] memory irm_USD_1_MEGA_YIELD_OLD = [uint256(0), uint256(630918865), uint256(4633519165), uint256(3865470566)];
 
-            // Base=5.00% APY,  Kink(90.00%)=10.00% APY  Max=20.00% APY
-            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(1546098748700445000), uint256(381366399), uint256(6419794564), uint256(3865470566)];
+            // Base=4.00% APY,  Kink(90.00%)=8.00% APY  Max=20.00% APY
+            uint256[4] memory irm_USD_1_MEGA_YIELD = [uint256(1242854918307699700), uint256(309391409), uint256(7773614036), uint256(3865470566)];
 
             // Base=0% APY,  Kink(30%)=12.75% APY  Max=848.77% APY
             uint256[4] memory irm_USD_3_MEGA_YIELD = [uint256(0), uint256(2951312420), uint256(22450463582), uint256(1288490188)];
-
-            // Base=5.00% APY,  Kink(90.00%)=10.00% APY  Max=40.00% APY
-            uint256[4] memory irm_eUSDe_rUSD       = [uint256(1546098748700445000), uint256(381366399), uint256(17793200339), uint256(3865470566)];
 
             // Base=0% APY,  Kink(30%)=2.00% APY  Max=80.00% APY
             uint256[4] memory irm_sUSDe            = [uint256(0), uint256(487019827), uint256(5986640502), uint256(1288490188)];
@@ -242,10 +239,10 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[USD0        ] = irm_USD_1_MEGA_YIELD_OLD;
             cluster.kinkIRMParams[USD0PlusPlus] = irm_USD_3_MEGA_YIELD;
             cluster.kinkIRMParams[USDe        ] = irm_USD_1_MEGA_YIELD;
-            cluster.kinkIRMParams[eUSDe       ] = irm_eUSDe_rUSD;
+            cluster.kinkIRMParams[eUSDe       ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[sUSDe       ] = irm_sUSDe;
             cluster.kinkIRMParams[USDtb       ] = irm_USD_1_MEGA_YIELD;
-            cluster.kinkIRMParams[rUSD        ] = irm_eUSDe_rUSD;
+            cluster.kinkIRMParams[rUSD        ] = irm_USD_1_MEGA_YIELD;
             cluster.kinkIRMParams[syrupUSDC   ] = irm_syrupUSDC;
             cluster.kinkIRMParams[mBASIS      ] = irm_USD_3_MEGA_YIELD;
             cluster.kinkIRMParams[AUSD        ] = irm_USD_1_MEGA_YIELD;
