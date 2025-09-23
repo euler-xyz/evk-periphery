@@ -30,7 +30,7 @@ abstract contract Addresses {
     address internal constant cUSDO = 0xbEeE5862649eF24c1F1d5e799505F67F1e7bAB9a;
     address internal constant rsETH = 0x9eCaf80c1303CCA8791aFBc0AD405c8a35e8d9f1;
     address internal constant wrsETH = 0xe561FE05C39075312Aa9Bc6af79DdaE981461359;
-    address internal constant syrupUSDT = address(0);
+    address internal constant syrupUSDT = 0xC4374775489CB9C56003BF2C9b12495fC64F0771;
     address internal constant wstUSR = address(0);
     address internal constant USR = address(0);
     address internal constant RLP = address(0);

@@ -99,17 +99,18 @@ contract Cluster is ManageCluster {
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
         cluster.externalLTVs = [
-        //                   0               1       2   
-        //                   USDT0           USDe    GHO
-        /* 0  M1 USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 1  M2 USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 2  M3 USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 3  M4 USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 4  M5 USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 5  M6 USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 6  M7 USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 7  M8 USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 8  M9 USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4]
+        //                    0               1       2   
+        //                    USDT0           USDe    GHO
+        /* 0  M1  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
+        /* 1  M2  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
+        /* 2  M3  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
+        /* 3  M4  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
+        /* 4  M5a USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
+        /* 5  M5b USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
+        /* 5  M6  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
+        /* 7  M7  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
+        /* 8  M8  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
+        /* 9  M9  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4]
         ];
     }
 
