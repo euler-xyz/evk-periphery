@@ -38,12 +38,13 @@ contract Cluster is ManageCluster {
         // of a string.
         cluster.oracleProviders[USDC            ] = "0x7b123D1850aAb204e7Cd426FC2259141338F771b";
         cluster.oracleProviders[USDT            ] = "0x880CF45D19Ad344953C5B6694B39f9B7BD2563c9";
-        cluster.oracleProviders[thBILL              ] = "0x9d8dF9dA1cFB1308311E295D41E88049088C3626";
+        cluster.oracleProviders[thBILL              ] = "0x31b68Dd6974dA331Fea28BDEd6f4adF355900CC3";
         cluster.oracleProviders[PT_tbBILL_27NOV2025 ] = "0xF51f47ed3f7412EB10Cd2C0B6a7D190524D43bDc";
 
         // usdc to usd fixed 0x7b123D1850aAb204e7Cd426FC2259141338F771b
         // usdt to usd fixed 0x880CF45D19Ad344953C5B6694B39f9B7BD2563c9
         // thbill to usd fixed 0x9d8dF9dA1cFB1308311E295D41E88049088C3626
+        // thbill to usd fundamental cross 0x31b68Dd6974dA331Fea28BDEd6f4adF355900CC3
         // pt thbill to usd 0xF51f47ed3f7412EB10Cd2C0B6a7D190524D43bDc 
 
 
