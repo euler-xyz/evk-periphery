@@ -5,6 +5,15 @@ pragma solidity ^0.8.0;
 import {ManageClusterBase} from "../../ManageClusterBase.s.sol";
 
 abstract contract Addresses {
+    uint16 internal constant LTV_ZERO = 0.0e4;
+    uint16 internal constant LTV__LOW = 0.91e4;
+    uint16 internal constant LTV_HIGH = 0.95e4;
+
+    address internal immutable IRM_ADAPTIVE_USD = 0xf41D1f354f04A2887682ba3585Bf6cCca0a24551;
+    address internal immutable IRM_ADAPTIVE_ETH = 0x3e1c4532134Bf9c2cA864C98C52a830E0571E0E1;
+    address internal immutable IRM_ADAPTIVE_ETH_YB = 0x6D30Bf70411dE9d527E67E6bfD5304B1e1d0c4Be;
+    address internal immutable IRM_ADAPTIVE_DEFI = 0x2a6f7b01d64bB308f3a70e7183246C49EAa102b0;
+
     address internal constant USD = address(840);
     address internal constant BTC = 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB;
     address internal constant WETH = 0x9895D81bB462A195b4922ED7De0e3ACD007c32CB;

@@ -69,20 +69,9 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDT0 ] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
-        {
-            // Base=0.00% APY,  Kink(90.00%)=2.70% APY  Max=49.18% APY
-            uint256[4] memory irmETH     = [uint256(0), uint256(218407859),  uint256(27545545249), uint256(3865470566)];
-
-            // Base=0.00% APY,  Kink(40.00%)=4.60% APY  Max=145.96% APY
-            uint256[4] memory irmETH_LST = [uint256(0), uint256(829546015),  uint256(10514117840), uint256(1717986918)];
-
-            // Base=0.00% APY,  Kink(90.00%)=6.50% APY  Max=49.18% APY
-            uint256[4] memory irmUSD     = [uint256(0), uint256(516261061),  uint256(24864866435), uint256(3865470566)];
-
-            cluster.kinkIRMParams[WETH  ] = irmETH;
-            cluster.kinkIRMParams[WEETH ] = irmETH_LST;
-            cluster.kinkIRMParams[USDT0 ] = irmUSD;
-        }
+        cluster.irms[WETH  ] = IRM_ADAPTIVE_ETH;
+        cluster.irms[WEETH ] = IRM_ADAPTIVE_ETH_YB;
+        cluster.irms[USDT0 ] = IRM_ADAPTIVE_USD;
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
         cluster.rampDuration = 1 days;

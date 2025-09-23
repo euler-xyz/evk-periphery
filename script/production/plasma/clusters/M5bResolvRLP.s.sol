@@ -9,14 +9,14 @@ import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/plasma/clusters/M9Plasma.json";
+        cluster.clusterAddressesPath = "/script/production/plasma/clusters/M5bResolvRLP.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
-            WXPL,
-            ENA,
+            RLP,
+            USR,
             USDT0
         ];
     }
@@ -54,23 +54,22 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[WXPL] = "";
-        cluster.oracleProviders[ENA] = "";
-        cluster.oracleProviders[USDT0] = "0x3541a516288f04bA8eea256B9cF32388F1733C83";
+        cluster.oracleProviders[RLP] = "";
+        cluster.oracleProviders[USR] = "";
+        cluster.oracleProviders[USDT0] = "0xE8947CFd3f04E686741F7Dd9023ec0C78588fd33";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[WXPL] = type(uint256).max;
-        cluster.supplyCaps[ENA] = type(uint256).max;
+        cluster.supplyCaps[RLP] = type(uint256).max;
+        cluster.supplyCaps[USR] = type(uint256).max;
         cluster.supplyCaps[USDT0] = type(uint256).max;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WXPL] = type(uint256).max;
-        cluster.borrowCaps[ENA] = type(uint256).max;
+        cluster.borrowCaps[RLP] = type(uint256).max;
+        cluster.borrowCaps[USR] = type(uint256).max;
         cluster.borrowCaps[USDT0] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
-        cluster.irms[WXPL] = IRM_ADAPTIVE_DEFI;
-        cluster.irms[ENA] = IRM_ADAPTIVE_DEFI;
+        cluster.irms[USR] = IRM_ADAPTIVE_USD;
         cluster.irms[USDT0] = IRM_ADAPTIVE_USD;
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -81,11 +80,11 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0               1       2
-        //                WXPL            ENA     USDT0
-        /* 0  WXPL    */ [uint16(0.00e4), 0.00e4, 0.66e4],
-        /* 1  ENA     */ [uint16(0.00e4), 0.00e4, 0.66e4],
-        /* 2  USDT0   */ [uint16(0.66e4), 0.66e4, 0.00e4]
+        //                0         1         2
+        //                RLP       USR       USDT0
+        /* 0  RLP     */ [LTV_ZERO, LTV_HIGH, LTV__LOW],
+        /* 1  USR     */ [LTV_ZERO, LTV_ZERO, LTV__LOW],
+        /* 2  USDT0   */ [LTV_ZERO, LTV__LOW, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 

@@ -18,7 +18,6 @@ contract Cluster is ManageCluster {
             sUSDe,
             USDe,
             USDT0
-            //ENA
         ];
     }
 
@@ -55,55 +54,37 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[sUSDe] = "0xBB6c58CF5Cb0FFd1a1aCbb2B3b482015Dba07A1F";
-        cluster.oracleProviders[USDe] = "0x0C60F630608a1406f5B049093B25032598b3DC4A";
-        cluster.oracleProviders[USDT0] = "0x3541a516288f04bA8eea256B9cF32388F1733C83";
-        //cluster.oracleProviders[ENA] = "";
+        cluster.oracleProviders[sUSDe] = "a0xBB6c58CF5Cb0FFd1a1aCbb2B3b482015Dba07A1F";
+        cluster.oracleProviders[USDe]  = "0x59E8BD99802F4EB774dFfE2BE2bEC38Ad08d6c16";
+        cluster.oracleProviders[USDT0] = "0xE8947CFd3f04E686741F7Dd9023ec0C78588fd33";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[sUSDe] = type(uint256).max;
         cluster.supplyCaps[USDe ] = type(uint256).max;
         cluster.supplyCaps[USDT0] = type(uint256).max;
-        //cluster.supplyCaps[ENA  ] = type(uint256).max;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[sUSDe] = type(uint256).max;
         cluster.borrowCaps[USDe ] = type(uint256).max;
         cluster.borrowCaps[USDT0] = type(uint256).max;
-        //cluster.borrowCaps[ENA  ] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
-        {
-            // sUSDe - no IRM parameters (not borrowing against itself)
-            
-            // Base=0.00% APY,  Kink(90.00%)=7.79% APY  Max=64.87% APY
-            uint256[4] memory irmUSD_YIELD_RISKIER = [uint256(0), uint256(614962982),  uint256(31354928121), uint256(3865470566)];
-
-            // Base=0.00% APY,  Kink(90.00%)=7.79% APY  Max=34.99% APY
-            uint256[4] memory irmUSD_YIELD = [uint256(0), uint256(614962982),  uint256(16601912723), uint256(3865470566)];
-
-            // Base=0.00% APY,  Kink(80.00%)=8.00% APY  Max=848.77% APY
-            //uint256[4] memory irmUNI_DEFI = [uint256(0), uint256(709783723),  uint256(80164456219), uint256(3435973836)];
-
-            cluster.kinkIRMParams[USDe ] = irmUSD_YIELD_RISKIER;
-            cluster.kinkIRMParams[USDT0] = irmUSD_YIELD;
-            //cluster.kinkIRMParams[ENA  ] = irmUNI_DEFI;
-        }
+        cluster.irms[USDe ] = IRM_ADAPTIVE_USD;
+        cluster.irms[USDT0] = IRM_ADAPTIVE_USD;
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 0 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0               1       2       3
-        //                sUSDe           USDe    USDT0   ENA
-        /* 0  sUSDe   */ [uint16(0.00e4), 0.92e4, 0.90e4],//, 0.00e4],
-        /* 1  USDe    */ [uint16(0.00e4), 0.00e4, 0.90e4],//, 0.66e4],
-        /* 2  USDT0   */ [uint16(0.00e4), 0.95e4, 0.00e4] //, 0.66e4],
-        /* 3  ENA     */ //[uint16(0.00e4), 0.66e4, 0.66e4, 0.00e4]
+        //                0         1         2       
+        //                sUSDe     USDe      USDT0   
+        /* 0  sUSDe   */ [LTV_ZERO, LTV_HIGH, LTV__LOW],
+        /* 1  USDe    */ [LTV_ZERO, LTV_ZERO, LTV__LOW],
+        /* 2  USDT0   */ [LTV_ZERO, LTV__LOW, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 

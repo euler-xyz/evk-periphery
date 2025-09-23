@@ -56,7 +56,7 @@ contract Cluster is ManageCluster {
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[sxyUSD] = "";
         cluster.oracleProviders[xyUSD] = "";
-        cluster.oracleProviders[USDT0] = "0x3541a516288f04bA8eea256B9cF32388F1733C83";
+        cluster.oracleProviders[USDT0] = "0xE8947CFd3f04E686741F7Dd9023ec0C78588fd33";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[sxyUSD] = type(uint256).max;
@@ -69,32 +69,22 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDT0] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
-        {
-            // sxyUSD - no IRM parameters (not borrowing against itself)
-            
-            // Base=0.00% APY,  Kink(90.00%)=7.79% APY  Max=64.87% APY
-            uint256[4] memory irmUSD_YIELD_RISKIER = [uint256(0), uint256(614962982),  uint256(31354928121), uint256(3865470566)];
-
-            // Base=0.00% APY,  Kink(90.00%)=7.79% APY  Max=34.99% APY
-            uint256[4] memory irmUSD_YIELD = [uint256(0), uint256(614962982),  uint256(16601912723), uint256(3865470566)];
-
-            cluster.kinkIRMParams[xyUSD] = irmUSD_YIELD_RISKIER;
-            cluster.kinkIRMParams[USDT0] = irmUSD_YIELD;
-        }
+        cluster.irms[xyUSD] = IRM_ADAPTIVE_USD;
+        cluster.irms[USDT0] = IRM_ADAPTIVE_USD;
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 0 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0               1       2
-        //                sxyUSD          xyUSD   USDT0
-        /* 0  sxyUSD  */ [uint16(0.00e4), 0.90e4, 0.88e4],
-        /* 1  xyUSD   */ [uint16(0.00e4), 0.00e4, 0.88e4],
-        /* 2  USDT0   */ [uint16(0.00e4), 0.95e4, 0.00e4]
+        //                0         1         2
+        //                sxyUSD    xyUSD     USDT0
+        /* 0  sxyUSD  */ [LTV_ZERO, LTV_HIGH, LTV__LOW],
+        /* 1  xyUSD   */ [LTV_ZERO, LTV_ZERO, LTV__LOW],
+        /* 2  USDT0   */ [LTV_ZERO, LTV__LOW, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
@@ -103,7 +93,7 @@ contract Cluster is ManageCluster {
 
     function postOperations() internal view override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            //OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
         }
     }
 }
