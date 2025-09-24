@@ -54,8 +54,8 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[RLP] = "";
-        cluster.oracleProviders[USR] = "";
+        cluster.oracleProviders[RLP] = "0x7D9Db6f09D48EA484FE1A7d981e1bE2f93aCA43A";
+        cluster.oracleProviders[USR] = "0x7b7D06316E4764749375603955C5195401c17832";
         cluster.oracleProviders[USDT0] = "0xE8947CFd3f04E686741F7Dd9023ec0C78588fd33";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount

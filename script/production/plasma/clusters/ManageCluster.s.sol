@@ -31,9 +31,9 @@ abstract contract Addresses {
     address internal constant rsETH = 0x9eCaf80c1303CCA8791aFBc0AD405c8a35e8d9f1;
     address internal constant wrsETH = 0xe561FE05C39075312Aa9Bc6af79DdaE981461359;
     address internal constant syrupUSDT = 0xC4374775489CB9C56003BF2C9b12495fC64F0771;
-    address internal constant wstUSR = address(0);
-    address internal constant USR = address(0);
-    address internal constant RLP = address(0);
+    address internal constant wstUSR = 0x2a52B289bA68bBd02676640aA9F605700c9e5699;
+    address internal constant USR = 0xb1b385542B6E80F77B94393Ba8342c3Af699f15c;
+    address internal constant RLP = 0x35533f54740F1F1aA4179E57bA37039dfa16868B;
     address internal constant sxyUSD = address(0);
     address internal constant xyUSD = address(0);
     address internal constant NUSD = address(0);
