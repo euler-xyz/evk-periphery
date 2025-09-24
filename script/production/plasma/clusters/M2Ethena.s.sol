@@ -23,7 +23,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = getDeployer(); //governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -54,7 +54,7 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[sUSDe] = "a0xBB6c58CF5Cb0FFd1a1aCbb2B3b482015Dba07A1F";
+        cluster.oracleProviders[sUSDe] = "0x386B523Db1dF3ca4699623EC0962075c92B320FB";
         cluster.oracleProviders[USDe]  = "0x59E8BD99802F4EB774dFfE2BE2bEC38Ad08d6c16";
         cluster.oracleProviders[USDT0] = "0xE8947CFd3f04E686741F7Dd9023ec0C78588fd33";
 

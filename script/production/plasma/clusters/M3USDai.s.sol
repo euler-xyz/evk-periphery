@@ -23,7 +23,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = getDeployer(); //governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -54,8 +54,8 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[sUSDai] = "";
-        cluster.oracleProviders[USDai] = "0x289e5901a38da333C854C41bE9BEF8CE3933ECac";
+        cluster.oracleProviders[sUSDai] = "0x13d830B7A5402C54744Def5445DB0dc9aBBD2233";
+        cluster.oracleProviders[USDai] = "0x18a8969aC4c07c8a18e17a099C917BeC3810A091";
         cluster.oracleProviders[USDT0] = "0xE8947CFd3f04E686741F7Dd9023ec0C78588fd33";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount

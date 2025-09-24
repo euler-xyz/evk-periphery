@@ -91,8 +91,8 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1       2
         //                USDT0           USDe    GHO
-        /* 0  USDT0   */ [uint16(0.00e4), 0.95e4, 0.95e4],
-        /* 1  USDe    */ [uint16(0.90e4), 0.00e4, 0.90e4],
+        /* 0  USDT0   */ [uint16(0.00e4), 0.91e4, 0.91e4],
+        /* 1  USDe    */ [uint16(0.91e4), 0.00e4, 0.91e4],
         /* 2  GHO     */ [uint16(0.83e4), 0.83e4, 0.00e4]
         ];
 
@@ -101,22 +101,22 @@ contract Cluster is ManageCluster {
         cluster.externalLTVs = [
         //                    0               1       2   
         //                    USDT0           USDe    GHO
-        /* 0  M1  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 1  M2  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 2  M3  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 3  M4  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 4  M5a USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 5  M5b USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 5  M6  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 7  M7  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 8  M8  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4],
-        /* 9  M9  USDT0   */ [uint16(0.90e4), 0.90e4, 0.90e4]
+        /* 0  M1  USDT0   */ [uint16(0.95e4), 0.91e4, 0.91e4],
+        /* 1  M2  USDT0   */ [uint16(0.95e4), 0.91e4, 0.91e4],
+        /* 2  M3  USDT0   */ [uint16(0.95e4), 0.91e4, 0.91e4],
+        /* 3  M4  USDT0   */ [uint16(0.95e4), 0.91e4, 0.91e4],
+        /* 4  M5a USDT0   */ [uint16(0.95e4), 0.91e4, 0.91e4],
+        /* 5  M5b USDT0   */ [uint16(0.95e4), 0.91e4, 0.91e4],
+        /* 5  M6  USDT0   */ [uint16(0.95e4), 0.91e4, 0.91e4],
+        /* 7  M7  USDT0   */ [uint16(0.95e4), 0.91e4, 0.91e4],
+        /* 8  M8  USDT0   */ [uint16(0.95e4), 0.91e4, 0.91e4],
+        /* 9  M9  USDT0   */ [uint16(0.95e4), 0.91e4, 0.91e4]
         ];
     }
 
     function postOperations() internal view override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            //OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
         }
     }
 }

@@ -23,7 +23,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = getDeployer(); //governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -83,8 +83,8 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1       2
         //                WETH            WEETH   USDT0
-        /* 0  WETH    */ [uint16(0.00e4), 0.93e4, 0.83e4],
-        /* 1  WEETH   */ [uint16(0.93e4), 0.00e4, 0.80e4],
+        /* 0  WETH    */ [uint16(0.00e4), 0.95e4, 0.83e4],
+        /* 1  WEETH   */ [uint16(0.95e4), 0.00e4, 0.80e4],
         /* 2  USDT0   */ [uint16(0.83e4), 0.00e4, 0.00e4]
         ];
 
