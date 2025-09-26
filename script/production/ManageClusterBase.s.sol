@@ -539,19 +539,20 @@ abstract contract ManageClusterBase is BatchBuilder {
             address asset = IEVault(p.vault).asset();
             (address base, address adapter,) =
                 computeRouterConfiguration(asset, unitOfAccount, cluster.oracleProviders[asset]);
-        
+
             // in case the vault asset is a valid external vault, resolve it in the router
             if (
-                asset != base && !pendingResolvedVaults[oracleRouter][asset][base]
-                    && isValidOracleRouter(oracleRouter) && EulerRouter(oracleRouter).resolvedVaults(asset) != base
+                asset != base && !pendingResolvedVaults[oracleRouter][asset][base] && isValidOracleRouter(oracleRouter)
+                    && EulerRouter(oracleRouter).resolvedVaults(asset) != base
             ) {
                 govSetResolvedVault(oracleRouter, asset, true);
                 pendingResolvedVaults[oracleRouter][asset][base] = true;
             }
-        
+
             // configure the oracle for the vault asset or the asset of the vault asset
             if (
                 !pendingConfiguredAdapters[oracleRouter][base][unitOfAccount] && isValidOracleRouter(oracleRouter)
+                    && (adapter != address(0) || isForceZeroOracle())
                     && EulerRouter(oracleRouter).getConfiguredOracle(base, unitOfAccount) != adapter
             ) {
                 govSetConfig(oracleRouter, base, unitOfAccount, adapter);
@@ -562,7 +563,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         for (uint256 i = 0; i < p.collaterals.length; ++i) {
             address collateral = p.collaterals[i];
             address collateralAsset = IEVault(collateral).asset();
-            
+
             (address base, address adapter, bool useStub) =
                 computeRouterConfiguration(collateralAsset, unitOfAccount, cluster.oracleProviders[collateralAsset]);
             (uint16 borrowLTV, uint16 liquidationLTV) = computeLTVs(p, i);
