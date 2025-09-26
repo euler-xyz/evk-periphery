@@ -8,6 +8,7 @@ import {ManageCluster} from "./ManageCluster.s.sol";
 /// @dev NOTE: Deploy ETH IRM
 contract Cluster is ManageCluster {
     address internal constant yoETH = 0x3A43AEC53490CB9Fa922847385D82fe25d0E9De7;
+    address internal constant PT_yoETH_26MAR2026 = 0x1A5c5eA50717a2ea0e4F7036FB289349DEaAB58b;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
@@ -18,7 +19,7 @@ contract Cluster is ManageCluster {
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [WETH, yoETH];
+        cluster.assets = [WETH, yoETH, PT_yoETH_26MAR2026];
     }
 
     function configureCluster() internal override {
@@ -38,18 +39,21 @@ contract Cluster is ManageCluster {
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
         cluster.oracleProviders[yoETH] = "ExternalVault|";
+        cluster.oracleProviders[PT_yoETH_26MAR2026] = "0x2bc77465546B14209A965D4251A057eC89317D4B";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
             cluster.irms[WETH] = IRM_ADAPTIVE_ETH;
+            cluster.irms[yoETH] = IRM_ADAPTIVE_ETH;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //               0         1
-            //               WETH      yoETH
-            /* 0  WETH   */ [LTV_ZERO, LTV_ZERO],
-            /* 1  yoETH  */ [LTV__LOW, LTV_ZERO]
+            //                 0         1         2
+            //                 WETH      yoETH     PT_yoETH_26MAR2026
+            /* 0  WETH     */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 1  yoETH    */ [LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 2  PT_yoETH */ [LTV__LOW, LTV_HIGH, LTV_ZERO]
         ];
     }
 }
