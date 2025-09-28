@@ -584,11 +584,12 @@ contract SafeMultisendBuilder is SafeUtil {
 
     function _getMultisendAddress(uint256 chainId) internal pure returns (address) {
         if (
-            chainId == 1 || chainId == 10 || chainId == 100 || chainId == 130 || chainId == 137 || chainId == 146
-                || chainId == 42161 || chainId == 43114 || chainId == 480 || chainId == 56 || chainId == 5000
-                || chainId == 57073 || chainId == 59144 || chainId == 8453
+            chainId == 1 || chainId == 10 || chainId == 100 || chainId == 130 || chainId == 137 || chainId == 239
+                || chainId == 2390 || chainId == 2818 || chainId == 30 || chainId == 42161 || chainId == 43114
+                || chainId == 480 || chainId == 5000 || chainId == 56 || chainId == 57073 || chainId == 59144
+                || chainId == 60808 || chainId == 80094 || chainId == 8453 || chainId == 9745 || chainId == 999
         ) {
-            return 0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761;
+            return 0x9641d764fc13c8B624c04430C7356C1C7C8102e2;
         } else {
             revert("getMultisendAddress: Unsupported chain");
         }
