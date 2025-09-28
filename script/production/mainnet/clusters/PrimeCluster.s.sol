@@ -121,7 +121,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDtb      ] = 20_000_000;
         cluster.supplyCaps[rlUSD      ] = 25_000_000;
         cluster.supplyCaps[USDe       ] = 13_000_000;
-        cluster.supplyCaps[sUSDe      ] = 8_000_000;
+        cluster.supplyCaps[sUSDe      ] = 14_000_000;
         cluster.supplyCaps[syrupUSDC  ] = 20_000_000;
         cluster.supplyCaps[TBILL      ] = 0;//10_000_000;
         cluster.supplyCaps[WBTC       ] = 600;
