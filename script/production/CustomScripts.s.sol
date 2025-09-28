@@ -23,15 +23,6 @@ import {
 import {VaultLens, VaultInfoFull} from "../../src/Lens/VaultLens.sol";
 import {AccountLens, AccountInfo, AccountMultipleVaultsInfo} from "../../src/Lens/AccountLens.sol";
 
-abstract contract CustomScriptBase is BatchBuilder {
-    function run() public {
-        execute();
-        saveAddresses();
-    }
-
-    function execute() public virtual {}
-}
-
 contract GetVaultInfoFull is ScriptUtils {
     function run(address vault) public view returns (VaultInfoFull memory) {
         return VaultLens(lensAddresses.vaultLens).getVaultInfoFull(vault);
@@ -87,7 +78,7 @@ contract BridgeEULToLabsMultisig is ScriptUtils, SafeMultisendBuilder {
             }
         }
 
-        if (multisendItemExists()) executeMultisend(safe, safeNonce++, false);
+        if (multisendItemExists()) executeMultisend(safe, safeNonce++, true, false);
     }
 }
 
@@ -230,8 +221,8 @@ contract MigratePosition is BatchBuilder {
     }
 }
 
-contract MergeSafeBatchBuilderFiles is CustomScriptBase, SafeMultisendBuilder {
-    function execute() public override {
+contract MergeSafeBatchBuilderFiles is ScriptUtils, SafeMultisendBuilder {
+    function run() public {
         address safe = getSafe();
         string memory basePath = string.concat(
             vm.projectRoot(), "/", getPath(), "/SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), "_"
@@ -250,8 +241,8 @@ contract MergeSafeBatchBuilderFiles is CustomScriptBase, SafeMultisendBuilder {
     }
 }
 
-contract UnpauseEVaultFactory is CustomScriptBase {
-    function execute() public override {
+contract UnpauseEVaultFactory is BatchBuilder {
+    function run() public {
         SafeTransaction transaction = new SafeTransaction();
 
         transaction.create(
@@ -265,8 +256,8 @@ contract UnpauseEVaultFactory is CustomScriptBase {
     }
 }
 
-contract DeployAndConfigureCRSAndGACE is CustomScriptBase {
-    function execute() public override {
+contract DeployAndConfigureCRSAndGACE is BatchBuilder {
+    function run() public {
         require(getConfigAddress("riskSteward") != address(0), "Risk steward config address not found");
         require(getConfigAddress("gauntlet") != address(0), "Gauntlet config address not found");
 
@@ -411,11 +402,13 @@ contract DeployAndConfigureCRSAndGACE is CustomScriptBase {
             (bool success,) = targets[i].call{value: values[i]}(payloads[i]);
             require(success, "timelock execution simulation failed");
         }
+
+        saveAddresses();
     }
 }
 
-contract RedeployOracleUtilsAndVaultLenses is CustomScriptBase {
-    function execute() public override {
+contract RedeployOracleUtilsAndVaultLenses is BatchBuilder {
+    function run() public {
         {
             LensOracleDeployer deployer = new LensOracleDeployer();
             lensAddresses.oracleLens = deployer.deploy(peripheryAddresses.oracleAdapterRegistry);
@@ -433,5 +426,7 @@ contract RedeployOracleUtilsAndVaultLenses is CustomScriptBase {
             LensEulerEarnVaultDeployer deployer = new LensEulerEarnVaultDeployer();
             lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.utilsLens);
         }
+
+        saveAddresses();
     }
 }

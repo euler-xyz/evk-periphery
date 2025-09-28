@@ -446,6 +446,13 @@ abstract contract ScriptUtils is
         stopBroadcast();
     }
 
+    modifier broadcastAndSaveAddresses() {
+        startBroadcast();
+        _;
+        stopBroadcast();
+        saveAddresses();
+    }
+
     function startBroadcast() internal {
         vm.startBroadcast(getDeployer());
     }
