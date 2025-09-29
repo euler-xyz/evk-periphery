@@ -179,8 +179,7 @@ contract MigratePosition is BatchBuilder {
         address[] memory controllers = IEVC(coreAddresses.evc).getControllers(sourceAccount);
 
         for (uint256 i = 0; i < collaterals.length; ++i) {
-            uint256 amount = IEVault(collaterals[i]).balanceOf(sourceAccount);
-            if (amount == 0) continue;
+            if (IEVault(collaterals[i]).balanceOf(sourceAccount) == 0) continue;
 
             addBatchItem(
                 coreAddresses.evc,
@@ -190,7 +189,7 @@ contract MigratePosition is BatchBuilder {
             addBatchItem(
                 collaterals[i],
                 sourceAccount,
-                abi.encodeCall(IEVault(collaterals[i]).transfer, (destinationAccount, amount))
+                abi.encodeCall(IEVault(collaterals[i]).transferFromMax, (sourceAccount, destinationAccount))
             );
             addBatchItem(
                 coreAddresses.evc, address(0), abi.encodeCall(IEVC.disableCollateral, (sourceAccount, collaterals[i]))
