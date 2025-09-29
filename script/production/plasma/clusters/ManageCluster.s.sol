@@ -34,11 +34,13 @@ abstract contract Addresses {
     address internal constant wstUSR = 0x2a52B289bA68bBd02676640aA9F605700c9e5699;
     address internal constant USR = 0xb1b385542B6E80F77B94393Ba8342c3Af699f15c;
     address internal constant RLP = 0x35533f54740F1F1aA4179E57bA37039dfa16868B;
+    address internal constant rUSD = 0x09D4214C03D01F49544C0448DBE3A27f768F2b34;
+    address internal constant wsrUSD = 0x4809010926aec940b550D34a46A52739f996D75D;
     address internal constant sxyUSD = address(0);
     address internal constant xyUSD = address(0);
     address internal constant NUSD = address(0);
     address internal constant EUROP = address(0);
-    address internal constant GHO = address(0);
+    address internal constant GHO = 0xfc421aD3C883Bf9E7C4f42dE845C4e4405799e73;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}
