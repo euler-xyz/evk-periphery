@@ -102,20 +102,20 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     }
 
     /// @notice Mints new tokens to a specified account, respecting the minter's capacity.
-    /// @param _account The address to receive the minted tokens.
-    /// @param _amount The amount of tokens to mint.
-    function mint(address _account, uint256 _amount) external override onlyEVCAccountOwner onlyRole(MINTER_ROLE) {
+    /// @param account The address to receive the minted tokens.
+    /// @param amount The amount of tokens to mint.
+    function mint(address account, uint256 amount) external override onlyEVCAccountOwner onlyRole(MINTER_ROLE) {
         address sender = _msgSender();
         MinterData memory minterCache = minters[sender];
 
-        if (_amount == 0) return;
+        if (amount == 0) return;
 
         // If the minter has a finite capacity, check for overflow and capacity.
         if (
             minterCache.capacity != type(uint128).max
                 && (
-                    _amount > type(uint128).max - minterCache.minted
-                        || minterCache.capacity < uint256(minterCache.minted) + _amount
+                    amount > type(uint128).max - minterCache.minted
+                        || minterCache.capacity < uint256(minterCache.minted) + amount
                 )
         ) {
             revert CapacityReached();
@@ -123,52 +123,52 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
 
         // Only update minted amount if the minter has a finite capacity.
         if (minterCache.capacity != type(uint128).max) {
-            minterCache.minted += uint128(_amount); // safe to down-cast because amount <= capacity <= max uint128
+            minterCache.minted += uint128(amount); // safe to down-cast because amount <= capacity <= max uint128
             minters[sender] = minterCache;
         }
 
-        _mint(_account, _amount);
+        _mint(account, amount);
     }
 
     /// @notice Burns tokens from the caller's balance and decreases their minted amount.
-    /// @param _amount The amount of tokens to burn.
-    function burn(uint256 _amount) public override {
+    /// @param amount The amount of tokens to burn.
+    function burn(uint256 amount) public override {
         address sender = _msgSender();
-        _decreaseMinted(sender, _amount);
-        _burn(sender, _amount);
+        _decreaseMinted(sender, amount);
+        _burn(sender, amount);
     }
 
     /// @notice Burns tokens from another account, using allowance if required, and decreases their minted amount.
-    /// @param _account The account to burn tokens from.
-    /// @param _amount The amount of tokens to burn.
-    function burnFrom(address _account, uint256 _amount) public override {
+    /// @param account The account to burn tokens from.
+    /// @param amount The amount of tokens to burn.
+    function burnFrom(address account, uint256 amount) public override {
         address sender = _msgSender();
 
-        if (_amount == 0) return;
+        if (amount == 0) return;
 
         // Allowance check: required unless burning from self, or admin burning from contract itself.
-        if (_account != sender && !(_account == address(this) && hasRole(DEFAULT_ADMIN_ROLE, sender))) {
-            _spendAllowance(_account, sender, _amount);
+        if (account != sender && !(account == address(this) && hasRole(DEFAULT_ADMIN_ROLE, sender))) {
+            _spendAllowance(account, sender, amount);
         }
 
-        _decreaseMinted(_account, _amount);
-        _burn(_account, _amount);
+        _decreaseMinted(account, amount);
+        _burn(account, amount);
     }
 
     /// @notice Allocates tokens from this contract to a vault and adds the vault to ignored supply.
-    /// @param _vault The vault address to allocate to.
-    /// @param _amount The amount of tokens to allocate.
-    function allocate(address _vault, uint256 _amount) external onlyEVCAccountOwner onlyRole(ALLOCATOR_ROLE) {
-        _ignoredForTotalSupply.add(_vault);
-        _approve(address(this), _vault, _amount, true);
-        IEVault(_vault).deposit(_amount, address(this));
+    /// @param vault The vault address to allocate to.
+    /// @param amount The amount of tokens to allocate.
+    function allocate(address vault, uint256 amount) external onlyEVCAccountOwner onlyRole(ALLOCATOR_ROLE) {
+        _ignoredForTotalSupply.add(vault);
+        _approve(address(this), vault, amount, true);
+        IEVault(vault).deposit(amount, address(this));
     }
 
     /// @notice Deallocates tokens from a vault back to this contract.
-    /// @param _vault The vault address to deallocate from.
-    /// @param _amount The amount of tokens to deallocate.
-    function deallocate(address _vault, uint256 _amount) external onlyEVCAccountOwner onlyRole(ALLOCATOR_ROLE) {
-        IEVault(_vault).withdraw(_amount, address(this), address(this));
+    /// @param vault The vault address to deallocate from.
+    /// @param amount The amount of tokens to deallocate.
+    function deallocate(address vault, uint256 amount) external onlyEVCAccountOwner onlyRole(ALLOCATOR_ROLE) {
+        IEVault(vault).withdraw(amount, address(this), address(this));
     }
 
     /// @notice Adds an account to the set of addresses ignored for total supply.
@@ -221,17 +221,17 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     }
 
     /// @notice Decreases the minted amount for an account, resetting to zero if burning more than minted.
-    /// @param _account The account whose minted amount to decrease.
-    /// @param _amount The amount to decrease.
-    function _decreaseMinted(address _account, uint256 _amount) internal {
-        MinterData memory minterCache = minters[_account];
+    /// @param account The account whose minted amount to decrease.
+    /// @param amount The amount to decrease.
+    function _decreaseMinted(address account, uint256 amount) internal {
+        MinterData memory minterCache = minters[account];
 
         // If burning more than minted, reset minted to 0
         unchecked {
             // down-casting is safe because amount < minted <= max uint128
-            minterCache.minted = minterCache.minted > _amount ? minterCache.minted - uint128(_amount) : 0;
+            minterCache.minted = minterCache.minted > amount ? minterCache.minted - uint128(amount) : 0;
         }
-        minters[_account] = minterCache;
+        minters[account] = minterCache;
     }
 
     /// @notice Retrieves the message sender in the context of the EVC.

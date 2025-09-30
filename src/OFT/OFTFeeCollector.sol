@@ -51,9 +51,9 @@ contract OFTFeeCollector is AccessControlEnumerable {
     error InvalidVault();
 
     /// @notice Initializes the OFTFeeCollector contract
-    /// @param admin_ The address that will be granted the DEFAULT_ADMIN_ROLE
-    constructor(address admin_) {
-        _grantRole(DEFAULT_ADMIN_ROLE, admin_);
+    /// @param _admin The address that will be granted the DEFAULT_ADMIN_ROLE
+    constructor(address _admin) {
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
     /// @notice Configures the OFTFeeCollector contract
@@ -73,35 +73,35 @@ contract OFTFeeCollector is AccessControlEnumerable {
     }
 
     /// @notice Allows to recover any ERC20 tokens or native currency sent to this contract
-    /// @param _token The address of the token to recover. If address(0), the native currency is recovered.
-    /// @param _to The address to send the tokens to
-    /// @param _amount The amount of tokens to recover
-    function recoverToken(address _token, address _to, uint256 _amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_token == address(0)) {
-            (bool success,) = _to.call{value: _amount}("");
+    /// @param token The address of the token to recover. If address(0), the native currency is recovered.
+    /// @param to The address to send the tokens to
+    /// @param amount The amount of tokens to recover
+    function recoverToken(address token, address to, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (token == address(0)) {
+            (bool success,) = to.call{value: amount}("");
             require(success, "Native currency recovery failed");
         } else {
-            IERC20(_token).safeTransfer(_to, _amount);
+            IERC20(token).safeTransfer(to, amount);
         }
     }
 
     /// @notice Adds a vault to the list
-    /// @param _vault The address of the vault to add
+    /// @param vault The address of the vault to add
     /// @return success True if the vault was successfully added, false if it was already in the list
-    function addToVaultsList(address _vault) external onlyRole(MAINTAINER_ROLE) returns (bool) {
-        if (IEVault(_vault).asset() != address(feeToken)) revert InvalidVault();
+    function addToVaultsList(address vault) external onlyRole(MAINTAINER_ROLE) returns (bool) {
+        if (IEVault(vault).asset() != address(feeToken)) revert InvalidVault();
 
-        bool success = _vaultsList.add(_vault);
-        if (success) emit VaultAdded(_vault);
+        bool success = _vaultsList.add(vault);
+        if (success) emit VaultAdded(vault);
         return success;
     }
 
     /// @notice Removes a vault from the list
-    /// @param _vault The address of the vault to remove
+    /// @param vault The address of the vault to remove
     /// @return success True if the vault was successfully removed, false if it was not in the list
-    function removeFromVaultsList(address _vault) external onlyRole(MAINTAINER_ROLE) returns (bool) {
-        bool success = _vaultsList.remove(_vault);
-        if (success) emit VaultRemoved(_vault);
+    function removeFromVaultsList(address vault) external onlyRole(MAINTAINER_ROLE) returns (bool) {
+        bool success = _vaultsList.remove(vault);
+        if (success) emit VaultRemoved(vault);
         return success;
     }
 
@@ -137,10 +137,10 @@ contract OFTFeeCollector is AccessControlEnumerable {
     }
 
     /// @notice Checks if a vault is in the list
-    /// @param _vault The address of the vault to check
+    /// @param vault The address of the vault to check
     /// @return True if the vault is in the list, false otherwise
-    function isInVaultsList(address _vault) external view returns (bool) {
-        return _vaultsList.contains(_vault);
+    function isInVaultsList(address vault) external view returns (bool) {
+        return _vaultsList.contains(vault);
     }
 
     /// @notice Returns the complete list of vault addresses
