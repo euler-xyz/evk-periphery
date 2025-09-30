@@ -47,6 +47,9 @@ contract OFTFeeCollector is AccessControlEnumerable {
     /// @notice Emitted when a vault is removed from the list
     event VaultRemoved(address indexed vault);
 
+    /// @notice Emitted when a vault asset is not the same as the fee token
+    error InvalidVault();
+
     /// @notice Initializes the OFTFeeCollector contract
     /// @param admin_ The address that will be granted the DEFAULT_ADMIN_ROLE
     constructor(address admin_) {
@@ -76,7 +79,7 @@ contract OFTFeeCollector is AccessControlEnumerable {
     function recoverToken(address _token, address _to, uint256 _amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_token == address(0)) {
             (bool success,) = _to.call{value: _amount}("");
-            require(success, "Native currency transfer failed");
+            require(success, "Native currency recovery failed");
         } else {
             IERC20(_token).safeTransfer(_to, _amount);
         }
@@ -86,6 +89,8 @@ contract OFTFeeCollector is AccessControlEnumerable {
     /// @param _vault The address of the vault to add
     /// @return success True if the vault was successfully added, false if it was already in the list
     function addToVaultsList(address _vault) external onlyRole(MAINTAINER_ROLE) returns (bool) {
+        if (IEVault(_vault).asset() != address(feeToken)) revert InvalidVault();
+
         bool success = _vaultsList.add(_vault);
         if (success) emit VaultAdded(_vault);
         return success;
@@ -102,14 +107,18 @@ contract OFTFeeCollector is AccessControlEnumerable {
 
     /// @notice Collects fees from all vaults in the list and sends them cross-chain
     function collectFees() external onlyRole(COLLECTOR_ROLE) {
+        address adapter = oftAdapter;
         if (oftAdapter == address(0)) return;
 
         uint256 length = _vaultsList.length();
         for (uint256 i = 0; i < length; ++i) {
-            IEVault(_vaultsList.at(i)).convertFees();
+            address vault = _vaultsList.at(i);
+            try IEVault(vault).convertFees() {} catch {}
+            try IEVault(vault).redeem(type(uint256).max, address(this), address(this)) {} catch {}
         }
 
-        uint256 balance = feeToken.balanceOf(address(this));
+        IERC20 token = feeToken;
+        uint256 balance = token.balanceOf(address(this));
         if (balance == 0) return;
 
         SendParam memory sendParam = SendParam({
@@ -121,10 +130,10 @@ contract OFTFeeCollector is AccessControlEnumerable {
             composeMsg: isComposedMsg ? abi.encode(0x01) : bytes(""),
             oftCmd: ""
         });
-        MessagingFee memory fee = IOFT(oftAdapter).quoteSend(sendParam, false);
+        MessagingFee memory fee = IOFT(adapter).quoteSend(sendParam, false);
 
-        feeToken.forceApprove(oftAdapter, balance);
-        IOFT(oftAdapter).send{value: fee.nativeFee}(sendParam, fee, address(this));
+        token.forceApprove(adapter, balance);
+        IOFT(adapter).send{value: fee.nativeFee}(sendParam, fee, address(this));
     }
 
     /// @notice Checks if a vault is in the list
