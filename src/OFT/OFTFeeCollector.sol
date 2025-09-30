@@ -9,11 +9,11 @@ import {IOFT, SendParam} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/inter
 import {MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 
-/// @title CrossChainFeeCollector
+/// @title OFTFeeCollector
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A contract that converts fees on multiple EVaults and sends them cross-chain via LayerZero OFT adapter.
-contract CrossChainFeeCollector is AccessControlEnumerable {
+contract OFTFeeCollector is AccessControlEnumerable {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -47,13 +47,13 @@ contract CrossChainFeeCollector is AccessControlEnumerable {
     /// @notice Emitted when a vault is removed from the list
     event VaultRemoved(address indexed vault);
 
-    /// @notice Initializes the CrossChainFeeCollector contract
+    /// @notice Initializes the OFTFeeCollector contract
     /// @param admin_ The address that will be granted the DEFAULT_ADMIN_ROLE
     constructor(address admin_) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
     }
 
-    /// @notice Configures the CrossChainFeeCollector contract
+    /// @notice Configures the OFTFeeCollector contract
     /// @param _oftAdapter The LayerZero OFT adapter contract address
     /// @param _dstAddress The destination address on the target chain
     /// @param _dstEid The LayerZero endpoint ID of the destination chain
