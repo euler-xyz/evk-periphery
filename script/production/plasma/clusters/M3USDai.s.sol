@@ -73,7 +73,7 @@ contract Cluster is ManageCluster {
         cluster.irms[USDT0]  = IRM_ADAPTIVE_USD;
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 0 days;
+        cluster.rampDuration = 1 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
@@ -89,6 +89,11 @@ contract Cluster is ManageCluster {
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
+        cluster.externalLTVs = [
+        //                     0         1         2
+        //                     sUSDai    USDai     USDT0
+        /* 0  Escrow USDT  */ [LTV_ZERO, LTV_ZERO, LTV_SELF]
+        ];
     }
 
     function postOperations() internal view override {
