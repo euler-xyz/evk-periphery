@@ -183,8 +183,9 @@ contract FeeFlowControllerEVK is EVCUtil {
 
         // Perform the hook call if the hook target is set and the calldata is not empty
         if (hookTarget != address(0) && hookCalldata.length > 0) {
-            (bool success, bytes memory data) = hookTarget.call(hookCalldata);
-            if (!success) revertBytes(data);
+            // We do not check the success of the call as we allow it silently fail
+            (bool success, ) = hookTarget.call(hookCalldata);
+            success;
         }
 
         return paymentAmount;
@@ -217,16 +218,5 @@ contract FeeFlowControllerEVK is EVCUtil {
     /// @return Slot0 The Slot0 value as a Slot0 struct
     function getSlot0() external view nonReentrantView returns (Slot0 memory) {
         return slot0;
-    }
-
-    /// @notice Reverts with the provided error message if it is non-empty, otherwise reverts with EmptyError.
-    /// @param errMsg The error message bytes to revert with.
-    function revertBytes(bytes memory errMsg) internal pure {
-        if (errMsg.length != 0) {
-            assembly {
-                revert(add(32, errMsg), mload(errMsg))
-            }
-        }
-        revert EmptyError();
     }
 }
