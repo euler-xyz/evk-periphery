@@ -74,7 +74,7 @@ contract FeeFlowControllerEVK is EVCUtil {
         _;
     }
 
-    /// @dev Initializes the FeeFlowController contract with the specified parameters.
+    /// @dev Initializes the FeeFlowControllerEVK contract with the specified parameters.
     /// @param evc The address of the Ethereum Vault Connector (EVC) contract.
     /// @param initPrice The initial price for the first epoch.
     /// @param paymentToken_ The address of the payment token.
@@ -184,7 +184,7 @@ contract FeeFlowControllerEVK is EVCUtil {
         // Perform the hook call if the hook target is set and the calldata is not empty
         if (hookTarget != address(0) && hookCalldata.length > 0) {
             // We do not check the success of the call as we allow it silently fail
-            (bool success, ) = hookTarget.call(hookCalldata);
+            (bool success,) = hookTarget.call(hookCalldata);
             success;
         }
 
