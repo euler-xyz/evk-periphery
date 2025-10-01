@@ -42,6 +42,11 @@ abstract contract Addresses {
     address internal constant NUSD = address(0);
     address internal constant EUROP = address(0);
     address internal constant GHO = 0xfc421aD3C883Bf9E7C4f42dE845C4e4405799e73;
+    address internal constant PT_USDe_15JAN2026 = 0x93B544c330F60A2aa05ceD87aEEffB8D38FD8c9a;
+    address internal constant PT_sUSDe_15JAN2026 = 0x02FCC4989B4C9D435b7ceD3fE1Ba4CF77BBb5Dd8;
+    address internal constant PT_syrupUSDT_29JAN2026 = 0x8dFb9A39dFab16bFFE77f15544B5bf03e377e419;
+    address internal constant PT_USDai_19MAR2026 = 0xD516188daf64EFa04a8d60872F891f2cC811A561;
+    address internal constant PT_sUSDai_19MAR2026 = 0xedac81b27790e0728f54dEa3B7718e5437E85353;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}
