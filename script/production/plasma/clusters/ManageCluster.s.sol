@@ -11,6 +11,8 @@ abstract contract Addresses {
     uint16 internal constant LTV_SELF = 0.97e4;
 
     address internal immutable IRM_ADAPTIVE_USD = 0xf41D1f354f04A2887682ba3585Bf6cCca0a24551;
+    address internal immutable IRM_ADAPTIVE_PT_7 = 0x32fd5B7a2C75aFc3Bd929c2746cF9E4522E75690;
+    address internal immutable IRM_ADAPTIVE_PT_30 = 0xe2C4daAeeBd8e45E49c8768D50da7646d8B28514;
     address internal immutable IRM_ADAPTIVE_ETH = 0x3e1c4532134Bf9c2cA864C98C52a830E0571E0E1;
     address internal immutable IRM_ADAPTIVE_ETH_YB = 0x6D30Bf70411dE9d527E67E6bfD5304B1e1d0c4Be;
     address internal immutable IRM_ADAPTIVE_DEFI = 0x2a6f7b01d64bB308f3a70e7183246C49EAa102b0;

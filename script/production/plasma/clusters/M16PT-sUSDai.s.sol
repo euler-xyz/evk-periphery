@@ -69,8 +69,8 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDT0] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
-        cluster.irms[USDai] = IRM_ADAPTIVE_USD;
-        cluster.irms[USDT0]  = IRM_ADAPTIVE_USD;
+        cluster.irms[USDai] = 0xe2C4daAeeBd8e45E49c8768D50da7646d8B28514;
+        cluster.irms[USDT0]  = 0xe2C4daAeeBd8e45E49c8768D50da7646d8B28514;
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
         cluster.rampDuration = 1 days;
