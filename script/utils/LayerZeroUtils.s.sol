@@ -340,7 +340,7 @@ contract LayerZeroSendEUL is ScriptUtils {
     {
         ERC20 eul = ERC20(tokenAddresses.EUL);
         (address oftAdapter, uint256 value, SendParam memory sendParam, MessagingFee memory fee, address refundAddress)
-        = getSendInputs(dstChainId, dstAddress, amount, 0);
+        = getSendInputs(getDeployer(), dstChainId, dstAddress, amount, 0);
 
         startBroadcast();
         eul.approve(oftAdapter, amount);
@@ -351,7 +351,13 @@ contract LayerZeroSendEUL is ScriptUtils {
         return (receipt, oftReceipt);
     }
 
-    function getSendInputs(uint256 dstChainId, address dstAddress, uint256 amount, uint256 nativeFeeMultiplierBps)
+    function getSendInputs(
+        address srcAddress,
+        uint256 dstChainId,
+        address dstAddress,
+        uint256 amount,
+        uint256 nativeFeeMultiplierBps
+    )
         public
         returns (address to, uint256 value, SendParam memory sendParam, MessagingFee memory fee, address refundAddress)
     {
@@ -367,19 +373,22 @@ contract LayerZeroSendEUL is ScriptUtils {
         fee = IOFT(bridgeAddresses.oftAdapter).quoteSend(sendParam, false);
         fee.nativeFee = fee.nativeFee * ((1e4 + nativeFeeMultiplierBps) / 1e4);
 
-        return (bridgeAddresses.oftAdapter, fee.nativeFee, sendParam, fee, dstAddress);
+        return (bridgeAddresses.oftAdapter, fee.nativeFee, sendParam, fee, srcAddress);
     }
 
-    function getSendCalldata(uint256 dstChainId, address dstAddress, uint256 amount, uint256 nativeFeeMultiplierBps)
-        public
-        returns (address to, uint256 value, bytes memory rawCalldata)
-    {
+    function getSendCalldata(
+        address srcAddress,
+        uint256 dstChainId,
+        address dstAddress,
+        uint256 amount,
+        uint256 nativeFeeMultiplierBps
+    ) public returns (address to, uint256 value, bytes memory rawCalldata) {
         SendParam memory sendParam;
         MessagingFee memory fee;
         address refundAddress;
 
         (to, value, sendParam, fee, refundAddress) =
-            getSendInputs(dstChainId, dstAddress, amount, nativeFeeMultiplierBps);
+            getSendInputs(srcAddress, dstChainId, dstAddress, amount, nativeFeeMultiplierBps);
         rawCalldata = abi.encodeCall(IOFT.send, (sendParam, fee, refundAddress));
     }
 }

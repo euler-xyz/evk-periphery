@@ -72,7 +72,7 @@ contract BridgeEULToLabsMultisig is ScriptUtils, SafeMultisendBuilder {
                 util.run(dstChainId, dstAddress, amount);
             } else {
                 (address to, uint256 value, bytes memory rawCalldata) =
-                    util.getSendCalldata(dstChainId, dstAddress, amount, 1e4);
+                    util.getSendCalldata(safe, dstChainId, dstAddress, amount, 1e4);
                 addMultisendItem(tokenAddresses.EUL, abi.encodeCall(IERC20.approve, (to, amount)));
                 addMultisendItem(to, value, rawCalldata);
             }
