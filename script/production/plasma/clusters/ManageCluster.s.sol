@@ -39,6 +39,10 @@ abstract contract Addresses {
     address internal constant RLP = 0x35533f54740F1F1aA4179E57bA37039dfa16868B;
     address internal constant rUSD = 0x09D4214C03D01F49544C0448DBE3A27f768F2b34;
     address internal constant wsrUSD = 0x4809010926aec940b550D34a46A52739f996D75D;
+    address internal constant deUSD = 0x4ac60586C3e245fF5593cf99241395bf42509274;
+    address internal constant sdeUSD = 0x7884A8457f0E63e82C89A87fE48E8Ba8223DB069;
+    address internal constant plUSD = 0xf91c31299E998C5127Bc5F11e4a657FC0cF358CD;
+    address internal constant splUSD = 0x616185600989Bf8339b58aC9e539d49536598343;
     address internal constant sxyUSD = address(0);
     address internal constant xyUSD = address(0);
     address internal constant NUSD = address(0);
