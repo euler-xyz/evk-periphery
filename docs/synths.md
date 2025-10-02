@@ -45,6 +45,7 @@ This system builds upon the original synthetic asset architecture described in t
 **Roles**:
 - `DEFAULT_ADMIN_ROLE`: Can grant/revoke roles and manage ignored addresses
 - `MINTER_ROLE`: Can mint tokens up to their assigned capacity
+- `REVOKE_MINTER_ROLE`: Can revoke minter role from addresses in emergency situations
 - `ALLOCATOR_ROLE`: Can allocate/deallocate tokens to/from vaults
 
 ### FeeFlowControllerEVK
