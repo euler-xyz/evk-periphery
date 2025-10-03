@@ -64,7 +64,7 @@ contract Cluster is ManageCluster {
         // although Redstone Classic oracles reuse the ChainlinkOracle contract and returns "ChainlinkOracle" name, 
         // they should be referred to as "RedstoneClassicOracle".
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per 
-        // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
+        // External Vaults Registry, the string should be preceded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[USDC  ] = "0x86220c3dc4ada691e0b09ff8f371bffe6efd8c75";
@@ -98,7 +98,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[syrupUSDC] = 20_000_000;
         cluster.supplyCaps[wstUSR ] = 5_000_000;
         cluster.supplyCaps[sUSDai] = 0;
-        cluster.supplyCaps[RLP   ] = 5_000_000;
+        cluster.supplyCaps[RLP   ] = 7_500_000;
         cluster.supplyCaps[PT_USDai_20NOV2025] = 0;
         cluster.supplyCaps[PT_sUSDai_20NOV2025] = 0;
 

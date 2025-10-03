@@ -446,6 +446,13 @@ abstract contract ScriptUtils is
         stopBroadcast();
     }
 
+    modifier broadcastAndSaveAddresses() {
+        startBroadcast();
+        _;
+        stopBroadcast();
+        saveAddresses();
+    }
+
     function startBroadcast() internal {
         vm.startBroadcast(getDeployer());
     }
@@ -532,7 +539,7 @@ abstract contract ScriptUtils is
             // bitcoin-specific and test networks
             if (
                 block.chainid == 30 || block.chainid == 21000000 || block.chainid == 10143 || block.chainid == 80084
-                    || block.chainid == 2390
+                    || block.chainid == 2390 || block.chainid == 998
             ) {
                 return address(0);
             }

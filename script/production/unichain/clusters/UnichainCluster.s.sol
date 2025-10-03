@@ -58,7 +58,7 @@ contract Cluster is ManageCluster {
         // although Redstone Classic oracles reuse the ChainlinkOracle contract and returns "ChainlinkOracle" name, 
         // they should be referred to as "RedstoneClassicOracle".
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per 
-        // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
+        // External Vaults Registry, the string should be preceded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[USDC  ] = "0xd544ccb6f2231bd1ccac0258cba89e8a13d4a421";
@@ -79,10 +79,10 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[WETH  ] = 15_000;
         cluster.supplyCaps[wstETH] = 1_130;
         cluster.supplyCaps[weETH ] = 22_500;
-        cluster.supplyCaps[rsETH ] = 1_500;
+        cluster.supplyCaps[rsETH ] = 750;
         cluster.supplyCaps[ezETH ] = 1_500;
         cluster.supplyCaps[WBTC  ] = 100;
-        cluster.supplyCaps[UNI   ] = 250_000;
+        cluster.supplyCaps[UNI   ] = 125_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC  ] = 135_000_000;
@@ -91,10 +91,10 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[WETH  ] = 13_500;
         cluster.borrowCaps[wstETH] = 290;
         cluster.borrowCaps[weETH ] = 9_000;
-        cluster.borrowCaps[rsETH ] = 375;
+        cluster.borrowCaps[rsETH ] = 190;
         cluster.borrowCaps[ezETH ] = 375;
         cluster.borrowCaps[WBTC  ] = 90;
-        cluster.borrowCaps[UNI   ] = 200_000;
+        cluster.borrowCaps[UNI   ] = 100_000;
 
         // define IRM classes here and assign them to the assets
         {

@@ -67,7 +67,7 @@ contract Cluster is ManageCluster {
         // although Redstone Classic oracles reuse the ChainlinkOracle contract and returns "ChainlinkOracle" name, 
         // they should be referred to as "RedstoneClassicOracle".
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per 
-        // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
+        // External Vaults Registry, the string should be preceded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[WETH  ] = "ChainlinkOracle";
@@ -91,8 +91,8 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[wstETH] = 950;
         cluster.supplyCaps[cbETH ] = 450;
         cluster.supplyCaps[weETH ] = 3_750;
-        cluster.supplyCaps[ezETH ] = 1_000;
-        cluster.supplyCaps[RETH  ] = 1_000;
+        cluster.supplyCaps[ezETH ] = 500;
+        cluster.supplyCaps[RETH  ] = 500;
         cluster.supplyCaps[wsuperOETHb] = 900;
         cluster.supplyCaps[USDC  ] = 60_000_000;
         cluster.supplyCaps[USDT0  ] = 6_000_000;
@@ -108,8 +108,8 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[wstETH] = 400;
         cluster.borrowCaps[cbETH ] = 400;
         cluster.borrowCaps[weETH ] = 938;
-        cluster.borrowCaps[ezETH ] = 300;
-        cluster.borrowCaps[RETH  ] = 400;
+        cluster.borrowCaps[ezETH ] = 150;
+        cluster.borrowCaps[RETH  ] = 200;
         cluster.borrowCaps[wsuperOETHb] = 200;
         cluster.borrowCaps[USDC  ] = 54_000_000;
         cluster.borrowCaps[USDT0  ] = 5_400_000;

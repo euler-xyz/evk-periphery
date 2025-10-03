@@ -29,12 +29,12 @@ contract VaultLens is Utils {
         backupUnitOfAccounts.push(0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB);
     }
 
-    function getVaultInfoFull(address vault) public view returns (VaultInfoFull memory) {
-        VaultInfoFull memory result;
+    function getVaultInfoStatic(address vault) public view returns (VaultInfoStatic memory) {
+        VaultInfoStatic memory result;
 
         result.timestamp = block.timestamp;
-
         result.vault = vault;
+
         result.vaultName = IEVault(vault).name();
         result.vaultSymbol = IEVault(vault).symbol();
         result.vaultDecimals = IEVault(vault).decimals();
@@ -48,6 +48,27 @@ contract VaultLens is Utils {
         result.unitOfAccountName = _getStringOrBytes32(result.unitOfAccount, IEVault(vault).name.selector);
         result.unitOfAccountSymbol = _getStringOrBytes32(result.unitOfAccount, IEVault(vault).symbol.selector);
         result.unitOfAccountDecimals = _getDecimals(result.unitOfAccount);
+
+        result.dToken = IEVault(vault).dToken();
+        result.oracle = IEVault(vault).oracle();
+        result.evc = IEVault(vault).EVC();
+        result.protocolConfig = IEVault(vault).protocolConfigAddress();
+        result.balanceTracker = IEVault(vault).balanceTrackerAddress();
+        result.permit2 = IEVault(vault).permit2Address();
+        result.creator = IEVault(vault).creator();
+
+        return result;
+    }
+
+    function getVaultInfoDynamic(address vault) public view returns (VaultInfoDynamic memory) {
+        VaultInfoDynamic memory result;
+
+        address asset = IEVault(vault).asset();
+        address unitOfAccount = IEVault(vault).unitOfAccount();
+        address oracle = IEVault(vault).oracle();
+
+        result.timestamp = block.timestamp;
+        result.vault = vault;
 
         result.totalShares = IEVault(vault).totalSupply();
         result.totalCash = IEVault(vault).cash();
@@ -72,16 +93,7 @@ contract VaultLens is Utils {
         result.supplyCap = AmountCapLib.resolve(AmountCap.wrap(uint16(result.supplyCap)));
         result.borrowCap = AmountCapLib.resolve(AmountCap.wrap(uint16(result.borrowCap)));
 
-        result.dToken = IEVault(vault).dToken();
-        result.oracle = IEVault(vault).oracle();
         result.interestRateModel = IEVault(vault).interestRateModel();
-
-        result.evc = IEVault(vault).EVC();
-        result.protocolConfig = IEVault(vault).protocolConfigAddress();
-        result.balanceTracker = IEVault(vault).balanceTrackerAddress();
-        result.permit2 = IEVault(vault).permit2Address();
-
-        result.creator = IEVault(vault).creator();
         result.governorAdmin = IEVault(vault).governorAdmin();
 
         if (result.interestRateModel == address(0)) {
@@ -101,33 +113,33 @@ contract VaultLens is Utils {
 
         result.collateralLTVInfo = getRecognizedCollateralsLTVInfo(vault);
 
-        result.liabilityPriceInfo = utilsLens.getControllerAssetPriceInfo(vault, result.asset);
+        result.liabilityPriceInfo = utilsLens.getControllerAssetPriceInfo(vault, asset);
 
         result.collateralPriceInfo = new AssetPriceInfo[](result.collateralLTVInfo.length);
 
         address[] memory bases = new address[](result.collateralLTVInfo.length + 1);
         address[] memory quotes = new address[](result.collateralLTVInfo.length + 1);
-        bases[0] = result.asset;
-        quotes[0] = result.unitOfAccount;
+        bases[0] = asset;
+        quotes[0] = unitOfAccount;
         for (uint256 i = 0; i < result.collateralLTVInfo.length; ++i) {
             bases[i + 1] = result.collateralLTVInfo[i].collateral;
-            quotes[i + 1] = result.unitOfAccount;
+            quotes[i + 1] = unitOfAccount;
             result.collateralPriceInfo[i] =
                 utilsLens.getControllerAssetPriceInfo(vault, result.collateralLTVInfo[i].collateral);
         }
 
-        result.oracleInfo = oracleLens.getOracleInfo(result.oracle, bases, quotes);
+        result.oracleInfo = oracleLens.getOracleInfo(oracle, bases, quotes);
 
         bases = new address[](1);
         quotes = new address[](1);
-        if (result.oracle == address(0)) {
+        if (oracle == address(0)) {
             for (uint256 i = 0; i < backupUnitOfAccounts.length + 1; ++i) {
-                bases[0] = result.asset;
+                bases[0] = asset;
 
                 if (i == 0) {
-                    if (result.unitOfAccount == address(0)) continue;
+                    if (unitOfAccount == address(0)) continue;
 
-                    quotes[0] = result.unitOfAccount;
+                    quotes[0] = unitOfAccount;
                 } else {
                     quotes[0] = backupUnitOfAccounts[i - 1];
                 }
@@ -147,6 +159,65 @@ contract VaultLens is Utils {
                 }
             }
         }
+
+        return result;
+    }
+
+    function getVaultInfoFull(address vault) public view returns (VaultInfoFull memory) {
+        VaultInfoStatic memory staticInfo = getVaultInfoStatic(vault);
+        VaultInfoDynamic memory dynamicInfo = getVaultInfoDynamic(vault);
+
+        VaultInfoFull memory result;
+
+        // From VaultInfoStatic
+        result.timestamp = staticInfo.timestamp;
+        result.vault = staticInfo.vault;
+        result.vaultName = staticInfo.vaultName;
+        result.vaultSymbol = staticInfo.vaultSymbol;
+        result.vaultDecimals = staticInfo.vaultDecimals;
+        result.asset = staticInfo.asset;
+        result.assetName = staticInfo.assetName;
+        result.assetSymbol = staticInfo.assetSymbol;
+        result.assetDecimals = staticInfo.assetDecimals;
+        result.unitOfAccount = staticInfo.unitOfAccount;
+        result.unitOfAccountName = staticInfo.unitOfAccountName;
+        result.unitOfAccountSymbol = staticInfo.unitOfAccountSymbol;
+        result.unitOfAccountDecimals = staticInfo.unitOfAccountDecimals;
+        result.dToken = staticInfo.dToken;
+        result.oracle = staticInfo.oracle;
+        result.evc = staticInfo.evc;
+        result.protocolConfig = staticInfo.protocolConfig;
+        result.balanceTracker = staticInfo.balanceTracker;
+        result.permit2 = staticInfo.permit2;
+        result.creator = staticInfo.creator;
+
+        // From VaultInfoDynamic
+        result.totalShares = dynamicInfo.totalShares;
+        result.totalCash = dynamicInfo.totalCash;
+        result.totalBorrowed = dynamicInfo.totalBorrowed;
+        result.totalAssets = dynamicInfo.totalAssets;
+        result.accumulatedFeesShares = dynamicInfo.accumulatedFeesShares;
+        result.accumulatedFeesAssets = dynamicInfo.accumulatedFeesAssets;
+        result.governorFeeReceiver = dynamicInfo.governorFeeReceiver;
+        result.protocolFeeReceiver = dynamicInfo.protocolFeeReceiver;
+        result.protocolFeeShare = dynamicInfo.protocolFeeShare;
+        result.interestFee = dynamicInfo.interestFee;
+        result.hookedOperations = dynamicInfo.hookedOperations;
+        result.configFlags = dynamicInfo.configFlags;
+        result.supplyCap = dynamicInfo.supplyCap;
+        result.borrowCap = dynamicInfo.borrowCap;
+        result.maxLiquidationDiscount = dynamicInfo.maxLiquidationDiscount;
+        result.liquidationCoolOffTime = dynamicInfo.liquidationCoolOffTime;
+        result.interestRateModel = dynamicInfo.interestRateModel;
+        result.hookTarget = dynamicInfo.hookTarget;
+        result.governorAdmin = dynamicInfo.governorAdmin;
+        result.irmInfo = dynamicInfo.irmInfo;
+        result.collateralLTVInfo = dynamicInfo.collateralLTVInfo;
+        result.liabilityPriceInfo = dynamicInfo.liabilityPriceInfo;
+        result.collateralPriceInfo = dynamicInfo.collateralPriceInfo;
+        result.oracleInfo = dynamicInfo.oracleInfo;
+        result.backupAssetPriceInfo = dynamicInfo.backupAssetPriceInfo;
+        result.backupAssetOracleInfo = dynamicInfo.backupAssetOracleInfo;
 
         return result;
     }

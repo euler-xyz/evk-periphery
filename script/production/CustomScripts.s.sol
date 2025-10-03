@@ -23,15 +23,6 @@ import {
 import {VaultLens, VaultInfoFull} from "../../src/Lens/VaultLens.sol";
 import {AccountLens, AccountInfo, AccountMultipleVaultsInfo} from "../../src/Lens/AccountLens.sol";
 
-abstract contract CustomScriptBase is BatchBuilder {
-    function run() public {
-        execute();
-        saveAddresses();
-    }
-
-    function execute() public virtual {}
-}
-
 contract GetVaultInfoFull is ScriptUtils {
     function run(address vault) public view returns (VaultInfoFull memory) {
         return VaultLens(lensAddresses.vaultLens).getVaultInfoFull(vault);
@@ -81,13 +72,13 @@ contract BridgeEULToLabsMultisig is ScriptUtils, SafeMultisendBuilder {
                 util.run(dstChainId, dstAddress, amount);
             } else {
                 (address to, uint256 value, bytes memory rawCalldata) =
-                    util.getSendCalldata(dstChainId, dstAddress, amount, 1e4);
+                    util.getSendCalldata(safe, dstChainId, dstAddress, amount, 1e4);
                 addMultisendItem(tokenAddresses.EUL, abi.encodeCall(IERC20.approve, (to, amount)));
                 addMultisendItem(to, value, rawCalldata);
             }
         }
 
-        if (multisendItemExists()) executeMultisend(safe, safeNonce++, false);
+        if (multisendItemExists()) executeMultisend(safe, safeNonce++, true, false);
     }
 }
 
@@ -188,8 +179,7 @@ contract MigratePosition is BatchBuilder {
         address[] memory controllers = IEVC(coreAddresses.evc).getControllers(sourceAccount);
 
         for (uint256 i = 0; i < collaterals.length; ++i) {
-            uint256 amount = IEVault(collaterals[i]).balanceOf(sourceAccount);
-            if (amount == 0) continue;
+            if (IEVault(collaterals[i]).balanceOf(sourceAccount) == 0) continue;
 
             addBatchItem(
                 coreAddresses.evc,
@@ -199,7 +189,7 @@ contract MigratePosition is BatchBuilder {
             addBatchItem(
                 collaterals[i],
                 sourceAccount,
-                abi.encodeCall(IEVault(collaterals[i]).transfer, (destinationAccount, amount))
+                abi.encodeCall(IEVault(collaterals[i]).transferFromMax, (sourceAccount, destinationAccount))
             );
             addBatchItem(
                 coreAddresses.evc, address(0), abi.encodeCall(IEVC.disableCollateral, (sourceAccount, collaterals[i]))
@@ -230,8 +220,8 @@ contract MigratePosition is BatchBuilder {
     }
 }
 
-contract MergeSafeBatchBuilderFiles is CustomScriptBase, SafeMultisendBuilder {
-    function execute() public override {
+contract MergeSafeBatchBuilderFiles is ScriptUtils, SafeMultisendBuilder {
+    function run() public {
         address safe = getSafe();
         string memory basePath = string.concat(
             vm.projectRoot(), "/", getPath(), "/SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), "_"
@@ -250,8 +240,8 @@ contract MergeSafeBatchBuilderFiles is CustomScriptBase, SafeMultisendBuilder {
     }
 }
 
-contract UnpauseEVaultFactory is CustomScriptBase {
-    function execute() public override {
+contract UnpauseEVaultFactory is BatchBuilder {
+    function run() public {
         SafeTransaction transaction = new SafeTransaction();
 
         transaction.create(
@@ -265,8 +255,8 @@ contract UnpauseEVaultFactory is CustomScriptBase {
     }
 }
 
-contract DeployAndConfigureCapRiskSteward is CustomScriptBase {
-    function execute() public override {
+contract DeployAndConfigureCRSAndGACE is BatchBuilder {
+    function run() public {
         require(getConfigAddress("riskSteward") != address(0), "Risk steward config address not found");
         require(getConfigAddress("gauntlet") != address(0), "Gauntlet config address not found");
 
@@ -411,11 +401,13 @@ contract DeployAndConfigureCapRiskSteward is CustomScriptBase {
             (bool success,) = targets[i].call{value: values[i]}(payloads[i]);
             require(success, "timelock execution simulation failed");
         }
+
+        saveAddresses();
     }
 }
 
-contract RedeployOracleUtilsAndVaultLenses is CustomScriptBase {
-    function execute() public override {
+contract RedeployOracleUtilsAndVaultLenses is BatchBuilder {
+    function run() public {
         {
             LensOracleDeployer deployer = new LensOracleDeployer();
             lensAddresses.oracleLens = deployer.deploy(peripheryAddresses.oracleAdapterRegistry);
@@ -433,5 +425,7 @@ contract RedeployOracleUtilsAndVaultLenses is CustomScriptBase {
             LensEulerEarnVaultDeployer deployer = new LensEulerEarnVaultDeployer();
             lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.utilsLens);
         }
+
+        saveAddresses();
     }
 }

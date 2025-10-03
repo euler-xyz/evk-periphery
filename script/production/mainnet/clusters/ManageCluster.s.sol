@@ -59,6 +59,7 @@ abstract contract Addresses {
     address internal constant syrupUSDC = 0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
     address internal constant USD1 = 0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d;
     address internal constant TBILL = 0xdd50C053C096CB04A3e3362E2b622529EC5f2e8a;
+    address internal constant mUSD = 0xacA92E438df0B2401fF60dA7E4337B687a2435DA;
     address internal constant mBASIS = 0x2a8c22E3b10036f3AEF5875d04f8441d4188b656;
     address internal constant mEDGE = 0xbB51E2a15A9158EBE2b0Ceb8678511e063AB7a55;
     address internal constant mMEV = 0x030b69280892c888670EDCDCD8B69Fd8026A0BF3;
@@ -90,6 +91,7 @@ abstract contract Addresses {
     address internal constant PT_syrupUSDC_28AUG2025 = 0xCcE7D12f683c6dAe700154f0BAdf779C0bA1F89A;
     address internal constant PT_USDS_14AUG2025 = 0xFfEc096c087C13Cc268497B89A613cACE4DF9A48;
     address internal constant PT_tUSDe_25SEP2025 = 0xd0a4B74A6B62aA2b6C02349463D9041606608F36;
+    address internal constant PT_tUSDe_18DEC2025 = 0x1135b22d6e8FD0809392478eEDcd8c107dB6aF9D;
     address internal constant PT_pUSDe_16OCT2025 = 0xF3f491e5608f8B8a6Fd9E9d66a4a4036d7FD282C;
 }
 

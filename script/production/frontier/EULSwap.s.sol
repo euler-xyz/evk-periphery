@@ -16,14 +16,23 @@ contract Cluster is ManageCluster {
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [EUL];
+        cluster.assets = [EUL, USDC];
     }
 
     function configureCluster() internal override {
+        vm.prank(multisigAddresses.DAO);
+        (bool success, bytes memory data) = coreAddresses.protocolConfig.call(abi.encodeWithSignature("setVaultInterestFeeRange(address,bool,uint16,uint16)", cluster.vaults[0], true, 0, 1e4));
+        if (!success) revert(string(data));
+        
         super.configureCluster();
+
+        setNoStubOracle(false);
 
         // define unit of account here
         cluster.unitOfAccount = EUL;
+
+        // define interest fee here. if needed to be defined per asset, populate the interestFeeOverride mapping
+        cluster.interestFeeOverride[EUL] = 0;
 
         // define oracle providers here.
         // adapter names can be found in the relevant adapter contract (as returned by the `name` function).
@@ -31,29 +40,34 @@ contract Cluster is ManageCluster {
         // although Redstone Classic oracles reuse the ChainlinkOracle contract and returns "ChainlinkOracle" name,
         // they should be referred to as "RedstoneClassicOracle".
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per
-        // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to
+        // External Vaults Registry, the string should be preceded by "ExternalVault|" prefix. this is in order to
         // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
         cluster.oracleProviders[EUL] = "";
+        cluster.oracleProviders[USDC] = "0x336D821459db40bA9bfb8a1a89457D689AfbA6E8";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            // Base=0% APY  Kink(95%)=6.0% APY  Max=12.00% APY
-            cluster.kinkIRMParams[EUL] = [uint256(0), uint256(452541449), uint256(8124741138), uint256(4080218931)];
+            // Base=0% APY  Kink(95%)=6.0% APY  Max=25.00% APY
+            cluster.kinkIRMParams[EUL] = [uint256(0), uint256(452541449), uint256(24329262988), uint256(4080218931)];
         }
+
+        cluster.supplyCaps[USDC] = 2_000_000;
+        cluster.spreadLTVOverride[1][0] = 0.10e4;
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //               0
-            //               EUL
-            /* 0  EUL    */ [LTV_ZERO]
+            //               0               1
+            //               EUL             USDC
+            /* 0  EUL    */ [LTV_ZERO,       LTV_ZERO],
+            /* 1  USDC   */ [uint16(0.60e4), LTV_ZERO]
         ];
 
         cluster.externalLTVs = [
-        //             0
-        //             EUL
-        /* 0  EUL  */ [uint16(0.95e4)]
+        //             0                1
+        //             EUL              USDC
+        /* 0  EUL   */ [uint16(0.95e4), LTV_ZERO]
         ];
     }
 }

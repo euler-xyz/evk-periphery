@@ -61,7 +61,7 @@ contract Cluster is ManageCluster {
         // although Redstone Classic oracles reuse the ChainlinkOracle contract and returns "ChainlinkOracle" name, 
         // they should be referred to as "RedstoneClassicOracle".
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per 
-        // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
+        // External Vaults Registry, the string should be preceded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[USDC  ] = "0x3CD81aee1c41757B88961572BfD192cBF2127f37";
@@ -83,12 +83,12 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDT0 ] = 100_000_000;
         cluster.supplyCaps[sUSDS ] = 10_000_000;
         cluster.supplyCaps[sUSDC ] = 10_000_000;
-        cluster.supplyCaps[WETH  ] = 37_500;
-        cluster.supplyCaps[wstETH] = 22_500;
-        cluster.supplyCaps[weETH ] = 22_500;
-        cluster.supplyCaps[rsETH ] = 60;
+        cluster.supplyCaps[WETH  ] = 18_800;
+        cluster.supplyCaps[wstETH] = 11_500;
+        cluster.supplyCaps[weETH ] = 11_300;
+        cluster.supplyCaps[rsETH ] = 30;
         cluster.supplyCaps[tETH  ] = 150;
-        cluster.supplyCaps[ezETH ] = 375;
+        cluster.supplyCaps[ezETH ] = 188;
         cluster.supplyCaps[rETH  ] = 300;
         cluster.supplyCaps[WBTC  ] = 600;
         cluster.supplyCaps[ARB   ] = 10_000_000;
@@ -98,12 +98,12 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDT0 ] = 90_000_000;
         cluster.borrowCaps[sUSDS ] = 8_000_000;
         cluster.borrowCaps[sUSDC ] = 8_000_000;
-        cluster.borrowCaps[WETH  ] = 33_000;
-        cluster.borrowCaps[wstETH] = 11_000;
-        cluster.borrowCaps[weETH ] = 11_000;
-        cluster.borrowCaps[rsETH ] = 30;
+        cluster.borrowCaps[WETH  ] = 16_500;
+        cluster.borrowCaps[wstETH] = 5_500;
+        cluster.borrowCaps[weETH ] = 5_500;
+        cluster.borrowCaps[rsETH ] = 15;
         cluster.borrowCaps[tETH  ] = 75;
-        cluster.borrowCaps[ezETH ] = 180;
+        cluster.borrowCaps[ezETH ] = 90;
         cluster.borrowCaps[rETH  ] = type(uint256).max;
         cluster.borrowCaps[WBTC  ] = 540;
         cluster.borrowCaps[ARB   ] = 8_000_000;

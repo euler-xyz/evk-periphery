@@ -107,10 +107,10 @@ contract Cluster is ManageCluster {
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH       ] = 75_000;
         cluster.supplyCaps[wstETH     ] = 10_000;
-        cluster.supplyCaps[cbETH      ] = 2_300;
+        cluster.supplyCaps[cbETH      ] = 1_150;
         cluster.supplyCaps[weETH      ] = 13_500;
         cluster.supplyCaps[ezETH      ] = 9_750;
-        cluster.supplyCaps[RETH       ] = 1_100;
+        cluster.supplyCaps[RETH       ] = 550;
         cluster.supplyCaps[rsETH      ] = 27_000;
         cluster.supplyCaps[tETH       ] = 9_400;
         cluster.supplyCaps[USDC       ] = 75_000_000;
@@ -120,8 +120,8 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[sUSDS      ] = 4_000_000;
         cluster.supplyCaps[USDtb      ] = 20_000_000;
         cluster.supplyCaps[rlUSD      ] = 25_000_000;
-        cluster.supplyCaps[USDe       ] = 25_000_000;
-        cluster.supplyCaps[sUSDe      ] = 8_000_000;
+        cluster.supplyCaps[USDe       ] = 13_000_000;
+        cluster.supplyCaps[sUSDe      ] = 14_000_000;
         cluster.supplyCaps[syrupUSDC  ] = 20_000_000;
         cluster.supplyCaps[TBILL      ] = 0;//10_000_000;
         cluster.supplyCaps[WBTC       ] = 600;
@@ -132,10 +132,10 @@ contract Cluster is ManageCluster {
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[WETH       ] = 67_500;
         cluster.borrowCaps[wstETH     ] = 7_500;
-        cluster.borrowCaps[cbETH      ] = 900;
+        cluster.borrowCaps[cbETH      ] = 450;
         cluster.borrowCaps[weETH      ] = 3_380;
         cluster.borrowCaps[ezETH      ] = 2_340;
-        cluster.borrowCaps[RETH       ] = 400;
+        cluster.borrowCaps[RETH       ] = 200;
         cluster.borrowCaps[rsETH      ] = 6_750;
         cluster.borrowCaps[tETH       ] = 1_600;
         cluster.borrowCaps[USDC       ] = 67_500_000;
@@ -145,7 +145,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[sUSDS      ] = 1_600_000;
         cluster.borrowCaps[USDtb      ] = 18_000_000;
         cluster.borrowCaps[rlUSD      ] = 23_000_000;
-        cluster.borrowCaps[USDe       ] = 22_500_000;
+        cluster.borrowCaps[USDe       ] = 12_000_000;
         cluster.borrowCaps[sUSDe      ] = type(uint256).max;
         cluster.borrowCaps[syrupUSDC  ] = type(uint256).max;
         cluster.borrowCaps[TBILL      ] = 0;//type(uint256).max;
