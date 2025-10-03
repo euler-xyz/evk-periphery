@@ -11,11 +11,7 @@ show_usage() {
     echo "Generate multisig configuration transaction builder files."
     echo ""
     echo "OPTIONS:"
-    echo "  --DAO                 Process only the DAO multisig"
-    echo "  --securityCouncil     Process only the securityCouncil multisig"
-    echo "  --labs                Process only the labs multisig"
-    echo "  --securityPartnerA    Process only the securityPartnerA multisig"
-    echo "  --securityPartnerB    Process only the securityPartnerB multisig"
+    echo "  --safe-address KEY    Process only the specified multisig (KEY can be: DAO, labs, securityCouncil, securityPartnerA, securityPartnerB)"
     echo "  --help, -h            Show this help message"
     echo ""
     echo "If no specific multisig is provided, all multisigs will be processed."
@@ -29,30 +25,15 @@ all_multisigs=true
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --DAO)
-            selected_keys+=('DAO')
+        --safe-address)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --safe-address requires a multisig key"
+                echo "Use --help for usage information."
+                exit 1
+            fi
+            selected_keys+=("$2")
             all_multisigs=false
-            shift
-            ;;
-        --securityCouncil)
-            selected_keys+=('securityCouncil')
-            all_multisigs=false
-            shift
-            ;;
-        --labs)
-            selected_keys+=('labs')
-            all_multisigs=false
-            shift
-            ;;
-        --securityPartnerA)
-            selected_keys+=('securityPartnerA')
-            all_multisigs=false
-            shift
-            ;;
-        --securityPartnerB)
-            selected_keys+=('securityPartnerB')
-            all_multisigs=false
-            shift
+            shift 2
             ;;
         --help|-h)
             show_usage
@@ -76,6 +57,15 @@ if [ "$all_multisigs" = false ]; then
             exit 1
         fi
     done
+    
+    # Remove duplicates from selected_keys
+    unique_keys=()
+    for key in "${selected_keys[@]}"; do
+        if [[ ! " ${unique_keys[@]} " =~ " ${key} " ]]; then
+            unique_keys+=("$key")
+        fi
+    done
+    selected_keys=("${unique_keys[@]}")
 fi
 
 if ! script/utils/checkEnvironment.sh; then

@@ -8,8 +8,11 @@ abstract contract Addresses {
     uint16 internal constant LTV_ZERO = 0.0e4;
     uint16 internal constant LTV__LOW = 0.91e4;
     uint16 internal constant LTV_HIGH = 0.95e4;
+    uint16 internal constant LTV_SELF = 0.97e4;
 
     address internal immutable IRM_ADAPTIVE_USD = 0xf41D1f354f04A2887682ba3585Bf6cCca0a24551;
+    address internal immutable IRM_ADAPTIVE_PT_7 = 0x32fd5B7a2C75aFc3Bd929c2746cF9E4522E75690;
+    address internal immutable IRM_ADAPTIVE_PT_30 = 0xe2C4daAeeBd8e45E49c8768D50da7646d8B28514;
     address internal immutable IRM_ADAPTIVE_ETH = 0x3e1c4532134Bf9c2cA864C98C52a830E0571E0E1;
     address internal immutable IRM_ADAPTIVE_ETH_YB = 0x6D30Bf70411dE9d527E67E6bfD5304B1e1d0c4Be;
     address internal immutable IRM_ADAPTIVE_DEFI = 0x2a6f7b01d64bB308f3a70e7183246C49EAa102b0;
@@ -36,11 +39,20 @@ abstract contract Addresses {
     address internal constant RLP = 0x35533f54740F1F1aA4179E57bA37039dfa16868B;
     address internal constant rUSD = 0x09D4214C03D01F49544C0448DBE3A27f768F2b34;
     address internal constant wsrUSD = 0x4809010926aec940b550D34a46A52739f996D75D;
+    address internal constant deUSD = 0x4ac60586C3e245fF5593cf99241395bf42509274;
+    address internal constant sdeUSD = 0x7884A8457f0E63e82C89A87fE48E8Ba8223DB069;
+    address internal constant plUSD = 0xf91c31299E998C5127Bc5F11e4a657FC0cF358CD;
+    address internal constant splUSD = 0x616185600989Bf8339b58aC9e539d49536598343;
     address internal constant sxyUSD = address(0);
     address internal constant xyUSD = address(0);
     address internal constant NUSD = address(0);
     address internal constant EUROP = address(0);
     address internal constant GHO = 0xfc421aD3C883Bf9E7C4f42dE845C4e4405799e73;
+    address internal constant PT_USDe_15JAN2026 = 0x93B544c330F60A2aa05ceD87aEEffB8D38FD8c9a;
+    address internal constant PT_sUSDe_15JAN2026 = 0x02FCC4989B4C9D435b7ceD3fE1Ba4CF77BBb5Dd8;
+    address internal constant PT_syrupUSDT_29JAN2026 = 0x8dFb9A39dFab16bFFE77f15544B5bf03e377e419;
+    address internal constant PT_USDai_19MAR2026 = 0xD516188daf64EFa04a8d60872F891f2cC811A561;
+    address internal constant PT_sUSDai_19MAR2026 = 0xedac81b27790e0728f54dEa3B7718e5437E85353;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}

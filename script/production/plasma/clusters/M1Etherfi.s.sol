@@ -90,6 +90,11 @@ contract Cluster is ManageCluster {
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
+        cluster.externalLTVs = [
+        //                     0         1         2
+        //                     WETH      WEETH     USDT0
+        /* 0  Escrow USDT  */ [LTV_ZERO, LTV_ZERO, LTV_SELF]
+        ];
     }
 
     function postOperations() internal view override {

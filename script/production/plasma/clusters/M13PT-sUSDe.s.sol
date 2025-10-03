@@ -9,14 +9,14 @@ import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/plasma/clusters/M3USDai.json";
+        cluster.clusterAddressesPath = "/script/production/plasma/clusters/M13PT-sUSDe.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
-            sUSDai,
-            USDai,
+            PT_sUSDe_15JAN2026,
+            USDe,
             USDT0
         ];
     }
@@ -54,22 +54,22 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[sUSDai] = "0x13d830B7A5402C54744Def5445DB0dc9aBBD2233";
-        cluster.oracleProviders[USDai] = "0x18a8969aC4c07c8a18e17a099C917BeC3810A091";
+        cluster.oracleProviders[PT_sUSDe_15JAN2026] = "0x8890148A2D8f6e3cEE111FF641CA7Ccd859f5F54";
+        cluster.oracleProviders[USDe] = "0x59E8BD99802F4EB774dFfE2BE2bEC38Ad08d6c16";
         cluster.oracleProviders[USDT0] = "0xE8947CFd3f04E686741F7Dd9023ec0C78588fd33";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[sUSDai] = type(uint256).max;
-        cluster.supplyCaps[USDai ] = type(uint256).max;
+        cluster.supplyCaps[PT_sUSDe_15JAN2026] = type(uint256).max;
+        cluster.supplyCaps[USDe] = type(uint256).max;
         cluster.supplyCaps[USDT0] = type(uint256).max;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[sUSDai] = type(uint256).max;
-        cluster.borrowCaps[USDai ] = type(uint256).max;
+        cluster.borrowCaps[PT_sUSDe_15JAN2026] = type(uint256).max;
+        cluster.borrowCaps[USDe] = type(uint256).max;
         cluster.borrowCaps[USDT0] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
-        cluster.irms[USDai ] = IRM_ADAPTIVE_USD;
+        cluster.irms[USDe ] = IRM_ADAPTIVE_USD;
         cluster.irms[USDT0]  = IRM_ADAPTIVE_USD;
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -81,19 +81,14 @@ contract Cluster is ManageCluster {
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
         //                0         1         2
-        //                sUSDai    USDai     USDT0
-        /* 0  sUSDai  */ [LTV_ZERO, LTV_HIGH, LTV__LOW],
-        /* 1  USDai   */ [LTV_ZERO, LTV_ZERO, LTV__LOW],
-        /* 2  USDT0   */ [LTV_ZERO, LTV__LOW, LTV_ZERO]
+        //                PT-sUSDe  USDe      USDT0
+        /* 0  PT-sUSDe*/ [LTV_ZERO, LTV_HIGH, LTV__LOW],
+        /* 1  USDe    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+        /* 2  USDT0   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
-        cluster.externalLTVs = [
-        //                     0         1         2
-        //                     sUSDai    USDai     USDT0
-        /* 0  Escrow USDT  */ [LTV_ZERO, LTV_ZERO, LTV_SELF]
-        ];
     }
 
     function postOperations() internal view override {
