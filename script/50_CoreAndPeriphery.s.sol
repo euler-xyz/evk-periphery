@@ -38,6 +38,7 @@ import {EulerEarnFactoryDeployer} from "./20_EulerEarnFactory.s.sol";
 import {EulerSwapImplementationDeployer} from "./21_EulerSwapImplementation.s.sol";
 import {EulerSwapFactoryDeployer} from "./22_EulerSwapFactory.s.sol";
 import {EulerSwapPeripheryDeployer} from "./23_EulerSwapPeriphery.s.sol";
+import {EulerSwapRegistryDeployer} from "./24_EulerSwapRegistry.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
 import {
     IGovernorAccessControlEmergencyFactory,
@@ -85,10 +86,11 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         uint256 feeFlowInitPrice;
         bool deployOFT;
         bool deployEulerEarn;
-        bool deployEulerSwapV1;
+        bool deployEulerSwap;
         address uniswapPoolManager;
         address eulerSwapFeeOwner;
         address eulerSwapFeeRecipientSetter;
+        address eulerSwapRegistryCurator;
     }
 
     struct AdaptiveCurveIRMParams {
@@ -173,10 +175,11 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice"),
             deployOFT: vm.parseJsonBool(json, ".deployOFT"),
             deployEulerEarn: vm.parseJsonBool(json, ".deployEulerEarn"),
-            deployEulerSwapV1: vm.parseJsonBool(json, ".deployEulerSwapV1"),
+            deployEulerSwap: vm.parseJsonBool(json, ".deployEulerSwap"),
             uniswapPoolManager: vm.parseJsonAddress(json, ".uniswapPoolManager"),
             eulerSwapFeeOwner: vm.parseJsonAddress(json, ".eulerSwapFeeOwner"),
-            eulerSwapFeeRecipientSetter: vm.parseJsonAddress(json, ".eulerSwapFeeRecipientSetter")
+            eulerSwapFeeRecipientSetter: vm.parseJsonAddress(json, ".eulerSwapFeeRecipientSetter"),
+            eulerSwapRegistryCurator: vm.parseJsonAddress(json, ".eulerSwapRegistryCurator")
         });
 
         if (
@@ -1014,33 +1017,56 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 && eulerSwapAddresses.eulerSwapV1Factory == address(0)
                 && eulerSwapAddresses.eulerSwapV1Periphery == address(0)
         ) {
-            if (input.deployEulerSwapV1) {
+            console.log("+ EulerSwap V1 implementation deprecated. Skipping...");
+        } else {
+            console.log("- EulerSwap V1 implementation, factory, and periphery already deployed. Skipping...");
+        }
+
+        if (
+            eulerSwapAddresses.eulerSwapV2Implementation == address(0)
+                && eulerSwapAddresses.eulerSwapV2Factory == address(0)
+                && eulerSwapAddresses.eulerSwapV2Periphery == address(0)
+                && eulerSwapAddresses.eulerSwapV2Registry == address(0)
+        ) {
+            if (input.deployEulerSwap) {
                 {
-                    console.log("+ Deploying EulerSwap V1 implementation...");
+                    console.log("+ Deploying EulerSwap V2 implementation...");
                     EulerSwapImplementationDeployer deployer = new EulerSwapImplementationDeployer();
-                    eulerSwapAddresses.eulerSwapV1Implementation =
+                    eulerSwapAddresses.eulerSwapV2Implementation =
                         deployer.deploy(coreAddresses.evc, input.uniswapPoolManager);
                 }
                 {
-                    console.log("+ Deploying EulerSwap V1 factory...");
+                    console.log("+ Deploying EulerSwap V2 factory...");
                     EulerSwapFactoryDeployer deployer = new EulerSwapFactoryDeployer();
-                    eulerSwapAddresses.eulerSwapV1Factory = deployer.deploy(
+                    eulerSwapAddresses.eulerSwapV2Factory = deployer.deploy(
                         coreAddresses.evc,
-                        coreAddresses.eVaultFactory,
-                        eulerSwapAddresses.eulerSwapV1Implementation,
+                        eulerSwapAddresses.eulerSwapV2Implementation,
                         input.eulerSwapFeeOwner,
                         input.eulerSwapFeeRecipientSetter
                     );
                 }
                 {
-                    console.log("+ Deploying EulerSwap V1 periphery...");
+                    console.log("+ Deploying EulerSwap V2 periphery...");
                     EulerSwapPeripheryDeployer deployer = new EulerSwapPeripheryDeployer();
-                    eulerSwapAddresses.eulerSwapV1Periphery = deployer.deploy();
+                    eulerSwapAddresses.eulerSwapV2Periphery = deployer.deploy();
+                }
+                {
+                    console.log("+ Deploying EulerSwap V2 registry...");
+                    EulerSwapRegistryDeployer deployer = new EulerSwapRegistryDeployer();
+                    eulerSwapAddresses.eulerSwapV2Registry = deployer.deploy(
+                        coreAddresses.evc,
+                        eulerSwapAddresses.eulerSwapV2Factory,
+                        peripheryAddresses.evkFactoryPerspective,
+                        input.eulerSwapRegistryCurator
+                    );
                 }
             } else {
                 console.log("- EulerSwap v1 not deployed. Skipping...");
                 if (vm.isDir("out-euler-swap")) vm.removeDir("out-euler-swap", true);
             }
+        } else {
+            console.log("- EulerSwap V2 implementation, factory, periphery, and registry already deployed. Skipping...");
+            if (vm.isDir("out-euler-swap")) vm.removeDir("out-euler-swap", true);
         }
 
         executeBatch();

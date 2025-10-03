@@ -312,6 +312,10 @@ abstract contract EulerSwapAddressesLib is ScriptExtended {
         address eulerSwapV1Implementation;
         address eulerSwapV1Factory;
         address eulerSwapV1Periphery;
+        address eulerSwapV2Implementation;
+        address eulerSwapV2Factory;
+        address eulerSwapV2Periphery;
+        address eulerSwapV2Registry;
     }
 
     function serializeEulerSwapAddresses(EulerSwapAddresses memory Addresses) internal returns (string memory result) {
@@ -319,13 +323,21 @@ abstract contract EulerSwapAddressesLib is ScriptExtended {
             vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Implementation", Addresses.eulerSwapV1Implementation);
         result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Factory", Addresses.eulerSwapV1Factory);
         result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Periphery", Addresses.eulerSwapV1Periphery);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV2Implementation", Addresses.eulerSwapV2Implementation);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV2Factory", Addresses.eulerSwapV2Factory);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV2Periphery", Addresses.eulerSwapV2Periphery);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV2Registry", Addresses.eulerSwapV2Registry);
     }
 
     function deserializeEulerSwapAddresses(string memory json) internal pure returns (EulerSwapAddresses memory) {
         return EulerSwapAddresses({
             eulerSwapV1Implementation: getAddressFromJson(json, ".eulerSwapV1Implementation"),
             eulerSwapV1Factory: getAddressFromJson(json, ".eulerSwapV1Factory"),
-            eulerSwapV1Periphery: getAddressFromJson(json, ".eulerSwapV1Periphery")
+            eulerSwapV1Periphery: getAddressFromJson(json, ".eulerSwapV1Periphery"),
+            eulerSwapV2Implementation: getAddressFromJson(json, ".eulerSwapV2Implementation"),
+            eulerSwapV2Factory: getAddressFromJson(json, ".eulerSwapV2Factory"),
+            eulerSwapV2Periphery: getAddressFromJson(json, ".eulerSwapV2Periphery"),
+            eulerSwapV2Registry: getAddressFromJson(json, ".eulerSwapV2Registry")
         });
     }
 }
