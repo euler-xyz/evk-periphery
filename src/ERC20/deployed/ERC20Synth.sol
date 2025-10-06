@@ -133,6 +133,7 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     /// @notice Burns tokens from the caller's balance and decreases their minted amount.
     /// @param amount The amount of tokens to burn.
     function burn(uint256 amount) public override {
+        if (amount == 0) return;
         address sender = _msgSender();
         _decreaseMinted(sender, amount);
         _burn(sender, amount);
@@ -142,9 +143,9 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     /// @param account The account to burn tokens from.
     /// @param amount The amount of tokens to burn.
     function burnFrom(address account, uint256 amount) public override {
-        address sender = _msgSender();
-
         if (amount == 0) return;
+
+        address sender = _msgSender();
 
         // Allowance check: required unless burning from self, or admin burning from contract itself.
         if (account != sender && !(account == address(this) && hasRole(DEFAULT_ADMIN_ROLE, sender))) {
