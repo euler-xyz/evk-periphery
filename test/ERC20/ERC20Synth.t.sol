@@ -25,7 +25,6 @@ contract ERC20SynthTest is EVaultTestBase {
 
     error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed);
 
-
     function setUp() public virtual override {
         super.setUp();
 
@@ -60,7 +59,9 @@ contract ERC20SynthTest is EVaultTestBase {
     function test_grantRevokeRenounceRole() public {
         bytes32 minterRole = esynth.MINTER_ROLE();
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, user1, esynth.DEFAULT_ADMIN_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, user1, esynth.DEFAULT_ADMIN_ROLE()
+            )
         );
         vm.prank(user1);
         esynth.grantRole(minterRole, user2);
@@ -70,7 +71,9 @@ contract ERC20SynthTest is EVaultTestBase {
         assertTrue(esynth.hasRole(minterRole, user2));
 
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, user1, esynth.DEFAULT_ADMIN_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, user1, esynth.DEFAULT_ADMIN_ROLE()
+            )
         );
         vm.prank(user1);
         esynth.revokeRole(minterRole, user2);
@@ -93,7 +96,9 @@ contract ERC20SynthTest is EVaultTestBase {
 
     function test_addIgnoredForTotalSupply_onlyDefaultAdmin() public {
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE()
+            )
         );
         esynth.addIgnoredForTotalSupply(ignored1);
     }
@@ -124,7 +129,9 @@ contract ERC20SynthTest is EVaultTestBase {
 
     function test_removeIgnoredForTotalSupply_onlyDefaultAdmin() public {
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE()
+            )
         );
         esynth.removeIgnoredForTotalSupply(ignored1);
     }
@@ -398,23 +405,33 @@ contract ERC20SynthTest is EVaultTestBase {
         vm.expectRevert();
         evc.call(address(esynth), admin, 0, abi.encodeCall(ERC20Synth.setCapacity, (address(this), amount)));
 
-
         // other functions
-        revertSubaccountHelper(address(esynth), admin, id, abi.encodeCall(ERC20Synth.grantRole, (bytes32(0), address(0))));
-        revertSubaccountHelper(address(esynth), admin, id, abi.encodeCall(ERC20Synth.revokeRole, (bytes32(0), address(0))));
-        revertSubaccountHelper(address(esynth), admin, id, abi.encodeCall(ERC20Synth.renounceRole, (bytes32(0), address(0))));
+        revertSubaccountHelper(
+            address(esynth), admin, id, abi.encodeCall(ERC20Synth.grantRole, (bytes32(0), address(0)))
+        );
+        revertSubaccountHelper(
+            address(esynth), admin, id, abi.encodeCall(ERC20Synth.revokeRole, (bytes32(0), address(0)))
+        );
+        revertSubaccountHelper(
+            address(esynth), admin, id, abi.encodeCall(ERC20Synth.renounceRole, (bytes32(0), address(0)))
+        );
         revertSubaccountHelper(address(esynth), admin, id, abi.encodeCall(ERC20Synth.mint, (address(0), 0)));
         revertSubaccountHelper(address(esynth), admin, id, abi.encodeCall(ERC20Synth.allocate, (address(0), 0)));
         revertSubaccountHelper(address(esynth), admin, id, abi.encodeCall(ERC20Synth.deallocate, (address(0), 0)));
-        revertSubaccountHelper(address(esynth), admin, id, abi.encodeCall(ERC20Synth.addIgnoredForTotalSupply, (address(0))));
-        revertSubaccountHelper(address(esynth), admin, id, abi.encodeCall(ERC20Synth.removeIgnoredForTotalSupply, (address(0))));
-
+        revertSubaccountHelper(
+            address(esynth), admin, id, abi.encodeCall(ERC20Synth.addIgnoredForTotalSupply, (address(0)))
+        );
+        revertSubaccountHelper(
+            address(esynth), admin, id, abi.encodeCall(ERC20Synth.removeIgnoredForTotalSupply, (address(0)))
+        );
     }
 
     function test_Roles() public {
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE()
+            )
         );
         esynth.setCapacity(minter, 1e18);
 
@@ -423,7 +440,9 @@ contract ERC20SynthTest is EVaultTestBase {
 
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE()
+            )
         );
         esynth.addIgnoredForTotalSupply(address(eTST));
 
@@ -432,7 +451,9 @@ contract ERC20SynthTest is EVaultTestBase {
 
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE()
+            )
         );
         esynth.removeIgnoredForTotalSupply(address(eTST));
 
@@ -441,7 +462,9 @@ contract ERC20SynthTest is EVaultTestBase {
 
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.MINTER_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.MINTER_ROLE()
+            )
         );
         esynth.mint(address(esynth), 1e18);
 
@@ -450,7 +473,9 @@ contract ERC20SynthTest is EVaultTestBase {
 
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.ALLOCATOR_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.ALLOCATOR_ROLE()
+            )
         );
         esynth.allocate(address(eTST), 1e18);
 
@@ -459,7 +484,9 @@ contract ERC20SynthTest is EVaultTestBase {
 
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.ALLOCATOR_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.ALLOCATOR_ROLE()
+            )
         );
         esynth.deallocate(address(eTST), 1e18);
 
@@ -468,7 +495,9 @@ contract ERC20SynthTest is EVaultTestBase {
 
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.REVOKE_MINTER_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.REVOKE_MINTER_ROLE()
+            )
         );
         esynth.revokeMinterRole(minter);
 
@@ -482,11 +511,6 @@ contract ERC20SynthTest is EVaultTestBase {
         vm.prank(admin);
 
         vm.expectRevert(EVCUtil.NotAuthorized.selector);
-        evc.call(
-            synth,
-            address(uint160(admin) ^ id),
-            0,
-            data
-        );
+        evc.call(synth, address(uint160(admin) ^ id), 0, data);
     }
 }
