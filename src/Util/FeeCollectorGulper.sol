@@ -27,7 +27,7 @@ contract FeeCollectorGulper is FeeCollectorUtil {
 
     /// @notice Collects and converts fees from all vaults in the list, then deposits them into the EulerSavingsRate
     /// contract and calls gulp.
-    function collectFees() external virtual override onlyRole(COLLECTOR_ROLE) {
+    function collectFees() external virtual override {
         _convertAndRedeemFees();
 
         uint256 balance = feeToken.balanceOf(address(this));

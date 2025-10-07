@@ -14,6 +14,9 @@ import {FeeCollectorUtil} from "../Util/FeeCollectorUtil.sol";
 contract OFTFeeCollector is FeeCollectorUtil {
     using SafeERC20 for IERC20;
 
+    /// @notice Role that can execute the fee collection process
+    bytes32 public constant COLLECTOR_ROLE = keccak256("COLLECTOR_ROLE");
+
     /// @notice The LayerZero OFT adapter contract used for cross-chain transfers
     address public oftAdapter;
 
