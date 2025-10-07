@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {BatchBuilder, Vm, console} from "./utils/ScriptUtils.s.sol";
 import {SafeMultisendBuilder, SafeTransaction} from "./utils/SafeUtils.s.sol";
 import {LayerZeroUtil} from "./utils/LayerZeroUtils.s.sol";
-import {ERC20BurnableMintableDeployer, RewardTokenDeployer} from "./00_ERC20.s.sol";
+import {ERC20BurnableMintableDeployer, RewardTokenDeployer, ERC20SynthDeployer, ERC20Synth} from "./00_ERC20.s.sol";
 import {Integrations} from "./01_Integrations.s.sol";
 import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
 import {AdaptiveCurveIRMDeployer} from "./04_IRM.s.sol";
@@ -47,12 +47,16 @@ import {CapRiskStewardFactory} from "./../src/GovernorFactory/CapRiskStewardFact
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
 import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
+import {FeeCollectorUtil} from "./../src/Util/FeeCollectorUtil.sol";
+import {FeeCollectorGulper} from "./../src/Util/FeeCollectorGulper.sol";
+import {OFTFeeCollector} from "./../src/OFT/OFTFeeCollector.sol";
+import {OFTGulper} from "./../src/OFT/OFTGulper.sol";
+import {EulerSavingsRate} from "evk/Synths/EulerSavingsRate.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
-import {Arrays} from "openzeppelin-contracts/utils/Arrays.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
-import {ILayerZeroEndpointV2, IOAppCore} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
+import {IOAppCore} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
 import {
     IOAppOptionsType3,
     EnforcedOptionParam
@@ -63,9 +67,8 @@ import {
     SetConfigParam
 } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
 import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
-import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 
-interface IEndpointV2 is ILayerZeroEndpointV2 {
+interface IEndpointV2 {
     function eid() external view returns (uint32);
     function delegates(address oapp) external view returns (address);
 }
@@ -83,9 +86,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         address uniswapV2Router;
         address uniswapV3Router;
         uint256 feeFlowInitPrice;
-        bool deployOFT;
+        bool deployEULOFT;
         bool deployEulerEarn;
         bool deployEulerSwapV1;
+        bool deployEUSD;
         address uniswapPoolManager;
         address eulerSwapFeeOwner;
         address eulerSwapFeeRecipientSetter;
@@ -101,8 +105,8 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     }
 
     address internal constant BURN_ADDRESS = address(0xdead);
-    uint256 internal constant EUL_HUB_CHAIN_ID = 1;
-    uint8 internal constant EUL_DECIMALS = 18;
+    uint256 internal constant HUB_CHAIN_ID = 1;
+    uint8 internal constant STANDARD_DECIMALS = 18;
     uint256 internal constant EVAULT_FACTORY_TIMELOCK_MIN_DELAY = 4 days;
     uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
     uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_WILDCARD_TIMELOCK_MIN_DELAY = 2 days;
@@ -111,7 +115,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
     uint256 internal constant FEE_FLOW_EPOCH_PERIOD = 14 days;
     uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18;
-    uint256 internal constant FEE_FLOW_MIN_INIT_PRICE = 10 ** EUL_DECIMALS;
+    uint256 internal constant FEE_FLOW_MIN_INIT_PRICE = 10 ** STANDARD_DECIMALS;
 
     uint16 internal constant OFT_MSG_TYPE_SEND = 1;
     uint16 internal constant OFT_MSG_TYPE_SEND_AND_CALL = 2;
@@ -122,7 +126,8 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     uint32 internal constant OFT_MAX_MESSAGE_SIZE = 10000;
     uint8 internal constant OFT_REQUIRED_DVNS_COUNT = 2;
     string[5] internal OFT_ACCEPTED_DVNS = ["LayerZero Labs", "Google", "Polyhedra", "Nethermind", "Horizen"];
-    uint256[2] internal OFT_HUB_CHAIN_IDS = [EUL_HUB_CHAIN_ID, 8453];
+    uint256[2] internal OFT_HUB_CHAIN_IDS_EUL = [HUB_CHAIN_ID, 8453];
+    uint256[1] internal OFT_HUB_CHAIN_IDS_EUSD_SEUSD = [HUB_CHAIN_ID];
 
     int256 internal constant YEAR = 365 days;
     int256 internal constant IRM_TARGET_UTILIZATION = 0.9e18;
@@ -171,9 +176,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             uniswapV2Router: vm.parseJsonAddress(json, ".uniswapV2Router"),
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
             feeFlowInitPrice: vm.parseJsonUint(json, ".feeFlowInitPrice"),
-            deployOFT: vm.parseJsonBool(json, ".deployOFT"),
+            deployEULOFT: vm.parseJsonBool(json, ".deployEULOFT"),
             deployEulerEarn: vm.parseJsonBool(json, ".deployEulerEarn"),
             deployEulerSwapV1: vm.parseJsonBool(json, ".deployEulerSwapV1"),
+            deployEUSD: vm.parseJsonBool(json, ".deployEUSD"),
             uniswapPoolManager: vm.parseJsonAddress(json, ".uniswapPoolManager"),
             eulerSwapFeeOwner: vm.parseJsonAddress(json, ".eulerSwapFeeOwner"),
             eulerSwapFeeRecipientSetter: vm.parseJsonAddress(json, ".eulerSwapFeeRecipientSetter")
@@ -289,10 +295,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- EVault factory timelock controller already deployed. Skipping...");
         }
 
-        if (tokenAddresses.EUL == address(0) && block.chainid != EUL_HUB_CHAIN_ID) {
+        if (tokenAddresses.EUL == address(0) && block.chainid != HUB_CHAIN_ID) {
             console.log("+ Deploying EUL...");
             ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
-            tokenAddresses.EUL = deployer.deploy("Euler", "EUL", EUL_DECIMALS);
+            tokenAddresses.EUL = deployer.deploy("Euler", "EUL", STANDARD_DECIMALS);
 
             startBroadcast();
             console.log("    Granting EUL revoke minter role to the desired address %s", multisigAddresses.labs);
@@ -316,341 +322,164 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- rEUL already deployed. Skipping...");
         }
 
-        if (bridgeAddresses.oftAdapter == address(0)) {
-            if (input.deployOFT) {
-                console.log("+ Deploying OFT Adapter...");
-
-                LayerZeroUtil lzUtil = new LayerZeroUtil();
-                string memory lzMetadata = lzUtil.getRawMetadata();
-                LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(lzMetadata, block.chainid);
-
-                require(info.endpointV2 != address(0), "Failed to get OFT Adapter deployment info");
-                require(info.eid >= 30000 && info.eid < 40000, "eid must indicate mainnet");
-
-                if (block.chainid == EUL_HUB_CHAIN_ID) {
-                    OFTAdapterUpgradeableDeployer deployer = new OFTAdapterUpgradeableDeployer();
-                    bridgeAddresses.oftAdapter = deployer.deploy(tokenAddresses.EUL, info.endpointV2);
-                } else {
-                    MintBurnOFTAdapterDeployer deployer = new MintBurnOFTAdapterDeployer();
-                    bridgeAddresses.oftAdapter = deployer.deploy(tokenAddresses.EUL, info.endpointV2);
-                }
-
-                require(
-                    address(IOAppCore(bridgeAddresses.oftAdapter).endpoint()) == info.endpointV2,
-                    "OFT Adapter endpoint mismatch"
-                );
-                require(IEndpointV2(info.endpointV2).eid() == info.eid, "OFT Adapter eid mismatch");
-
-                vm.startBroadcast();
-                console.log("    Setting OFT Adapter send library on chain %s", block.chainid);
-                IMessageLibManager(info.endpointV2).setSendLibrary(
-                    bridgeAddresses.oftAdapter, info.eid, info.sendUln302
-                );
-
-                console.log("    Setting OFT Adapter receive library on chain %s", block.chainid);
-                IMessageLibManager(info.endpointV2).setReceiveLibrary(
-                    bridgeAddresses.oftAdapter, info.eid, info.receiveUln302, 0
-                );
-                vm.stopBroadcast();
-
-                if (!containsOftHubChainId(block.chainid)) {
-                    for (uint256 i = 0; i < OFT_HUB_CHAIN_IDS.length; ++i) {
-                        uint256 hubChainId = OFT_HUB_CHAIN_IDS[i];
-
-                        BridgeAddresses memory bridgeAddressesHub =
-                            deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", hubChainId));
-
-                        LayerZeroUtil.DeploymentInfo memory infoHub = lzUtil.getDeploymentInfo(lzMetadata, hubChainId);
-
-                        require(
-                            bridgeAddressesHub.oftAdapter != address(0),
-                            string.concat("Failed to get bridge addresses for chain ", vm.toString(hubChainId))
-                        );
-
-                        addBridgeConfigCache(block.chainid, hubChainId);
-
-                        SetConfigParam[] memory params = new SetConfigParam[](2);
-                        params[0] = SetConfigParam({
-                            eid: infoHub.eid,
-                            configType: OFT_EXECUTOR_CONFIG_TYPE,
-                            config: abi.encode(
-                                ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor})
-                            )
-                        });
-                        params[1] = SetConfigParam({
-                            eid: infoHub.eid,
-                            configType: OFT_ULN_CONFIG_TYPE,
-                            config: abi.encode(getUlnConfig(lzUtil, lzMetadata, bridgeAddresses, info, infoHub, true))
-                        });
-
-                        vm.startBroadcast();
-                        console.log(
-                            "    Setting OFT Adapter send config on chain %s for chain %s", block.chainid, hubChainId
-                        );
-                        IMessageLibManager(info.endpointV2).setConfig(
-                            bridgeAddresses.oftAdapter, info.sendUln302, params
-                        );
-                        vm.stopBroadcast();
-
-                        params = new SetConfigParam[](1);
-                        params[0] = SetConfigParam({
-                            eid: infoHub.eid,
-                            configType: OFT_ULN_CONFIG_TYPE,
-                            config: abi.encode(getUlnConfig(lzUtil, lzMetadata, bridgeAddresses, info, infoHub, false))
-                        });
-
-                        vm.startBroadcast();
-                        console.log(
-                            "    Setting OFT Adapter receive config on chain %s for chain %s", block.chainid, hubChainId
-                        );
-                        IMessageLibManager(info.endpointV2).setConfig(
-                            bridgeAddresses.oftAdapter, info.receiveUln302, params
-                        );
-                        vm.stopBroadcast();
-
-                        vm.startBroadcast();
-                        console.log("    Setting OFT Adapter peer on chain %s for chain %s", block.chainid, hubChainId);
-                        IOAppCore(bridgeAddresses.oftAdapter).setPeer(
-                            infoHub.eid, bytes32(uint256(uint160(bridgeAddressesHub.oftAdapter)))
-                        );
-                        vm.stopBroadcast();
-
-                        vm.startBroadcast();
-                        console.log(
-                            "    Setting OFT Adapter enforced options on chain %s for chain %s",
-                            block.chainid,
-                            hubChainId
-                        );
-                        IOAppOptionsType3(bridgeAddresses.oftAdapter).setEnforcedOptions(
-                            getEnforcedOptions(infoHub.eid)
-                        );
-                        vm.stopBroadcast();
-
-                        console.log(
-                            "    Sanity checking config compatibility on chain %s for chain %s",
-                            block.chainid,
-                            hubChainId
-                        );
-                        getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddresses, infoHub, info, true);
-                        getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddresses, infoHub, info, false);
-                    }
-                }
-
-                if (block.chainid != EUL_HUB_CHAIN_ID) {
-                    bytes32 defaultAdminRole = ERC20BurnableMintable(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
-                    bytes32 minterRole = ERC20BurnableMintable(tokenAddresses.EUL).MINTER_ROLE();
-                    if (ERC20BurnableMintable(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
-                        vm.startBroadcast();
-                        console.log("    Granting EUL minter role to the OFT Adapter %s", bridgeAddresses.oftAdapter);
-                        AccessControl(tokenAddresses.EUL).grantRole(minterRole, bridgeAddresses.oftAdapter);
-                        stopBroadcast();
-                    } else if (ERC20BurnableMintable(tokenAddresses.EUL).hasRole(defaultAdminRole, getSafe(false))) {
-                        console.log(
-                            "    Adding multisend item to grant EUL minter role to the OFT Adapter %s",
-                            bridgeAddresses.oftAdapter
-                        );
-                        addMultisendItem(
-                            tokenAddresses.EUL,
-                            abi.encodeCall(AccessControl.grantRole, (minterRole, bridgeAddresses.oftAdapter))
-                        );
-                    } else {
-                        console.log(
-                            "    ! The deployer or designated safe no longer has the EUL default admin role to grant the minter role to the OFT Adapter. This must be done manually. Skipping..."
-                        );
-                    }
-                }
+        if (bridgeAddresses.eulOFTAdapter == address(0)) {
+            if (input.deployEULOFT) {
+                console.log("+ Deploying OFT Adapter for EUL...");
+                bridgeAddresses.eulOFTAdapter = deployAndConfigureOFTAdapter(tokenAddresses.EUL, true);
             } else {
-                console.log("! OFT Adapter deployment deliberately skipped. Skipping...");
+                console.log("! EUL OFT Adapter deployment deliberately skipped. Skipping...");
             }
         } else {
-            console.log("- OFT Adapter already deployed. Skipping...");
+            console.log("- EUL OFT Adapter already deployed. Skipping...");
         }
 
         if (
-            containsOftHubChainId(block.chainid) && bridgeAddresses.oftAdapter != address(0)
+            containsOFTHubChainId(tokenAddresses.EUL, block.chainid) && bridgeAddresses.eulOFTAdapter != address(0)
                 && !getSkipOFTHubChainConfig()
         ) {
-            console.log("+ Attempting to configure OFT Adapter on chain %s", block.chainid);
+            console.log("+ Attempting to configure OFT Adapter on chain %s for EUL", block.chainid);
+            configureOFTAdapter(tokenAddresses.EUL, bridgeAddresses.eulOFTAdapter);
+        }
 
-            LayerZeroUtil lzUtil = new LayerZeroUtil();
-            string memory lzMetadata = lzUtil.getRawMetadata();
-            LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(lzMetadata, block.chainid);
-            Vm.DirEntry[] memory entries = vm.readDir(getAddressesDirPath(), 1);
-            address delegate = IEndpointV2(info.endpointV2).delegates(bridgeAddresses.oftAdapter);
+        if (tokenAddresses.eUSD == address(0)) {
+            if (input.deployEUSD) {
+                console.log("+ Deploying eUSD...");
+                ERC20SynthDeployer deployer = new ERC20SynthDeployer();
+                tokenAddresses.eUSD = deployer.deploy(coreAddresses.evc, "Euler USD", "eUSD", STANDARD_DECIMALS);
 
-            for (uint256 i = 0; i < entries.length; ++i) {
-                if (!entries[i].isDir) continue;
+                startBroadcast();
+                console.log("    Granting eUSD revoke minter role to the desired address %s", multisigAddresses.labs);
+                bytes32 revokeMinterRole = ERC20BurnableMintable(tokenAddresses.eUSD).REVOKE_MINTER_ROLE();
+                AccessControl(tokenAddresses.eUSD).grantRole(revokeMinterRole, multisigAddresses.labs);
 
-                uint256 chainIdOther = getChainIdFromAddressesDirPath(entries[i].path);
-
-                if (chainIdOther == 0 || block.chainid == chainIdOther) continue;
-
-                BridgeAddresses memory bridgeAddressesOther =
-                    deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", chainIdOther));
-
-                LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(lzMetadata, chainIdOther);
-
-                if (bridgeAddressesOther.oftAdapter == address(0)) {
-                    console.log("    ! OFT Adapter not deployed for chain %s. Skipping...", chainIdOther);
-                    continue;
-                }
-
-                if (addBridgeConfigCache(block.chainid, chainIdOther)) {
-                    SetConfigParam[] memory params = new SetConfigParam[](2);
-                    params[0] = SetConfigParam({
-                        eid: infoOther.eid,
-                        configType: OFT_EXECUTOR_CONFIG_TYPE,
-                        config: abi.encode(ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor}))
-                    });
-                    params[1] = SetConfigParam({
-                        eid: infoOther.eid,
-                        configType: OFT_ULN_CONFIG_TYPE,
-                        config: abi.encode(
-                            bridgeConfigCacheExists(chainIdOther, block.chainid)
-                                ? getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddressesOther, info, infoOther, true)
-                                : getUlnConfig(lzUtil, lzMetadata, bridgeAddresses, info, infoOther, true)
-                        )
-                    });
-
-                    if (delegate == getDeployer()) {
-                        vm.startBroadcast();
-                        console.log(
-                            "    + Setting OFT Adapter send config on chain %s for chain %s",
-                            block.chainid,
-                            chainIdOther
-                        );
-                        IMessageLibManager(info.endpointV2).setConfig(
-                            bridgeAddresses.oftAdapter, info.sendUln302, params
-                        );
-                        vm.stopBroadcast();
-                    } else if (delegate == getSafe(false)) {
-                        console.log(
-                            "    + Adding multisend item to set OFT Adapter send config on chain %s for chain %s",
-                            block.chainid,
-                            chainIdOther
-                        );
-                        addMultisendItem(
-                            info.endpointV2,
-                            abi.encodeCall(
-                                IMessageLibManager.setConfig, (bridgeAddresses.oftAdapter, info.sendUln302, params)
-                            )
-                        );
-                    } else {
-                        removeBridgeConfigCache(block.chainid, chainIdOther);
-                        console.log(
-                            "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter send config on chain %s for chain %s must be set manually.",
-                            block.chainid,
-                            chainIdOther
-                        );
-                    }
-
-                    params = new SetConfigParam[](1);
-                    params[0] = SetConfigParam({
-                        eid: infoOther.eid,
-                        configType: OFT_ULN_CONFIG_TYPE,
-                        config: abi.encode(
-                            bridgeConfigCacheExists(chainIdOther, block.chainid)
-                                ? getCompatibleUlnConfig(lzUtil, lzMetadata, bridgeAddressesOther, info, infoOther, false)
-                                : getUlnConfig(lzUtil, lzMetadata, bridgeAddresses, info, infoOther, false)
-                        )
-                    });
-
-                    if (delegate == getDeployer()) {
-                        vm.startBroadcast();
-                        console.log(
-                            "    + Setting OFT Adapter receive config on chain %s for chain %s",
-                            block.chainid,
-                            chainIdOther
-                        );
-                        IMessageLibManager(info.endpointV2).setConfig(
-                            bridgeAddresses.oftAdapter, info.receiveUln302, params
-                        );
-                        vm.stopBroadcast();
-                    } else if (delegate == getSafe(false)) {
-                        console.log(
-                            "    + Adding multisend item to set OFT Adapter receive config on chain %s for chain %s",
-                            block.chainid,
-                            chainIdOther
-                        );
-                        addMultisendItem(
-                            info.endpointV2,
-                            abi.encodeCall(
-                                IMessageLibManager.setConfig, (bridgeAddresses.oftAdapter, info.receiveUln302, params)
-                            )
-                        );
-                    } else {
-                        removeBridgeConfigCache(block.chainid, chainIdOther);
-                        console.log(
-                            "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter receive config on chain %s for chain %s must be set manually.",
-                            block.chainid,
-                            chainIdOther
-                        );
-                    }
-
-                    if (delegate == getDeployer()) {
-                        vm.startBroadcast();
-                        console.log(
-                            "    + Setting OFT Adapter peer on chain %s for chain %s", block.chainid, chainIdOther
-                        );
-                        IOAppCore(bridgeAddresses.oftAdapter).setPeer(
-                            infoOther.eid, bytes32(uint256(uint160(bridgeAddressesOther.oftAdapter)))
-                        );
-                        vm.stopBroadcast();
-                    } else if (delegate == getSafe(false)) {
-                        console.log(
-                            "    + Adding multisend item to set OFT Adapter peer on chain %s for chain %s",
-                            block.chainid,
-                            chainIdOther
-                        );
-                        addMultisendItem(
-                            bridgeAddresses.oftAdapter,
-                            abi.encodeCall(
-                                IOAppCore.setPeer,
-                                (infoOther.eid, bytes32(uint256(uint160(bridgeAddressesOther.oftAdapter))))
-                            )
-                        );
-                    } else {
-                        removeBridgeConfigCache(block.chainid, chainIdOther);
-                        console.log(
-                            "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter peer on chain %s for chain %s must be set manually.",
-                            block.chainid,
-                            chainIdOther
-                        );
-                    }
-
-                    if (delegate == getDeployer()) {
-                        vm.startBroadcast();
-                        console.log(
-                            "    + Setting OFT Adapter enforced options on chain %s for chain %s",
-                            block.chainid,
-                            chainIdOther
-                        );
-                        IOAppOptionsType3(bridgeAddresses.oftAdapter).setEnforcedOptions(
-                            getEnforcedOptions(infoOther.eid)
-                        );
-                        vm.stopBroadcast();
-                    } else if (delegate == getSafe(false)) {
-                        console.log(
-                            "    + Adding multisend item to set OFT Adapter enforced options on chain %s for chain %s",
-                            block.chainid,
-                            chainIdOther
-                        );
-                        addMultisendItem(
-                            bridgeAddresses.oftAdapter,
-                            abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (getEnforcedOptions(infoOther.eid)))
-                        );
-                    } else {
-                        removeBridgeConfigCache(block.chainid, chainIdOther);
-                        console.log(
-                            "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. OFT Adapter enforced options on chain %s for chain %s must be set manually.",
-                            block.chainid,
-                            chainIdOther
-                        );
-                    }
-                } else {
-                    console.log("    - OFT Adapter already configured for chain %s. Skipping...", chainIdOther);
-                }
+                console.log("    Granting eUSD allocator role to the desired address %s", multisigAddresses.labs);
+                bytes32 allocatorRole = ERC20Synth(tokenAddresses.eUSD).ALLOCATOR_ROLE();
+                AccessControl(tokenAddresses.eUSD).grantRole(allocatorRole, multisigAddresses.labs);
+                stopBroadcast();
+            } else {
+                console.log("! eUSD deployment deliberately skipped. Skipping...");
             }
+        } else {
+            console.log("- eUSD already deployed. Skipping...");
+        }
+
+        if (bridgeAddresses.eusdOFTAdapter == address(0)) {
+            if (input.deployEUSD) {
+                console.log("+ Deploying OFT Adapter for eUSD...");
+                bridgeAddresses.eusdOFTAdapter = deployAndConfigureOFTAdapter(tokenAddresses.eUSD, false);
+
+                bytes32 defaultAdminRole = ERC20BurnableMintable(tokenAddresses.eUSD).DEFAULT_ADMIN_ROLE();
+                if (ERC20BurnableMintable(tokenAddresses.eUSD).hasRole(defaultAdminRole, getDeployer())) {
+                    vm.startBroadcast();
+                    console.log(
+                        "    Setting eUSD minter capacity to for the OFT Adapter %s", bridgeAddresses.eusdOFTAdapter
+                    );
+                    ERC20Synth(tokenAddresses.eUSD).setCapacity(bridgeAddresses.eusdOFTAdapter, type(uint128).max);
+                    stopBroadcast();
+                } else if (ERC20BurnableMintable(tokenAddresses.eUSD).hasRole(defaultAdminRole, getSafe(false))) {
+                    console.log(
+                        "    Adding multisend item to set eUSD minter capacity to for the OFT Adapter %s",
+                        bridgeAddresses.eusdOFTAdapter
+                    );
+                    addMultisendItem(
+                        tokenAddresses.eUSD,
+                        abi.encodeCall(ERC20Synth.setCapacity, (bridgeAddresses.eusdOFTAdapter, type(uint128).max))
+                    );
+                } else {
+                    console.log(
+                        "    ! The deployer or designated safe no longer has the default admin role to set the eUSD minter capacity for the OFT Adapter. This must be done manually. Skipping..."
+                    );
+                }
+            } else {
+                console.log("! eUSD OFT Adapter deployment deliberately skipped. Skipping...");
+            }
+        } else {
+            console.log("- eUSD OFT Adapter already deployed. Skipping...");
+        }
+
+        if (tokenAddresses.seUSD == address(0)) {
+            if (input.deployEUSD) {
+                console.log("+ Deploying seUSD...");
+                if (block.chainid == HUB_CHAIN_ID) {
+                    startBroadcast();
+                    tokenAddresses.seUSD =
+                        address(new EulerSavingsRate(coreAddresses.evc, tokenAddresses.eUSD, "Savings Rate eUSD", "seUSD"));
+                    stopBroadcast();
+                } else {
+                    ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
+                    tokenAddresses.seUSD = deployer.deploy("Savings Rate eUSD", "seUSD", STANDARD_DECIMALS);
+
+                    startBroadcast();
+                    console.log(
+                        "    Granting seUSD revoke minter role to the desired address %s", multisigAddresses.labs
+                    );
+                    bytes32 revokeMinterRole = ERC20BurnableMintable(tokenAddresses.seUSD).REVOKE_MINTER_ROLE();
+                    AccessControl(tokenAddresses.seUSD).grantRole(revokeMinterRole, multisigAddresses.labs);
+                    stopBroadcast();
+                }
+            } else {
+                console.log("! seUSD deployment deliberately skipped. Skipping...");
+            }
+        } else {
+            console.log("- seUSD already deployed. Skipping...");
+        }
+
+        if (bridgeAddresses.seusdOFTAdapter == address(0)) {
+            if (input.deployEUSD) {
+                console.log("+ Deploying OFT Adapter for seUSD...");
+                bridgeAddresses.seusdOFTAdapter = deployAndConfigureOFTAdapter(tokenAddresses.seUSD, true);
+            } else {
+                console.log("! seUSD OFT Adapter deployment deliberately skipped. Skipping...");
+            }
+        } else {
+            console.log("- seUSD OFT Adapter already deployed. Skipping...");
+        }
+
+        if (peripheryAddresses.feeCollector == address(0)) {
+            if (input.deployEUSD) {
+                console.log("+ Deploying eUSD fee collecting system...");
+                if (block.chainid == HUB_CHAIN_ID) {
+                    startBroadcast();
+                    console.log("    Deploying FeeCollectorGulper");
+                    peripheryAddresses.feeCollector =
+                        address(new FeeCollectorGulper(getDeployer(), tokenAddresses.eUSD, tokenAddresses.seUSD));
+                    stopBroadcast();
+
+                    startBroadcast();
+                    console.log("    Deploying OFTGulper");
+                    bridgeAddresses.eusdOFTGulper = address(new OFTGulper(getDeployer(), tokenAddresses.seUSD));
+                    stopBroadcast();
+                } else {
+                    startBroadcast();
+                    console.log("    Deploying OFTFeeCollector...");
+                    peripheryAddresses.feeCollector = address(new OFTFeeCollector(getDeployer(), tokenAddresses.eUSD));
+                    stopBroadcast();
+
+                    LayerZeroUtil lzUtil = new LayerZeroUtil(HUB_CHAIN_ID);
+                    LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(HUB_CHAIN_ID);
+                    address eusdOFTGulper =
+                        deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", HUB_CHAIN_ID)).eusdOFTGulper;
+
+                    startBroadcast();
+                    console.log("    Configuring OFTFeeCollector");
+                    OFTFeeCollector(peripheryAddresses.feeCollector).configure(
+                        bridgeAddresses.eusdOFTAdapter, eusdOFTGulper, info.eid, true
+                    );
+                    stopBroadcast();
+                }
+
+                startBroadcast();
+                console.log(
+                    "    Granting fee collector maintainer role to the desired address %s", multisigAddresses.labs
+                );
+                bytes32 maintainerRole = FeeCollectorUtil(peripheryAddresses.feeCollector).MAINTAINER_ROLE();
+                AccessControl(peripheryAddresses.feeCollector).grantRole(maintainerRole, multisigAddresses.labs);
+                stopBroadcast();
+            } else {
+                console.log("- eUSD fee collecting system not deployed. Skipping...");
+            }
+        } else {
+            console.log("- eUSD fee collecting system already deployed. Skipping...");
         }
 
         if (
@@ -682,26 +511,57 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
         }
 
-        if (
-            peripheryAddresses.feeFlowController == address(0) && peripheryAddresses.feeFlowControllerUtil == address(0)
-        ) {
-            address paymentToken = bridgeAddresses.oftAdapter == address(0) ? getWETHAddress() : tokenAddresses.EUL;
+        if (peripheryAddresses.feeFlowController == address(0)) {
+            address paymentToken = bridgeAddresses.eusdOFTAdapter != address(0)
+                ? tokenAddresses.eUSD
+                : bridgeAddresses.eulOFTAdapter != address(0) ? tokenAddresses.EUL : getWETHAddress();
 
             if (input.feeFlowInitPrice != 0 && paymentToken != address(0)) {
-                console.log("+ Deploying FeeFlowController and FeeFlowControllerUtil...");
+                console.log("+ Deploying FeeFlowController...");
                 FeeFlow deployer = new FeeFlow();
-                (peripheryAddresses.feeFlowController, peripheryAddresses.feeFlowControllerUtil) = deployer.deploy(
+                peripheryAddresses.feeFlowController = deployer.deploy(
                     coreAddresses.evc,
                     input.feeFlowInitPrice,
                     paymentToken,
                     multisigAddresses.DAO,
                     FEE_FLOW_EPOCH_PERIOD,
                     FEE_FLOW_PRICE_MULTIPLIER,
-                    FEE_FLOW_MIN_INIT_PRICE
+                    FEE_FLOW_MIN_INIT_PRICE,
+                    peripheryAddresses.feeCollector,
+                    FeeCollectorUtil.collectFees.selector
                 );
+
+                if (block.chainid != HUB_CHAIN_ID) {}
+
+                bytes32 defaultAdminRole = OFTFeeCollector(peripheryAddresses.feeCollector).DEFAULT_ADMIN_ROLE();
+                bytes32 collectorRole = OFTFeeCollector(peripheryAddresses.feeCollector).COLLECTOR_ROLE();
+                if (OFTFeeCollector(peripheryAddresses.feeCollector).hasRole(defaultAdminRole, getDeployer())) {
+                    vm.startBroadcast();
+                    console.log(
+                        "    Granting OFTFeeCollector collector role to the desired address %s",
+                        peripheryAddresses.feeFlowController
+                    );
+                    AccessControl(peripheryAddresses.feeCollector).grantRole(
+                        collectorRole, peripheryAddresses.feeFlowController
+                    );
+                    stopBroadcast();
+                } else if (OFTFeeCollector(peripheryAddresses.feeCollector).hasRole(defaultAdminRole, getSafe(false))) {
+                    console.log(
+                        "    Adding multisend item to grant OFTFeeCollector collector role to the desired address %s",
+                        peripheryAddresses.feeFlowController
+                    );
+                    addMultisendItem(
+                        peripheryAddresses.feeCollector,
+                        abi.encodeCall(AccessControl.grantRole, (collectorRole, peripheryAddresses.feeFlowController))
+                    );
+                } else {
+                    console.log(
+                        "    ! The deployer or designated safe no longer has the default admin role to grant the OFTFeeCollector collector role to the desired address. This must be done manually. Skipping..."
+                    );
+                }
             } else {
                 console.log(
-                    "! feeFlowInitPrice or paymentToken is not set for FeeFlowController and FeeFlowControllerUtil deployment. Skipping..."
+                    "! feeFlowInitPrice or paymentToken is not set for FeeFlowController deployment. Skipping..."
                 );
             }
 
@@ -1053,112 +913,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         return (multisigAddresses, coreAddresses, peripheryAddresses, lensAddresses, bridgeAddresses);
     }
 
-    function getAcceptedDVNs() internal view returns (string[] memory) {
-        string[] memory acceptedDVNs = new string[](OFT_ACCEPTED_DVNS.length);
-        for (uint256 i = 0; i < OFT_ACCEPTED_DVNS.length; ++i) {
-            acceptedDVNs[i] = OFT_ACCEPTED_DVNS[i];
-        }
-        return acceptedDVNs;
-    }
-
-    function getDVNAddresses(LayerZeroUtil lzUtil, string memory metadata, string memory chainKey)
-        internal
-        view
-        returns (address[] memory)
-    {
-        (, address[] memory dvns) = lzUtil.getDVNAddresses(metadata, getAcceptedDVNs(), chainKey);
-        require(
-            dvns.length >= OFT_REQUIRED_DVNS_COUNT, string.concat("Failed to find enough accepted DVNs for ", chainKey)
-        );
-        assembly {
-            mstore(dvns, OFT_REQUIRED_DVNS_COUNT)
-        }
-        return Arrays.sort(dvns);
-    }
-
-    function getUlnConfig(
-        LayerZeroUtil lzUtil,
-        string memory metadata,
-        BridgeAddresses memory bridgeAddresses,
-        LayerZeroUtil.DeploymentInfo memory info,
-        LayerZeroUtil.DeploymentInfo memory infoOther,
-        bool isSend
-    ) internal view returns (UlnConfig memory) {
-        return UlnConfig({
-            confirmations: abi.decode(
-                IMessageLibManager(info.endpointV2).getConfig(
-                    bridgeAddresses.oftAdapter,
-                    isSend ? info.sendUln302 : info.receiveUln302,
-                    infoOther.eid,
-                    OFT_ULN_CONFIG_TYPE
-                ),
-                (UlnConfig)
-            ).confirmations,
-            requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
-            optionalDVNCount: 0,
-            optionalDVNThreshold: 0,
-            requiredDVNs: getDVNAddresses(lzUtil, metadata, info.chainKey),
-            optionalDVNs: new address[](0)
-        });
-    }
-
-    function getCompatibleUlnConfig(
-        LayerZeroUtil lzUtil,
-        string memory metadata,
-        BridgeAddresses memory bridgeAddressesOther,
-        LayerZeroUtil.DeploymentInfo memory info,
-        LayerZeroUtil.DeploymentInfo memory infoOther,
-        bool isSend
-    ) internal returns (UlnConfig memory) {
-        (string[] memory dvnNames, address[] memory dvnAddresses) =
-            lzUtil.getDVNAddresses(metadata, getAcceptedDVNs(), infoOther.chainKey);
-
-        require(
-            selectFork(infoOther.chainId),
-            string.concat("Failed to select fork for chain ", vm.toString(infoOther.chainId))
-        );
-
-        UlnConfig memory ulnConfig = abi.decode(
-            IMessageLibManager(infoOther.endpointV2).getConfig(
-                bridgeAddressesOther.oftAdapter,
-                isSend ? infoOther.receiveUln302 : infoOther.sendUln302,
-                info.eid,
-                OFT_ULN_CONFIG_TYPE
-            ),
-            (UlnConfig)
-        );
-
-        selectFork(DEFAULT_FORK_CHAIN_ID);
-
-        string[] memory acceptedDVNs = new string[](ulnConfig.requiredDVNs.length);
-
-        for (uint256 i = 0; i < dvnAddresses.length; ++i) {
-            for (uint256 j = 0; j < ulnConfig.requiredDVNs.length; ++j) {
-                if (dvnAddresses[i] == ulnConfig.requiredDVNs[j]) {
-                    acceptedDVNs[j] = dvnNames[i];
-                    break;
-                }
-            }
-        }
-
-        (, address[] memory dvns) = lzUtil.getDVNAddresses(metadata, acceptedDVNs, info.chainKey);
-        dvns = Arrays.sort(dvns);
-
-        require(
-            dvns.length == OFT_REQUIRED_DVNS_COUNT,
-            string.concat("Failed to find compatible accepted DVNs for ", info.chainKey)
-        );
-
-        return UlnConfig({
-            confirmations: ulnConfig.confirmations,
-            requiredDVNCount: OFT_REQUIRED_DVNS_COUNT,
-            optionalDVNCount: 0,
-            optionalDVNThreshold: 0,
-            requiredDVNs: dvns,
-            optionalDVNs: new address[](0)
-        });
-    }
-
     function getEnforcedOptions(uint32 eid) internal pure returns (EnforcedOptionParam[] memory) {
         EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](2);
         enforcedOptions[0] = EnforcedOptionParam({
@@ -1175,12 +929,358 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         return enforcedOptions;
     }
 
-    function containsOftHubChainId(uint256 chainId) internal view returns (bool) {
-        for (uint256 i = 0; i < OFT_HUB_CHAIN_IDS.length; ++i) {
-            if (OFT_HUB_CHAIN_IDS[i] == chainId) {
-                return true;
+    function deployAndConfigureOFTAdapter(address token, bool tokenHasHubChain) internal returns (address adapter) {
+        LayerZeroUtil lzUtil = new LayerZeroUtil(block.chainid);
+        LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(block.chainid);
+        string memory tokenKey = getTokenKey(token);
+
+        if (tokenHasHubChain && block.chainid == HUB_CHAIN_ID) {
+            OFTAdapterUpgradeableDeployer deployer = new OFTAdapterUpgradeableDeployer();
+            adapter = deployer.deploy(token, info.endpointV2);
+        } else {
+            MintBurnOFTAdapterDeployer deployer = new MintBurnOFTAdapterDeployer();
+            adapter = deployer.deploy(token, info.endpointV2);
+        }
+
+        require(address(IOAppCore(adapter).endpoint()) == info.endpointV2, "OFT Adapter endpoint mismatch");
+        require(IEndpointV2(info.endpointV2).eid() == info.eid, string.concat("OFT Adapter eid mismatch"));
+
+        vm.startBroadcast();
+        console.log("    Setting %s OFT Adapter send library on chain %s", tokenKey, block.chainid);
+        IMessageLibManager(info.endpointV2).setSendLibrary(adapter, info.eid, info.sendUln302);
+
+        console.log("    Setting %s OFT Adapter receive library on chain %s", tokenKey, block.chainid);
+        IMessageLibManager(info.endpointV2).setReceiveLibrary(adapter, info.eid, info.receiveUln302, 0);
+        vm.stopBroadcast();
+
+        if (!containsOFTHubChainId(token, block.chainid)) {
+            uint256 length =
+                token == tokenAddresses.EUL ? OFT_HUB_CHAIN_IDS_EUL.length : OFT_HUB_CHAIN_IDS_EUSD_SEUSD.length;
+            for (uint256 i = 0; i < length; ++i) {
+                uint256 hubChainId =
+                    token == tokenAddresses.EUL ? OFT_HUB_CHAIN_IDS_EUL[i] : OFT_HUB_CHAIN_IDS_EUSD_SEUSD[i];
+                address adapterHub = getOFTAdapter(token, hubChainId);
+                LayerZeroUtil.DeploymentInfo memory infoHub = lzUtil.getDeploymentInfo(hubChainId);
+
+                addBridgeConfigCache(tokenKey, block.chainid, hubChainId);
+
+                SetConfigParam[] memory params = new SetConfigParam[](2);
+                params[0] = SetConfigParam({
+                    eid: infoHub.eid,
+                    configType: OFT_EXECUTOR_CONFIG_TYPE,
+                    config: abi.encode(ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor}))
+                });
+                params[1] = SetConfigParam({
+                    eid: infoHub.eid,
+                    configType: OFT_ULN_CONFIG_TYPE,
+                    config: abi.encode(
+                        lzUtil.getUlnConfig(adapter, hubChainId, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT, true)
+                    )
+                });
+
+                vm.startBroadcast();
+                console.log(
+                    "    Setting %s OFT Adapter send config on chain %s for chain %s",
+                    tokenKey,
+                    block.chainid,
+                    hubChainId
+                );
+                IMessageLibManager(info.endpointV2).setConfig(adapter, info.sendUln302, params);
+                vm.stopBroadcast();
+
+                params = new SetConfigParam[](1);
+                params[0] = SetConfigParam({
+                    eid: infoHub.eid,
+                    configType: OFT_ULN_CONFIG_TYPE,
+                    config: abi.encode(
+                        lzUtil.getUlnConfig(adapter, hubChainId, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT, false)
+                    )
+                });
+
+                vm.startBroadcast();
+                console.log(
+                    "    Setting %s OFT Adapter receive config on chain %s for chain %s",
+                    tokenKey,
+                    block.chainid,
+                    hubChainId
+                );
+                IMessageLibManager(info.endpointV2).setConfig(adapter, info.receiveUln302, params);
+                vm.stopBroadcast();
+
+                vm.startBroadcast();
+                console.log(
+                    "    Setting %s OFT Adapter peer on chain %s for chain %s", tokenKey, block.chainid, hubChainId
+                );
+                IOAppCore(adapter).setPeer(infoHub.eid, bytes32(uint256(uint160(adapterHub))));
+                vm.stopBroadcast();
+
+                vm.startBroadcast();
+                console.log(
+                    "    Setting %s OFT Adapter enforced options on chain %s for chain %s",
+                    tokenKey,
+                    block.chainid,
+                    hubChainId
+                );
+                IOAppOptionsType3(adapter).setEnforcedOptions(getEnforcedOptions(infoHub.eid));
+                vm.stopBroadcast();
+
+                console.log(
+                    "    Sanity checking config compatibility on chain %s for chain %s", block.chainid, hubChainId
+                );
+                lzUtil.getCompatibleUlnConfig(adapter, hubChainId, block.chainid, getAcceptedDVNs(), true);
+                lzUtil.getCompatibleUlnConfig(adapter, hubChainId, block.chainid, getAcceptedDVNs(), false);
             }
         }
-        return false;
+
+        if (!tokenHasHubChain || block.chainid != HUB_CHAIN_ID) {
+            bytes32 defaultAdminRole = ERC20BurnableMintable(token).DEFAULT_ADMIN_ROLE();
+            bytes32 minterRole = ERC20BurnableMintable(token).MINTER_ROLE();
+            if (ERC20BurnableMintable(token).hasRole(defaultAdminRole, getDeployer())) {
+                vm.startBroadcast();
+                console.log("    Granting minter role to the OFT Adapter %s", adapter);
+                AccessControl(token).grantRole(minterRole, adapter);
+                stopBroadcast();
+            } else if (ERC20BurnableMintable(token).hasRole(defaultAdminRole, getSafe(false))) {
+                console.log("    Adding multisend item to grant minter role to the OFT Adapter %s", adapter);
+                addMultisendItem(token, abi.encodeCall(AccessControl.grantRole, (minterRole, adapter)));
+            } else {
+                console.log(
+                    "    ! The deployer or designated safe no longer has the default admin role to grant the minter role to the OFT Adapter. This must be done manually. Skipping..."
+                );
+            }
+        }
+    }
+
+    function configureOFTAdapter(address token, address adapter) internal {
+        LayerZeroUtil lzUtil = new LayerZeroUtil(block.chainid);
+        LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(block.chainid);
+        Vm.DirEntry[] memory entries = vm.readDir(getAddressesDirPath(), 1);
+        address delegate = IEndpointV2(info.endpointV2).delegates(adapter);
+        string memory tokenKey = getTokenKey(token);
+
+        for (uint256 i = 0; i < entries.length; ++i) {
+            if (!entries[i].isDir) continue;
+
+            uint256 chainIdOther = getChainIdFromAddressesDirPath(entries[i].path);
+
+            if (chainIdOther == 0 || block.chainid == chainIdOther) continue;
+
+            address adapterOther = getOFTAdapter(token, chainIdOther);
+
+            if (adapterOther == address(0)) {
+                console.log("    ! %s OFT Adapter not deployed for chain %s. Skipping...", tokenKey, chainIdOther);
+                continue;
+            }
+
+            LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(chainIdOther);
+
+            if (addBridgeConfigCache(tokenKey, block.chainid, chainIdOther)) {
+                SetConfigParam[] memory params = new SetConfigParam[](2);
+                params[0] = SetConfigParam({
+                    eid: infoOther.eid,
+                    configType: OFT_EXECUTOR_CONFIG_TYPE,
+                    config: abi.encode(ExecutorConfig({maxMessageSize: OFT_MAX_MESSAGE_SIZE, executor: info.executor}))
+                });
+                params[1] = SetConfigParam({
+                    eid: infoOther.eid,
+                    configType: OFT_ULN_CONFIG_TYPE,
+                    config: abi.encode(
+                        bridgeConfigCacheExists(tokenKey, chainIdOther, block.chainid)
+                            ? lzUtil.getCompatibleUlnConfig(adapterOther, block.chainid, chainIdOther, getAcceptedDVNs(), true)
+                            : lzUtil.getUlnConfig(adapter, chainIdOther, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT, true)
+                    )
+                });
+
+                if (delegate == getDeployer()) {
+                    vm.startBroadcast();
+                    console.log(
+                        "    + Setting %s OFT Adapter send config on chain %s for chain %s",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                    IMessageLibManager(info.endpointV2).setConfig(adapter, info.sendUln302, params);
+                    vm.stopBroadcast();
+                } else if (delegate == getSafe(false)) {
+                    console.log(
+                        "    + Adding multisend item to set %s OFT Adapter send config on chain %s for chain %s",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                    addMultisendItem(
+                        info.endpointV2,
+                        abi.encodeCall(IMessageLibManager.setConfig, (adapter, info.sendUln302, params))
+                    );
+                } else {
+                    removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
+                    console.log(
+                        "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter send config on chain %s for chain %s must be set manually.",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                }
+
+                params = new SetConfigParam[](1);
+                params[0] = SetConfigParam({
+                    eid: infoOther.eid,
+                    configType: OFT_ULN_CONFIG_TYPE,
+                    config: abi.encode(
+                        bridgeConfigCacheExists(tokenKey, chainIdOther, block.chainid)
+                            ? lzUtil.getCompatibleUlnConfig(adapterOther, block.chainid, chainIdOther, getAcceptedDVNs(), false)
+                            : lzUtil.getUlnConfig(adapter, chainIdOther, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT, false)
+                    )
+                });
+
+                if (delegate == getDeployer()) {
+                    vm.startBroadcast();
+                    console.log(
+                        "    + Setting %s OFT Adapter receive config on chain %s for chain %s",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                    IMessageLibManager(info.endpointV2).setConfig(adapter, info.receiveUln302, params);
+                    vm.stopBroadcast();
+                } else if (delegate == getSafe(false)) {
+                    console.log(
+                        "    + Adding multisend item to set %s OFT Adapter receive config on chain %s for chain %s",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                    addMultisendItem(
+                        info.endpointV2,
+                        abi.encodeCall(IMessageLibManager.setConfig, (adapter, info.receiveUln302, params))
+                    );
+                } else {
+                    removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
+                    console.log(
+                        "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter receive config on chain %s for chain %s must be set manually.",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                }
+
+                if (delegate == getDeployer()) {
+                    vm.startBroadcast();
+                    console.log(
+                        "    + Setting %s OFT Adapter peer on chain %s for chain %s",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                    IOAppCore(adapter).setPeer(infoOther.eid, bytes32(uint256(uint160(adapterOther))));
+                    vm.stopBroadcast();
+                } else if (delegate == getSafe(false)) {
+                    console.log(
+                        "    + Adding multisend item to set %s OFT Adapter peer on chain %s for chain %s",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                    addMultisendItem(
+                        adapter,
+                        abi.encodeCall(IOAppCore.setPeer, (infoOther.eid, bytes32(uint256(uint160(adapterOther)))))
+                    );
+                } else {
+                    removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
+                    console.log(
+                        "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter peer on chain %s for chain %s must be set manually.",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                }
+
+                if (delegate == getDeployer()) {
+                    vm.startBroadcast();
+                    console.log(
+                        "    + Setting %s OFT Adapter enforced options on chain %s for chain %s",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                    IOAppOptionsType3(adapter).setEnforcedOptions(getEnforcedOptions(infoOther.eid));
+                    vm.stopBroadcast();
+                } else if (delegate == getSafe(false)) {
+                    console.log(
+                        "    + Adding multisend item to set %s OFT Adapter enforced options on chain %s for chain %s",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                    addMultisendItem(
+                        adapter,
+                        abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (getEnforcedOptions(infoOther.eid)))
+                    );
+                } else {
+                    removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
+                    console.log(
+                        "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter enforced options on chain %s for chain %s must be set manually.",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                }
+            } else {
+                console.log("    - %s OFT Adapter already configured for chain %s. Skipping...", tokenKey, chainIdOther);
+            }
+        }
+    }
+
+    function getTokenKey(address token) internal view returns (string memory) {
+        if (token == tokenAddresses.EUL) {
+            return "EUL";
+        } else if (token == tokenAddresses.eUSD) {
+            return "eUSD";
+        } else if (token == tokenAddresses.seUSD) {
+            return "seUSD";
+        }
+
+        revert("getTokenKey: Token not supported");
+    }
+
+    function getOFTAdapter(address token, uint256 chainId) internal view returns (address adapter) {
+        BridgeAddresses memory chainIdBridgeAddresses =
+            deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", chainId));
+
+        if (token == tokenAddresses.EUL) {
+            adapter = chainIdBridgeAddresses.eulOFTAdapter;
+        } else if (token == tokenAddresses.eUSD) {
+            adapter = chainIdBridgeAddresses.eusdOFTAdapter;
+        } else if (token == tokenAddresses.seUSD) {
+            adapter = chainIdBridgeAddresses.seusdOFTAdapter;
+        }
+    }
+
+    function getAcceptedDVNs() internal view returns (string[] memory) {
+        string[] memory acceptedDVNs = new string[](OFT_ACCEPTED_DVNS.length);
+        for (uint256 i = 0; i < OFT_ACCEPTED_DVNS.length; ++i) {
+            acceptedDVNs[i] = OFT_ACCEPTED_DVNS[i];
+        }
+        return acceptedDVNs;
+    }
+
+    function containsOFTHubChainId(address token, uint256 chainId) internal view returns (bool) {
+        if (token == tokenAddresses.EUL) {
+            for (uint256 i = 0; i < OFT_HUB_CHAIN_IDS_EUL.length; ++i) {
+                if (OFT_HUB_CHAIN_IDS_EUL[i] == chainId) {
+                    return true;
+                }
+            }
+            return false;
+        } else if (token == tokenAddresses.eUSD || token == tokenAddresses.seUSD) {
+            for (uint256 i = 0; i < OFT_HUB_CHAIN_IDS_EUSD_SEUSD.length; ++i) {
+                if (OFT_HUB_CHAIN_IDS_EUSD_SEUSD[i] == chainId) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        revert("containsOFTHubChainId: Token not supported");
     }
 }

@@ -14,6 +14,8 @@ interface IEndpointV2 is ILayerZeroEndpointV2 {
 }
 
 contract OwnershipTransferCore is BatchBuilder {
+    uint256 internal constant HUB_CHAIN_ID = 1;
+
     function run() public {
         verifyMultisigAddresses(multisigAddresses);
 
@@ -131,28 +133,8 @@ contract OwnershipTransferCore is BatchBuilder {
             console.log("- EulerEarnFactory owner is already set to the desired address. Skipping...");
         }
 
-        if (block.chainid != 1) {
-            bytes32 defaultAdminRole = AccessControl(tokenAddresses.EUL).DEFAULT_ADMIN_ROLE();
-
-            startBroadcast();
-            if (!AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
-                if (AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
-                    console.log("+ Granting EUL default admin role to address %s", multisigAddresses.DAO);
-                    AccessControl(tokenAddresses.EUL).grantRole(defaultAdminRole, multisigAddresses.DAO);
-                } else {
-                    console.log("! EUL default admin role is not the caller of this script. Skipping...");
-                }
-            } else {
-                console.log("- EUL default admin role is already set to the desired address. Skipping...");
-            }
-
-            if (AccessControl(tokenAddresses.EUL).hasRole(defaultAdminRole, getDeployer())) {
-                console.log("+ Renouncing EUL default admin role from the caller of this script %s", getDeployer());
-                AccessControl(tokenAddresses.EUL).renounceRole(defaultAdminRole, getDeployer());
-            } else {
-                console.log("- The caller of this script is no longer the default admin of EUL. Skipping...");
-            }
-            stopBroadcast();
+        if (block.chainid != HUB_CHAIN_ID) {
+            transferERC20BurnableMintableOwnership("EUL", tokenAddresses.EUL);
         }
 
         privilegedAddress = Ownable(tokenAddresses.rEUL).owner();
@@ -167,72 +149,168 @@ contract OwnershipTransferCore is BatchBuilder {
             console.log("- rEUL owner is already set to the desired address. Skipping...");
         }
 
-        if (bridgeAddresses.oftAdapter != address(0)) {
-            if (block.chainid == 1) {
-                address proxyAdmin = address(
-                    uint160(
-                        uint256(
-                            vm.load(
-                                bridgeAddresses.oftAdapter,
-                                0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103
-                            )
-                        )
-                    )
-                );
-                privilegedAddress = Ownable(proxyAdmin).owner();
-                if (privilegedAddress != multisigAddresses.DAO) {
-                    if (privilegedAddress == getDeployer()) {
-                        console.log(
-                            "+ Transferring ownership of OFTAdapterUpgradeable ProxyAdmin to %s", multisigAddresses.DAO
-                        );
-                        startBroadcast();
-                        Ownable(proxyAdmin).transferOwnership(multisigAddresses.DAO);
-                        stopBroadcast();
-                    } else {
-                        console.log(
-                            "! OFTAdapterUpgradeable ProxyAdmin owner is not the caller of this script. Skipping..."
-                        );
-                    }
-                } else {
-                    console.log(
-                        "- OFTAdapterUpgradeable ProxyAdmin owner is already set to the desired address. Skipping..."
-                    );
-                }
-            }
+        if (tokenAddresses.eUSD != address(0)) {
+            transferERC20BurnableMintableOwnership("eUSD", tokenAddresses.eUSD);
+        } else {
+            console.log("! eUSD is not deployed yet. Skipping...");
+        }
 
-            privilegedAddress = IEndpointV2(address(IOAppCore(bridgeAddresses.oftAdapter).endpoint())).delegates(
-                bridgeAddresses.oftAdapter
-            );
-            if (privilegedAddress != multisigAddresses.DAO) {
-                if (Ownable(bridgeAddresses.oftAdapter).owner() == getDeployer()) {
-                    console.log("+ Transferring delegate of OFT Adapter to %s", multisigAddresses.DAO);
-                    startBroadcast();
-                    IOAppCore(bridgeAddresses.oftAdapter).setDelegate(multisigAddresses.DAO);
-                    stopBroadcast();
+        if (tokenAddresses.seUSD != address(0) && block.chainid != HUB_CHAIN_ID) {
+            transferERC20BurnableMintableOwnership("seUSD", tokenAddresses.seUSD);
+        } else {
+            console.log("! seUSD is not deployed yet. Skipping...");
+        }
+
+        if (bridgeAddresses.eulOFTAdapter != address(0)) {
+            transferOFTAdapterOwnership("EUL", bridgeAddresses.eulOFTAdapter);
+        } else {
+            console.log("! EUL OFT Adapter is not deployed yet. Skipping...");
+        }
+
+        if (bridgeAddresses.eusdOFTAdapter != address(0)) {
+            transferOFTAdapterOwnership("eUSD", bridgeAddresses.eusdOFTAdapter);
+        } else {
+            console.log("! eUSD OFT Adapter is not deployed yet. Skipping...");
+        }
+
+        if (bridgeAddresses.seusdOFTAdapter != address(0)) {
+            transferOFTAdapterOwnership("seUSD", bridgeAddresses.seusdOFTAdapter);
+        } else {
+            console.log("! seUSD OFT Adapter is not deployed yet. Skipping...");
+        }
+
+        if (peripheryAddresses.feeCollector != address(0)) {
+            bytes32 defaultAdminRole = AccessControl(peripheryAddresses.feeCollector).DEFAULT_ADMIN_ROLE();
+
+            startBroadcast();
+            if (!AccessControl(peripheryAddresses.feeCollector).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
+                if (AccessControl(peripheryAddresses.feeCollector).hasRole(defaultAdminRole, getDeployer())) {
+                    console.log("+ Granting FeeCollector default admin role to address %s", multisigAddresses.DAO);
+                    AccessControl(peripheryAddresses.feeCollector).grantRole(defaultAdminRole, multisigAddresses.DAO);
                 } else {
-                    console.log("! OFT Adapter owner is not the caller of this script. Skipping...");
+                    console.log("! FeeCollector default admin role is not the caller of this script. Skipping...");
                 }
             } else {
-                console.log("- OFT Adapter delegate is already set to the desired address. Skipping...");
+                console.log("- FeeCollector default admin role is already set to the desired address. Skipping...");
             }
 
-            privilegedAddress = Ownable(bridgeAddresses.oftAdapter).owner();
+            if (AccessControl(peripheryAddresses.feeCollector).hasRole(defaultAdminRole, getDeployer())) {
+                console.log(
+                    "+ Renouncing FeeCollector default admin role from the caller of this script %s", getDeployer()
+                );
+                AccessControl(peripheryAddresses.feeCollector).renounceRole(defaultAdminRole, getDeployer());
+            } else {
+                console.log("- The caller of this script is no longer the default admin of FeeCollector. Skipping...");
+            }
+            stopBroadcast();
+        } else {
+            console.log("! FeeCollector is not deployed yet. Skipping...");
+        }
+
+        if (bridgeAddresses.eusdOFTGulper != address(0)) {
+            privilegedAddress = Ownable(bridgeAddresses.eusdOFTGulper).owner();
             if (privilegedAddress != multisigAddresses.DAO) {
                 if (privilegedAddress == getDeployer()) {
-                    console.log("+ Transferring ownership of OFT Adapter to %s", multisigAddresses.DAO);
-                    startBroadcast();
-                    Ownable(bridgeAddresses.oftAdapter).transferOwnership(multisigAddresses.DAO);
-                    stopBroadcast();
+                    console.log("+ Transferring ownership of eUSD OFT Gulper to %s", multisigAddresses.DAO);
+                    transferOwnership(bridgeAddresses.eusdOFTGulper, multisigAddresses.DAO);
                 } else {
-                    console.log("! OFT Adapter owner is not the caller of this script. Skipping...");
+                    console.log("! eUSD OFT Gulper owner is not the caller of this script. Skipping...");
                 }
             } else {
-                console.log("- OFT Adapter owner is already set to the desired address. Skipping...");
+                console.log("- eUSD OFT Gulper owner is already set to the desired address. Skipping...");
             }
-        } else {
-            console.log("! OFT Adapter is not deployed yet. Skipping...");
+        } else if (block.chainid == HUB_CHAIN_ID) {
+            console.log("! eUSD OFT Gulper is not deployed yet. Skipping...");
         }
 
         executeBatch();
+    }
+
+    function transferERC20BurnableMintableOwnership(string memory tokenName, address token) internal {
+        bytes32 defaultAdminRole = AccessControl(token).DEFAULT_ADMIN_ROLE();
+
+        startBroadcast();
+        if (!AccessControl(token).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
+            if (AccessControl(token).hasRole(defaultAdminRole, getDeployer())) {
+                console.log("+ Granting %s default admin role to address %s", tokenName, multisigAddresses.DAO);
+                AccessControl(token).grantRole(defaultAdminRole, multisigAddresses.DAO);
+            } else {
+                console.log("! %s default admin role is not the caller of this script. Skipping...", tokenName);
+            }
+        } else {
+            console.log("- %s default admin role is already set to the desired address. Skipping...", tokenName);
+        }
+
+        if (AccessControl(token).hasRole(defaultAdminRole, getDeployer())) {
+            console.log(
+                "+ Renouncing %s default admin role from the caller of this script %s", tokenName, getDeployer()
+            );
+            AccessControl(token).renounceRole(defaultAdminRole, getDeployer());
+        } else {
+            console.log("- The caller of this script is no longer the default admin of %s. Skipping...", tokenName);
+        }
+        stopBroadcast();
+    }
+
+    function transferOFTAdapterOwnership(string memory tokenName, address adapter) internal {
+        address privilegedAddress;
+
+        if (block.chainid == HUB_CHAIN_ID) {
+            address proxyAdmin = address(
+                uint160(uint256(vm.load(adapter, 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103)))
+            );
+
+            privilegedAddress = Ownable(proxyAdmin).owner();
+            if (privilegedAddress != multisigAddresses.DAO) {
+                if (privilegedAddress == getDeployer()) {
+                    console.log(
+                        "+ Transferring ownership of the %s OFTAdapterUpgradeable ProxyAdmin to %s",
+                        tokenName,
+                        multisigAddresses.DAO
+                    );
+                    startBroadcast();
+                    Ownable(proxyAdmin).transferOwnership(multisigAddresses.DAO);
+                    stopBroadcast();
+                } else {
+                    console.log(
+                        "! %s OFTAdapterUpgradeable ProxyAdmin owner is not the caller of this script. Skipping...",
+                        tokenName
+                    );
+                }
+            } else {
+                console.log(
+                    "- %s OFTAdapterUpgradeable ProxyAdmin owner is already set to the desired address. Skipping...",
+                    tokenName
+                );
+            }
+        }
+
+        privilegedAddress = IEndpointV2(address(IOAppCore(adapter).endpoint())).delegates(adapter);
+        if (privilegedAddress != multisigAddresses.DAO) {
+            if (Ownable(adapter).owner() == getDeployer()) {
+                console.log("+ Transferring delegate of %s OFT Adapter to %s", tokenName, multisigAddresses.DAO);
+                startBroadcast();
+                IOAppCore(adapter).setDelegate(multisigAddresses.DAO);
+                stopBroadcast();
+            } else {
+                console.log("! %s OFT Adapter owner is not the caller of this script. Skipping...", tokenName);
+            }
+        } else {
+            console.log("- %s OFT Adapter delegate is already set to the desired address. Skipping...", tokenName);
+        }
+
+        privilegedAddress = Ownable(adapter).owner();
+        if (privilegedAddress != multisigAddresses.DAO) {
+            if (privilegedAddress == getDeployer()) {
+                console.log("+ Transferring ownership of %s OFT Adapter to %s", tokenName, multisigAddresses.DAO);
+                startBroadcast();
+                Ownable(adapter).transferOwnership(multisigAddresses.DAO);
+                stopBroadcast();
+            } else {
+                console.log("! %s OFT Adapter owner is not the caller of this script. Skipping...", tokenName);
+            }
+        } else {
+            console.log("- %s OFT Adapter owner is already set to the desired address. Skipping...", tokenName);
+        }
     }
 }

@@ -83,7 +83,7 @@ contract FeeFlowControllerEVK is EVCUtil {
     /// @param priceMultiplier_ The multiplier for adjusting the price from one epoch to the next.
     /// @param minInitPrice_ The minimum allowed initial price for an epoch.
     /// @param hookTarget_ The address of the hook target.
-    /// @param hookTargetSelector_ The selector for the hook target to call on.
+    /// @param hookTargetSelector_ The selector of the function called on the hook target.
     /// @notice This constructor performs parameter validation and sets the initial values for the contract.
     constructor(
         address evc,
