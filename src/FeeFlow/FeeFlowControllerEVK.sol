@@ -33,7 +33,7 @@ contract FeeFlowControllerEVK is EVCUtil {
     uint256 public immutable minInitPrice;
 
     address public immutable hookTarget;
-    bytes public hookCalldata;
+    bytes4 public immutable hookTargetSelector;
 
     struct Slot0 {
         uint8 locked; // 1 if locked, 2 if unlocked
@@ -83,7 +83,7 @@ contract FeeFlowControllerEVK is EVCUtil {
     /// @param priceMultiplier_ The multiplier for adjusting the price from one epoch to the next.
     /// @param minInitPrice_ The minimum allowed initial price for an epoch.
     /// @param hookTarget_ The address of the hook target.
-    /// @param hookCalldata_ The calldata for the hook target.
+    /// @param hookTargetSelector_ The selector for the hook target to call on.
     /// @notice This constructor performs parameter validation and sets the initial values for the contract.
     constructor(
         address evc,
@@ -94,7 +94,7 @@ contract FeeFlowControllerEVK is EVCUtil {
         uint256 priceMultiplier_,
         uint256 minInitPrice_,
         address hookTarget_,
-        bytes memory hookCalldata_
+        bytes4 hookTargetSelector_
     ) EVCUtil(evc) {
         if (initPrice < minInitPrice_) revert InitPriceBelowMin();
         if (initPrice > ABS_MAX_INIT_PRICE) revert InitPriceExceedsMax();
@@ -115,7 +115,7 @@ contract FeeFlowControllerEVK is EVCUtil {
         priceMultiplier = priceMultiplier_;
         minInitPrice = minInitPrice_;
         hookTarget = hookTarget_;
-        hookCalldata = hookCalldata_;
+        hookTargetSelector = hookTargetSelector_;
     }
 
     /// @dev Allows a user to buy assets by transferring payment tokens and receiving the assets.
@@ -181,10 +181,10 @@ contract FeeFlowControllerEVK is EVCUtil {
 
         emit Buy(sender, assetsReceiver, paymentAmount);
 
-        // Perform the hook call if the hook target is set and the calldata is not empty
-        if (hookTarget != address(0) && hookCalldata.length > 0) {
+        // Perform the hook call if the hook target is set
+        if (hookTarget != address(0)) {
             // We do not check the success of the call as we allow it silently fail
-            (bool success,) = hookTarget.call(hookCalldata);
+            (bool success,) = hookTarget.call(abi.encode(hookTargetSelector));
             success;
         }
 
