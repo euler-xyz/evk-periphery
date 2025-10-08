@@ -32,7 +32,7 @@ contract FeeFlowControllerEVKTest is Test {
     MockHookTarget public mockHookTarget;
     uint256 constant HOOK_TARGET_TEST_VALUE = 1;
 
-    function setUp() public {
+    function setUp() public virtual {
         // Deploy tokens
         paymentToken = new MockToken("Payment Token", "PAY");
         vm.label(address(paymentToken), "paymentToken");
