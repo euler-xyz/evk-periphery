@@ -7,18 +7,37 @@ import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import "../../src/FeeFlow/FeeFlowControllerEVK.sol";
 import {FeeCollectorUtilTest} from "./FeeCollectorUtil.t.sol";
 import {FeeCollectorGulper} from "../../src/Util/FeeCollectorGulper.sol";
+import {MockVault} from "./lib/MockVault.sol";
+import {BaseFeeFlowControllerTest} from "../FeeFlow/BaseFeeFlowControllerTest.sol";
 
-contract FeeCollectorGulperTest is FeeCollectorUtilTest {
+contract FeeCollectorGulperTest is BaseFeeFlowControllerTest {
     FeeCollectorGulper gulper;
     MockESR mockESR;
+    FeeFlowControllerEVK feeFlowControllerGulper;
+
+    address admin;
+    address maintainer;
+    MockVault vault1;
+    MockVault vault2;
 
     function setUp() public override {
         super.setUp();
+
+        admin = makeAddr("admin");
+        maintainer = makeAddr("maintainer");
+
         mockESR = new MockESR();
         gulper = new FeeCollectorGulper(admin, address(paymentToken), address(mockESR));
 
-        // deploy new controller with gulper in hook
-        feeFlowController = new FeeFlowControllerEVK(
+        bytes32 maintainerRole = gulper.MAINTAINER_ROLE();
+        vm.prank(admin);
+        gulper.grantRole(maintainerRole, maintainer);
+
+        vault1 = new MockVault(paymentToken, address(gulper));
+        vault2 = new MockVault(paymentToken, address(gulper));
+
+
+        feeFlowControllerGulper = new FeeFlowControllerEVK(
             address(evc),
             INIT_PRICE,
             address(paymentToken),
@@ -27,10 +46,10 @@ contract FeeCollectorGulperTest is FeeCollectorUtilTest {
             PRICE_MULTIPLIER,
             MIN_INIT_PRICE,
             address(gulper),
-            abi.encodeCall(gulper.collectFees, ())
+            gulper.collectFees.selector
         );
         vm.prank(buyer);
-        paymentToken.approve(address(feeFlowController), type(uint256).max);
+        paymentToken.approve(address(feeFlowControllerGulper), type(uint256).max);
     }
 
     function testCollectFeesAndGulp() public {
@@ -38,8 +57,8 @@ contract FeeCollectorGulperTest is FeeCollectorUtilTest {
         vault2.mockSetFeeAmount(2e18);
 
         vm.startPrank(maintainer);
-        feeCollector.addToVaultsList(address(vault1));
-        feeCollector.addToVaultsList(address(vault2));
+        gulper.addToVaultsList(address(vault1));
+        gulper.addToVaultsList(address(vault2));
         vm.stopPrank();
 
         assertEq(paymentToken.balanceOf(address(mockESR)), 0);
@@ -47,7 +66,7 @@ contract FeeCollectorGulperTest is FeeCollectorUtilTest {
         // gulp was called
         vm.expectCall(address(mockESR), abi.encodeCall(MockESR.gulp, ()));
         vm.prank(buyer);
-        feeFlowController.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
+        feeFlowControllerGulper.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
 
         // fees transferred
         assertEq(paymentToken.balanceOf(address(mockESR)), 3e18);

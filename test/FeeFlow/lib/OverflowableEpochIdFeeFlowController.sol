@@ -13,7 +13,7 @@ contract OverflowableEpochIdFeeFlowController is FeeFlowControllerEVK {
         uint256 priceMultiplier_,
         uint256 minInitPrice_,
         address hookTarget_,
-        bytes memory hookCalldata_
+        bytes4 hookSelector_
     )
         FeeFlowControllerEVK(
             evc_,
@@ -24,7 +24,7 @@ contract OverflowableEpochIdFeeFlowController is FeeFlowControllerEVK {
             priceMultiplier_,
             minInitPrice_,
             hookTarget_,
-            hookCalldata_
+            hookSelector_
         )
     {}
 
