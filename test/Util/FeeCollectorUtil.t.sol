@@ -7,9 +7,12 @@ import {FeeFlowControllerEVK} from "../../src/FeeFlow/FeeFlowControllerEVK.sol";
 import {FeeFlowControllerEVKTest} from "../FeeFlow/FeeFlowControllerEVK.t.sol";
 import {FeeCollectorUtil} from "../../src/Util/FeeCollectorUtil.sol";
 import {MockToken} from "../FeeFlow/lib/MockToken.sol";
+import {MockVault} from "./lib/MockVault.sol";
+import {BaseFeeFlowControllerTest} from "../FeeFlow/BaseFeeFlowControllerTest.sol";
 
-contract FeeCollectorUtilTest is FeeFlowControllerEVKTest {
+contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
     FeeCollectorUtil feeCollector;
+    FeeFlowControllerEVK feeFlowControllerCollector;
     address admin;
     address maintainer;
     MockVault vault1;
@@ -32,7 +35,7 @@ contract FeeCollectorUtilTest is FeeFlowControllerEVKTest {
         vaultOtherUnderlying = new MockVault(MockToken(address(1)), address(feeCollector));
 
         // deploy new controller with new hook data
-        feeFlowController = new FeeFlowControllerEVK(
+        feeFlowControllerCollector = new FeeFlowControllerEVK(
             address(evc),
             INIT_PRICE,
             address(paymentToken),
@@ -41,10 +44,10 @@ contract FeeCollectorUtilTest is FeeFlowControllerEVKTest {
             PRICE_MULTIPLIER,
             MIN_INIT_PRICE,
             address(feeCollector),
-            abi.encodeCall(feeCollector.collectFees, ())
+            feeCollector.collectFees.selector
         );
         vm.prank(buyer);
-        paymentToken.approve(address(feeFlowController), type(uint256).max);
+        paymentToken.approve(address(feeFlowControllerCollector), type(uint256).max);
     }
 
     function testVaultList() public {
@@ -139,30 +142,7 @@ contract FeeCollectorUtilTest is FeeFlowControllerEVKTest {
 
         assertEq(paymentToken.balanceOf(address(feeCollector)), 0);
         vm.prank(buyer);
-        feeFlowController.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
+        feeFlowControllerCollector.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
         assertEq(paymentToken.balanceOf(address(feeCollector)), 3e18);
-    }
-}
-
-
-contract MockVault {
-    MockToken underlying;
-    address feeReceiver;
-    uint256 feesAmount;
-    constructor(MockToken underlying_, address feeReceiver_) {
-        underlying = underlying_;
-        feeReceiver = feeReceiver_;
-    }
-
-    function mockSetFeeAmount(uint256 newAmount) public {
-        feesAmount = newAmount;
-    }
-
-    function convertFees() public {
-        underlying.mint(feeReceiver, feesAmount);
-    }
-
-    function asset() external view returns(address) {
-        return address(underlying);
     }
 }
