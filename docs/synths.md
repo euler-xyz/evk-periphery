@@ -50,10 +50,11 @@ This system builds upon the original synthetic asset architecture described in t
 
 ### FeeFlowControllerEVK
 
-**Purpose**: An enhanced version of the FeeFlowController specifically designed for EVK vaults with automated fee conversion and hook-based automation.
+**Purpose**: An enhanced version of the FeeFlowController specifically designed for EVK vaults with automated fee conversion, optional payment token bridging via LayerZero OFT adapter and hook-based automation.
 
 **Key Differences from Original FeeFlowController**:
 - **Fee Conversion**: Automatically calls `IEVault(assets[i]).convertFees()` for each asset before transfer
+- **LayerZero OFT Integration**: Supports bridging the payment token to a remote chain using a LayerZero OFT adapter. If `oftAdapter` is set, payment tokens are sent cross-chain to the configured receiver; otherwise, they are transferred locally.
 - **Hook Support**: Added `hookTarget` and `hookCalldata` parameters for post-transaction automation
 
 ### FeeCollectorUtil

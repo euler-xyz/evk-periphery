@@ -2,6 +2,8 @@
 pragma solidity 0.8.24;
 
 import {IERC20, SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
+import {IOFT, SendParam} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
+import {MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 
@@ -32,6 +34,9 @@ contract FeeFlowControllerEVK is EVCUtil {
     uint256 public immutable priceMultiplier;
     uint256 public immutable minInitPrice;
 
+    address public immutable oftAdapter;
+    uint32 public immutable dstEid;
+
     address public immutable hookTarget;
     bytes4 public immutable hookTargetSelector;
 
@@ -60,6 +65,7 @@ contract FeeFlowControllerEVK is EVCUtil {
     error EpochIdMismatch();
     error MaxPaymentTokenAmountExceeded();
     error PaymentReceiverIsThis();
+    error InvalidOFTAdapter();
     error EmptyError();
 
     modifier nonReentrant() {
@@ -82,6 +88,8 @@ contract FeeFlowControllerEVK is EVCUtil {
     /// @param epochPeriod_ The duration of each epoch period.
     /// @param priceMultiplier_ The multiplier for adjusting the price from one epoch to the next.
     /// @param minInitPrice_ The minimum allowed initial price for an epoch.
+    /// @param oftAdapter_ The address of the OFT adapter.
+    /// @param dstEid_ The LayerZero endpoint ID of the destination chain.
     /// @param hookTarget_ The address of the hook target.
     /// @param hookTargetSelector_ The selector for the hook target to call on.
     /// @notice This constructor performs parameter validation and sets the initial values for the contract.
@@ -93,6 +101,8 @@ contract FeeFlowControllerEVK is EVCUtil {
         uint256 epochPeriod_,
         uint256 priceMultiplier_,
         uint256 minInitPrice_,
+        address oftAdapter_,
+        uint32 dstEid_,
         address hookTarget_,
         bytes4 hookTargetSelector_
     ) EVCUtil(evc) {
@@ -105,6 +115,9 @@ contract FeeFlowControllerEVK is EVCUtil {
         if (minInitPrice_ < ABS_MIN_INIT_PRICE) revert MinInitPriceBelowMin();
         if (minInitPrice_ > ABS_MAX_INIT_PRICE) revert MinInitPriceExceedsAbsMaxInitPrice();
         if (paymentReceiver_ == address(this)) revert PaymentReceiverIsThis();
+        if (oftAdapter_ != address(0) && address(paymentToken_) != IOFT(oftAdapter_).token()) {
+            revert InvalidOFTAdapter();
+        }
 
         slot0.initPrice = uint192(initPrice);
         slot0.startTime = uint40(block.timestamp);
@@ -114,6 +127,8 @@ contract FeeFlowControllerEVK is EVCUtil {
         epochPeriod = epochPeriod_;
         priceMultiplier = priceMultiplier_;
         minInitPrice = minInitPrice_;
+        oftAdapter = oftAdapter_;
+        dstEid = dstEid_;
         hookTarget = hookTarget_;
         hookTargetSelector = hookTargetSelector_;
     }
@@ -148,7 +163,25 @@ contract FeeFlowControllerEVK is EVCUtil {
         if (paymentAmount > maxPaymentTokenAmount) revert MaxPaymentTokenAmountExceeded();
 
         if (paymentAmount > 0) {
-            paymentToken.safeTransferFrom(sender, paymentReceiver, paymentAmount);
+            if (oftAdapter == address(0)) {
+                paymentToken.safeTransferFrom(sender, paymentReceiver, paymentAmount);
+            } else {
+                paymentToken.safeTransferFrom(sender, address(this), paymentAmount);
+
+                SendParam memory sendParam = SendParam({
+                    dstEid: dstEid,
+                    to: bytes32(uint256(uint160(paymentReceiver))),
+                    amountLD: paymentAmount,
+                    minAmountLD: paymentAmount,
+                    extraOptions: "",
+                    composeMsg: "",
+                    oftCmd: ""
+                });
+                MessagingFee memory fee = IOFT(oftAdapter).quoteSend(sendParam, false);
+
+                paymentToken.forceApprove(oftAdapter, paymentAmount);
+                IOFT(oftAdapter).send{value: fee.nativeFee}(sendParam, fee, address(this));
+            }
         }
 
         for (uint256 i = 0; i < assets.length; ++i) {
