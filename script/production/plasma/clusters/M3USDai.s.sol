@@ -24,7 +24,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x060DB084bF41872861f175d83f3cb1B5566dfEA3;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -42,9 +42,6 @@ contract Cluster is ManageCluster {
         // define hook target and hooked ops here. if needed to be defined per asset, populate the hookTargetOverride and hookedOpsOverride mappings
         cluster.hookTarget = address(0);
         cluster.hookedOps = 0;
-
-        cluster.hookTargetOverride[USDai] = 0x39519F45db90bd568a14fce20894CfD71082441a;
-        cluster.hookedOpsOverride[USDai] = OP_LIQUIDATE;
 
         // define config flags here. if needed to be defined per asset, populate the configFlagsOverride mapping
         cluster.configFlags = 0;
@@ -69,7 +66,7 @@ contract Cluster is ManageCluster {
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[sUSDai] = type(uint256).max;
-        cluster.borrowCaps[USDai ] = 20_000_000;
+        cluster.borrowCaps[USDai ] = 25_000_000;
         cluster.borrowCaps[USDT0] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
@@ -82,16 +79,16 @@ contract Cluster is ManageCluster {
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
 
-        cluster.borrowLTVsOverride[0][1] = 0.7e4;
-        cluster.borrowLTVsOverride[2][1] = 0.7e4;
+        cluster.borrowLTVsOverride[0][1] = 0.8e4;
+        cluster.borrowLTVsOverride[2][1] = 0.8e4;
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
         //                0         1         2
         //                sUSDai    USDai     USDT0
-        /* 0  sUSDai  */ [LTV_ZERO, 0.8000e4, LTV__LOW],
+        /* 0  sUSDai  */ [LTV_ZERO, LTV_HIGH, LTV__LOW],
         /* 1  USDai   */ [LTV_ZERO, LTV_ZERO, LTV__LOW],
-        /* 2  USDT0   */ [LTV_ZERO, 0.8000e4, LTV_ZERO]
+        /* 2  USDT0   */ [LTV_ZERO, LTV__LOW, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
