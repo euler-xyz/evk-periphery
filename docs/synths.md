@@ -55,7 +55,7 @@ This system builds upon the original synthetic asset architecture described in t
 **Key Differences from Original FeeFlowController**:
 - **Fee Conversion**: Automatically calls `IEVault(assets[i]).convertFees()` for each asset before transfer
 - **LayerZero OFT Integration**: Supports bridging the payment token to a remote chain using a LayerZero OFT adapter. If `oftAdapter` is set, payment tokens are sent cross-chain to the configured receiver; otherwise, they are transferred locally.
-- **Hook Support**: Added `hookTarget` and `hookCalldata` parameters for post-transaction automation
+- **Hook Support**: Added `hookTarget` and `hookTargetSelector` parameters for post-transaction automation
 
 ### FeeCollectorUtil
 
@@ -166,3 +166,5 @@ The IRM also serves as a crucial peg stability mechanism. When synthetic assets 
 The complete system operates through a coordinated flow: vaults generate fees through normal lending operations, the fee flow controller periodically auctions these fees, fee collectors gather the proceeds from multiple vaults, and the cross-chain infrastructure transports these fees to the canonical ESR on Ethereum. The ESR then distributes interest to depositors using its smearing mechanism, while EulerSwap pools maintain synthetic asset pegs through efficient liquidity provision.
 
 This architecture creates a sophisticated multi-chain synthetic asset system that combines the security of the original Euler Vault Kit with modern cross-chain infrastructure and efficient peg maintenance mechanisms, enabling synthetic assets to operate seamlessly across multiple networks while maintaining consistent interest distribution and peg stability.
+
+![Synths System Architecture](./synths.png)
