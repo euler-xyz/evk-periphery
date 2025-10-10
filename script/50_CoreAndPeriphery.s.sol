@@ -402,8 +402,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 console.log("+ Deploying seUSD...");
                 if (block.chainid == HUB_CHAIN_ID) {
                     startBroadcast();
-                    tokenAddresses.seUSD =
-                        address(new EulerSavingsRate(coreAddresses.evc, tokenAddresses.eUSD, "Savings Rate eUSD", "seUSD"));
+                    tokenAddresses.seUSD = address(
+                        new EulerSavingsRate(coreAddresses.evc, tokenAddresses.eUSD, "Savings Rate eUSD", "seUSD")
+                    );
                     stopBroadcast();
                 } else {
                     ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
@@ -515,49 +516,63 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             address paymentToken = bridgeAddresses.eusdOFTAdapter != address(0)
                 ? tokenAddresses.eUSD
                 : bridgeAddresses.eulOFTAdapter != address(0) ? tokenAddresses.EUL : getWETHAddress();
+            address oftAdapter = paymentToken == tokenAddresses.eUSD
+                ? bridgeAddresses.eusdOFTAdapter
+                : paymentToken == tokenAddresses.EUL ? bridgeAddresses.eulOFTAdapter : address(0);
 
             if (input.feeFlowInitPrice != 0 && paymentToken != address(0)) {
                 console.log("+ Deploying FeeFlowController...");
                 FeeFlow deployer = new FeeFlow();
-                peripheryAddresses.feeFlowController = deployer.deploy(
-                    coreAddresses.evc,
-                    input.feeFlowInitPrice,
-                    paymentToken,
-                    multisigAddresses.DAO,
-                    FEE_FLOW_EPOCH_PERIOD,
-                    FEE_FLOW_PRICE_MULTIPLIER,
-                    FEE_FLOW_MIN_INIT_PRICE,
-                    peripheryAddresses.feeCollector,
-                    FeeCollectorUtil.collectFees.selector
-                );
+                FeeFlow.Input memory feeFlowInput = FeeFlow.Input({
+                    evc: coreAddresses.evc,
+                    initPrice: input.feeFlowInitPrice,
+                    paymentToken: paymentToken,
+                    paymentReceiver: oftAdapter == address(0)
+                        ? multisigAddresses.DAO
+                        : deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json", HUB_CHAIN_ID)).DAO,
+                    epochPeriod: FEE_FLOW_EPOCH_PERIOD,
+                    priceMultiplier: FEE_FLOW_PRICE_MULTIPLIER,
+                    minInitPrice: FEE_FLOW_MIN_INIT_PRICE,
+                    oftAdapter: oftAdapter,
+                    dstEid: oftAdapter == address(0)
+                        ? 0
+                        : (new LayerZeroUtil(HUB_CHAIN_ID)).getDeploymentInfo(HUB_CHAIN_ID).eid,
+                    hookTarget: peripheryAddresses.feeCollector,
+                    hookTargetSelector: FeeCollectorUtil.collectFees.selector
+                });
+                peripheryAddresses.feeFlowController = deployer.deploy(feeFlowInput);
 
-                if (block.chainid != HUB_CHAIN_ID) {}
-
-                bytes32 defaultAdminRole = OFTFeeCollector(peripheryAddresses.feeCollector).DEFAULT_ADMIN_ROLE();
-                bytes32 collectorRole = OFTFeeCollector(peripheryAddresses.feeCollector).COLLECTOR_ROLE();
-                if (OFTFeeCollector(peripheryAddresses.feeCollector).hasRole(defaultAdminRole, getDeployer())) {
-                    vm.startBroadcast();
-                    console.log(
-                        "    Granting OFTFeeCollector collector role to the desired address %s",
-                        peripheryAddresses.feeFlowController
-                    );
-                    AccessControl(peripheryAddresses.feeCollector).grantRole(
-                        collectorRole, peripheryAddresses.feeFlowController
-                    );
-                    stopBroadcast();
-                } else if (OFTFeeCollector(peripheryAddresses.feeCollector).hasRole(defaultAdminRole, getSafe(false))) {
-                    console.log(
-                        "    Adding multisend item to grant OFTFeeCollector collector role to the desired address %s",
-                        peripheryAddresses.feeFlowController
-                    );
-                    addMultisendItem(
-                        peripheryAddresses.feeCollector,
-                        abi.encodeCall(AccessControl.grantRole, (collectorRole, peripheryAddresses.feeFlowController))
-                    );
-                } else {
-                    console.log(
-                        "    ! The deployer or designated safe no longer has the default admin role to grant the OFTFeeCollector collector role to the desired address. This must be done manually. Skipping..."
-                    );
+                if (block.chainid != HUB_CHAIN_ID) {
+                    bytes32 defaultAdminRole = OFTFeeCollector(peripheryAddresses.feeCollector).DEFAULT_ADMIN_ROLE();
+                    bytes32 collectorRole = OFTFeeCollector(peripheryAddresses.feeCollector).COLLECTOR_ROLE();
+                    if (OFTFeeCollector(peripheryAddresses.feeCollector).hasRole(defaultAdminRole, getDeployer())) {
+                        vm.startBroadcast();
+                        console.log(
+                            "    Granting OFTFeeCollector collector role to the desired address %s",
+                            peripheryAddresses.feeFlowController
+                        );
+                        AccessControl(peripheryAddresses.feeCollector).grantRole(
+                            collectorRole, peripheryAddresses.feeFlowController
+                        );
+                        stopBroadcast();
+                    } else if (
+                        OFTFeeCollector(peripheryAddresses.feeCollector).hasRole(defaultAdminRole, getSafe(false))
+                    ) {
+                        console.log(
+                            "    Adding multisend item to grant OFTFeeCollector collector role to the desired address %s",
+                            peripheryAddresses.feeFlowController
+                        );
+                        addMultisendItem(
+                            peripheryAddresses.feeCollector,
+                            abi.encodeCall(
+                                AccessControl.grantRole, (collectorRole, peripheryAddresses.feeFlowController)
+                            )
+                        );
+                    } else {
+                        console.log(
+                            "    ! The deployer or designated safe no longer has the default admin role to grant the OFTFeeCollector collector role to the desired address. This must be done manually. Skipping..."
+                        );
+                    }
                 }
             } else {
                 console.log(
