@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {IERC20, SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {IOFT, SendParam} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
 import {FeeCollectorUtil} from "../Util/FeeCollectorUtil.sol";
 
@@ -12,6 +13,7 @@ import {FeeCollectorUtil} from "../Util/FeeCollectorUtil.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Collects and converts fees from multiple vaults, then sends them cross-chain via a LayerZero OFT adapter.
 contract OFTFeeCollector is FeeCollectorUtil {
+    using OptionsBuilder for bytes;
     using SafeERC20 for IERC20;
 
     /// @notice Role that can execute the fee collection process
@@ -74,8 +76,8 @@ contract OFTFeeCollector is FeeCollectorUtil {
             dstEid: dstEid,
             to: bytes32(uint256(uint160(dstAddress))),
             amountLD: balance,
-            minAmountLD: balance,
-            extraOptions: "",
+            minAmountLD: 0,
+            extraOptions: isComposedMsg ? OptionsBuilder.newOptions().addExecutorLzReceiveOption(250000, 0) : bytes(""),
             composeMsg: isComposedMsg ? abi.encode(0x01) : bytes(""),
             oftCmd: ""
         });

@@ -176,7 +176,7 @@ contract FeeFlowControllerEVK is EVCUtil {
                     dstEid: dstEid,
                     to: bytes32(uint256(uint160(paymentReceiver))),
                     amountLD: paymentAmount,
-                    minAmountLD: paymentAmount,
+                    minAmountLD: 0,
                     extraOptions: "",
                     composeMsg: "",
                     oftCmd: ""
