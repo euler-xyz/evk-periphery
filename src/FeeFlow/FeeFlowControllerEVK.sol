@@ -10,8 +10,9 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 /// @title FeeFlowControllerEVK
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://eulerlabs.com)
-/// @notice Continous back to back dutch auctions selling any asset received by this contract. The EVK version
+/// @notice Continuous back to back dutch auctions selling any asset received by this contract. The EVK version
 /// introduces:
+/// - optional bridging of the payment token to a remote chain using a LayerZero OFT adapter
 /// - convertFees() call iteration over the provided assets array to avoid 10 vault status checks limit of the EVC if
 /// called outside of the EVC checks-deferred context
 /// - additional call imposed upon the buyer. This way, the protocol can automate certain periodic operations that would
@@ -41,7 +42,7 @@ contract FeeFlowControllerEVK is EVCUtil {
     bytes4 public immutable hookTargetSelector;
 
     struct Slot0 {
-        uint8 locked; // 1 if locked, 2 if unlocked
+        uint8 locked; // 2 if locked, 1 if unlocked
         uint16 epochId; // intentionally overflowable
         uint192 initPrice;
         uint40 startTime;
@@ -132,6 +133,9 @@ contract FeeFlowControllerEVK is EVCUtil {
         hookTarget = hookTarget_;
         hookTargetSelector = hookTargetSelector_;
     }
+
+    /// @dev Allows the contract to receive ETH
+    receive() external payable {}
 
     /// @dev Allows a user to buy assets by transferring payment tokens and receiving the assets.
     /// @param assets The addresses of the assets to be bought.

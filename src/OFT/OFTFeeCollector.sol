@@ -37,6 +37,9 @@ contract OFTFeeCollector is FeeCollectorUtil {
     /// @param _feeToken The address of the ERC20 token used for fees
     constructor(address _admin, address _feeToken) FeeCollectorUtil(_admin, _feeToken) {}
 
+    /// @notice Allows the contract to receive ETH
+    receive() external payable {}
+
     /// @notice Configures the OFTFeeCollector contract for cross-chain fee transfers
     /// @param _oftAdapter The LayerZero OFT adapter contract address
     /// @param _dstAddress The destination address on the target chain to receive fees
