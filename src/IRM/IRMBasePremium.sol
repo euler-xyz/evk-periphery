@@ -88,7 +88,7 @@ contract IRMBasePremium is AccessControlEnumerable, EVCUtil, IIRM {
 
     /// @notice Renounces a role for the calling account. Only callable by EVC account owner.
     /// @param role The role to renounce.
-    /// @param callerConfirmation The address of the caller (must match msg.sender).
+    /// @param callerConfirmation The address of the caller (must match _msgSender()).
     function renounceRole(bytes32 role, address callerConfirmation)
         public
         virtual

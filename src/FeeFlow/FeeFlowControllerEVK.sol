@@ -220,7 +220,7 @@ contract FeeFlowControllerEVK is EVCUtil {
 
         // Perform the hook call if the hook target is set
         if (hookTarget != address(0)) {
-            // We do not check the success of the call as we allow it silently fail
+            // We do not check the success of the call as we allow it to silently fail
             (bool success,) = hookTarget.call(abi.encode(hookTargetSelector));
             success;
         }

@@ -43,7 +43,7 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     /// @notice Error thrown when a minter exceeds their minting capacity.
     error CapacityReached();
 
-    /// @notice Deploys the ESynth contract.
+    /// @notice Deploys the ERC20Synth contract.
     /// @param evc_ Address of the EVC (Ethereum Vault Connector).
     /// @param admin_ Address to be granted DEFAULT_ADMIN_ROLE.
     /// @param name_ Name of the token.
@@ -82,7 +82,7 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
 
     /// @notice Renounces a role for the calling account. Only callable by EVC account owner.
     /// @param role The role to renounce.
-    /// @param callerConfirmation The address of the caller (must match msg.sender).
+    /// @param callerConfirmation The address of the caller (must match _msgSender()).
     function renounceRole(bytes32 role, address callerConfirmation)
         public
         virtual
