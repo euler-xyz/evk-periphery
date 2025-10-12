@@ -98,6 +98,7 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     function setCapacity(address minter, uint128 capacity) external onlyEVCAccountOwner onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(MINTER_ROLE, minter);
         minters[minter].capacity = capacity;
+        if (capacity == type(uint128).max) minters[minter].minted = 0;
         emit MinterCapacitySet(minter, capacity);
     }
 
