@@ -3,15 +3,17 @@
 pragma solidity ^0.8.0;
 
 import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
+import {AccessControl, IAccessControl, Context} from "openzeppelin-contracts/access/AccessControl.sol";
 import {IERC20, SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
+import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 
 /// @title FeeCollectorUtil
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A contract that collects and converts fees from multiple vaults.
-contract FeeCollectorUtil is AccessControlEnumerable {
+contract FeeCollectorUtil is AccessControlEnumerable, EVCUtil {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -34,11 +36,48 @@ contract FeeCollectorUtil is AccessControlEnumerable {
     error InvalidVault();
 
     /// @notice Initializes the FeeCollectorUtil contract
+    /// @param _evc The address of the EVC contract
     /// @param _admin The address that will be granted the DEFAULT_ADMIN_ROLE
     /// @param _feeToken The address of the ERC20 token used for fees
-    constructor(address _admin, address _feeToken) {
+    constructor(address _evc, address _admin, address _feeToken) EVCUtil(_evc) {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         feeToken = IERC20(_feeToken);
+    }
+
+    /// @notice Grants a role to an account. Only callable by EVC account owner.
+    /// @param role The role to grant.
+    /// @param account The address to grant the role to.
+    function grantRole(bytes32 role, address account)
+        public
+        virtual
+        override (AccessControl, IAccessControl)
+        onlyEVCAccountOwner
+    {
+        super.grantRole(role, account);
+    }
+
+    /// @notice Revokes a role from an account. Only callable by EVC account owner.
+    /// @param role The role to revoke.
+    /// @param account The address to revoke the role from.
+    function revokeRole(bytes32 role, address account)
+        public
+        virtual
+        override (AccessControl, IAccessControl)
+        onlyEVCAccountOwner
+    {
+        super.revokeRole(role, account);
+    }
+
+    /// @notice Renounces a role for the calling account. Only callable by EVC account owner.
+    /// @param role The role to renounce.
+    /// @param callerConfirmation The address of the caller (must match _msgSender()).
+    function renounceRole(bytes32 role, address callerConfirmation)
+        public
+        virtual
+        override (AccessControl, IAccessControl)
+        onlyEVCAccountOwner
+    {
+        super.renounceRole(role, callerConfirmation);
     }
 
     /// @notice Allows recovery of any ERC20 tokens or native currency sent to this contract
@@ -100,5 +139,11 @@ contract FeeCollectorUtil is AccessControlEnumerable {
             try IEVault(vault).convertFees() {} catch {}
             try IEVault(vault).redeem(type(uint256).max, address(this), address(this)) {} catch {}
         }
+    }
+
+    /// @notice Retrieves the message sender in the context of the EVC.
+    /// @return msgSender The address of the message sender.
+    function _msgSender() internal view virtual override (EVCUtil, Context) returns (address msgSender) {
+        return EVCUtil._msgSender();
     }
 }

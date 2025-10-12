@@ -34,9 +34,10 @@ contract OFTFeeCollector is FeeCollectorUtil {
     error InvalidOFTAdapter();
 
     /// @notice Initializes the OFTFeeCollector contract
+    /// @param _evc The address of the EVC contract
     /// @param _admin The address that will be granted the DEFAULT_ADMIN_ROLE
     /// @param _feeToken The address of the ERC20 token used for fees
-    constructor(address _admin, address _feeToken) FeeCollectorUtil(_admin, _feeToken) {}
+    constructor(address _evc, address _admin, address _feeToken) FeeCollectorUtil(_evc, _admin, _feeToken) {}
 
     /// @notice Allows the contract to receive ETH
     receive() external payable {}

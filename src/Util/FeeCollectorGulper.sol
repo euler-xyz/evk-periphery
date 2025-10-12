@@ -18,9 +18,12 @@ contract FeeCollectorGulper is FeeCollectorUtil {
     EulerSavingsRate public immutable esr;
 
     /// @notice Initializes the FeeCollectorGulper contract.
+    /// @param _evc The address of the EVC contract
     /// @param _admin The address to be granted the DEFAULT_ADMIN_ROLE.
     /// @param _esr The address of the EulerSavingsRate contract to receive collected fees.
-    constructor(address _admin, address _esr) FeeCollectorUtil(_admin, EulerSavingsRate(_esr).asset()) {
+    constructor(address _evc, address _admin, address _esr)
+        FeeCollectorUtil(_evc, _admin, EulerSavingsRate(_esr).asset())
+    {
         esr = EulerSavingsRate(_esr);
     }
 

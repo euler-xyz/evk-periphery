@@ -3,10 +3,8 @@
 pragma solidity ^0.8.0;
 
 import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
-import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
-import {Context} from "openzeppelin-contracts/utils/Context.sol";
+import {AccessControl, IAccessControl, Context} from "openzeppelin-contracts/access/AccessControl.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
-import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {IIRM} from "evk/InterestRateModels/IIRM.sol";
 
 /// @title IRMBasePremium
