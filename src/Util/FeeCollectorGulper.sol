@@ -19,9 +19,8 @@ contract FeeCollectorGulper is FeeCollectorUtil {
 
     /// @notice Initializes the FeeCollectorGulper contract.
     /// @param _admin The address to be granted the DEFAULT_ADMIN_ROLE.
-    /// @param _feeToken The address of the ERC20 token used for fees.
     /// @param _esr The address of the EulerSavingsRate contract to receive collected fees.
-    constructor(address _admin, address _feeToken, address _esr) FeeCollectorUtil(_admin, _feeToken) {
+    constructor(address _admin, address _esr) FeeCollectorUtil(_admin, EulerSavingsRate(_esr).asset()) {
         esr = EulerSavingsRate(_esr);
     }
 
