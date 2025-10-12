@@ -29,12 +29,17 @@ contract OFTGulper is Ownable, ILayerZeroComposer {
         feeToken = IERC20(esr.asset());
     }
 
-    /// @notice Allows the contract owner to recover any ERC20 tokens sent to this contract.
-    /// @param token The address of the token to recover.
-    /// @param to The address to send the recovered tokens to.
+    /// @notice Allows recovery of any ERC20 tokens or native currency sent to this contract.
+    /// @param token The address of the token to recover. If address(0), the native currency is recovered.
+    /// @param to The address to send the tokens to.
     /// @param amount The amount of tokens to recover.
     function recoverToken(address token, address to, uint256 amount) external onlyOwner {
-        IERC20(token).safeTransfer(to, amount);
+        if (token == address(0)) {
+            (bool success,) = to.call{value: amount}("");
+            require(success, "Native currency recovery failed");
+        } else {
+            IERC20(token).safeTransfer(to, amount);
+        }
     }
 
     /// @notice Handles incoming composed messages from LayerZero and deposits any fee tokens held by this contract into
