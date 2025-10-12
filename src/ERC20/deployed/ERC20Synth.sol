@@ -171,7 +171,7 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     function addIgnoredForTotalSupply(address account)
         external
         onlyEVCAccountOwner
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (bool success)
     {
         return _ignoredForTotalSupply.add(account);
@@ -183,7 +183,7 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     function removeIgnoredForTotalSupply(address account)
         external
         onlyEVCAccountOwner
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (bool success)
     {
         return _ignoredForTotalSupply.remove(account);
