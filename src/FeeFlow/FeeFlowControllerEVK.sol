@@ -175,7 +175,7 @@ contract FeeFlowControllerEVK is EVCUtil {
                 SendParam memory sendParam = SendParam({
                     dstEid: dstEid,
                     to: bytes32(uint256(uint160(paymentReceiver))),
-                    amountLD: paymentAmount,
+                    amountLD: paymentToken.balanceOf(address(this)),
                     minAmountLD: 0,
                     extraOptions: "",
                     composeMsg: "",
