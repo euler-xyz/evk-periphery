@@ -110,16 +110,8 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
 
         if (amount == 0) return;
 
-        // If the minter has a finite capacity, check for overflow and capacity.
-        if (
-            minterCache.capacity != type(uint128).max
-                && (
-                    amount > type(uint128).max - minterCache.minted
-                        || minterCache.capacity < uint256(minterCache.minted) + amount
-                )
-        ) {
-            revert CapacityReached();
-        }
+        if (minterCache.capacity < minterCache.minted) revert CapacityReached();
+        if (amount > minterCache.capacity - minterCache.minted) revert CapacityReached();
 
         // Only update minted amount if the minter has a finite capacity.
         if (minterCache.capacity != type(uint128).max) {
