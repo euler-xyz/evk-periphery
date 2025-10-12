@@ -26,6 +26,9 @@ contract IRMBasePremium is AccessControlEnumerable, EVCUtil, IIRM {
     /// @notice Role that allows updating the base rate and premium rates.
     bytes32 public constant RATE_ADMIN_ROLE = keccak256("RATE_ADMIN_ROLE");
 
+    // corresponds to 1000% APY
+    uint256 internal constant MAX_ALLOWED_INTEREST_RATE = 75986279153383989049;
+
     /// @notice The default base interest rate (applied to all vaults).
     uint128 public baseRate;
 
@@ -152,9 +155,11 @@ contract IRMBasePremium is AccessControlEnumerable, EVCUtil, IIRM {
     /// @return The computed interest rate for the vault.
     function computeInterestRateInternal(address vault, uint256, uint256) internal view returns (uint256) {
         RateOverride memory rateOverride = _rateOverrides[vault];
-        return rateOverride.exists
+        uint256 rate = rateOverride.exists
             ? uint256(baseRate) + uint256(rateOverride.premiumRate)
             : uint256(baseRate) + uint256(premiumRate);
+
+        return rate > MAX_ALLOWED_INTEREST_RATE ? MAX_ALLOWED_INTEREST_RATE : rate;
     }
 
     /// @notice Retrieves the message sender in the context of the EVC.
