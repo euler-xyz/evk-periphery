@@ -2,11 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-import {IERC20, SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {IOFT, SendParam} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSender.sol";
-import {FeeCollectorUtil} from "../Util/FeeCollectorUtil.sol";
+import {FeeCollectorUtil, IERC20, SafeERC20} from "../Util/FeeCollectorUtil.sol";
 
 /// @title OFTFeeCollector
 /// @custom:security-contact security@euler.xyz

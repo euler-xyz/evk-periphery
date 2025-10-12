@@ -4,9 +4,7 @@ pragma solidity ^0.8.0;
 
 import {ERC20BurnableMintable} from "./ERC20BurnableMintable.sol";
 import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
-import {Context} from "openzeppelin-contracts/utils/Context.sol";
-import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
-import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
+import {AccessControl, IAccessControl, Context} from "openzeppelin-contracts/access/AccessControl.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 
