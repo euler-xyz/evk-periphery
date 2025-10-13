@@ -27,8 +27,8 @@ contract OFTFeeCollector is FeeCollectorUtil {
     /// @notice The LayerZero endpoint ID of the destination chain
     uint32 public dstEid;
 
-    /// @notice Whether to use composed message for cross-chain communication
-    bool public isComposedMsg;
+    /// @notice Value passed as part of the composed message if non-zero
+    uint64 public composedMsg;
 
     /// @notice Error thrown when the OFT adapter token is not the same as the fee token
     error InvalidOFTAdapter();
@@ -46,8 +46,8 @@ contract OFTFeeCollector is FeeCollectorUtil {
     /// @param _oftAdapter The LayerZero OFT adapter contract address
     /// @param _dstAddress The destination address on the target chain to receive fees
     /// @param _dstEid The LayerZero endpoint ID of the destination chain
-    /// @param _isComposedMsg Whether to use composed message for cross-chain communication
-    function configure(address _oftAdapter, address _dstAddress, uint32 _dstEid, bool _isComposedMsg)
+    /// @param _composedMsg Value passed as part of the composed message if non-zero
+    function configure(address _oftAdapter, address _dstAddress, uint32 _dstEid, uint64 _composedMsg)
         public
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -58,7 +58,7 @@ contract OFTFeeCollector is FeeCollectorUtil {
         oftAdapter = _oftAdapter;
         dstAddress = _dstAddress;
         dstEid = _dstEid;
-        isComposedMsg = _isComposedMsg;
+        composedMsg = _composedMsg;
     }
 
     /// @notice Collects and converts fees from all vaults, then sends them cross-chain to the configured destination.
@@ -72,13 +72,14 @@ contract OFTFeeCollector is FeeCollectorUtil {
         uint256 balance = token.balanceOf(address(this));
         if (balance == 0) return;
 
+        uint256 message = composedMsg;
         SendParam memory sendParam = SendParam({
             dstEid: dstEid,
             to: bytes32(uint256(uint160(dstAddress))),
             amountLD: balance,
             minAmountLD: 0,
-            extraOptions: isComposedMsg ? OptionsBuilder.newOptions().addExecutorLzReceiveOption(250000, 0) : bytes(""),
-            composeMsg: isComposedMsg ? abi.encode(0x01) : bytes(""),
+            extraOptions: message == 0 ? bytes("") : OptionsBuilder.newOptions().addExecutorLzReceiveOption(250000, 0),
+            composeMsg: message == 0 ? bytes("") : abi.encode(message),
             oftCmd: ""
         });
         MessagingFee memory fee = IOFT(adapter).quoteSend(sendParam, false);
