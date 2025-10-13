@@ -141,8 +141,9 @@ contract FeeCollectorUtil is AccessControlEnumerable, EVCUtil {
         uint256 length = _vaultsList.length();
         for (uint256 i = 0; i < length; ++i) {
             address vault = _vaultsList.at(i);
-            try IEVault(vault).convertFees() {} catch {}
-            try IEVault(vault).redeem(type(uint256).max, address(this), address(this)) {} catch {}
+            try IEVault(vault).convertFees() {
+                try IEVault(vault).redeem(type(uint256).max, address(this), address(this)) {} catch {}
+            } catch {}
         }
     }
 
