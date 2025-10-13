@@ -21,7 +21,7 @@ contract FeeCollectorUtil is AccessControlEnumerable, EVCUtil {
     bytes32 public constant MAINTAINER_ROLE = keccak256("MAINTAINER_ROLE");
 
     /// @notice The ERC20 token used for fees
-    IERC20 public feeToken;
+    IERC20 public immutable feeToken;
 
     /// @notice Internal set of vault addresses from which fees are collected
     EnumerableSet.AddressSet internal _vaultsList;
