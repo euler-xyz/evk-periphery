@@ -4,15 +4,14 @@ This document describes the new contracts introduced to support synthetic asset 
 
 ## Overview
 
-The synthetic asset system consists of seven main contracts that work together to enable cross-chain synthetic asset creation and automated fee collection/distribution:
+The synthetic asset system consists of six main contracts that work together to enable cross-chain synthetic asset creation and automated fee collection/distribution:
 
 1. **ERC20Synth** - A modified synthetic token contract for LayerZero OFT compatibility
 2. **FeeFlowControllerEVK** - An enhanced fee auction controller for EVK vaults with automated fee conversion
 3. **FeeCollectorUtil** - Base contract for fee collection functionality
-4. **FeeCollectorGulper** - Local fee collection and distribution via EulerSavingsRate
-5. **OFTFeeCollector** - Cross-chain fee collection orchestrator using LayerZero
-6. **OFTGulper** - Cross-chain fee receiver and distributor via LayerZero composer
-7. **IRMBasePremium** - Generic interest rate model with base rate and premium rate components
+4. **OFTFeeCollector** - Cross-chain fee collection orchestrator using LayerZero
+5. **OFTFeeCollectorGulper** - Unified fee collection and distribution contract with both local and cross-chain capabilities
+6. **IRMBasePremium** - Generic interest rate model with base rate and premium rate components
 
 This system builds upon the original synthetic asset architecture described in the Euler Vault Kit whitepaper, which includes:
 - **ESynth** - The original synthetic token contract
@@ -73,16 +72,6 @@ This system builds upon the original synthetic asset architecture described in t
 - `MAINTAINER_ROLE`: Can add/remove vaults from the collection list
 - `COLLECTOR_ROLE`: Can execute the fee collection process
 
-### FeeCollectorGulper
-
-**Purpose**: Collects fees from multiple vaults and deposits them into an EulerSavingsRate contract with automated interest smearing.
-
-**Key Features**:
-- **Inherits from FeeCollectorUtil**: Uses base fee collection functionality
-- **EulerSavingsRate Integration**: Deposits collected fees into ESR contract
-- **Interest Smearing**: Automatically calls `gulp()` to distribute interest over 2-week periods
-- **Local Distribution**: Handles fee distribution without cross-chain transfers
-
 ### OFTFeeCollector
 
 **Purpose**: Collects fees from multiple vaults and sends them cross-chain via LayerZero OFT adapter.
@@ -93,16 +82,18 @@ This system builds upon the original synthetic asset architecture described in t
 - **OFT Validation**: Ensures OFT adapter token matches the fee token
 - **Composed Messages**: Support for composed messages for automated interest smearing
 
-### OFTGulper
+### OFTFeeCollectorGulper
 
-**Purpose**: Receives fee tokens cross-chain and deposits them into an EulerSavingsRate vault with automated interest smearing.
+**Purpose**: Unified contract that combines local fee collection and cross-chain fee reception capabilities, depositing collected fees into an EulerSavingsRate contract with automated interest smearing.
 
 **Key Features**:
+- **Inherits from FeeCollectorUtil**: Uses base fee collection functionality for local operations
 - **LayerZero Integration**: Implements `ILayerZeroComposer` for cross-chain message handling
-- **Automated Deposits**: Deposits received tokens into EulerSavingsRate vault
-- **Interest Smearing**: Calls `gulp()` to distribute interest over a 2-week period
-- **Simple Ownership**: Uses `Ownable` for straightforward administration
-- **Public Execution**: Anyone can trigger the deposit and gulp process
+- **Dual Operation Modes**: 
+  - Local mode: Collects fees from multiple vaults and deposits them into ESR
+  - Cross-chain mode: Receives fee tokens from remote chains and deposits them into ESR
+- **EulerSavingsRate Integration**: Deposits collected fees into ESR contract
+- **Interest Smearing**: Automatically calls `gulp()` to distribute interest over 2-week periods
 
 ### IRMBasePremium
 
@@ -139,15 +130,17 @@ The vaults are configured with 100% interest fees, meaning all interest generate
 
 ### Fee Flow Orchestration
 
-The `FeeFlowControllerEVK` operates on each network, periodically conducting Dutch auctions to sell the accumulated fees. Unlike the original system, this controller automatically calls `convertFees()` on all vaults before transferring assets, ensuring fees are properly converted to transferable tokens. The controller will be configured with the `OFTFeeCollector` as a hook target to automate the fee collection process, seamlessly integrating with the broader fee distribution system.
+The `FeeFlowControllerEVK` operates on each network, periodically conducting Dutch auctions to sell the accumulated fees. Unlike the original system, this controller automatically calls `convertFees()` on all vaults before transferring assets, ensuring fees are properly converted to transferable tokens. The controller will be configured with either the `OFTFeeCollector` (for cross-chain distribution) or `OFTFeeCollectorGulper` (for local distribution) as a hook target to automate the fee collection process, seamlessly integrating with the broader fee distribution system.
 
 ### Cross-Chain Fee Collection
 
-Two complementary systems handle fee collection and distribution:
+The fee collection system supports both local and cross-chain distribution through unified contracts:
+
+**Local Distribution**: `OFTFeeCollectorGulper` contract can operate locally on Ethereum, collecting fees from multiple vaults and depositing them directly into local ESR instances with automated interest smearing.
 
 **Cross-Chain Collection**: `OFTFeeCollector` contracts on each network collect fees from multiple vaults and send them cross-chain to Ethereum using LayerZero OFT adapters. These collectors inherit from `FeeCollectorUtil`, providing consistent fee collection logic while supporting composed messages for automated interest smearing.
 
-**Cross-Chain Reception**: `OFTGulper` contracts on Ethereum receive the cross-chain fees and automatically deposit them into the canonical ESR instance. The gulper implements LayerZero's composer interface, allowing it to receive fees and immediately trigger the `gulp()` function to distribute interest over the two-week smearing period.
+**Cross-Chain Reception**: `OFTFeeCollectorGulper` contract on Ethereum receives the cross-chain fees and automatically deposits them into the canonical ESR instance. The contract implements LayerZero's composer interface, allowing it to receive fees and immediately trigger the `gulp()` function to distribute interest over the two-week smearing period.
 
 ### Peg Stability Through EulerSwap
 
