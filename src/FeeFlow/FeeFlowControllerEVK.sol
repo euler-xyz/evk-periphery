@@ -171,11 +171,12 @@ contract FeeFlowControllerEVK is EVCUtil {
                 paymentToken.safeTransferFrom(sender, paymentReceiver, paymentAmount);
             } else {
                 paymentToken.safeTransferFrom(sender, address(this), paymentAmount);
+                uint256 balance = paymentToken.balanceOf(address(this));
 
                 SendParam memory sendParam = SendParam({
                     dstEid: dstEid,
                     to: bytes32(uint256(uint160(paymentReceiver))),
-                    amountLD: paymentToken.balanceOf(address(this)),
+                    amountLD: balance,
                     minAmountLD: 0,
                     extraOptions: "",
                     composeMsg: "",
@@ -183,7 +184,7 @@ contract FeeFlowControllerEVK is EVCUtil {
                 });
                 MessagingFee memory fee = IOFT(oftAdapter).quoteSend(sendParam, false);
 
-                paymentToken.forceApprove(oftAdapter, paymentAmount);
+                paymentToken.forceApprove(oftAdapter, balance);
                 IOFT(oftAdapter).send{value: fee.nativeFee}(sendParam, fee, address(this));
             }
         }
