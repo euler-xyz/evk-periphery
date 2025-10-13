@@ -17,6 +17,7 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 /// called outside of the EVC checks-deferred context
 /// - additional call imposed upon the buyer. This way, the protocol can automate certain periodic operations that would
 /// otherwise require manual intervention
+/// IMPORTANT: the payment token must not be the share token of the EVK vault
 contract FeeFlowControllerEVK is EVCUtil {
     using SafeERC20 for IERC20;
 
@@ -84,7 +85,7 @@ contract FeeFlowControllerEVK is EVCUtil {
     /// @dev Initializes the FeeFlowControllerEVK contract with the specified parameters.
     /// @param evc The address of the Ethereum Vault Connector (EVC) contract.
     /// @param initPrice The initial price for the first epoch.
-    /// @param paymentToken_ The address of the payment token.
+    /// @param paymentToken_ The address of the payment token. This must not be the share token of the EVK vault.
     /// @param paymentReceiver_ The address of the payment receiver.
     /// @param epochPeriod_ The duration of each epoch period.
     /// @param priceMultiplier_ The multiplier for adjusting the price from one epoch to the next.
