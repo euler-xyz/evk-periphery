@@ -91,7 +91,9 @@ contract OFTFeeCollector is FeeCollectorUtil {
         });
         MessagingFee memory fee = IOFT(adapter).quoteSend(sendParam, false);
 
-        token.forceApprove(adapter, balance);
-        IOFT(adapter).send{value: fee.nativeFee}(sendParam, fee, address(this));
+        if (address(this).balance >= fee.nativeFee) {
+            token.forceApprove(adapter, balance);
+            IOFT(adapter).send{value: fee.nativeFee}(sendParam, fee, address(this));
+        }
     }
 }

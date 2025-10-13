@@ -184,8 +184,10 @@ contract FeeFlowControllerEVK is EVCUtil {
                 });
                 MessagingFee memory fee = IOFT(oftAdapter).quoteSend(sendParam, false);
 
-                paymentToken.forceApprove(oftAdapter, balance);
-                IOFT(oftAdapter).send{value: fee.nativeFee}(sendParam, fee, address(this));
+                if (address(this).balance >= fee.nativeFee) {
+                    paymentToken.forceApprove(oftAdapter, balance);
+                    IOFT(oftAdapter).send{value: fee.nativeFee}(sendParam, fee, address(this));
+                }
             }
         }
 
