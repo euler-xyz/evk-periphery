@@ -51,6 +51,7 @@ contract FeeFlowControllerEVK is EVCUtil {
     Slot0 internal slot0;
 
     event Buy(address indexed buyer, address indexed assetsReceiver, uint256 paymentAmount);
+    event HookTargetFailed(bytes32 reason);
 
     error Reentrancy();
     error InitPriceBelowMin();
@@ -219,9 +220,15 @@ contract FeeFlowControllerEVK is EVCUtil {
 
         // Perform the hook call if the hook target is set
         if (hookTarget != address(0)) {
-            // We do not check the success of the call as we allow it to silently fail
-            (bool success,) = hookTarget.call(abi.encodeWithSelector(hookTargetSelector));
-            success;
+            (bool success, bytes memory result) = hookTarget.call(abi.encodeWithSelector(hookTargetSelector));
+
+            if (!success && result.length != 0) {
+                bytes32 reason;
+                assembly {
+                    reason := mload(add(32, result))
+                }
+                emit HookTargetFailed(reason);
+            }
         }
 
         return paymentAmount;
