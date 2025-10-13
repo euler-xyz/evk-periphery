@@ -33,6 +33,9 @@ contract OFTFeeCollector is FeeCollectorUtil {
     /// @notice Error thrown when the OFT adapter token is not the same as the fee token
     error InvalidOFTAdapter();
 
+    /// @notice Error thrown when the destination address is the zero address
+    error InvalidDstAddress();
+
     /// @notice Initializes the OFTFeeCollector contract
     /// @param _evc The address of the EVC contract
     /// @param _admin The address that will be granted the DEFAULT_ADMIN_ROLE
@@ -53,6 +56,10 @@ contract OFTFeeCollector is FeeCollectorUtil {
     {
         if (_oftAdapter != address(0) && address(feeToken) != IOFT(_oftAdapter).token()) {
             revert InvalidOFTAdapter();
+        }
+
+        if (_dstAddress == address(0)) {
+            revert InvalidDstAddress();
         }
 
         oftAdapter = _oftAdapter;
