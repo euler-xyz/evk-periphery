@@ -21,6 +21,9 @@ contract OFTFeeCollector is FeeCollectorUtil {
     /// @notice The LayerZero OFT adapter contract used for cross-chain transfers
     address public oftAdapter;
 
+    /// @notice The gas option for the composed message
+    uint96 public composedMsgGas;
+
     /// @notice The destination address on the target chain to receive collected fees
     address public dstAddress;
 
@@ -50,10 +53,13 @@ contract OFTFeeCollector is FeeCollectorUtil {
     /// @param _dstAddress The destination address on the target chain to receive fees
     /// @param _dstEid The LayerZero endpoint ID of the destination chain
     /// @param _composedMsg Value passed as part of the composed message if non-zero
-    function configure(address _oftAdapter, address _dstAddress, uint32 _dstEid, uint64 _composedMsg)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function configure(
+        address _oftAdapter,
+        address _dstAddress,
+        uint32 _dstEid,
+        uint64 _composedMsg,
+        uint96 _composedMsgGas
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_oftAdapter != address(0) && address(feeToken) != IOFT(_oftAdapter).token()) {
             revert InvalidOFTAdapter();
         }
@@ -63,6 +69,7 @@ contract OFTFeeCollector is FeeCollectorUtil {
         }
 
         oftAdapter = _oftAdapter;
+        composedMsgGas = _composedMsgGas;
         dstAddress = _dstAddress;
         dstEid = _dstEid;
         composedMsg = _composedMsg;
@@ -85,7 +92,9 @@ contract OFTFeeCollector is FeeCollectorUtil {
             to: bytes32(uint256(uint160(dstAddress))),
             amountLD: balance,
             minAmountLD: 0,
-            extraOptions: message == 0 ? bytes("") : OptionsBuilder.newOptions().addExecutorLzReceiveOption(250000, 0),
+            extraOptions: message == 0
+                ? bytes("")
+                : OptionsBuilder.newOptions().addExecutorLzReceiveOption(composedMsgGas, 0),
             composeMsg: message == 0 ? bytes("") : abi.encode(message),
             oftCmd: ""
         });
