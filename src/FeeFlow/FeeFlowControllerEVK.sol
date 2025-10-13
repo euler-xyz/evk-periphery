@@ -67,7 +67,6 @@ contract FeeFlowControllerEVK is EVCUtil {
     error MaxPaymentTokenAmountExceeded();
     error PaymentReceiverIsThis();
     error InvalidOFTAdapter();
-    error EmptyError();
 
     modifier nonReentrant() {
         if (slot0.locked == 2) revert Reentrancy();
@@ -221,7 +220,7 @@ contract FeeFlowControllerEVK is EVCUtil {
         // Perform the hook call if the hook target is set
         if (hookTarget != address(0)) {
             // We do not check the success of the call as we allow it to silently fail
-            (bool success,) = hookTarget.call(abi.encode(hookTargetSelector));
+            (bool success,) = hookTarget.call(abi.encodeWithSelector(hookTargetSelector));
             success;
         }
 

@@ -34,7 +34,7 @@ contract IRMBasePremium is AccessControlEnumerable, EVCUtil, IIRM {
     uint128 public premiumRate;
 
     /// @notice Mapping of vault address to its rate override (if any).
-    mapping(address vault => RateOverride) public _rateOverrides;
+    mapping(address vault => RateOverride) public rateOverrides;
 
     /// @notice Emitted when the base interest rate is changed.
     /// @param newBaseRate The new base interest rate.
@@ -122,7 +122,7 @@ contract IRMBasePremium is AccessControlEnumerable, EVCUtil, IIRM {
         onlyEVCAccountOwner
         onlyRole(RATE_ADMIN_ROLE)
     {
-        _rateOverrides[vault] = RateOverride({exists: exists, premiumRate: premiumRate_});
+        rateOverrides[vault] = RateOverride({exists: exists, premiumRate: premiumRate_});
         emit RateOverrideSet(vault, exists, premiumRate_);
     }
 
@@ -152,7 +152,7 @@ contract IRMBasePremium is AccessControlEnumerable, EVCUtil, IIRM {
     /// @param vault The address of the vault.
     /// @return The computed interest rate for the vault.
     function computeInterestRateInternal(address vault, uint256, uint256) internal view returns (uint256) {
-        RateOverride memory rateOverride = _rateOverrides[vault];
+        RateOverride memory rateOverride = rateOverrides[vault];
         uint256 rate = rateOverride.exists
             ? uint256(baseRate) + uint256(rateOverride.premiumRate)
             : uint256(baseRate) + uint256(premiumRate);
