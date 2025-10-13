@@ -6,7 +6,7 @@ import {MockToken} from "../../FeeFlow/lib/MockToken.sol";
 contract MockVault {
     MockToken underlying;
     address feeReceiver;
-    uint256 feesAmount;
+    uint256 public feesAmount;
     constructor(MockToken underlying_, address feeReceiver_) {
         underlying = underlying_;
         feeReceiver = feeReceiver_;
@@ -18,6 +18,11 @@ contract MockVault {
 
     function convertFees() public {
         underlying.mint(feeReceiver, feesAmount);
+        feesAmount = 0;
+    }
+
+    function redeem(uint256, address, address) public pure returns (uint256) {
+        return 0;
     }
 
     function asset() external view returns(address) {
