@@ -142,6 +142,8 @@ contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
 
         assertEq(paymentToken.balanceOf(address(feeCollector)), 0);
         vm.prank(buyer);
+        vm.expectCall(address(vault1), abi.encodeCall(MockVault.redeem, (type(uint256).max, address(feeCollector), address(feeCollector))));
+        vm.expectCall(address(vault2), abi.encodeCall(MockVault.redeem, (type(uint256).max, address(feeCollector), address(feeCollector))));
         feeFlowControllerCollector.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
         assertEq(paymentToken.balanceOf(address(feeCollector)), 3e18);
     }
