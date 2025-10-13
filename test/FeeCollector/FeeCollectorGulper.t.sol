@@ -9,6 +9,7 @@ import {FeeCollectorUtilTest} from "./FeeCollectorUtil.t.sol";
 import {FeeCollectorGulper} from "../../src/Util/FeeCollectorGulper.sol";
 import {MockVault} from "./lib/MockVault.sol";
 import {BaseFeeFlowControllerTest} from "../FeeFlow/BaseFeeFlowControllerTest.sol";
+import {MockESR} from "./lib/MockESR.sol";
 
 contract FeeCollectorGulperTest is BaseFeeFlowControllerTest {
     FeeCollectorGulper gulper;
@@ -26,7 +27,7 @@ contract FeeCollectorGulperTest is BaseFeeFlowControllerTest {
         admin = makeAddr("admin");
         maintainer = makeAddr("maintainer");
 
-        mockESR = new MockESR();
+        mockESR = new MockESR(address(paymentToken));
         gulper = new FeeCollectorGulper(admin, address(paymentToken), address(mockESR));
 
         bytes32 maintainerRole = gulper.MAINTAINER_ROLE();
@@ -53,8 +54,7 @@ contract FeeCollectorGulperTest is BaseFeeFlowControllerTest {
     }
 
     function testCollectFeesAndGulp() public {
-        vault1.mockSetFeeAmount(1e18);
-        vault2.mockSetFeeAmount(2e18);
+
 
         vm.startPrank(maintainer);
         gulper.addToVaultsList(address(vault1));
@@ -63,17 +63,21 @@ contract FeeCollectorGulperTest is BaseFeeFlowControllerTest {
 
         assertEq(paymentToken.balanceOf(address(mockESR)), 0);
 
-        // gulp was called
-        vm.expectCall(address(mockESR), abi.encodeCall(MockESR.gulp, ()));
+        // no-op if no fees collected
         vm.prank(buyer);
         feeFlowControllerGulper.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
+        assertTrue(!mockESR.gulpWasCalled());
+
+        vault1.mockSetFeeAmount(1e18);
+        vault2.mockSetFeeAmount(2e18);
+
+        // gulp called when fees present
+        vm.prank(buyer);
+        feeFlowControllerGulper.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
+        assertTrue(mockESR.gulpWasCalled());
 
         // fees transferred
         assertEq(paymentToken.balanceOf(address(mockESR)), 3e18);
     }
 
-}
-
-contract MockESR {
-    function gulp() public {}
 }

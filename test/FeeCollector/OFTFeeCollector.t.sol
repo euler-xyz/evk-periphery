@@ -118,7 +118,7 @@ contract OFTFeeCollectorTest is BaseFeeFlowControllerTest {
         // after providing balance for LZ fees, vault fees are collected
         deal(admin, 100);
         vm.prank(admin);
-        address(feeCollector).transfer(100);
+        payable(address(feeCollector)).transfer(100);
 
         vm.prank(buyer);
         feeFlowControllerCollector.buy(addresses, assetsReceiver, 1, block.timestamp + 1 days, 1000000e18);
