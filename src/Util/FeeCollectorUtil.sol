@@ -109,12 +109,7 @@ contract FeeCollectorUtil is AccessControlEnumerable, EVCUtil {
     /// @return success True if the vault was successfully removed, false if it was not in the list
     function removeFromVaultsList(address vault) external onlyRole(MAINTAINER_ROLE) returns (bool) {
         bool success = _vaultsList.remove(vault);
-        if (success) {
-            try IEVault(vault).convertFees() {
-                try IEVault(vault).redeem(type(uint256).max, address(this), address(this)) {} catch {}
-            } catch {}
-            emit VaultRemoved(vault);
-        }
+        if (success) emit VaultRemoved(vault);
         return success;
     }
 
