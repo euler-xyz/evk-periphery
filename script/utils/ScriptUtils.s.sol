@@ -344,22 +344,19 @@ abstract contract BridgeAddressesLib is ScriptExtended {
         address eulOFTAdapter;
         address eusdOFTAdapter;
         address seusdOFTAdapter;
-        address eusdOFTGulper;
     }
 
     function serializeBridgeAddresses(BridgeAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("bridgeAddresses", "eulOFTAdapter", Addresses.eulOFTAdapter);
         result = vm.serializeAddress("bridgeAddresses", "eusdOFTAdapter", Addresses.eusdOFTAdapter);
         result = vm.serializeAddress("bridgeAddresses", "seusdOFTAdapter", Addresses.seusdOFTAdapter);
-        result = vm.serializeAddress("bridgeAddresses", "eusdOFTGulper", Addresses.eusdOFTGulper);
     }
 
     function deserializeBridgeAddresses(string memory json) internal pure returns (BridgeAddresses memory) {
         return BridgeAddresses({
             eulOFTAdapter: getAddressFromJson(json, ".eulOFTAdapter"),
             eusdOFTAdapter: getAddressFromJson(json, ".eusdOFTAdapter"),
-            seusdOFTAdapter: getAddressFromJson(json, ".seusdOFTAdapter"),
-            eusdOFTGulper: getAddressFromJson(json, ".eusdOFTGulper")
+            seusdOFTAdapter: getAddressFromJson(json, ".seusdOFTAdapter")
         });
     }
 }

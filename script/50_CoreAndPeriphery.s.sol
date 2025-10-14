@@ -48,9 +48,8 @@ import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintab
 import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
 import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {FeeCollectorUtil} from "./../src/Util/FeeCollectorUtil.sol";
-import {FeeCollectorGulper} from "./../src/Util/FeeCollectorGulper.sol";
+import {OFTFeeCollectorGulper} from "./../src/OFT/OFTFeeCollectorGulper.sol";
 import {OFTFeeCollector} from "./../src/OFT/OFTFeeCollector.sol";
-import {OFTGulper} from "./../src/OFT/OFTGulper.sol";
 import {EulerSavingsRate} from "evk/Synths/EulerSavingsRate.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
@@ -119,8 +118,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
     uint16 internal constant OFT_MSG_TYPE_SEND = 1;
     uint16 internal constant OFT_MSG_TYPE_SEND_AND_CALL = 2;
-    uint128 internal constant OFT_ENFORCED_GAS_LIMIT_SEND = 100000;
-    uint128 internal constant OFT_ENFORCED_GAS_LIMIT_CALL = 100000;
+    uint128 internal constant OFT_ENFORCED_GAS_LIMIT_SEND_DEFAULT = 100000;
+    uint128 internal constant OFT_ENFORCED_GAS_LIMIT_CALL_DEFAULT = 100000;
+    uint128 internal constant OFT_ENFORCED_GAS_LIMIT_SEND_COMPLEX = 150000;
+    uint128 internal constant OFT_EXTRA_OPTIONS_GAS_LIMIT_CALL = 200000;
     uint32 internal constant OFT_EXECUTOR_CONFIG_TYPE = 1;
     uint32 internal constant OFT_ULN_CONFIG_TYPE = 2;
     uint32 internal constant OFT_MAX_MESSAGE_SIZE = 10000;
@@ -335,7 +336,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
         if (
             containsOFTHubChainId(tokenAddresses.EUL, block.chainid) && bridgeAddresses.eulOFTAdapter != address(0)
-                && !getSkipOFTHubChainConfig()
+                && !getSkipOFTHubChainConfigEUL()
         ) {
             console.log("+ Attempting to configure OFT Adapter on chain %s for EUL", block.chainid);
             configureOFTAdapter(tokenAddresses.EUL, bridgeAddresses.eulOFTAdapter);
@@ -397,6 +398,14 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- eUSD OFT Adapter already deployed. Skipping...");
         }
 
+        if (
+            containsOFTHubChainId(tokenAddresses.eUSD, block.chainid) && bridgeAddresses.eusdOFTAdapter != address(0)
+                && !getSkipOFTHubChainConfigEUSD()
+        ) {
+            console.log("+ Attempting to configure OFT Adapter on chain %s for EUSD", block.chainid);
+            configureOFTAdapter(tokenAddresses.eUSD, bridgeAddresses.eusdOFTAdapter);
+        }
+
         if (tokenAddresses.seUSD == address(0)) {
             if (input.deployEUSD) {
                 console.log("+ Deploying seUSD...");
@@ -436,35 +445,46 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- seUSD OFT Adapter already deployed. Skipping...");
         }
 
+        if (
+            containsOFTHubChainId(tokenAddresses.seUSD, block.chainid) && bridgeAddresses.seusdOFTAdapter != address(0)
+                && !getSkipOFTHubChainConfigEUSD()
+        ) {
+            console.log("+ Attempting to configure OFT Adapter on chain %s for seUSD", block.chainid);
+            configureOFTAdapter(tokenAddresses.seUSD, bridgeAddresses.seusdOFTAdapter);
+        }
+
         if (peripheryAddresses.feeCollector == address(0)) {
             if (input.deployEUSD) {
                 console.log("+ Deploying eUSD fee collecting system...");
                 if (block.chainid == HUB_CHAIN_ID) {
                     startBroadcast();
-                    console.log("    Deploying FeeCollectorGulper");
+                    console.log("    Deploying OFTFeeCollectorGulper");
                     peripheryAddresses.feeCollector =
-                        address(new FeeCollectorGulper(getDeployer(), tokenAddresses.eUSD, tokenAddresses.seUSD));
-                    stopBroadcast();
-
-                    startBroadcast();
-                    console.log("    Deploying OFTGulper");
-                    bridgeAddresses.eusdOFTGulper = address(new OFTGulper(getDeployer(), tokenAddresses.seUSD));
+                        address(new OFTFeeCollectorGulper(coreAddresses.evc, getDeployer(), tokenAddresses.seUSD));
                     stopBroadcast();
                 } else {
                     startBroadcast();
                     console.log("    Deploying OFTFeeCollector...");
-                    peripheryAddresses.feeCollector = address(new OFTFeeCollector(getDeployer(), tokenAddresses.eUSD));
+                    peripheryAddresses.feeCollector =
+                        address(new OFTFeeCollector(coreAddresses.evc, getDeployer(), tokenAddresses.eUSD));
                     stopBroadcast();
 
                     LayerZeroUtil lzUtil = new LayerZeroUtil(HUB_CHAIN_ID);
-                    LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(HUB_CHAIN_ID);
-                    address eusdOFTGulper =
-                        deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", HUB_CHAIN_ID)).eusdOFTGulper;
+                    LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(HUB_CHAIN_ID);
+                    address feeCollectorOther = deserializePeripheryAddresses(
+                        getAddressesJson("PeripheryAddresses.json", HUB_CHAIN_ID)
+                    ).feeCollector;
+
+                    require(feeCollectorOther != address(0), "Hub chain feeCollector is not deployed yet");
 
                     startBroadcast();
                     console.log("    Configuring OFTFeeCollector");
-                    OFTFeeCollector(peripheryAddresses.feeCollector).configure(
-                        bridgeAddresses.eusdOFTAdapter, eusdOFTGulper, info.eid, true
+                    OFTFeeCollector(payable(peripheryAddresses.feeCollector)).configure(
+                        bridgeAddresses.eusdOFTAdapter,
+                        feeCollectorOther,
+                        infoOther.eid,
+                        abi.encode(true),
+                        OptionsBuilder.newOptions().addExecutorLzComposeOption(0, OFT_EXTRA_OPTIONS_GAS_LIMIT_CALL, 0)
                     );
                     stopBroadcast();
                 }
@@ -543,9 +563,14 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 peripheryAddresses.feeFlowController = deployer.deploy(feeFlowInput);
 
                 if (block.chainid != HUB_CHAIN_ID) {
-                    bytes32 defaultAdminRole = OFTFeeCollector(peripheryAddresses.feeCollector).DEFAULT_ADMIN_ROLE();
-                    bytes32 collectorRole = OFTFeeCollector(peripheryAddresses.feeCollector).COLLECTOR_ROLE();
-                    if (OFTFeeCollector(peripheryAddresses.feeCollector).hasRole(defaultAdminRole, getDeployer())) {
+                    bytes32 defaultAdminRole =
+                        OFTFeeCollector(payable(peripheryAddresses.feeCollector)).DEFAULT_ADMIN_ROLE();
+                    bytes32 collectorRole = OFTFeeCollector(payable(peripheryAddresses.feeCollector)).COLLECTOR_ROLE();
+                    if (
+                        OFTFeeCollector(payable(peripheryAddresses.feeCollector)).hasRole(
+                            defaultAdminRole, getDeployer()
+                        )
+                    ) {
                         vm.startBroadcast();
                         console.log(
                             "    Granting OFTFeeCollector collector role to the desired address %s",
@@ -556,7 +581,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                         );
                         stopBroadcast();
                     } else if (
-                        OFTFeeCollector(peripheryAddresses.feeCollector).hasRole(defaultAdminRole, getSafe(false))
+                        OFTFeeCollector(payable(peripheryAddresses.feeCollector)).hasRole(
+                            defaultAdminRole, getSafe(false)
+                        )
                     ) {
                         console.log(
                             "    Adding multisend item to grant OFTFeeCollector collector role to the desired address %s",
@@ -928,18 +955,34 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         return (multisigAddresses, coreAddresses, peripheryAddresses, lensAddresses, bridgeAddresses);
     }
 
-    function getEnforcedOptions(uint32 eid) internal pure returns (EnforcedOptionParam[] memory) {
+    function getEnforcedOptions(address token, uint32 eid) internal view returns (EnforcedOptionParam[] memory) {
+        uint128 gasLimitSend;
+        uint128 gasLimitCall;
+        if (token == tokenAddresses.EUL) {
+            gasLimitSend = OFT_ENFORCED_GAS_LIMIT_SEND_DEFAULT;
+            gasLimitCall = OFT_ENFORCED_GAS_LIMIT_CALL_DEFAULT;
+        } else if (token == tokenAddresses.eUSD) {
+            gasLimitSend = OFT_ENFORCED_GAS_LIMIT_SEND_COMPLEX;
+            gasLimitCall = OFT_ENFORCED_GAS_LIMIT_CALL_DEFAULT;
+        } else if (token == tokenAddresses.seUSD) {
+            gasLimitSend = OFT_ENFORCED_GAS_LIMIT_SEND_DEFAULT;
+            gasLimitCall = OFT_ENFORCED_GAS_LIMIT_CALL_DEFAULT;
+        }
+
+        require(gasLimitSend != 0 && gasLimitCall != 0, "getEnforcedOptions: Token not supported");
+
         EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](2);
         enforcedOptions[0] = EnforcedOptionParam({
             eid: eid,
             msgType: OFT_MSG_TYPE_SEND,
-            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(OFT_ENFORCED_GAS_LIMIT_SEND, 0)
+            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(gasLimitSend, 0)
         });
         enforcedOptions[1] = EnforcedOptionParam({
             eid: eid,
             msgType: OFT_MSG_TYPE_SEND_AND_CALL,
-            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(OFT_ENFORCED_GAS_LIMIT_SEND, 0)
-                .addExecutorLzComposeOption(0, OFT_ENFORCED_GAS_LIMIT_CALL, 0)
+            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(gasLimitSend, 0).addExecutorLzComposeOption(
+                0, gasLimitCall, 0
+            )
         });
         return enforcedOptions;
     }
@@ -1036,7 +1079,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     block.chainid,
                     hubChainId
                 );
-                IOAppOptionsType3(adapter).setEnforcedOptions(getEnforcedOptions(infoHub.eid));
+                IOAppOptionsType3(adapter).setEnforcedOptions(getEnforcedOptions(token, infoHub.eid));
                 vm.stopBroadcast();
 
                 console.log(
@@ -1218,7 +1261,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                         block.chainid,
                         chainIdOther
                     );
-                    IOAppOptionsType3(adapter).setEnforcedOptions(getEnforcedOptions(infoOther.eid));
+                    IOAppOptionsType3(adapter).setEnforcedOptions(getEnforcedOptions(token, infoOther.eid));
                     vm.stopBroadcast();
                 } else if (delegate == getSafe(false)) {
                     console.log(
@@ -1229,7 +1272,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     );
                     addMultisendItem(
                         adapter,
-                        abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (getEnforcedOptions(infoOther.eid)))
+                        abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (getEnforcedOptions(token, infoOther.eid)))
                     );
                 } else {
                     removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);

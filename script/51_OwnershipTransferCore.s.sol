@@ -207,22 +207,6 @@ contract OwnershipTransferCore is BatchBuilder {
             console.log("! FeeCollector is not deployed yet. Skipping...");
         }
 
-        if (bridgeAddresses.eusdOFTGulper != address(0)) {
-            privilegedAddress = Ownable(bridgeAddresses.eusdOFTGulper).owner();
-            if (privilegedAddress != multisigAddresses.DAO) {
-                if (privilegedAddress == getDeployer()) {
-                    console.log("+ Transferring ownership of eUSD OFT Gulper to %s", multisigAddresses.DAO);
-                    transferOwnership(bridgeAddresses.eusdOFTGulper, multisigAddresses.DAO);
-                } else {
-                    console.log("! eUSD OFT Gulper owner is not the caller of this script. Skipping...");
-                }
-            } else {
-                console.log("- eUSD OFT Gulper owner is already set to the desired address. Skipping...");
-            }
-        } else if (block.chainid == HUB_CHAIN_ID) {
-            console.log("! eUSD OFT Gulper is not deployed yet. Skipping...");
-        }
-
         executeBatch();
     }
 
