@@ -3,10 +3,8 @@
 pragma solidity ^0.8.0;
 
 import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
-import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
-import {Context} from "openzeppelin-contracts/utils/Context.sol";
+import {AccessControl, IAccessControl, Context} from "openzeppelin-contracts/access/AccessControl.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
-import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {IIRM} from "evk/InterestRateModels/IIRM.sol";
 
 /// @title IRMBasePremium
@@ -26,6 +24,9 @@ contract IRMBasePremium is AccessControlEnumerable, EVCUtil, IIRM {
     /// @notice Role that allows updating the base rate and premium rates.
     bytes32 public constant RATE_ADMIN_ROLE = keccak256("RATE_ADMIN_ROLE");
 
+    // corresponds to 1000% APY
+    uint256 internal constant MAX_ALLOWED_INTEREST_RATE = 75986279153383989049;
+
     /// @notice The default base interest rate (applied to all vaults).
     uint128 public baseRate;
 
@@ -33,7 +34,7 @@ contract IRMBasePremium is AccessControlEnumerable, EVCUtil, IIRM {
     uint128 public premiumRate;
 
     /// @notice Mapping of vault address to its rate override (if any).
-    mapping(address vault => RateOverride) public _rateOverrides;
+    mapping(address vault => RateOverride) public rateOverrides;
 
     /// @notice Emitted when the base interest rate is changed.
     /// @param newBaseRate The new base interest rate.
@@ -88,7 +89,7 @@ contract IRMBasePremium is AccessControlEnumerable, EVCUtil, IIRM {
 
     /// @notice Renounces a role for the calling account. Only callable by EVC account owner.
     /// @param role The role to renounce.
-    /// @param callerConfirmation The address of the caller (must match msg.sender).
+    /// @param callerConfirmation The address of the caller (must match _msgSender()).
     function renounceRole(bytes32 role, address callerConfirmation)
         public
         virtual
@@ -121,7 +122,7 @@ contract IRMBasePremium is AccessControlEnumerable, EVCUtil, IIRM {
         onlyEVCAccountOwner
         onlyRole(RATE_ADMIN_ROLE)
     {
-        _rateOverrides[vault] = RateOverride({exists: exists, premiumRate: premiumRate_});
+        rateOverrides[vault] = RateOverride({exists: exists, premiumRate: premiumRate_});
         emit RateOverrideSet(vault, exists, premiumRate_);
     }
 
@@ -151,10 +152,12 @@ contract IRMBasePremium is AccessControlEnumerable, EVCUtil, IIRM {
     /// @param vault The address of the vault.
     /// @return The computed interest rate for the vault.
     function computeInterestRateInternal(address vault, uint256, uint256) internal view returns (uint256) {
-        RateOverride memory rateOverride = _rateOverrides[vault];
-        return rateOverride.exists
+        RateOverride memory rateOverride = rateOverrides[vault];
+        uint256 rate = rateOverride.exists
             ? uint256(baseRate) + uint256(rateOverride.premiumRate)
             : uint256(baseRate) + uint256(premiumRate);
+
+        return rate > MAX_ALLOWED_INTEREST_RATE ? MAX_ALLOWED_INTEREST_RATE : rate;
     }
 
     /// @notice Retrieves the message sender in the context of the EVC.
