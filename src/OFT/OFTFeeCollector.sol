@@ -21,17 +21,17 @@ contract OFTFeeCollector is FeeCollectorUtil {
     /// @notice The LayerZero OFT adapter contract used for cross-chain transfers
     address public oftAdapter;
 
-    /// @notice The gas option for the composed message
-    uint96 public composedMsgGas;
-
     /// @notice The destination address on the target chain to receive collected fees
     address public dstAddress;
 
     /// @notice The LayerZero endpoint ID of the destination chain
     uint32 public dstEid;
 
-    /// @notice Value passed as part of the composed message if non-zero
-    uint64 public composedMsg;
+    /// @notice Bytes passed as part of the composed message
+    bytes public composeMsg;
+
+    /// @notice Bytes passed as part of the extra options
+    bytes public extraOptions;
 
     /// @notice Error thrown when the OFT adapter token is not the same as the fee token
     error InvalidOFTAdapter();
@@ -52,13 +52,14 @@ contract OFTFeeCollector is FeeCollectorUtil {
     /// @param _oftAdapter The LayerZero OFT adapter contract address
     /// @param _dstAddress The destination address on the target chain to receive fees
     /// @param _dstEid The LayerZero endpoint ID of the destination chain
-    /// @param _composedMsg Value passed as part of the composed message if non-zero
+    /// @param _composeMsg Bytes passed as part of the composed message
+    /// @param _extraOptions Bytes passed as part of the extra options
     function configure(
         address _oftAdapter,
         address _dstAddress,
         uint32 _dstEid,
-        uint64 _composedMsg,
-        uint96 _composedMsgGas
+        bytes memory _composeMsg,
+        bytes memory _extraOptions
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_oftAdapter != address(0) && address(feeToken) != IOFT(_oftAdapter).token()) {
             revert InvalidOFTAdapter();
@@ -69,10 +70,10 @@ contract OFTFeeCollector is FeeCollectorUtil {
         }
 
         oftAdapter = _oftAdapter;
-        composedMsgGas = _composedMsgGas;
         dstAddress = _dstAddress;
         dstEid = _dstEid;
-        composedMsg = _composedMsg;
+        composeMsg = _composeMsg;
+        extraOptions = _extraOptions;
     }
 
     /// @notice Collects and converts fees from all vaults, then sends them cross-chain to the configured destination.
@@ -86,16 +87,13 @@ contract OFTFeeCollector is FeeCollectorUtil {
         uint256 balance = token.balanceOf(address(this));
         if (balance == 0) return;
 
-        uint256 message = composedMsg;
         SendParam memory sendParam = SendParam({
             dstEid: dstEid,
             to: bytes32(uint256(uint160(dstAddress))),
             amountLD: balance,
             minAmountLD: 0,
-            extraOptions: message == 0
-                ? bytes("")
-                : OptionsBuilder.newOptions().addExecutorLzReceiveOption(composedMsgGas, 0),
-            composeMsg: message == 0 ? bytes("") : abi.encode(message),
+            extraOptions: extraOptions,
+            composeMsg: composeMsg,
             oftCmd: ""
         });
         MessagingFee memory fee = IOFT(adapter).quoteSend(sendParam, false);
