@@ -4,9 +4,7 @@ pragma solidity ^0.8.0;
 
 import {ERC20BurnableMintable} from "./ERC20BurnableMintable.sol";
 import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
-import {Context} from "openzeppelin-contracts/utils/Context.sol";
-import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
-import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
+import {AccessControl, IAccessControl, Context} from "openzeppelin-contracts/access/AccessControl.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 
@@ -40,10 +38,28 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     /// @param capacity The new minting capacity for the minter.
     event MinterCapacitySet(address indexed minter, uint256 capacity);
 
+    /// @notice Emitted when an account is added to the set of addresses ignored for total supply.
+    /// @param account The address of the account.
+    event IgnoredForTotalSupplyAdded(address indexed account);
+
+    /// @notice Emitted when an account is removed from the set of addresses ignored for total supply.
+    /// @param account The address of the account.
+    event IgnoredForTotalSupplyRemoved(address indexed account);
+
+    /// @notice Emitted when tokens are allocated to a vault.
+    /// @param vault The address of the vault.
+    /// @param amount The amount of tokens allocated.
+    event Allocated(address indexed vault, uint256 amount);
+
+    /// @notice Emitted when tokens are deallocated from a vault.
+    /// @param vault The address of the vault.
+    /// @param amount The amount of tokens deallocated.
+    event Deallocated(address indexed vault, uint256 amount);
+
     /// @notice Error thrown when a minter exceeds their minting capacity.
     error CapacityReached();
 
-    /// @notice Deploys the ESynth contract.
+    /// @notice Deploys the ERC20Synth contract.
     /// @param evc_ Address of the EVC (Ethereum Vault Connector).
     /// @param admin_ Address to be granted DEFAULT_ADMIN_ROLE.
     /// @param name_ Name of the token.
@@ -54,6 +70,7 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
         EVCUtil(evc_)
     {
         _ignoredForTotalSupply.add(address(this));
+        emit IgnoredForTotalSupplyAdded(address(this));
     }
 
     /// @notice Grants a role to an account. Only callable by EVC account owner.
@@ -82,7 +99,7 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
 
     /// @notice Renounces a role for the calling account. Only callable by EVC account owner.
     /// @param role The role to renounce.
-    /// @param callerConfirmation The address of the caller (must match msg.sender).
+    /// @param callerConfirmation The address of the caller (must match _msgSender()).
     function renounceRole(bytes32 role, address callerConfirmation)
         public
         virtual
@@ -98,6 +115,7 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     function setCapacity(address minter, uint128 capacity) external onlyEVCAccountOwner onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(MINTER_ROLE, minter);
         minters[minter].capacity = capacity;
+        if (capacity == type(uint128).max) minters[minter].minted = 0;
         emit MinterCapacitySet(minter, capacity);
     }
 
@@ -110,16 +128,8 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
 
         if (amount == 0) return;
 
-        // If the minter has a finite capacity, check for overflow and capacity.
-        if (
-            minterCache.capacity != type(uint128).max
-                && (
-                    amount > type(uint128).max - minterCache.minted
-                        || minterCache.capacity < uint256(minterCache.minted) + amount
-                )
-        ) {
-            revert CapacityReached();
-        }
+        if (minterCache.capacity < minterCache.minted) revert CapacityReached();
+        if (amount > minterCache.capacity - minterCache.minted) revert CapacityReached();
 
         // Only update minted amount if the minter has a finite capacity.
         if (minterCache.capacity != type(uint128).max) {
@@ -163,6 +173,7 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
         _ignoredForTotalSupply.add(vault);
         _approve(address(this), vault, amount, true);
         IEVault(vault).deposit(amount, address(this));
+        emit Allocated(vault, amount);
     }
 
     /// @notice Deallocates tokens from a vault back to this contract.
@@ -170,6 +181,7 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     /// @param amount The amount of tokens to deallocate.
     function deallocate(address vault, uint256 amount) external onlyEVCAccountOwner onlyRole(ALLOCATOR_ROLE) {
         IEVault(vault).withdraw(amount, address(this), address(this));
+        emit Deallocated(vault, amount);
     }
 
     /// @notice Adds an account to the set of addresses ignored for total supply.
@@ -178,10 +190,11 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     function addIgnoredForTotalSupply(address account)
         external
         onlyEVCAccountOwner
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (bool success)
     {
-        return _ignoredForTotalSupply.add(account);
+        success = _ignoredForTotalSupply.add(account);
+        if (success) emit IgnoredForTotalSupplyAdded(account);
     }
 
     /// @notice Removes an account from the set of addresses ignored for total supply.
@@ -190,10 +203,11 @@ contract ERC20Synth is ERC20BurnableMintable, EVCUtil {
     function removeIgnoredForTotalSupply(address account)
         external
         onlyEVCAccountOwner
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (bool success)
     {
-        return _ignoredForTotalSupply.remove(account);
+        success = _ignoredForTotalSupply.remove(account);
+        if (success) emit IgnoredForTotalSupplyRemoved(account);
     }
 
     /// @notice Checks if an account is ignored for total supply.

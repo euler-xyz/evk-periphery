@@ -10,12 +10,14 @@ import {IEVault} from "evk/EVault/IEVault.sol";
 /// @title FeeFlowControllerEVK
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://eulerlabs.com)
-/// @notice Continous back to back dutch auctions selling any asset received by this contract. The EVK version
+/// @notice Continuous back to back dutch auctions selling any asset received by this contract. The EVK version
 /// introduces:
+/// - optional bridging of the payment token to a remote chain using a LayerZero OFT adapter
 /// - convertFees() call iteration over the provided assets array to avoid 10 vault status checks limit of the EVC if
 /// called outside of the EVC checks-deferred context
 /// - additional call imposed upon the buyer. This way, the protocol can automate certain periodic operations that would
 /// otherwise require manual intervention
+/// IMPORTANT: the payment token must not be the share token of the EVK vault
 contract FeeFlowControllerEVK is EVCUtil {
     using SafeERC20 for IERC20;
 
@@ -41,7 +43,7 @@ contract FeeFlowControllerEVK is EVCUtil {
     bytes4 public immutable hookTargetSelector;
 
     struct Slot0 {
-        uint8 locked; // 1 if locked, 2 if unlocked
+        uint8 locked; // 2 if locked, 1 if unlocked
         uint16 epochId; // intentionally overflowable
         uint192 initPrice;
         uint40 startTime;
@@ -50,6 +52,7 @@ contract FeeFlowControllerEVK is EVCUtil {
     Slot0 internal slot0;
 
     event Buy(address indexed buyer, address indexed assetsReceiver, uint256 paymentAmount);
+    event HookTargetFailed(bytes32 reason);
 
     error Reentrancy();
     error InitPriceBelowMin();
@@ -66,7 +69,6 @@ contract FeeFlowControllerEVK is EVCUtil {
     error MaxPaymentTokenAmountExceeded();
     error PaymentReceiverIsThis();
     error InvalidOFTAdapter();
-    error EmptyError();
 
     modifier nonReentrant() {
         if (slot0.locked == 2) revert Reentrancy();
@@ -83,7 +85,7 @@ contract FeeFlowControllerEVK is EVCUtil {
     /// @dev Initializes the FeeFlowControllerEVK contract with the specified parameters.
     /// @param evc The address of the Ethereum Vault Connector (EVC) contract.
     /// @param initPrice The initial price for the first epoch.
-    /// @param paymentToken_ The address of the payment token.
+    /// @param paymentToken_ The address of the payment token. This must not be the share token of the EVK vault.
     /// @param paymentReceiver_ The address of the payment receiver.
     /// @param epochPeriod_ The duration of each epoch period.
     /// @param priceMultiplier_ The multiplier for adjusting the price from one epoch to the next.
@@ -133,6 +135,9 @@ contract FeeFlowControllerEVK is EVCUtil {
         hookTargetSelector = hookTargetSelector_;
     }
 
+    /// @dev Allows the contract to receive ETH
+    receive() external payable {}
+
     /// @dev Allows a user to buy assets by transferring payment tokens and receiving the assets.
     /// @param assets The addresses of the assets to be bought.
     /// @param assetsReceiver The address that will receive the bought assets.
@@ -167,20 +172,23 @@ contract FeeFlowControllerEVK is EVCUtil {
                 paymentToken.safeTransferFrom(sender, paymentReceiver, paymentAmount);
             } else {
                 paymentToken.safeTransferFrom(sender, address(this), paymentAmount);
+                uint256 balance = paymentToken.balanceOf(address(this));
 
                 SendParam memory sendParam = SendParam({
                     dstEid: dstEid,
                     to: bytes32(uint256(uint160(paymentReceiver))),
-                    amountLD: paymentAmount,
-                    minAmountLD: paymentAmount,
+                    amountLD: balance,
+                    minAmountLD: 0,
                     extraOptions: "",
                     composeMsg: "",
                     oftCmd: ""
                 });
                 MessagingFee memory fee = IOFT(oftAdapter).quoteSend(sendParam, false);
 
-                paymentToken.forceApprove(oftAdapter, paymentAmount);
-                IOFT(oftAdapter).send{value: fee.nativeFee}(sendParam, fee, address(this));
+                if (address(this).balance >= fee.nativeFee) {
+                    paymentToken.forceApprove(oftAdapter, balance);
+                    IOFT(oftAdapter).send{value: fee.nativeFee}(sendParam, fee, address(this));
+                }
             }
         }
 
@@ -216,9 +224,15 @@ contract FeeFlowControllerEVK is EVCUtil {
 
         // Perform the hook call if the hook target is set
         if (hookTarget != address(0)) {
-            // We do not check the success of the call as we allow it silently fail
-            (bool success,) = hookTarget.call(abi.encode(hookTargetSelector));
-            success;
+            (bool success, bytes memory result) = hookTarget.call(abi.encodeWithSelector(hookTargetSelector));
+
+            if (!success && result.length != 0) {
+                bytes32 reason;
+                assembly {
+                    reason := mload(add(32, result))
+                }
+                emit HookTargetFailed(reason);
+            }
         }
 
         return paymentAmount;
