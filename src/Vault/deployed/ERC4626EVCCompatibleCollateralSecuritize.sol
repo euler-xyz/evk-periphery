@@ -68,6 +68,8 @@ contract ERC4626EVCCompatibleCollateralSecuritize is ERC4626EVCCompatibleCollate
         complianceService = IDSToken(asset).getDSService(IDSToken(asset).COMPLIANCE_SERVICE());
     }
 
+    /// @notice Sets a new governor admin for the vault.
+    /// @param newGovernorAdmin The address of the new governor admin.
     function setGovernorAdmin(address newGovernorAdmin) public virtual onlyEVCAccountOwner governorOnly {
         if (newGovernorAdmin == address(0)) revert InvalidAddress();
         if (newGovernorAdmin == governorAdmin) return;
