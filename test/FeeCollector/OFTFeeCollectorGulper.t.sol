@@ -79,4 +79,21 @@ contract OFTFeeCollectorGulperTest is BaseFeeFlowControllerTest {
         assertEq(paymentToken.balanceOf(address(mockESR)), 3e18);
     }
 
+    function testReceiveLZMessage() public {
+        assertEq(paymentToken.balanceOf(address(mockESR)), 0);
+        assertEq(paymentToken.balanceOf(address(feeCollector)), 0);
+
+        // no-op if no balance received
+        feeCollector.lzCompose(address(0), bytes32(0), "", address(0), "");
+        assertTrue(!mockESR.gulpWasCalled());
+
+        // simulate asset bridged
+        paymentToken.mint(address(feeCollector), 1e18);
+
+        feeCollector.lzCompose(address(0), bytes32(0), "", address(0), "");
+        assertTrue(mockESR.gulpWasCalled());
+
+        assertEq(paymentToken.balanceOf(address(mockESR)), 1e18);
+    }
+
 }
