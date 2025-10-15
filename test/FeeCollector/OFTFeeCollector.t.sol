@@ -22,7 +22,7 @@ contract OFTFeeCollectorTest is BaseFeeFlowControllerTest {
     MockVault vault2;
     MockVault vaultOtherUnderlying;
 
-    function setUp() public override virtual {
+    function setUp() public virtual override {
         super.setUp();
 
         admin = makeAddr("admin");
@@ -77,7 +77,6 @@ contract OFTFeeCollectorTest is BaseFeeFlowControllerTest {
         assertEq(vault1.feesAmount(), 1e18);
         assertEq(vault2.feesAmount(), 2e18);
         assertEq(paymentToken.balanceOf(address(feeCollector)), 0);
-
 
         // after granting the role, fees are collected
         bytes32 role = feeCollector.COLLECTOR_ROLE();
@@ -158,7 +157,6 @@ contract OFTFeeCollectorTest is BaseFeeFlowControllerTest {
         assertEq(vault2.feesAmount(), 2e18);
         assertEq(paymentToken.balanceOf(address(feeCollector)), 0);
 
-
         // fees are collected after configuring the collector
         vm.prank(admin);
         feeCollector.configure(address(mockOFTAdapter), address(2), 1, "", "");
@@ -209,7 +207,9 @@ contract OFTFeeCollectorTest is BaseFeeFlowControllerTest {
         MessagingFee memory fee = mockOFTAdapter.quoteSend(expecParam, false);
 
         vm.prank(buyer);
-        vm.expectCall(address(mockOFTAdapter), abi.encodeCall(MockOFTAdapter.send, (expecParam, fee, address(feeCollector))));
+        vm.expectCall(
+            address(mockOFTAdapter), abi.encodeCall(MockOFTAdapter.send, (expecParam, fee, address(feeCollector)))
+        );
         feeFlowController.buy(addresses, assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
 
         assertEq(address(feeCollector).balance, 1 ether - mockOFTAdapter.MESSAGING_NATIVE_FEE());
@@ -225,7 +225,9 @@ contract OFTFeeCollectorTest is BaseFeeFlowControllerTest {
         // only admin
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), feeCollector.DEFAULT_ADMIN_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                address(this),
+                feeCollector.DEFAULT_ADMIN_ROLE()
             )
         );
         feeCollector.configure(address(1), address(2), 1, "", "");

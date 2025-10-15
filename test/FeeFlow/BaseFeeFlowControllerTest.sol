@@ -10,7 +10,6 @@ import "./lib/OverflowableEpochIdFeeFlowController.sol";
 import "../../src/FeeFlow/FeeFlowControllerEVK.sol";
 import {MockOFTAdapter} from "../FeeCollector/lib/MockOFTAdapter.sol";
 
-
 contract BaseFeeFlowControllerTest is Test {
     uint256 public constant INIT_PRICE = 1e18;
     uint256 public constant MIN_INIT_PRICE = 1e6;

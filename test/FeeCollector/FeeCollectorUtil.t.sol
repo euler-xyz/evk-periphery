@@ -19,7 +19,7 @@ contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
     MockVault vault2;
     MockVault vaultOtherUnderlying;
 
-    function setUp() public override virtual {
+    function setUp() public virtual override {
         super.setUp();
 
         admin = makeAddr("admin");
@@ -52,7 +52,7 @@ contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
     }
 
     function testVaultList() public {
-        // no vaults 
+        // no vaults
         assertEq(feeCollector.getVaultsList().length, 0);
 
         // only maintainer can add vaults
@@ -106,7 +106,9 @@ contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
         // only admin can recover
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), feeCollector.DEFAULT_ADMIN_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                address(this),
+                feeCollector.DEFAULT_ADMIN_ROLE()
             )
         );
         feeCollector.recoverToken(address(0), admin, 1 ether);
@@ -143,8 +145,14 @@ contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
 
         assertEq(paymentToken.balanceOf(address(feeCollector)), 0);
         vm.prank(buyer);
-        vm.expectCall(address(vault1), abi.encodeCall(MockVault.redeem, (type(uint256).max, address(feeCollector), address(feeCollector))));
-        vm.expectCall(address(vault2), abi.encodeCall(MockVault.redeem, (type(uint256).max, address(feeCollector), address(feeCollector))));
+        vm.expectCall(
+            address(vault1),
+            abi.encodeCall(MockVault.redeem, (type(uint256).max, address(feeCollector), address(feeCollector)))
+        );
+        vm.expectCall(
+            address(vault2),
+            abi.encodeCall(MockVault.redeem, (type(uint256).max, address(feeCollector), address(feeCollector)))
+        );
         feeFlowController.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
         assertEq(paymentToken.balanceOf(address(feeCollector)), 3e18);
     }

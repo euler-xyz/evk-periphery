@@ -456,7 +456,6 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
         vm.stopPrank();
     }
 
-
     // Testing for overflows in price calculations --------------------------------
     function testMAX_INIT_PRICEandMAX_EPOCH_PERIODdoNotOverflowPricing() public {
         uint256 absMaxInitPrice = feeFlowController.ABS_MAX_INIT_PRICE();

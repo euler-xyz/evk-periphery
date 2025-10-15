@@ -95,5 +95,4 @@ contract OFTFeeCollectorGulperTest is BaseFeeFlowControllerTest {
 
         assertEq(paymentToken.balanceOf(address(mockESR)), 1e18);
     }
-
 }

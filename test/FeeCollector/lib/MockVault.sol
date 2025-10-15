@@ -7,6 +7,7 @@ contract MockVault {
     MockToken underlying;
     address feeReceiver;
     uint256 public feesAmount;
+
     constructor(MockToken underlying_, address feeReceiver_) {
         underlying = underlying_;
         feeReceiver = feeReceiver_;
@@ -25,7 +26,7 @@ contract MockVault {
         return 0;
     }
 
-    function asset() external view returns(address) {
+    function asset() external view returns (address) {
         return address(underlying);
     }
 }
