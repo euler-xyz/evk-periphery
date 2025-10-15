@@ -94,17 +94,17 @@ contract ERC20SynthTest is EVaultTestBase {
         assertTrue(!esynth.hasRole(minterRole, user2));
     }
 
-    function test_addIgnoredForTotalSupply_onlyDefaultAdmin() public {
+    function test_addIgnoredForTotalSupply_onlyAllocator() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.ALLOCATOR_ROLE()
             )
         );
         esynth.addIgnoredForTotalSupply(ignored1);
     }
 
     function test_addIgnored() public {
-        vm.prank(defaultAdmin);
+        vm.prank(allocator);
         bool success = esynth.addIgnoredForTotalSupply(ignored1);
 
         address[] memory ignored = esynth.getAllIgnoredForTotalSupply();
@@ -115,7 +115,7 @@ contract ERC20SynthTest is EVaultTestBase {
     }
 
     function test_addIgnored_duplicate() public {
-        vm.startPrank(defaultAdmin);
+        vm.startPrank(allocator);
         esynth.addIgnoredForTotalSupply(ignored1);
         bool success = esynth.addIgnoredForTotalSupply(ignored1);
         vm.stopPrank();
@@ -127,17 +127,17 @@ contract ERC20SynthTest is EVaultTestBase {
         assertFalse(success);
     }
 
-    function test_removeIgnoredForTotalSupply_onlyDefaultAdmin() public {
+    function test_removeIgnoredForTotalSupply_onlyAllocator() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.ALLOCATOR_ROLE()
             )
         );
         esynth.removeIgnoredForTotalSupply(ignored1);
     }
 
     function test_removeIgnored() public {
-        vm.startPrank(defaultAdmin);
+        vm.startPrank(allocator);
         esynth.addIgnoredForTotalSupply(ignored1);
         bool success = esynth.removeIgnoredForTotalSupply(ignored1);
         vm.stopPrank();
@@ -149,7 +149,7 @@ contract ERC20SynthTest is EVaultTestBase {
     }
 
     function test_removeIgnored_notFound() public {
-        vm.startPrank(defaultAdmin);
+        vm.startPrank(allocator);
         bool success = esynth.removeIgnoredForTotalSupply(ignored1);
         vm.stopPrank();
 
@@ -182,9 +182,11 @@ contract ERC20SynthTest is EVaultTestBase {
         esynth.mint(ignored1, 200);
         esynth.mint(ignored2, 300);
         esynth.mint(ignored3, 400);
+        vm.stopPrank();
+
+        vm.startPrank(allocator);
         esynth.addIgnoredForTotalSupply(ignored1);
         esynth.addIgnoredForTotalSupply(ignored2);
-        vm.stopPrank();
 
         assertEq(esynth.totalSupply(), 400);
     }
@@ -427,78 +429,78 @@ contract ERC20SynthTest is EVaultTestBase {
     }
 
     function test_Roles() public {
-        vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, user1, esynth.DEFAULT_ADMIN_ROLE()
             )
         );
+        vm.prank(user1);
         esynth.setCapacity(minter, 1e18);
 
         vm.prank(defaultAdmin);
         esynth.setCapacity(minter, 1e18);
 
-        vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, user1, esynth.ALLOCATOR_ROLE()
             )
         );
+        vm.prank(user1);
         esynth.addIgnoredForTotalSupply(address(eTST));
 
-        vm.prank(defaultAdmin);
+        vm.prank(allocator);
         esynth.addIgnoredForTotalSupply(address(eTST));
 
-        vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.DEFAULT_ADMIN_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, user1, esynth.ALLOCATOR_ROLE()
             )
         );
-        esynth.removeIgnoredForTotalSupply(address(eTST));
-
-        vm.prank(defaultAdmin);
-        esynth.removeIgnoredForTotalSupply(address(eTST));
-
         vm.prank(user1);
+        esynth.removeIgnoredForTotalSupply(address(eTST));
+
+        vm.prank(allocator);
+        esynth.removeIgnoredForTotalSupply(address(eTST));
+
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.MINTER_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, user1, esynth.MINTER_ROLE()
             )
         );
+        vm.prank(user1);
         esynth.mint(address(esynth), 1e18);
 
         vm.prank(minter);
         esynth.mint(address(esynth), 1e18);
 
-        vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.ALLOCATOR_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, user1, esynth.ALLOCATOR_ROLE()
             )
         );
+        vm.prank(user1);
         esynth.allocate(address(eTST), 1e18);
 
         vm.prank(allocator);
         esynth.allocate(address(eTST), 1e18);
 
-        vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.ALLOCATOR_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, user1, esynth.ALLOCATOR_ROLE()
             )
         );
+        vm.prank(user1);
         esynth.deallocate(address(eTST), 1e18);
 
         vm.prank(allocator);
         esynth.deallocate(address(eTST), 1e18);
 
-        vm.prank(user1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), esynth.REVOKE_MINTER_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, user1, esynth.REVOKE_MINTER_ROLE()
             )
         );
+        vm.prank(user1);
         esynth.revokeMinterRole(minter);
 
         vm.prank(revokeMinter);

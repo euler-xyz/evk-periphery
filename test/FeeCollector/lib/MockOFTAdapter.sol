@@ -6,11 +6,13 @@ import {MessagingFee, MessagingReceipt} from "@layerzerolabs/lz-evm-oapp-v2/cont
 
 contract MockOFTAdapter {
     address public token;
-    uint256 public MESSAGING_NATIVE_FEE = 1;
+    uint256 public MESSAGING_NATIVE_FEE = 123;
+    bool public wasSendCalled;
     constructor(address _token) {
         token = _token;
     }
     function send(SendParam calldata, MessagingFee calldata, address) public payable returns (MessagingReceipt memory, OFTReceipt memory) {
+        wasSendCalled = true;
         return (
             MessagingReceipt({
                 guid: bytes32(0),

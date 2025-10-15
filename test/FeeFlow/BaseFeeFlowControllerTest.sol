@@ -8,12 +8,15 @@ import "./lib/ReenteringMockToken.sol";
 import "./lib/PredictAddress.sol";
 import "./lib/OverflowableEpochIdFeeFlowController.sol";
 import "../../src/FeeFlow/FeeFlowControllerEVK.sol";
+import {MockOFTAdapter} from "../FeeCollector/lib/MockOFTAdapter.sol";
+
 
 contract BaseFeeFlowControllerTest is Test {
     uint256 public constant INIT_PRICE = 1e18;
     uint256 public constant MIN_INIT_PRICE = 1e6;
     uint256 public constant EPOCH_PERIOD = 14 days;
     uint256 public constant PRICE_MULTIPLIER = 2e18;
+    uint32 public constant DST_EID = 123;
 
     address public paymentReceiver = makeAddr("paymentReceiver");
     address public buyer = makeAddr("buyer");
@@ -27,9 +30,10 @@ contract BaseFeeFlowControllerTest is Test {
     MockToken[] public tokens;
 
     IEVC public evc;
-    FeeFlowControllerEVK public feeFlowController;
 
     MockHookTarget public mockHookTarget;
+
+    MockOFTAdapter mockOFTAdapter;
 
     function setUp() public virtual {
         // Deploy tokens
@@ -53,32 +57,16 @@ contract BaseFeeFlowControllerTest is Test {
 
         // Deploy mock hook target
         mockHookTarget = new MockHookTarget();
-
-        // Deploy FeeFlowControllerEVK
-        feeFlowController = new FeeFlowControllerEVK(
-            address(evc),
-            INIT_PRICE,
-            address(paymentToken),
-            paymentReceiver,
-            EPOCH_PERIOD,
-            PRICE_MULTIPLIER,
-            MIN_INIT_PRICE,
-            address(mockHookTarget),
-            MockHookTarget.mockHookTargetCallback.selector
-        );
+        mockOFTAdapter = new MockOFTAdapter(address(paymentToken));
 
         // Mint payment tokens to buyer
         paymentToken.mint(buyer, 1000000e18);
-        // Approve payment token from buyer to FeeFlowControllerEVK
-        vm.startPrank(buyer);
-        paymentToken.approve(address(feeFlowController), type(uint256).max);
-        vm.stopPrank();
     }
 
     // Helper functions -----------------------------------------------------
-    function mintTokensToBatchBuyer() public {
+    function mintTokensToBatchBuyer(address feeFlowController) public {
         for (uint256 i = 0; i < tokens.length; i++) {
-            tokens[i].mint(address(feeFlowController), 1000000e18 * (i + 1));
+            tokens[i].mint(feeFlowController, 1000000e18 * (i + 1));
         }
     }
 

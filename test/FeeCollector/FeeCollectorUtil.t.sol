@@ -12,7 +12,7 @@ import {BaseFeeFlowControllerTest} from "../FeeFlow/BaseFeeFlowControllerTest.so
 
 contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
     FeeCollectorUtil feeCollector;
-    FeeFlowControllerEVK feeFlowControllerCollector;
+    FeeFlowControllerEVK feeFlowController;
     address admin;
     address maintainer;
     MockVault vault1;
@@ -24,7 +24,7 @@ contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
 
         admin = makeAddr("admin");
         maintainer = makeAddr("maintainer");
-        feeCollector = new FeeCollectorUtil(admin, address(paymentToken));
+        feeCollector = new FeeCollectorUtil(address(evc), admin, address(paymentToken));
 
         bytes32 maintainerRole = feeCollector.MAINTAINER_ROLE();
         vm.prank(admin);
@@ -34,8 +34,7 @@ contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
         vault2 = new MockVault(paymentToken, address(feeCollector));
         vaultOtherUnderlying = new MockVault(MockToken(address(1)), address(feeCollector));
 
-        // deploy new controller with new hook data
-        feeFlowControllerCollector = new FeeFlowControllerEVK(
+        feeFlowController = new FeeFlowControllerEVK(
             address(evc),
             INIT_PRICE,
             address(paymentToken),
@@ -43,11 +42,13 @@ contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
             EPOCH_PERIOD,
             PRICE_MULTIPLIER,
             MIN_INIT_PRICE,
+            address(mockOFTAdapter),
+            DST_EID,
             address(feeCollector),
             feeCollector.collectFees.selector
         );
         vm.prank(buyer);
-        paymentToken.approve(address(feeFlowControllerCollector), type(uint256).max);
+        paymentToken.approve(address(feeFlowController), type(uint256).max);
     }
 
     function testVaultList() public {
@@ -130,7 +131,7 @@ contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
     }
 
     function testIntegrationWithFeeFlow() public {
-        mintTokensToBatchBuyer();
+        mintTokensToBatchBuyer(address(feeFlowController));
 
         vault1.mockSetFeeAmount(1e18);
         vault2.mockSetFeeAmount(2e18);
@@ -144,7 +145,7 @@ contract FeeCollectorUtilTest is BaseFeeFlowControllerTest {
         vm.prank(buyer);
         vm.expectCall(address(vault1), abi.encodeCall(MockVault.redeem, (type(uint256).max, address(feeCollector), address(feeCollector))));
         vm.expectCall(address(vault2), abi.encodeCall(MockVault.redeem, (type(uint256).max, address(feeCollector), address(feeCollector))));
-        feeFlowControllerCollector.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
+        feeFlowController.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
         assertEq(paymentToken.balanceOf(address(feeCollector)), 3e18);
     }
 }

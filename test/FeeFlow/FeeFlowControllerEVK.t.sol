@@ -11,6 +11,30 @@ import "../../src/FeeFlow/FeeFlowControllerEVK.sol";
 import "./BaseFeeFlowControllerTest.sol";
 
 contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
+    FeeFlowControllerEVK feeFlowController;
+
+    function setUp() public virtual override {
+        super.setUp();
+        // Deploy FeeFlowControllerEVK
+        feeFlowController = new FeeFlowControllerEVK(
+            address(evc),
+            INIT_PRICE,
+            address(paymentToken),
+            paymentReceiver,
+            EPOCH_PERIOD,
+            PRICE_MULTIPLIER,
+            MIN_INIT_PRICE,
+            address(0),
+            0,
+            address(mockHookTarget),
+            MockHookTarget.mockHookTargetCallback.selector
+        );
+        // Approve payment token from buyer to FeeFlowControllerEVK
+        vm.startPrank(buyer);
+        paymentToken.approve(address(feeFlowController), type(uint256).max);
+        vm.stopPrank();
+    }
+
     function testConstructor() public view {
         FeeFlowControllerEVK.Slot0 memory slot0 = feeFlowController.getSlot0();
         assertEq(address(feeFlowController.EVC()), address(evc));
@@ -34,6 +58,8 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             PRICE_MULTIPLIER,
             MIN_INIT_PRICE,
             address(0),
+            0,
+            address(0),
             ""
         );
     }
@@ -49,6 +75,8 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             minEpochPeriod - 1,
             PRICE_MULTIPLIER,
             MIN_INIT_PRICE,
+            address(0),
+            0,
             address(0),
             ""
         );
@@ -66,6 +94,8 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             PRICE_MULTIPLIER,
             MIN_INIT_PRICE,
             address(0),
+            0,
+            address(0),
             ""
         );
     }
@@ -81,6 +111,8 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             EPOCH_PERIOD,
             minPriceMultiplier - 1,
             MIN_INIT_PRICE,
+            address(0),
+            0,
             address(0),
             ""
         );
@@ -98,6 +130,8 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             PRICE_MULTIPLIER,
             absMinInitPrice - 1,
             address(0),
+            0,
+            address(0),
             ""
         );
     }
@@ -113,6 +147,8 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             EPOCH_PERIOD,
             PRICE_MULTIPLIER,
             uint256(type(uint216).max) + 1,
+            address(0),
+            0,
             address(0),
             ""
         );
@@ -133,13 +169,15 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             PRICE_MULTIPLIER,
             MIN_INIT_PRICE,
             address(0),
+            0,
+            address(0),
             ""
         );
         vm.stopPrank();
     }
 
     function testBuyStartOfAuction() public {
-        mintTokensToBatchBuyer();
+        mintTokensToBatchBuyer(address(feeFlowController));
 
         uint256 paymentReceiverBalanceBefore = paymentToken.balanceOf(paymentReceiver);
         uint256 buyerBalanceBefore = paymentToken.balanceOf(buyer);
@@ -168,7 +206,7 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
     }
 
     function testBuyEndOfAuction() public {
-        mintTokensToBatchBuyer();
+        mintTokensToBatchBuyer(address(feeFlowController));
 
         uint256 paymentReceiverBalanceBefore = paymentToken.balanceOf(paymentReceiver);
         uint256 buyerBalanceBefore = paymentToken.balanceOf(buyer);
@@ -200,7 +238,7 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
     }
 
     function testBuyMiddleOfAuction() public {
-        mintTokensToBatchBuyer();
+        mintTokensToBatchBuyer(address(feeFlowController));
 
         uint256 paymentReceiverBalanceBefore = paymentToken.balanceOf(paymentReceiver);
         uint256 buyerBalanceBefore = paymentToken.balanceOf(buyer);
@@ -231,7 +269,7 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
     }
 
     function testBuyDeadlinePassedShouldFail() public {
-        mintTokensToBatchBuyer();
+        mintTokensToBatchBuyer(address(feeFlowController));
         skip(365 days);
 
         vm.startPrank(buyer);
@@ -244,7 +282,7 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
     }
 
     function testBuyEmptyAssetsShouldFail() public {
-        mintTokensToBatchBuyer();
+        mintTokensToBatchBuyer(address(feeFlowController));
 
         vm.startPrank(buyer);
         vm.expectRevert(FeeFlowControllerEVK.EmptyAssets.selector);
@@ -256,7 +294,7 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
     }
 
     function testBuyWrongEpochShouldFail() public {
-        mintTokensToBatchBuyer();
+        mintTokensToBatchBuyer(address(feeFlowController));
 
         // Is actually at 0
         uint256 epochId = 1;
@@ -271,7 +309,7 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
     }
 
     function testBuyPaymentAmountExceedsMax() public {
-        mintTokensToBatchBuyer();
+        mintTokensToBatchBuyer(address(feeFlowController));
 
         vm.startPrank(buyer);
         vm.expectRevert(FeeFlowControllerEVK.MaxPaymentTokenAmountExceeded.selector);
@@ -358,6 +396,8 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             1.1e18,
             absMaxInitPrice,
             address(0),
+            0,
+            address(0),
             ""
         );
 
@@ -389,6 +429,8 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             PRICE_MULTIPLIER,
             MIN_INIT_PRICE,
             address(0),
+            0,
+            address(0),
             ""
         );
         tempFeeFlowController.setEpochId(type(uint16).max);
@@ -406,7 +448,7 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
 
     function testBuyHookCalled() public {
         assertEq(feeFlowController.hookTarget(), address(mockHookTarget));
-        mintTokensToBatchBuyer();
+        mintTokensToBatchBuyer(address(feeFlowController));
         address[] memory addresses = assetsAddresses();
         vm.startPrank(buyer);
         vm.expectCall(address(mockHookTarget), abi.encodePacked(MockHookTarget.mockHookTargetCallback.selector));
@@ -428,6 +470,8 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             maxEpochPeriod,
             1.1e18,
             absMaxInitPrice,
+            address(0),
+            0,
             address(0),
             ""
         );
@@ -457,6 +501,8 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             1.1e18,
             absMaxInitPrice,
             address(0),
+            0,
+            address(0),
             ""
         );
         paymentToken.mint(buyer, absMaxInitPrice);
@@ -484,6 +530,8 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
             EPOCH_PERIOD,
             maxPriceMultiplier,
             absMaxInitPrice,
+            address(0),
+            0,
             address(0),
             ""
         );

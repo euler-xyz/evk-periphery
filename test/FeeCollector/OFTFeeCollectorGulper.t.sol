@@ -6,15 +6,15 @@ import "evc/EthereumVaultConnector.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import "../../src/FeeFlow/FeeFlowControllerEVK.sol";
 import {FeeCollectorUtilTest} from "./FeeCollectorUtil.t.sol";
-import {FeeCollectorGulper} from "../../src/Util/FeeCollectorGulper.sol";
+import {OFTFeeCollectorGulper} from "../../src/OFT/OFTFeeCollectorGulper.sol";
 import {MockVault} from "./lib/MockVault.sol";
 import {BaseFeeFlowControllerTest} from "../FeeFlow/BaseFeeFlowControllerTest.sol";
 import {MockESR} from "./lib/MockESR.sol";
 
-contract FeeCollectorGulperTest is BaseFeeFlowControllerTest {
-    FeeCollectorGulper gulper;
+contract OFTFeeCollectorGulperTest is BaseFeeFlowControllerTest {
+    OFTFeeCollectorGulper feeCollector;
     MockESR mockESR;
-    FeeFlowControllerEVK feeFlowControllerGulper;
+    FeeFlowControllerEVK feeFlowController;
 
     address admin;
     address maintainer;
@@ -28,17 +28,16 @@ contract FeeCollectorGulperTest is BaseFeeFlowControllerTest {
         maintainer = makeAddr("maintainer");
 
         mockESR = new MockESR(address(paymentToken));
-        gulper = new FeeCollectorGulper(admin, address(paymentToken), address(mockESR));
+        feeCollector = new OFTFeeCollectorGulper(address(evc), admin, address(mockESR));
 
-        bytes32 maintainerRole = gulper.MAINTAINER_ROLE();
+        bytes32 maintainerRole = feeCollector.MAINTAINER_ROLE();
         vm.prank(admin);
-        gulper.grantRole(maintainerRole, maintainer);
+        feeCollector.grantRole(maintainerRole, maintainer);
 
-        vault1 = new MockVault(paymentToken, address(gulper));
-        vault2 = new MockVault(paymentToken, address(gulper));
+        vault1 = new MockVault(paymentToken, address(feeCollector));
+        vault2 = new MockVault(paymentToken, address(feeCollector));
 
-
-        feeFlowControllerGulper = new FeeFlowControllerEVK(
+        feeFlowController = new FeeFlowControllerEVK(
             address(evc),
             INIT_PRICE,
             address(paymentToken),
@@ -46,26 +45,26 @@ contract FeeCollectorGulperTest is BaseFeeFlowControllerTest {
             EPOCH_PERIOD,
             PRICE_MULTIPLIER,
             MIN_INIT_PRICE,
-            address(gulper),
-            gulper.collectFees.selector
+            address(mockOFTAdapter),
+            DST_EID,
+            address(feeCollector),
+            feeCollector.collectFees.selector
         );
         vm.prank(buyer);
-        paymentToken.approve(address(feeFlowControllerGulper), type(uint256).max);
+        paymentToken.approve(address(feeFlowController), type(uint256).max);
     }
 
     function testCollectFeesAndGulp() public {
-
-
         vm.startPrank(maintainer);
-        gulper.addToVaultsList(address(vault1));
-        gulper.addToVaultsList(address(vault2));
+        feeCollector.addToVaultsList(address(vault1));
+        feeCollector.addToVaultsList(address(vault2));
         vm.stopPrank();
 
         assertEq(paymentToken.balanceOf(address(mockESR)), 0);
 
         // no-op if no fees collected
         vm.prank(buyer);
-        feeFlowControllerGulper.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
+        feeFlowController.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
         assertTrue(!mockESR.gulpWasCalled());
 
         vault1.mockSetFeeAmount(1e18);
@@ -73,7 +72,7 @@ contract FeeCollectorGulperTest is BaseFeeFlowControllerTest {
 
         // gulp called when fees present
         vm.prank(buyer);
-        feeFlowControllerGulper.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
+        feeFlowController.buy(assetsAddresses(), assetsReceiver, 1, block.timestamp + 1 days, 1000000e18);
         assertTrue(mockESR.gulpWasCalled());
 
         // fees transferred
