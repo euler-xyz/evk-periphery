@@ -249,8 +249,9 @@ contract ERC4626EVCCompatibleCollateralSecuritize is ERC4626EVCCompatibleCollate
         address toOwner = evc.getAccountOwner(to);
         if (toOwner == address(0)) return false;
 
-        (uint256 code,) =
-            IComplianceServiceRegulated(complianceService).preTransferCheck(address(this), toOwner, amount);
+        (uint256 code,) = IComplianceServiceRegulated(complianceService).preTransferCheck(
+            address(this), toOwner, previewRedeem(amount)
+        );
         return code == 0;
     }
 
