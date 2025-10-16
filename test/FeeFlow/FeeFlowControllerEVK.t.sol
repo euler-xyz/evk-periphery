@@ -548,4 +548,62 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
         assert(tempFeeFlowController.getPrice() == absMaxInitPrice);
         vm.stopPrank();
     }
+
+    function testOFTAdapterCalledWhenConfigured() public {
+        feeFlowController = new FeeFlowControllerEVK(
+            address(evc),
+            INIT_PRICE,
+            address(paymentToken),
+            paymentReceiver,
+            EPOCH_PERIOD,
+            PRICE_MULTIPLIER,
+            MIN_INIT_PRICE,
+            address(mockOFTAdapter),
+            DST_EID,
+            address(mockHookTarget),
+            MockHookTarget.mockHookTargetCallback.selector
+        );
+        // Approve payment token from buyer to FeeFlowControllerEVK
+        vm.startPrank(buyer);
+        paymentToken.approve(address(feeFlowController), type(uint256).max);
+        vm.stopPrank();
+
+        skip(EPOCH_PERIOD / 2);
+        uint256 expectedPrice = feeFlowController.getPrice();
+        uint256 snapshotId = vm.snapshot();
+        vm.prank(buyer);
+        feeFlowController.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
+
+        // OFT adapter not called, no allowance 
+        assertEq(paymentToken.balanceOf(address(feeFlowController)), expectedPrice);
+        assertTrue(!mockOFTAdapter.wasSendCalled());
+        assertEq(paymentToken.allowance(address(feeFlowController), address(mockOFTAdapter)), 0);
+
+        vm.revertTo(snapshotId);
+        // after providing balance for LZ fees, adapter is called
+        deal(buyer, 1 ether);
+        vm.prank(buyer);
+        payable(address(feeFlowController)).transfer(1 ether);
+
+        SendParam memory expecParam = SendParam({
+            dstEid: DST_EID,
+            to: bytes32(uint256(uint160(paymentReceiver))),
+            amountLD: expectedPrice,
+            minAmountLD: 0,
+            extraOptions: "",
+            composeMsg: "",
+            oftCmd: ""
+        });
+        MessagingFee memory fee = mockOFTAdapter.quoteSend(expecParam, false);
+
+        vm.prank(buyer);
+        vm.expectCall(
+            address(mockOFTAdapter), abi.encodeCall(MockOFTAdapter.send, (expecParam, fee, address(feeFlowController)))
+        );
+        feeFlowController.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
+
+        // adapter has allowance
+        assertTrue(mockOFTAdapter.wasSendCalled());
+        assertEq(paymentToken.allowance(address(feeFlowController), address(mockOFTAdapter)), expectedPrice);
+    }
 }
