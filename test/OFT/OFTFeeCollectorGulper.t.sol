@@ -5,11 +5,11 @@ import "forge-std/Test.sol";
 import "evc/EthereumVaultConnector.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import "../../src/FeeFlow/FeeFlowControllerEVK.sol";
-import {FeeCollectorUtilTest} from "./FeeCollectorUtil.t.sol";
+import {FeeCollectorUtilTest} from "../Util/FeeCollectorUtil.t.sol";
 import {OFTFeeCollectorGulper} from "../../src/OFT/OFTFeeCollectorGulper.sol";
-import {MockVault} from "./lib/MockVault.sol";
+import {MockVault} from "../Util/lib/MockVault.sol";
 import {BaseFeeFlowControllerTest} from "../FeeFlow/BaseFeeFlowControllerTest.sol";
-import {MockESR} from "./lib/MockESR.sol";
+import {MockESR} from "../Util/lib/MockESR.sol";
 
 contract OFTFeeCollectorGulperTest is BaseFeeFlowControllerTest {
     OFTFeeCollectorGulper feeCollector;

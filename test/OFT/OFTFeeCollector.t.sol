@@ -7,7 +7,7 @@ import {FeeFlowControllerEVK} from "../../src/FeeFlow/FeeFlowControllerEVK.sol";
 import {FeeFlowControllerEVKTest} from "../FeeFlow/FeeFlowControllerEVK.t.sol";
 import {OFTFeeCollector} from "../../src/OFT/OFTFeeCollector.sol";
 import {MockToken} from "../FeeFlow/lib/MockToken.sol";
-import {MockVault} from "./lib/MockVault.sol";
+import {MockVault} from "../Util/lib/MockVault.sol";
 import {MockOFTAdapter} from "./lib/MockOFTAdapter.sol";
 import {BaseFeeFlowControllerTest} from "../FeeFlow/BaseFeeFlowControllerTest.sol";
 import {SendParam} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";

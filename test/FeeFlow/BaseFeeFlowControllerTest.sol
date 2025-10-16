@@ -8,7 +8,7 @@ import "./lib/ReenteringMockToken.sol";
 import "./lib/PredictAddress.sol";
 import "./lib/OverflowableEpochIdFeeFlowController.sol";
 import "../../src/FeeFlow/FeeFlowControllerEVK.sol";
-import {MockOFTAdapter} from "../FeeCollector/lib/MockOFTAdapter.sol";
+import {MockOFTAdapter} from "../OFT/lib/MockOFTAdapter.sol";
 
 contract BaseFeeFlowControllerTest is Test {
     uint256 public constant INIT_PRICE = 1e18;
