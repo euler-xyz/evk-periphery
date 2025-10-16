@@ -12,7 +12,8 @@ contract OFTFeeCollectorGulperTestFork is Test {
     address constant EUSD_ADMIN = 0xB1345E7A4D35FB3E6bF22A32B3741Ae74E5Fba27;
 
     ERC20Synth eUSD = ERC20Synth(0x950C6BEF80bbfD1eA2335D9e6Cb5bc3A23361b39);
-    OFTFeeCollectorGulper feeCollectorGulper = OFTFeeCollectorGulper(payable(0x1e3249cFC9C393E621F3e81bb992FF428bd18E66));
+    OFTFeeCollectorGulper feeCollectorGulper =
+        OFTFeeCollectorGulper(payable(0x1e3249cFC9C393E621F3e81bb992FF428bd18E66));
     IOFT eUsdOFTAdapter = IOFT(0xEb333262B68E29a48F769c32da8049765eC9c9A1);
     EulerSavingsRate seUSD = EulerSavingsRate(0xA2C12AB83F056510421d3DC4ad38A075e68a690e);
 

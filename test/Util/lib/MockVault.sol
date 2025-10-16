@@ -20,7 +20,7 @@ contract MockVault {
     function convertFees() public {
         if (underlying.balanceOf(address(this)) < feesAmount) {
             underlying.mint(address(this), feesAmount - underlying.balanceOf(address(this)));
-        } 
+        }
         underlying.transfer(feeReceiver, feesAmount);
         feesAmount = 0;
     }

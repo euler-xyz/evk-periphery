@@ -574,7 +574,7 @@ contract FeeFlowControllerEVKTest is BaseFeeFlowControllerTest {
         vm.prank(buyer);
         feeFlowController.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
 
-        // OFT adapter not called, no allowance 
+        // OFT adapter not called, no allowance
         assertEq(paymentToken.balanceOf(address(feeFlowController)), expectedPrice);
         assertTrue(!mockOFTAdapter.wasSendCalled());
         assertEq(paymentToken.allowance(address(feeFlowController), address(mockOFTAdapter)), 0);
