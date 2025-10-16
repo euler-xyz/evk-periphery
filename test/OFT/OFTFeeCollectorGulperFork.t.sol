@@ -2,97 +2,64 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import "evc/EthereumVaultConnector.sol";
-import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
-import "../../src/FeeFlow/FeeFlowControllerEVK.sol";
-import {FeeCollectorUtilTest} from "../Util/FeeCollectorUtil.t.sol";
+import {IOFT} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
 import {OFTFeeCollectorGulper} from "../../src/OFT/OFTFeeCollectorGulper.sol";
-import {MockVault} from "../Util/lib/MockVault.sol";
-import {BaseFeeFlowControllerTest} from "../FeeFlow/BaseFeeFlowControllerTest.sol";
-import {MockESR} from "../Util/lib/MockESR.sol";
+import {ERC20Synth} from "../../src/ERC20/deployed/ERC20Synth.sol";
+import {EulerSavingsRate} from "evk/Synths/EulerSavingsRate.sol";
 
-contract OFTFeeCollectorGulperTest is BaseFeeFlowControllerTest {
-    OFTFeeCollectorGulper feeCollector;
-    MockESR mockESR;
-    FeeFlowControllerEVK feeFlowController;
+contract OFTFeeCollectorGulperTestFork is Test {
+    // Mainnet contracts
+    address constant EUSD_ADMIN = 0xB1345E7A4D35FB3E6bF22A32B3741Ae74E5Fba27;
 
-    address admin;
-    address maintainer;
-    MockVault vault1;
-    MockVault vault2;
+    ERC20Synth eUSD = ERC20Synth(0x950C6BEF80bbfD1eA2335D9e6Cb5bc3A23361b39);
+    OFTFeeCollectorGulper feeCollectorGulper = OFTFeeCollectorGulper(payable(0x1e3249cFC9C393E621F3e81bb992FF428bd18E66));
+    IOFT eUsdOFTAdapter = IOFT(0xEb333262B68E29a48F769c32da8049765eC9c9A1);
+    EulerSavingsRate seUSD = EulerSavingsRate(0xA2C12AB83F056510421d3DC4ad38A075e68a690e);
 
-    function setUp() public override {
-        super.setUp();
+    uint256 constant ESR_MIN_DEPOSIT = 10e6;
 
-        admin = makeAddr("admin");
-        maintainer = makeAddr("maintainer");
+    string FORK_RPC_URL = vm.envOr("FORK_RPC_URL", string(""));
+    uint256 constant BLOCK_NUMBER = 23590280;
+    uint256 fork;
 
-        mockESR = new MockESR(address(paymentToken));
-        feeCollector = new OFTFeeCollectorGulper(address(evc), admin, address(mockESR));
+    address depositor;
 
-        bytes32 maintainerRole = feeCollector.MAINTAINER_ROLE();
-        vm.prank(admin);
-        feeCollector.grantRole(maintainerRole, maintainer);
-
-        vault1 = new MockVault(paymentToken, address(feeCollector));
-        vault2 = new MockVault(paymentToken, address(feeCollector));
-
-        feeFlowController = new FeeFlowControllerEVK(
-            address(evc),
-            INIT_PRICE,
-            address(paymentToken),
-            paymentReceiver,
-            EPOCH_PERIOD,
-            PRICE_MULTIPLIER,
-            MIN_INIT_PRICE,
-            address(mockOFTAdapter),
-            DST_EID,
-            address(feeCollector),
-            feeCollector.collectFees.selector
-        );
-        vm.prank(buyer);
-        paymentToken.approve(address(feeFlowController), type(uint256).max);
+    function setUp() public virtual {
+        if (bytes(FORK_RPC_URL).length != 0) {
+            fork = vm.createSelectFork(FORK_RPC_URL);
+            vm.rollFork(BLOCK_NUMBER);
+            depositor = makeAddr("depositor");
+        }
     }
 
-    function testCollectFeesAndGulp() public {
-        vm.startPrank(maintainer);
-        feeCollector.addToVaultsList(address(vault1));
-        feeCollector.addToVaultsList(address(vault2));
+    function testGulpFeesOnMainnet() public {
+        vm.skip(bytes(FORK_RPC_URL).length == 0);
+
+        uint256 feesToGulp = 123e18;
+
+        // fees arrive to the collector
+        vm.prank(address(eUsdOFTAdapter));
+        eUSD.mint(address(feeCollectorGulper), feesToGulp);
+
+        // ESR is empty
+        assertEq(eUSD.balanceOf(address(seUSD)), 0);
+        assertEq(seUSD.totalSupply(), 0);
+
+        // there must be minimal deposited amount for gulp to work
+        deal(address(eUSD), depositor, ESR_MIN_DEPOSIT);
+        vm.startPrank(depositor);
+        eUSD.approve(address(seUSD), type(uint256).max);
+        seUSD.deposit(ESR_MIN_DEPOSIT, depositor);
         vm.stopPrank();
 
-        assertEq(paymentToken.balanceOf(address(mockESR)), 0);
+        vm.prank(address(eUsdOFTAdapter));
 
-        // no-op if no fees collected
-        vm.prank(buyer);
-        feeFlowController.buy(assetsAddresses(), assetsReceiver, 0, block.timestamp + 1 days, 1000000e18);
-        assertTrue(!mockESR.gulpWasCalled());
+        // message arrives
+        vm.expectEmit();
+        emit EulerSavingsRate.Gulped(feesToGulp, feesToGulp);
+        feeCollectorGulper.lzCompose(address(0), bytes32(uint256(0)), "", address(0), "");
 
-        vault1.mockSetFeeAmount(1e18);
-        vault2.mockSetFeeAmount(2e18);
-
-        // gulp called when fees present
-        vm.prank(buyer);
-        feeFlowController.buy(assetsAddresses(), assetsReceiver, 1, block.timestamp + 1 days, 1000000e18);
-        assertTrue(mockESR.gulpWasCalled());
-
-        // fees transferred
-        assertEq(paymentToken.balanceOf(address(mockESR)), 3e18);
-    }
-
-    function testReceiveLZMessage() public {
-        assertEq(paymentToken.balanceOf(address(mockESR)), 0);
-        assertEq(paymentToken.balanceOf(address(feeCollector)), 0);
-
-        // no-op if no balance received
-        feeCollector.lzCompose(address(0), bytes32(0), "", address(0), "");
-        assertTrue(!mockESR.gulpWasCalled());
-
-        // simulate asset bridged
-        paymentToken.mint(address(feeCollector), 1e18);
-
-        feeCollector.lzCompose(address(0), bytes32(0), "", address(0), "");
-        assertTrue(mockESR.gulpWasCalled());
-
-        assertEq(paymentToken.balanceOf(address(mockESR)), 1e18);
+        assertEq(eUSD.balanceOf(address(feeCollectorGulper)), 0);
+        assertEq(eUSD.balanceOf(address(seUSD)), ESR_MIN_DEPOSIT + feesToGulp);
     }
 }

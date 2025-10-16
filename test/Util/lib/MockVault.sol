@@ -8,8 +8,8 @@ contract MockVault {
     address feeReceiver;
     uint256 public feesAmount;
 
-    constructor(MockToken underlying_, address feeReceiver_) {
-        underlying = underlying_;
+    constructor(address underlying_, address feeReceiver_) {
+        underlying = MockToken(underlying_);
         feeReceiver = feeReceiver_;
     }
 
@@ -18,7 +18,10 @@ contract MockVault {
     }
 
     function convertFees() public {
-        underlying.mint(feeReceiver, feesAmount);
+        if (underlying.balanceOf(address(this)) < feesAmount) {
+            underlying.mint(address(this), feesAmount - underlying.balanceOf(address(this)));
+        } 
+        underlying.transfer(feeReceiver, feesAmount);
         feesAmount = 0;
     }
 

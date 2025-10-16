@@ -33,8 +33,8 @@ contract OFTFeeCollectorTest is BaseFeeFlowControllerTest {
         vm.prank(admin);
         feeCollector.grantRole(maintainerRole, maintainer);
 
-        vault1 = new MockVault(paymentToken, address(feeCollector));
-        vault2 = new MockVault(paymentToken, address(feeCollector));
+        vault1 = new MockVault(address(paymentToken), address(feeCollector));
+        vault2 = new MockVault(address(paymentToken), address(feeCollector));
 
         // deploy new controller with new hook data
         feeFlowController = new FeeFlowControllerEVK(
