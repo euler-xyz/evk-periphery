@@ -1311,7 +1311,7 @@ while true; do
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
             fi
 
-            if { [ -z "$eulerSwapV2Factory" ] || [ "$eulerSwapV2Factory" == "$addressZero" ]; } && [ "$deploy_euler_swap_v2" = "y" ]; then
+            if { [ -z "$eulerSwapV2Factory" ] || [ "$eulerSwapV2Factory" == "$addressZero" ]; } && [ "$deploy_euler_swap" = "y" ]; then
                 forge compile lib/euler-swap/src $eulerSwapCompilerOptions --force
             fi
 
