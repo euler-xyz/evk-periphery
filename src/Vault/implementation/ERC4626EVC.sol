@@ -8,12 +8,12 @@ import {ERC4626, ERC20, IERC20} from "openzeppelin-contracts/token/ERC20/extensi
 import {SafeERC20Permit2Lib, IERC20 as SafeERC20Permit2LibIERC20} from "euler-earn/libraries/SafeERC20Permit2Lib.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 
-/// @title ERC4626EVCCompatible
+/// @title ERC4626EVC
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice EVC-compatible ERC4626 vault. Implements internal balance tracking, EVK-style `VIRTUAL_AMOUNT` conversions
 /// and permit2 support.
-abstract contract ERC4626EVCCompatible is EVCUtil, ERC4626 {
+abstract contract ERC4626EVC is EVCUtil, ERC4626 {
     using Math for uint256;
 
     /// @dev The virtual amount added to total shares and total assets.
@@ -25,8 +25,8 @@ abstract contract ERC4626EVCCompatible is EVCUtil, ERC4626 {
     /// @dev The total assets of the vault.
     uint256 internal _totalAssets;
 
-    /// @dev The error thrown when the asset receiver is an EVC sub-account.
-    error BadAssetReceiver();
+    /// @notice Error thrown when the address is invalid.
+    error InvalidAddress();
 
     /// @dev Initializes the contract.
     /// @param evc The EVC address.
@@ -76,7 +76,7 @@ abstract contract ERC4626EVCCompatible is EVCUtil, ERC4626 {
         // assets sent to EVC sub-accounts would be lost, as the private key for a sub-account is not known
         address evcOwner = evc.getAccountOwner(receiver);
         if (evcOwner != address(0) && evcOwner != receiver) {
-            revert BadAssetReceiver();
+            revert InvalidAddress();
         }
 
         _totalAssets = _totalAssets - assets;
