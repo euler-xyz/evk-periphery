@@ -4,12 +4,12 @@ pragma solidity >=0.8.0;
 
 import {IFactory} from "../../BaseFactory/interfaces/IFactory.sol";
 
-/// @title IERC4626EVCCompatibleCollateralSecuritizeFactory
+/// @title IERC4626EVCCollateralSecuritizeFactory
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice Factory interface for ERC4626EVCCompatibleCollateralSecuritize vaults.
-interface IERC4626EVCCompatibleCollateralSecuritizeFactory is IFactory {
-    /// @notice Deploys a new ERC4626EVCCompatibleCollateralSecuritize.
+/// @notice Factory interface for ERC4626EVCCollateralSecuritize vaults.
+interface IERC4626EVCCollateralSecuritizeFactory is IFactory {
+    /// @notice Deploys a new ERC4626EVCCollateralSecuritize.
     /// @param asset The address of the underlying asset for the new vault.
     /// @param name The name of the new vault.
     /// @param symbol The symbol of the new vault.

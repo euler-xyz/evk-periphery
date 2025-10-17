@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.0;
 
-import {ERC4626EVCCompatible, ERC20, IERC20} from "./ERC4626EVCCompatible.sol";
+import {ERC4626EVC, ERC20, IERC20} from "./ERC4626EVC.sol";
 
-/// @title ERC4626EVCCompatibleCollateral
+/// @title ERC4626EVCCollateral
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice EVK-compatible collateral-only ERC4626 vault.
-abstract contract ERC4626EVCCompatibleCollateral is ERC4626EVCCompatible {
+abstract contract ERC4626EVCCollateral is ERC4626EVC {
     /// @notice Transfers a certain amount of shares to a recipient.
     /// @param to The recipient of the transfer.
     /// @param amount The amount shares to transfer.
