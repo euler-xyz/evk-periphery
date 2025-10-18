@@ -1243,14 +1243,15 @@ while true; do
                 multisig_security_partner_B=$(jq -r '.securityPartnerB' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
                 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
-                oftAdapter=$(jq -r '.oftAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
+                eulOFTAdapter=$(jq -r '.eulOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
+                eusdOFTAdapter=$(jq -r '.eusdOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 eulerEarnFactory=${eulerEarnFactory:-$addressZero}
                 eulerSwapV1Factory=$(jq -r '.eulerSwapV1Factory' "$addresses_dir_path/EulerSwapAddresses.json" 2>/dev/null)
             fi
 
-            if [ -z "$multisig_dao" ] || [ "$multisig_dao" == "$addressZero" ]; then
+            if [ -z "$multisig_dao" ] || [ "$multisig_dao" == "$addressZero" ] || [ "$multisig_dao" == "null" ]; then
                 read -p "Enter the DAO multisig address: " multisig_dao
                 read -p "Enter the Labs multisig address: " multisig_labs
                 read -p "Enter the Security Council multisig address: " multisig_security_council
@@ -1258,28 +1259,28 @@ while true; do
                 read -p "Enter the Security Partner B address: " multisig_security_partner_B
             fi
 
-            if [ -z "$evc" ] || [ "$evc" == "$addressZero" ]; then
+            if [ -z "$evc" ] || [ "$evc" == "$addressZero" ] || [ "$evc" == "null" ]; then
                 read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3 or look up https://docs.oku.trade/home/extra-information/deployed-contracts): " permit2
             fi
             
-            if [ -z "$swapper" ] || [ "$swapper" == "$addressZero" ]; then
+            if [ -z "$swapper" ] || [ "$swapper" == "$addressZero" ] || [ "$swapper" == "null" ]; then
                 read -p "Enter the Uniswap V2 Router 02 address (default: address(0) or look up https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
                 read -p "Enter the Uniswap V3 Router address (default: address(0) or look up https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
             fi
             
-            if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ]; then
-                read -p "Enter the EUL/WETH init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
+            if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ] || [ "$feeFlowController" == "null" ]; then
+                read -p "Enter the init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
             fi
 
-            if [ -z "$oftAdapter" ] || [ "$oftAdapter" == "$addressZero" ]; then
-                read -p "Should deploy and configure OFT Adapter? (y/n) (default: n): " deploy_oft
+            if [ -z "$eulOFTAdapter" ] || [ "$eulOFTAdapter" == "$addressZero" ] || [ "$eulOFTAdapter" == "null" ]; then
+                read -p "Should deploy and configure EUL OFT Adapter? (y/n) (default: n): " deploy_eul_oft
             fi
 
-            if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; then
+            if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ] || [ "$eulerEarnFactory" == "null" ]; then
                 read -p "Should deploy Euler Earn? (y/n) (default: n): " deploy_euler_earn
             fi
 
-            if [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ]; then
+            if [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ] || [ "$eulerSwapV1Factory" == "null" ]; then
                 read -p "Should deploy EulerSwap V1? (y/n) (default: n): " deploy_euler_swap_v1
                 
                 if [ "$deploy_euler_swap_v1" = "y" ]; then
@@ -1287,6 +1288,10 @@ while true; do
                     read -p "Enter the EulerSwap fee owner (default: DAO multisig): " euler_swap_fee_owner
                     read -p "Enter the EulerSwap fee recipient setter (default: DAO multisig): " euler_swap_fee_recipient_setter
                 fi
+            fi
+
+            if [ -z "$eusdOFTAdapter" ] || [ "$eusdOFTAdapter" == "$addressZero" ] || [ "$eusdOFTAdapter" == "null" ]; then
+                read -p "Should deploy and configure eUSD contracts system? (y/n) (default: n): " deploy_eusd
             fi
 
             multisig_dao=${multisig_dao:-$addressZero}
@@ -1298,18 +1303,19 @@ while true; do
             uniswap_router_v2=${uniswap_router_v2:-$addressZero}
             uniswap_router_v3=${uniswap_router_v3:-$addressZero}
             init_price=${init_price:-1000000000000000000}
-            deploy_oft=${deploy_oft:-n}
+            deploy_eul_oft=${deploy_eul_oft:-n}
             deploy_euler_earn=${deploy_euler_earn:-n}
             deploy_euler_swap_v1=${deploy_euler_swap_v1:-n}
+            deploy_eusd=${deploy_eusd:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
             euler_swap_fee_owner=${euler_swap_fee_owner:-$multisig_dao}
             euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$multisig_dao}
 
-            if { [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ]; } && [ "$deploy_euler_earn" = "y" ]; then
+            if { [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ] || [ "$eulerEarnFactory" == "null" ]; } && [ "$deploy_euler_earn" = "y" ]; then
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
             fi
 
-            if { [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ]; } && [ "$deploy_euler_swap_v1" = "y" ]; then
+            if { [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ] || [ "$eulerSwapV1Factory" == "null" ]; } && [ "$deploy_euler_swap_v1" = "y" ]; then
                 forge compile lib/euler-swap/src $eulerSwapCompilerOptions --force
             fi
 
@@ -1327,9 +1333,10 @@ while true; do
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
                 --arg initPrice "$init_price" \
-                --argjson deployOFT "$(jq -n --argjson val \"$deploy_oft\" 'if $val == "y" then true else false end')" \
+                --argjson deployEULOFT "$(jq -n --argjson val \"$deploy_eul_oft\" 'if $val == "y" then true else false end')" \
                 --argjson deployEulerEarn "$(jq -n --argjson val \"$deploy_euler_earn\" 'if $val == "y" then true else false end')" \
                 --argjson deployEulerSwapV1 "$(jq -n --argjson val \"$deploy_euler_swap_v1\" 'if $val == "y" then true else false end')" \
+                --argjson deployEUSD "$(jq -n --argjson val \"$deploy_eusd\" 'if $val == "y" then true else false end')" \
                 --arg uniswapPoolManager "$uniswap_pool_manager" \
                 --arg eulerSwapFeeOwner "$euler_swap_fee_owner" \
                 --arg eulerSwapFeeRecipientSetter "$euler_swap_fee_recipient_setter" \
@@ -1343,9 +1350,10 @@ while true; do
                     uniswapV2Router: $uniswapRouterV2,
                     uniswapV3Router: $uniswapRouterV3,
                     feeFlowInitPrice: $initPrice,
-                    deployOFT: $deployOFT,
+                    deployEULOFT: $deployEULOFT,
                     deployEulerEarn: $deployEulerEarn,
                     deployEulerSwapV1: $deployEulerSwapV1,
+                    deployEUSD: $deployEUSD,
                     uniswapPoolManager: $uniswapPoolManager,
                     eulerSwapFeeOwner: $eulerSwapFeeOwner,
                     eulerSwapFeeRecipientSetter: $eulerSwapFeeRecipientSetter

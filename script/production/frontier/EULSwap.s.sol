@@ -19,11 +19,7 @@ contract Cluster is ManageCluster {
         cluster.assets = [EUL, USDC];
     }
 
-    function configureCluster() internal override {
-        vm.prank(multisigAddresses.DAO);
-        (bool success, bytes memory data) = coreAddresses.protocolConfig.call(abi.encodeWithSignature("setVaultInterestFeeRange(address,bool,uint16,uint16)", cluster.vaults[0], true, 0, 1e4));
-        if (!success) revert(string(data));
-        
+    function configureCluster() internal override {        
         super.configureCluster();
 
         setNoStubOracle(false);
@@ -49,8 +45,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            // Base=0% APY  Kink(95%)=6.0% APY  Max=25.00% APY
-            cluster.kinkIRMParams[EUL] = [uint256(0), uint256(452541449), uint256(24329262988), uint256(4080218931)];
+            // Base=0% APY  Kink(90%)=6.0% APY  Max=25.00% APY
+            cluster.kinkIRMParams[EUL] = [uint256(0), uint256(477682641), uint256(12164631494), uint256(3865470566)];
         }
 
         cluster.supplyCaps[USDC] = 2_000_000;

@@ -93,7 +93,7 @@ contract FeeFlowControllerEVK is EVCUtil {
     /// @param oftAdapter_ The address of the OFT adapter.
     /// @param dstEid_ The LayerZero endpoint ID of the destination chain.
     /// @param hookTarget_ The address of the hook target.
-    /// @param hookTargetSelector_ The selector for the hook target to call on.
+    /// @param hookTargetSelector_ The selector of the function called on the hook target.
     /// @notice This constructor performs parameter validation and sets the initial values for the contract.
     constructor(
         address evc,
