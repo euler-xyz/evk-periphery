@@ -107,6 +107,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     uint256 internal constant HUB_CHAIN_ID = 1;
     uint8 internal constant STANDARD_DECIMALS = 18;
     uint256 internal constant EVAULT_FACTORY_TIMELOCK_MIN_DELAY = 4 days;
+    uint256 internal constant EUSD_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
     uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
     uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_WILDCARD_TIMELOCK_MIN_DELAY = 2 days;
     address[2] internal EVAULT_FACTORY_GOVERNOR_PAUSERS =
@@ -345,8 +346,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (tokenAddresses.eUSD == address(0)) {
             if (input.deployEUSD) {
                 console.log("+ Deploying eUSD...");
-                ERC20SynthDeployer deployer = new ERC20SynthDeployer();
-                tokenAddresses.eUSD = deployer.deploy(coreAddresses.evc, "Euler USD", "eUSD", STANDARD_DECIMALS);
+                {
+                    ERC20SynthDeployer deployer = new ERC20SynthDeployer();
+                    tokenAddresses.eUSD = deployer.deploy(coreAddresses.evc, "Euler USD", "eUSD", STANDARD_DECIMALS);
+                }
 
                 startBroadcast();
                 console.log("    Granting eUSD revoke minter role to the desired address %s", multisigAddresses.labs);
@@ -356,6 +359,30 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 console.log("    Granting eUSD allocator role to the desired address %s", multisigAddresses.labs);
                 bytes32 allocatorRole = ERC20Synth(tokenAddresses.eUSD).ALLOCATOR_ROLE();
                 AccessControl(tokenAddresses.eUSD).grantRole(allocatorRole, multisigAddresses.labs);
+                stopBroadcast();
+
+                console.log(" + Deploying eUSD timelock controller...");
+                {
+                    TimelockControllerDeployer deployer = new TimelockControllerDeployer();
+                    address[] memory proposers = new address[](1);
+                    address[] memory executors = new address[](1);
+                    proposers[0] = multisigAddresses.DAO;
+                    executors[0] = address(0);
+                    governorAddresses.eUSDAdminTimelockController =
+                        deployer.deploy(EUSD_ADMIN_TIMELOCK_MIN_DELAY, proposers, executors);
+                }
+
+                console.log("    Granting proposer role to address %s", multisigAddresses.DAO);
+                console.log("    Granting canceller role to address %s", multisigAddresses.DAO);
+                console.log("    Granting executor role to anyone");
+                console.log("    Granting canceller role to address %s", multisigAddresses.labs);
+
+                startBroadcast();
+                bytes32 cancellerRole =
+                    TimelockController(payable(governorAddresses.eUSDAdminTimelockController)).CANCELLER_ROLE();
+                AccessControl(governorAddresses.eUSDAdminTimelockController).grantRole(
+                    cancellerRole, multisigAddresses.labs
+                );
                 stopBroadcast();
             } else {
                 console.log("! eUSD deployment deliberately skipped. Skipping...");

@@ -134,7 +134,7 @@ contract OwnershipTransferCore is BatchBuilder {
         }
 
         if (block.chainid != HUB_CHAIN_ID) {
-            transferERC20BurnableMintableOwnership("EUL", tokenAddresses.EUL);
+            transferERC20BurnableMintableOwnership("EUL", tokenAddresses.EUL, multisigAddresses.DAO);
         }
 
         privilegedAddress = Ownable(tokenAddresses.rEUL).owner();
@@ -150,13 +150,19 @@ contract OwnershipTransferCore is BatchBuilder {
         }
 
         if (tokenAddresses.eUSD != address(0)) {
-            transferERC20BurnableMintableOwnership("eUSD", tokenAddresses.eUSD);
+            transferERC20BurnableMintableOwnership(
+                "eUSD",
+                tokenAddresses.eUSD,
+                governorAddresses.eUSDAdminTimelockController == address(0)
+                    ? multisigAddresses.DAO
+                    : governorAddresses.eUSDAdminTimelockController
+            );
         } else {
             console.log("! eUSD is not deployed yet. Skipping...");
         }
 
         if (tokenAddresses.seUSD != address(0) && block.chainid != HUB_CHAIN_ID) {
-            transferERC20BurnableMintableOwnership("seUSD", tokenAddresses.seUSD);
+            transferERC20BurnableMintableOwnership("seUSD", tokenAddresses.seUSD, multisigAddresses.DAO);
         } else {
             console.log("! seUSD is not deployed yet. Skipping...");
         }
@@ -177,6 +183,26 @@ contract OwnershipTransferCore is BatchBuilder {
             transferOFTAdapterOwnership("seUSD", bridgeAddresses.seusdOFTAdapter);
         } else {
             console.log("! seUSD OFT Adapter is not deployed yet. Skipping...");
+        }
+
+        if (governorAddresses.eUSDAdminTimelockController != address(0)) {
+            bytes32 defaultAdminRole = AccessControl(governorAddresses.eUSDAdminTimelockController).DEFAULT_ADMIN_ROLE();
+
+            if (AccessControl(governorAddresses.eUSDAdminTimelockController).hasRole(defaultAdminRole, getDeployer())) {
+                console.log(
+                    "+ Renouncing eUSDAdminTimelockController default admin role from the caller of this script %s",
+                    getDeployer()
+                );
+                startBroadcast();
+                AccessControl(governorAddresses.eUSDAdminTimelockController).renounceRole(
+                    defaultAdminRole, getDeployer()
+                );
+                stopBroadcast();
+            } else {
+                console.log(
+                    "- The caller of this script is no longer the default admin of the eUSDAdminTimelockController. Skipping..."
+                );
+            }
         }
 
         if (peripheryAddresses.feeCollector != address(0)) {
@@ -210,14 +236,16 @@ contract OwnershipTransferCore is BatchBuilder {
         executeBatch();
     }
 
-    function transferERC20BurnableMintableOwnership(string memory tokenName, address token) internal {
+    function transferERC20BurnableMintableOwnership(string memory tokenName, address token, address desiredAdmin)
+        internal
+    {
         bytes32 defaultAdminRole = AccessControl(token).DEFAULT_ADMIN_ROLE();
 
         startBroadcast();
-        if (!AccessControl(token).hasRole(defaultAdminRole, multisigAddresses.DAO)) {
+        if (!AccessControl(token).hasRole(defaultAdminRole, desiredAdmin)) {
             if (AccessControl(token).hasRole(defaultAdminRole, getDeployer())) {
-                console.log("+ Granting %s default admin role to address %s", tokenName, multisigAddresses.DAO);
-                AccessControl(token).grantRole(defaultAdminRole, multisigAddresses.DAO);
+                console.log("+ Granting %s default admin role to address %s", tokenName, desiredAdmin);
+                AccessControl(token).grantRole(defaultAdminRole, desiredAdmin);
             } else {
                 console.log("! %s default admin role is not the caller of this script. Skipping...", tokenName);
             }
@@ -239,7 +267,7 @@ contract OwnershipTransferCore is BatchBuilder {
     function transferOFTAdapterOwnership(string memory tokenName, address adapter) internal {
         address privilegedAddress;
 
-        if (block.chainid == HUB_CHAIN_ID) {
+        if (block.chainid == HUB_CHAIN_ID && (_strEq(tokenName, "EUL") || _strEq(tokenName, "seUSD"))) {
             address proxyAdmin = address(
                 uint160(uint256(vm.load(adapter, 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103)))
             );
