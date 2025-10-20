@@ -451,7 +451,7 @@ contract LayerZeroSendEUL is ScriptUtils {
         public
         returns (MessagingReceipt memory, OFTReceipt memory)
     {
-        ERC20 eul = ERC20(tokenAddresses.EUL);
+        ERC20 eul = ERC20(tokenAddresses.seUSD);
         (
             address eulOFTAdapter,
             uint256 value,
@@ -488,10 +488,10 @@ contract LayerZeroSendEUL is ScriptUtils {
             "",
             ""
         );
-        fee = IOFT(bridgeAddresses.eulOFTAdapter).quoteSend(sendParam, false);
+        fee = IOFT(bridgeAddresses.seusdOFTAdapter).quoteSend(sendParam, false);
         fee.nativeFee = fee.nativeFee * ((1e4 + nativeFeeMultiplierBps) / 1e4);
 
-        return (bridgeAddresses.eulOFTAdapter, fee.nativeFee, sendParam, fee, srcAddress);
+        return (bridgeAddresses.seusdOFTAdapter, fee.nativeFee, sendParam, fee, srcAddress);
     }
 
     function getSendCalldata(

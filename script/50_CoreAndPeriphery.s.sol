@@ -89,6 +89,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         bool deployEulerEarn;
         bool deployEulerSwapV1;
         bool deployEUSD;
+        bool deploySEUSD;
         address uniswapPoolManager;
         address eulerSwapFeeOwner;
         address eulerSwapFeeRecipientSetter;
@@ -107,9 +108,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     uint256 internal constant HUB_CHAIN_ID = 1;
     uint8 internal constant STANDARD_DECIMALS = 18;
     uint256 internal constant EVAULT_FACTORY_TIMELOCK_MIN_DELAY = 4 days;
-    uint256 internal constant EUSD_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
     uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
     uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_WILDCARD_TIMELOCK_MIN_DELAY = 2 days;
+    uint256 internal constant EUSD_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
     address[2] internal EVAULT_FACTORY_GOVERNOR_PAUSERS =
         [0xff217004BdD3A6A592162380dc0E6BbF143291eB, 0xcC6451385685721778E7Bd80B54F8c92b484F601];
 
@@ -119,17 +120,15 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
     uint16 internal constant OFT_MSG_TYPE_SEND = 1;
     uint16 internal constant OFT_MSG_TYPE_SEND_AND_CALL = 2;
-    uint128 internal constant OFT_ENFORCED_GAS_LIMIT_SEND_DEFAULT = 100000;
-    uint128 internal constant OFT_ENFORCED_GAS_LIMIT_CALL_DEFAULT = 100000;
-    uint128 internal constant OFT_ENFORCED_GAS_LIMIT_SEND_COMPLEX = 150000;
-    uint128 internal constant OFT_EXTRA_OPTIONS_GAS_LIMIT_CALL = 200000;
     uint32 internal constant OFT_EXECUTOR_CONFIG_TYPE = 1;
     uint32 internal constant OFT_ULN_CONFIG_TYPE = 2;
     uint32 internal constant OFT_MAX_MESSAGE_SIZE = 10000;
-    uint8 internal constant OFT_REQUIRED_DVNS_COUNT = 2;
-    string[5] internal OFT_ACCEPTED_DVNS = ["LayerZero Labs", "Google", "Polyhedra", "Nethermind", "Horizen"];
-    uint256[2] internal OFT_HUB_CHAIN_IDS_EUL = [HUB_CHAIN_ID, 8453];
-    uint256[1] internal OFT_HUB_CHAIN_IDS_EUSD_SEUSD = [HUB_CHAIN_ID];
+    string[6] internal OFT_ACCEPTED_DVNS = ["LayerZero Labs", "Google", "Canary", "Polyhedra", "Nethermind", "Horizen"];
+
+    mapping(string => uint128) internal OFT_ENFORCED_GAS_LIMIT_SEND;
+    mapping(string => uint128) internal OFT_ENFORCED_GAS_LIMIT_CALL;
+    mapping(string => uint8) internal OFT_REQUIRED_DVNS_COUNT;
+    mapping(string => uint256[]) internal OFT_HUB_CHAIN_IDS;
 
     int256 internal constant YEAR = 365 days;
     int256 internal constant IRM_TARGET_UTILIZATION = 0.9e18;
@@ -143,6 +142,21 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     AdaptiveCurveIRMParams[] internal DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS;
 
     constructor() {
+        OFT_ENFORCED_GAS_LIMIT_SEND["EUL"] = 100000;
+        OFT_ENFORCED_GAS_LIMIT_CALL["EUL"] = 100000;
+        OFT_REQUIRED_DVNS_COUNT["EUL"] = 2;
+        OFT_HUB_CHAIN_IDS["EUL"] = [HUB_CHAIN_ID, 8453];
+
+        OFT_ENFORCED_GAS_LIMIT_SEND["eUSD"] = 150000;
+        OFT_ENFORCED_GAS_LIMIT_CALL["eUSD"] = 100000;
+        OFT_REQUIRED_DVNS_COUNT["eUSD"] = 3;
+        OFT_HUB_CHAIN_IDS["eUSD"] = [HUB_CHAIN_ID];
+
+        OFT_ENFORCED_GAS_LIMIT_SEND["seUSD"] = 100000;
+        OFT_ENFORCED_GAS_LIMIT_CALL["seUSD"] = 100000;
+        OFT_REQUIRED_DVNS_COUNT["seUSD"] = 3;
+        OFT_HUB_CHAIN_IDS["seUSD"] = [HUB_CHAIN_ID];
+
         for (uint256 i = 0; i < IRM_INITIAL_RATES_AT_TARGET.length; ++i) {
             DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.push(
                 AdaptiveCurveIRMParams({
@@ -182,6 +196,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             deployEulerEarn: vm.parseJsonBool(json, ".deployEulerEarn"),
             deployEulerSwapV1: vm.parseJsonBool(json, ".deployEulerSwapV1"),
             deployEUSD: vm.parseJsonBool(json, ".deployEUSD"),
+            deploySEUSD: vm.parseJsonBool(json, ".deploySEUSD"),
             uniswapPoolManager: vm.parseJsonAddress(json, ".uniswapPoolManager"),
             eulerSwapFeeOwner: vm.parseJsonAddress(json, ".eulerSwapFeeOwner"),
             eulerSwapFeeRecipientSetter: vm.parseJsonAddress(json, ".eulerSwapFeeRecipientSetter")
@@ -434,7 +449,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (tokenAddresses.seUSD == address(0)) {
-            if (input.deployEUSD) {
+            if (input.deploySEUSD) {
                 console.log("+ Deploying seUSD...");
                 if (block.chainid == HUB_CHAIN_ID) {
                     startBroadcast();
@@ -462,7 +477,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (bridgeAddresses.seusdOFTAdapter == address(0)) {
-            if (input.deployEUSD) {
+            if (input.deploySEUSD) {
                 console.log("+ Deploying OFT Adapter for seUSD...");
                 bridgeAddresses.seusdOFTAdapter = deployAndConfigureOFTAdapter(tokenAddresses.seUSD, true);
             } else {
@@ -474,7 +489,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
         if (
             containsOFTHubChainId(tokenAddresses.seUSD, block.chainid) && bridgeAddresses.seusdOFTAdapter != address(0)
-                && !getSkipOFTHubChainConfigEUSD()
+                && !getSkipOFTHubChainConfigSEUSD()
         ) {
             console.log("+ Attempting to configure OFT Adapter on chain %s for seUSD", block.chainid);
             configureOFTAdapter(tokenAddresses.seUSD, bridgeAddresses.seusdOFTAdapter);
@@ -507,11 +522,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     startBroadcast();
                     console.log("    Configuring OFTFeeCollector");
                     OFTFeeCollector(payable(peripheryAddresses.feeCollector)).configure(
-                        bridgeAddresses.eusdOFTAdapter,
-                        feeCollectorOther,
-                        infoOther.eid,
-                        abi.encode(true),
-                        OptionsBuilder.newOptions().addExecutorLzComposeOption(0, OFT_EXTRA_OPTIONS_GAS_LIMIT_CALL, 0)
+                        bridgeAddresses.eusdOFTAdapter, feeCollectorOther, infoOther.eid, abi.encode(true), ""
                     );
                     stopBroadcast();
                 }
@@ -563,9 +574,11 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             address paymentToken = bridgeAddresses.eusdOFTAdapter != address(0)
                 ? tokenAddresses.eUSD
                 : bridgeAddresses.eulOFTAdapter != address(0) ? tokenAddresses.EUL : getWETHAddress();
-            address oftAdapter = paymentToken == tokenAddresses.eUSD
-                ? bridgeAddresses.eusdOFTAdapter
-                : paymentToken == tokenAddresses.EUL ? bridgeAddresses.eulOFTAdapter : address(0);
+            address oftAdapter = block.chainid == HUB_CHAIN_ID
+                ? address(0)
+                : paymentToken == tokenAddresses.eUSD
+                    ? bridgeAddresses.eusdOFTAdapter
+                    : paymentToken == tokenAddresses.EUL ? bridgeAddresses.eulOFTAdapter : address(0);
 
             if (input.feeFlowInitPrice != 0 && paymentToken != address(0)) {
                 console.log("+ Deploying FeeFlowController...");
@@ -983,33 +996,23 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     }
 
     function getEnforcedOptions(address token, uint32 eid) internal view returns (EnforcedOptionParam[] memory) {
-        uint128 gasLimitSend;
-        uint128 gasLimitCall;
-        if (token == tokenAddresses.EUL) {
-            gasLimitSend = OFT_ENFORCED_GAS_LIMIT_SEND_DEFAULT;
-            gasLimitCall = OFT_ENFORCED_GAS_LIMIT_CALL_DEFAULT;
-        } else if (token == tokenAddresses.eUSD) {
-            gasLimitSend = OFT_ENFORCED_GAS_LIMIT_SEND_COMPLEX;
-            gasLimitCall = OFT_ENFORCED_GAS_LIMIT_CALL_DEFAULT;
-        } else if (token == tokenAddresses.seUSD) {
-            gasLimitSend = OFT_ENFORCED_GAS_LIMIT_SEND_DEFAULT;
-            gasLimitCall = OFT_ENFORCED_GAS_LIMIT_CALL_DEFAULT;
-        }
-
-        require(gasLimitSend != 0 && gasLimitCall != 0, "getEnforcedOptions: Token not supported");
+        string memory tokenKey = getTokenKey(token);
+        require(
+            OFT_ENFORCED_GAS_LIMIT_SEND[tokenKey] != 0 && OFT_ENFORCED_GAS_LIMIT_CALL[tokenKey] != 0,
+            "getEnforcedOptions: Token not supported"
+        );
 
         EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](2);
         enforcedOptions[0] = EnforcedOptionParam({
             eid: eid,
             msgType: OFT_MSG_TYPE_SEND,
-            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(gasLimitSend, 0)
+            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(OFT_ENFORCED_GAS_LIMIT_SEND[tokenKey], 0)
         });
         enforcedOptions[1] = EnforcedOptionParam({
             eid: eid,
             msgType: OFT_MSG_TYPE_SEND_AND_CALL,
-            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(gasLimitSend, 0).addExecutorLzComposeOption(
-                0, gasLimitCall, 0
-            )
+            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(OFT_ENFORCED_GAS_LIMIT_SEND[tokenKey], 0)
+                .addExecutorLzComposeOption(0, OFT_ENFORCED_GAS_LIMIT_CALL[tokenKey], 0)
         });
         return enforcedOptions;
     }
@@ -1039,11 +1042,8 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         vm.stopBroadcast();
 
         if (!containsOFTHubChainId(token, block.chainid)) {
-            uint256 length =
-                token == tokenAddresses.EUL ? OFT_HUB_CHAIN_IDS_EUL.length : OFT_HUB_CHAIN_IDS_EUSD_SEUSD.length;
-            for (uint256 i = 0; i < length; ++i) {
-                uint256 hubChainId =
-                    token == tokenAddresses.EUL ? OFT_HUB_CHAIN_IDS_EUL[i] : OFT_HUB_CHAIN_IDS_EUSD_SEUSD[i];
+            for (uint256 i = 0; i < OFT_HUB_CHAIN_IDS[tokenKey].length; ++i) {
+                uint256 hubChainId = OFT_HUB_CHAIN_IDS[tokenKey][i];
                 address adapterHub = getOFTAdapter(token, hubChainId);
                 LayerZeroUtil.DeploymentInfo memory infoHub = lzUtil.getDeploymentInfo(hubChainId);
 
@@ -1059,7 +1059,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     eid: infoHub.eid,
                     configType: OFT_ULN_CONFIG_TYPE,
                     config: abi.encode(
-                        lzUtil.getUlnConfig(adapter, hubChainId, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT, true)
+                        lzUtil.getUlnConfig(adapter, hubChainId, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT[tokenKey], true)
                     )
                 });
 
@@ -1078,7 +1078,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     eid: infoHub.eid,
                     configType: OFT_ULN_CONFIG_TYPE,
                     config: abi.encode(
-                        lzUtil.getUlnConfig(adapter, hubChainId, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT, false)
+                        lzUtil.getUlnConfig(
+                            adapter, hubChainId, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT[tokenKey], false
+                        )
                     )
                 });
 
@@ -1172,7 +1174,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     config: abi.encode(
                         bridgeConfigCacheExists(tokenKey, chainIdOther, block.chainid)
                             ? lzUtil.getCompatibleUlnConfig(adapterOther, block.chainid, chainIdOther, getAcceptedDVNs(), true)
-                            : lzUtil.getUlnConfig(adapter, chainIdOther, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT, true)
+                            : lzUtil.getUlnConfig(
+                                adapter, chainIdOther, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT[tokenKey], true
+                            )
                     )
                 });
 
@@ -1214,7 +1218,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     config: abi.encode(
                         bridgeConfigCacheExists(tokenKey, chainIdOther, block.chainid)
                             ? lzUtil.getCompatibleUlnConfig(adapterOther, block.chainid, chainIdOther, getAcceptedDVNs(), false)
-                            : lzUtil.getUlnConfig(adapter, chainIdOther, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT, false)
+                            : lzUtil.getUlnConfig(
+                                adapter, chainIdOther, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT[tokenKey], false
+                            )
                     )
                 });
 
@@ -1350,22 +1356,14 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     }
 
     function containsOFTHubChainId(address token, uint256 chainId) internal view returns (bool) {
-        if (token == tokenAddresses.EUL) {
-            for (uint256 i = 0; i < OFT_HUB_CHAIN_IDS_EUL.length; ++i) {
-                if (OFT_HUB_CHAIN_IDS_EUL[i] == chainId) {
-                    return true;
-                }
-            }
-            return false;
-        } else if (token == tokenAddresses.eUSD || token == tokenAddresses.seUSD) {
-            for (uint256 i = 0; i < OFT_HUB_CHAIN_IDS_EUSD_SEUSD.length; ++i) {
-                if (OFT_HUB_CHAIN_IDS_EUSD_SEUSD[i] == chainId) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        string memory tokenKey = getTokenKey(token);
+        require(OFT_HUB_CHAIN_IDS[tokenKey].length != 0, "containsOFTHubChainId: Token not supported");
 
-        revert("containsOFTHubChainId: Token not supported");
+        for (uint256 i = 0; i < OFT_HUB_CHAIN_IDS[tokenKey].length; ++i) {
+            if (OFT_HUB_CHAIN_IDS[tokenKey][i] == chainId) {
+                return true;
+            }
+        }
+        return false;
     }
 }

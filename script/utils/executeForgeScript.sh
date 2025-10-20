@@ -139,6 +139,11 @@ if [[ "$@" == *"--skip-oft-hub-chain-config-eusd"* ]]; then
     skip_oft_hub_chain_config_eusd="--skip-oft-hub-chain-config-eusd"
 fi
 
+if [[ "$@" == *"--skip-oft-hub-chain-config-seusd"* ]]; then
+    set -- "${@/--skip-oft-hub-chain-config-seusd/}"
+    skip_oft_hub_chain_config_seusd="--skip-oft-hub-chain-config-seusd"
+fi
+
 if [[ "$@" == *"--check-phased-out-vaults"* ]]; then
     set -- "${@/--check-phased-out-vaults/}"
     check_phased_out_vaults="--check-phased-out-vaults"
@@ -194,6 +199,7 @@ if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce 
     emergency_caps=$emergency_caps emergency_operations=$emergency_operations \
     vault_address=$vault_address no_stub_oracle=$no_stub_oracle force_zero_oracle=$force_zero_oracle \
     skip_oft_hub_chain_config_eul=$skip_oft_hub_chain_config_eul skip_oft_hub_chain_config_eusd=$skip_oft_hub_chain_config_eusd \
+    skip_oft_hub_chain_config_seusd=$skip_oft_hub_chain_config_seusd \
     check_phased_out_vaults=$check_phased_out_vaults \
     from_block=$from_block to_block=$to_block source_wallet=$source_wallet destination_wallet=$destination_wallet \
     source_account_id=$source_account_id destination_account_id=$destination_account_id \

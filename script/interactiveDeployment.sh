@@ -66,7 +66,7 @@ while true; do
     echo "50. Core and Periphery Deployment and Configuration"
     echo "51. Core Ownership Transfer"
     echo "52. Periphery Ownership Transfer"
-    echo "53. Governor Roles Configuration"
+    echo "53. Access Control Configuration"
     read -p "Enter your choice: " choice
 
     case $choice in
@@ -1245,6 +1245,7 @@ while true; do
                 swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulOFTAdapter=$(jq -r '.eulOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 eusdOFTAdapter=$(jq -r '.eusdOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
+                seusdOFTAdapter=$(jq -r '.seusdOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 eulerEarnFactory=${eulerEarnFactory:-$addressZero}
@@ -1294,6 +1295,10 @@ while true; do
                 read -p "Should deploy and configure eUSD contracts system? (y/n) (default: n): " deploy_eusd
             fi
 
+            if [ -z "$seusdOFTAdapter" ] || [ "$seusdOFTAdapter" == "$addressZero" ] || [ "$seusdOFTAdapter" == "null" ]; then
+                read -p "Should deploy and configure seUSD contracts system? (y/n) (default: n): " deploy_seusd
+            fi
+
             multisig_dao=${multisig_dao:-$addressZero}
             multisig_labs=${multisig_labs:-$addressZero}
             multisig_security_council=${multisig_security_council:-$addressZero}
@@ -1307,6 +1312,7 @@ while true; do
             deploy_euler_earn=${deploy_euler_earn:-n}
             deploy_euler_swap_v1=${deploy_euler_swap_v1:-n}
             deploy_eusd=${deploy_eusd:-n}
+            deploy_seusd=${deploy_seusd:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
             euler_swap_fee_owner=${euler_swap_fee_owner:-$multisig_dao}
             euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$multisig_dao}
@@ -1337,6 +1343,7 @@ while true; do
                 --argjson deployEulerEarn "$(jq -n --argjson val \"$deploy_euler_earn\" 'if $val == "y" then true else false end')" \
                 --argjson deployEulerSwapV1 "$(jq -n --argjson val \"$deploy_euler_swap_v1\" 'if $val == "y" then true else false end')" \
                 --argjson deployEUSD "$(jq -n --argjson val \"$deploy_eusd\" 'if $val == "y" then true else false end')" \
+                --argjson deploySEUSD "$(jq -n --argjson val \"$deploy_seusd\" 'if $val == "y" then true else false end')" \
                 --arg uniswapPoolManager "$uniswap_pool_manager" \
                 --arg eulerSwapFeeOwner "$euler_swap_fee_owner" \
                 --arg eulerSwapFeeRecipientSetter "$euler_swap_fee_recipient_setter" \
@@ -1354,6 +1361,7 @@ while true; do
                     deployEulerEarn: $deployEulerEarn,
                     deployEulerSwapV1: $deployEulerSwapV1,
                     deployEUSD: $deployEUSD,
+                    deploySEUSD: $deploySEUSD,
                     uniswapPoolManager: $uniswapPoolManager,
                     eulerSwapFeeOwner: $eulerSwapFeeOwner,
                     eulerSwapFeeRecipientSetter: $eulerSwapFeeRecipientSetter
@@ -1374,11 +1382,11 @@ while true; do
             jsonName=$baseName
             ;;
         53)
-            echo "Governor Roles Configuration..."
+            echo "Access Control Configuration..."
             
             baseName=skip
             
-            read -p "Enter the Governor contract address: " governor_contract_address
+            read -p "Enter the Access Control contract address: " access_control_contract_address
             read -p "Enter the Account address to grant/revoke role: " account_address
 
             echo "Enter the role by: "
@@ -1431,7 +1439,7 @@ while true; do
                     ;;
             esac
 
-            cast send $governor_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $broadcast $@
+            cast send $access_control_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $broadcast $@
             ;;
         *)
             echo "Invalid choice. Exiting."

@@ -254,6 +254,10 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("skip_oft_hub_chain_config_eusd", string("")), "--skip-oft-hub-chain-config-eusd");
     }
 
+    function getSkipOFTHubChainConfigSEUSD() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config_seusd", string("")), "--skip-oft-hub-chain-config-seusd");
+    }
+
     function getCheckPhasedOutVaults() internal view returns (bool) {
         return _strEq(vm.envOr("check_phased_out_vaults", string("")), "--check-phased-out-vaults");
     }
