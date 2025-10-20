@@ -78,6 +78,8 @@ contract Cluster is ManageCluster {
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
 
+        cluster.borrowLTVsOverride[0][1] = 0;
+
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
         //                0         1         2       
