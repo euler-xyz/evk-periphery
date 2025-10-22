@@ -429,3 +429,38 @@ contract RedeployOracleUtilsAndVaultLenses is BatchBuilder {
         saveAddresses();
     }
 }
+
+contract LiquidateAccount is BatchBuilder {
+    function run(address account, address collateral) public {
+        execute(account, collateral);
+    }
+
+    function checkLiquidation(address account, address collateral)
+        public
+        view
+        returns (uint256 maxRepay, uint256 maxYield)
+    {
+        (maxRepay, maxYield) = IEVault(IEVC(coreAddresses.evc).getControllers(account)[0]).checkLiquidation(
+            getDeployer(), account, collateral
+        );
+    }
+
+    function execute(address account, address collateral) internal {
+        address[] memory controllers = IEVC(coreAddresses.evc).getControllers(account);
+
+        if (controllers.length == 0) {
+            console.log("No controllers enabled for account %s", account);
+            return;
+        }
+
+        addBatchItem(
+            coreAddresses.evc, address(0), abi.encodeCall(IEVC.enableController, (getDeployer(), controllers[0]))
+        );
+        addBatchItem(coreAddresses.evc, address(0), abi.encodeCall(IEVC.enableCollateral, (getDeployer(), collateral)));
+        addBatchItem(
+            controllers[0],
+            abi.encodeCall(IEVault(controllers[0]).liquidate, (account, collateral, type(uint256).max, 0))
+        );
+        executeBatch();
+    }
+}

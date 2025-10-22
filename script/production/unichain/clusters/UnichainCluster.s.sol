@@ -82,7 +82,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[rsETH ] = 750;
         cluster.supplyCaps[ezETH ] = 1_500;
         cluster.supplyCaps[WBTC  ] = 100;
-        cluster.supplyCaps[UNI   ] = 125_000;
+        cluster.supplyCaps[UNI   ] = 62_500;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC  ] = 135_000_000;
@@ -94,7 +94,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[rsETH ] = 190;
         cluster.borrowCaps[ezETH ] = 375;
         cluster.borrowCaps[WBTC  ] = 90;
-        cluster.borrowCaps[UNI   ] = 100_000;
+        cluster.borrowCaps[UNI   ] = 50_000;
 
         // define IRM classes here and assign them to the assets
         {
