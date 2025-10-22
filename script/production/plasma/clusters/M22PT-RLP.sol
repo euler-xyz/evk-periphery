@@ -16,7 +16,7 @@ contract Cluster is ManageCluster {
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
             PT_RLP_26FEB2026,
-            USR,
+            RLP,
             USDT0
         ];
     }
@@ -55,22 +55,22 @@ contract Cluster is ManageCluster {
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[PT_RLP_26FEB2026] = "0x48381F47D74F8d603714a73cbcf0411F1D06d25c";
-        cluster.oracleProviders[USR] = "0x7b7D06316E4764749375603955C5195401c17832";
+        cluster.oracleProviders[RLP] = "0x7D9Db6f09D48EA484FE1A7d981e1bE2f93aCA43A";
         cluster.oracleProviders[USDT0] = "0xE8947CFd3f04E686741F7Dd9023ec0C78588fd33";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[PT_RLP_26FEB2026] = type(uint256).max;
-        cluster.supplyCaps[USR] = type(uint256).max;
+        cluster.supplyCaps[RLP] = type(uint256).max;
         cluster.supplyCaps[USDT0] = type(uint256).max;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[PT_RLP_26FEB2026] = type(uint256).max;
-        cluster.borrowCaps[USR] = type(uint256).max;
+        cluster.borrowCaps[RLP] = type(uint256).max;
         cluster.borrowCaps[USDT0] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
-        cluster.irms[USR] = IRM_ADAPTIVE_PT_30;
-        cluster.irms[USDT0]  = IRM_ADAPTIVE_PT_30;
+        cluster.irms[RLP] = IRM_ADAPTIVE_PT_7;
+        cluster.irms[USDT0]  = IRM_ADAPTIVE_PT_7;
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
         cluster.rampDuration = 1 days;
@@ -81,9 +81,9 @@ contract Cluster is ManageCluster {
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
         //                0         1         2
-        //                PT-RLP   USR     USDT0
-        /* 0  PT-RLP*/  [LTV_ZERO, LTV__LOW, LTV__LOW],
-        /* 1  USR    */  [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+        //                PT-RLP    RLP     USDT0
+        /* 0  PT-RLP*/   [LTV_ZERO, LTV_HIGH, LTV__LOW],
+        /* 1  RLP    */  [LTV_ZERO, LTV_ZERO, LTV_ZERO],
         /* 2  USDT0    */[LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
 
