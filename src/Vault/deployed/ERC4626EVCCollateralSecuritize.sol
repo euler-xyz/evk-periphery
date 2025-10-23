@@ -46,6 +46,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     }
 
     /// @notice Seizes a certain amount of shares from an address.
+    /// @dev Only allows share transfers to a compliant address.
     /// @param from The address to send shares from.
     /// @param to The address to send shares to.
     /// @param amount The amount of shares to transfer.
@@ -70,6 +71,8 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     }
 
     /// @notice Transfers a certain amount of shares to a recipient.
+    /// @dev Only allows share transfers between the accounts of the same owner or to a compliant address when in the
+    /// liquidation context.
     /// @param to The recipient of the transfer.
     /// @param amount The amount shares to transfer.
     /// @return A boolean indicating whether the transfer was successful.
@@ -94,6 +97,8 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     }
 
     /// @notice Transfers a certain amount of shares from a sender to a recipient.
+    /// @dev Only allows share transfers between the accounts of the same owner or to a compliant address when in the
+    /// liquidation context.
     /// @param from The sender of the transfer.
     /// @param to The recipient of the transfer.
     /// @param amount The amount of shares to transfer.
@@ -116,6 +121,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     }
 
     /// @notice Deposits a certain amount of assets for a receiver.
+    /// @dev Only allows deposits to an account that belongs to the message sender.
     /// @param assets The assets to deposit.
     /// @param receiver The receiver of the deposit.
     /// @return shares The shares equivalent to the deposited assets.
@@ -134,6 +140,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     }
 
     /// @notice Mints a certain amount of shares for a receiver.
+    /// @dev Only allows deposits to an account that belongs to the message sender.
     /// @param shares The shares to mint.
     /// @param receiver The receiver of the mint.
     /// @return assets The assets equivalent to the minted shares.
@@ -167,6 +174,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     }
 
     /// @notice Checks whether two accounts share the same owner.
+    /// @dev Requires the account to have a registered owner on the EVC before the interaction.
     /// @param account First account to compare.
     /// @param otherAccount Second account to compare.
     /// @return True if both accounts share a common owner, false otherwise.
@@ -176,7 +184,8 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     }
 
     /// @notice Performs a compliance check before transferring shares, according to the compliance service.
-    /// @dev Simulates a transfer from the vault to the given address owner.
+    /// @dev Requires the account to have a registered owner on the EVC before the interaction. Simulates a transfer
+    /// from the vault to the given address owner.
     /// @param to The owner of the address receiving the shares.
     /// @param amount The amount of shares to transfer.
     /// @return True if the transfer is allowed according to compliance, false otherwise.
@@ -193,6 +202,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @dev Transfers a `value` amount of tokens from `from` to `to`, or alternatively mints (or burns) if `from` (or
     /// `to`) is the zero address. All customizations to transfers, mints, and burns should be done by overriding this
     /// function.
+    /// @dev Updates the address prefix balances for easy tracking of the Ultimate Beneficial Owners.
     function _update(address from, address to, uint256 value) internal virtual override {
         super._update(from, to, value);
 
