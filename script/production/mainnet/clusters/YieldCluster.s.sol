@@ -153,7 +153,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_tUSDe_25SEP2025       ] = 100_000;
         cluster.supplyCaps[PT_tUSDe_18DEC2025       ] = 80_000_000;
         cluster.supplyCaps[PT_pUSDe_16OCT2025       ] = 90_000_000;
-        cluster.supplyCaps[PT_srUSDe_15JAN2026      ] = 20_000_000;
+        cluster.supplyCaps[PT_srUSDe_15JAN2026      ] = 40_000_000;
         cluster.supplyCaps[PT_jrUSDe_15JAN2026      ] = 3_000_000;
         cluster.supplyCaps[PT_alUSD_11DEC2025       ] = 12_000_000;
         cluster.supplyCaps[PT_cUSD_29JAN2026        ] = 12_000_000;
