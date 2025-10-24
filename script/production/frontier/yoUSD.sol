@@ -45,6 +45,7 @@ contract Cluster is ManageCluster {
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
             cluster.irms[USDC] = IRM_ADAPTIVE_USD;
+            cluster.irms[yoUSD] = IRM_ADAPTIVE_USD_YB;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults

@@ -17,6 +17,7 @@ import {UniswapV3Oracle} from "euler-price-oracle/adapter/uniswap/UniswapV3Oracl
 import {FixedRateOracle} from "euler-price-oracle/adapter/fixed/FixedRateOracle.sol";
 import {RateProviderOracle} from "euler-price-oracle/adapter/rate/RateProviderOracle.sol";
 import {PendleOracle} from "euler-price-oracle/adapter/pendle/PendleOracle.sol";
+import {PendleUniversalOracle} from "euler-price-oracle/adapter/pendle/PendleUniversalOracle.sol";
 import {IdleTranchesOracle} from "euler-price-oracle/adapter/idle/IdleTranchesOracle.sol";
 
 contract ChainlinkAdapter is ScriptUtils {
@@ -529,6 +530,52 @@ contract PendleAdapter is ScriptUtils {
         uint32 twapWindow
     ) public returns (address adapter) {
         adapter = address(new PendleOracle(pendleOracle, pendleMarket, base, quote, twapWindow));
+        if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
+    }
+}
+
+contract PendleUniversalAdapter is ScriptUtils {
+    function run() public broadcast returns (address adapter) {
+        string memory inputScriptFileName = "03_PendleUniversalAdapter_input.json";
+        string memory outputScriptFileName = "03_PendleUniversalAdapter_output.json";
+        string memory json = getScriptFile(inputScriptFileName);
+        address adapterRegistry = vm.parseJsonAddress(json, ".adapterRegistry");
+        bool addToAdapterRegistry = vm.parseJsonBool(json, ".addToAdapterRegistry");
+        address pendleOracle = vm.parseJsonAddress(json, ".pendleOracle");
+        address pendleMarket = vm.parseJsonAddress(json, ".pendleMarket");
+        address base = vm.parseJsonAddress(json, ".base");
+        address quote = vm.parseJsonAddress(json, ".quote");
+        uint32 twapWindow = uint32(vm.parseJsonUint(json, ".twapWindow"));
+
+        adapter = execute(adapterRegistry, addToAdapterRegistry, pendleOracle, pendleMarket, base, quote, twapWindow);
+
+        string memory object;
+        object = vm.serializeAddress("oracleAdapters", "adapter", adapter);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(
+        address adapterRegistry,
+        bool addToAdapterRegistry,
+        address pendleOracle,
+        address pendleMarket,
+        address base,
+        address quote,
+        uint32 twapWindow
+    ) public broadcast returns (address adapter) {
+        adapter = execute(adapterRegistry, addToAdapterRegistry, pendleOracle, pendleMarket, base, quote, twapWindow);
+    }
+
+    function execute(
+        address adapterRegistry,
+        bool addToAdapterRegistry,
+        address pendleOracle,
+        address pendleMarket,
+        address base,
+        address quote,
+        uint32 twapWindow
+    ) public returns (address adapter) {
+        adapter = address(new PendleUniversalOracle(pendleOracle, pendleMarket, base, quote, twapWindow));
         if (addToAdapterRegistry) SnapshotRegistry(adapterRegistry).add(adapter, base, quote);
     }
 }

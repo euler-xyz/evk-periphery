@@ -59,6 +59,7 @@ abstract contract Addresses {
     address internal constant syrupUSDC = 0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
     address internal constant USD1 = 0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d;
     address internal constant TBILL = 0xdd50C053C096CB04A3e3362E2b622529EC5f2e8a;
+    address internal constant mUSD = 0xacA92E438df0B2401fF60dA7E4337B687a2435DA;
     address internal constant mBASIS = 0x2a8c22E3b10036f3AEF5875d04f8441d4188b656;
     address internal constant mEDGE = 0xbB51E2a15A9158EBE2b0Ceb8678511e063AB7a55;
     address internal constant mMEV = 0x030b69280892c888670EDCDCD8B69Fd8026A0BF3;
@@ -92,6 +93,11 @@ abstract contract Addresses {
     address internal constant PT_tUSDe_25SEP2025 = 0xd0a4B74A6B62aA2b6C02349463D9041606608F36;
     address internal constant PT_tUSDe_18DEC2025 = 0x1135b22d6e8FD0809392478eEDcd8c107dB6aF9D;
     address internal constant PT_pUSDe_16OCT2025 = 0xF3f491e5608f8B8a6Fd9E9d66a4a4036d7FD282C;
+    address internal constant PT_jrUSDe_15JAN2026 = 0x53F3373F0D811902405f91eB0d5cc3957887220D;
+    address internal constant PT_srUSDe_15JAN2026 = 0x1Fb3C5c35D95F48e48FFC8e36bCCe5CB5f29F57c;
+    address internal constant PT_alUSD_11DEC2025 = 0xd2E230f71CA8DB211067BC4070A94D268b313fA3;
+    address internal constant PT_cUSD_29JAN2026 = 0x545A490f9ab534AdF409A2E682bc4098f49952e3;
+    address internal constant PT_stcUSD_29JAN2026 = 0xC3c7E5E277d31CD24a3Ac4cC9af3B6770F30eA33;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}
