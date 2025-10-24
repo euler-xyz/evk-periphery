@@ -3,18 +3,27 @@
 pragma solidity ^0.8.0;
 
 import {
-    ERC4626EVCCollateralCappedPausable,
+    ERC4626EVCCollateralCapped,
     ERC4626EVCCollateral,
     ERC4626EVC
-} from "../implementation/ERC4626EVCCollateralCappedPausable.sol";
+} from "../implementation/ERC4626EVCCollateralCapped.sol";
 
 /// @title ERC4626EVCCollateralFreezable
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice EVC-compatible collateral-only ERC4626 vault implementation that allows pausing and freezing accounts.
-abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCappedPausable {
+abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
+    /// @notice Bitmap bit for pause status.
+    uint16 internal constant PAUSE_BIT = 1 << 3;
+
     /// @notice Mapping indicating if a particular address prefix (EVC account family) is frozen.
     mapping(bytes19 addressPrefix => bool) internal _freezes;
+
+    /// @notice Emitted when the contract is paused.
+    event GovPaused();
+
+    /// @notice Emitted when the contract is unpaused.
+    event GovUnpaused();
 
     /// @notice Emitted when an address prefix (EVC account family) is frozen.
     event GovFrozen(bytes19 indexed addressPrefix);
@@ -22,19 +31,47 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCappedPau
     /// @notice Emitted when an address prefix (EVC account family) is unfrozen.
     event GovUnfrozen(bytes19 indexed addressPrefix);
 
+    /// @notice Error thrown when the contract is paused.
+    error Paused();
+
     /// @notice Error thrown when the account is frozen.
     error Frozen();
 
+    /// @notice Modifier to restrict access to the contract when it is paused.
+    modifier whenNotPaused() {
+        uint16 bitmap = _stateBitmap;
+        if (_isBitSet(bitmap, PAUSE_BIT)) revert Paused();
+        _stateBitmap = _setBit(bitmap, PAUSE_BIT);
+        _;
+        _stateBitmap = _clearBit(_stateBitmap, PAUSE_BIT);
+    }
+
     /// @notice Modifier to restrict access to the account when it is frozen.
     /// @param account The account to check.
-    modifier whenNotFrozen(address account) virtual {
+    modifier whenNotFrozen(address account) {
         if (isFrozen(account)) revert Frozen();
         _;
     }
 
+    /// @notice Pauses the contract.
+    function pause() public onlyEVCAccountOwner governorOnly {
+        uint16 bitmap = _stateBitmap;
+        if (_isBitSet(bitmap, PAUSE_BIT)) return;
+        _stateBitmap = _setBit(bitmap, PAUSE_BIT);
+        emit GovPaused();
+    }
+
+    /// @notice Unpauses the contract.
+    function unpause() public onlyEVCAccountOwner governorOnly {
+        uint16 bitmap = _stateBitmap;
+        if (!_isBitSet(bitmap, PAUSE_BIT)) return;
+        _stateBitmap = _clearBit(bitmap, PAUSE_BIT);
+        emit GovUnpaused();
+    }
+
     /// @notice Freezes all accounts sharing an address prefix.
     /// @param account The address whose prefix to freeze.
-    function freeze(address account) public virtual onlyEVCAccountOwner governorOnly {
+    function freeze(address account) public onlyEVCAccountOwner governorOnly {
         if (evc.getAccountOwner(account) != account) revert InvalidAddress();
         bytes19 addressPrefix = _getAddressPrefix(account);
         if (_freezes[addressPrefix]) return;
@@ -44,7 +81,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCappedPau
 
     /// @notice Unfreezes all accounts sharing an address prefix.
     /// @param account The address whose prefix to unfreeze.
-    function unfreeze(address account) public virtual onlyEVCAccountOwner governorOnly {
+    function unfreeze(address account) public onlyEVCAccountOwner governorOnly {
         if (evc.getAccountOwner(account) != account) revert InvalidAddress();
         bytes19 addressPrefix = _getAddressPrefix(account);
         if (!_freezes[addressPrefix]) return;
@@ -163,10 +200,16 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCappedPau
         assets = ERC4626EVCCollateral.redeem(shares, receiver, owner);
     }
 
+    /// @notice Checks whether the contract is paused.
+    /// @return True if the contract is paused, false otherwise.
+    function isPaused() public view returns (bool) {
+        return _isBitSet(_stateBitmap, PAUSE_BIT);
+    }
+
     /// @notice Checks whether a given account is frozen based on its address prefix.
     /// @param account The account to check.
     /// @return True if the account is frozen, false otherwise.
-    function isFrozen(address account) public view virtual returns (bool) {
+    function isFrozen(address account) public view returns (bool) {
         bytes19 addressPrefix = _getAddressPrefix(account);
         return _freezes[addressPrefix];
     }
