@@ -2,33 +2,19 @@
 
 pragma solidity ^0.8.0;
 
-import {ERC4626EVC, ERC4626EVCCollateral} from "../implementation/ERC4626EVCCollateral.sol";
+import {
+    ERC4626EVCCollateralCappedPausable,
+    ERC4626EVCCollateral,
+    ERC4626EVC
+} from "../implementation/ERC4626EVCCollateralCappedPausable.sol";
 
 /// @title ERC4626EVCCollateralFreezable
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice EVC-compatible collateral-only ERC4626 vault implementation that allows pausing and freezing accounts.
-abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateral {
-    /// @notice Unlocked state.
-    uint8 internal constant UNLOCKED = 1;
-
-    /// @notice Locked state.
-    uint8 internal constant LOCKED = 2;
-
-    /// @notice The address of the governor admin.
-    address public governorAdmin;
-
+abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCappedPausable {
     /// @notice Mapping indicating if a particular address prefix (EVC account family) is frozen.
     mapping(bytes19 addressPrefix => bool) internal _freezes;
-
-    /// @notice Lock for reentrancy.
-    uint8 internal _reentrancyLock;
-
-    /// @notice Lock for pause.
-    uint8 internal _pauseLock;
-
-    /// @notice Emitted when the governor admin is set.
-    event GovSetGovernorAdmin(address indexed newGovernorAdmin);
 
     /// @notice Emitted when an address prefix (EVC account family) is frozen.
     event GovFrozen(bytes19 indexed addressPrefix);
@@ -36,59 +22,14 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateral {
     /// @notice Emitted when an address prefix (EVC account family) is unfrozen.
     event GovUnfrozen(bytes19 indexed addressPrefix);
 
-    /// @notice Error thrown when a reentrancy is detected.
-    error Reentrancy();
-
-    /// @notice Error thrown when the contract is paused.
-    error Paused();
-
     /// @notice Error thrown when the account is frozen.
     error Frozen();
-
-    /// @notice Modifier to prevent reentrancy.
-    modifier nonReentrant() virtual {
-        if (_reentrancyLock == LOCKED) revert Reentrancy();
-        _reentrancyLock = LOCKED;
-        _;
-        _reentrancyLock = UNLOCKED;
-    }
-
-    /// @notice Modifier to restrict access to the contract when it is paused.
-    modifier whenNotPaused() virtual {
-        if (_pauseLock == LOCKED) revert Paused();
-        _pauseLock = LOCKED;
-        _;
-        _pauseLock = UNLOCKED;
-    }
 
     /// @notice Modifier to restrict access to the account when it is frozen.
     /// @param account The account to check.
     modifier whenNotFrozen(address account) virtual {
         if (isFrozen(account)) revert Frozen();
         _;
-    }
-
-    /// @notice Modifier to restrict access to the governor admin.
-    modifier governorOnly() virtual {
-        if (governorAdmin != _msgSender()) revert NotAuthorized();
-        _;
-    }
-
-    /// @dev Initializes the contract.
-    /// @param admin The address of the governor admin.
-    constructor(address admin) {
-        _reentrancyLock = UNLOCKED;
-        _pauseLock = UNLOCKED;
-        governorAdmin = admin;
-    }
-
-    /// @notice Sets a new governor admin for the vault.
-    /// @param newGovernorAdmin The address of the new governor admin.
-    function setGovernorAdmin(address newGovernorAdmin) public virtual onlyEVCAccountOwner governorOnly {
-        if (newGovernorAdmin == address(0)) revert InvalidAddress();
-        if (newGovernorAdmin == governorAdmin) return;
-        governorAdmin = newGovernorAdmin;
-        emit GovSetGovernorAdmin(newGovernorAdmin);
     }
 
     /// @notice Freezes all accounts sharing an address prefix.
@@ -114,7 +55,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateral {
     /// @notice Transfers a certain amount of shares to a recipient.
     /// @param to The recipient of the transfer.
     /// @param amount The amount shares to transfer.
-    /// @return A boolean indicating whether the transfer was successful.
+    /// @return result A boolean indicating whether the transfer was successful.
     function transfer(address to, uint256 amount)
         public
         virtual
@@ -124,16 +65,16 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateral {
         whenNotPaused
         whenNotFrozen(_msgSender())
         whenNotFrozen(to)
-        returns (bool)
+        returns (bool result)
     {
-        return super.transfer(to, amount);
+        result = ERC4626EVCCollateral.transfer(to, amount);
     }
 
     /// @notice Transfers a certain amount of shares from a sender to a recipient.
     /// @param from The sender of the transfer.
     /// @param to The recipient of the transfer.
     /// @param amount The amount of shares to transfer.
-    /// @return A boolean indicating whether the transfer was successful.
+    /// @return result A boolean indicating whether the transfer was successful.
     function transferFrom(address from, address to, uint256 amount)
         public
         virtual
@@ -143,10 +84,9 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateral {
         whenNotPaused
         whenNotFrozen(from)
         whenNotFrozen(to)
-        returns (bool)
+        returns (bool result)
     {
-        if (isFrozen(from)) revert NotAuthorized();
-        return super.transferFrom(from, to, amount);
+        result = ERC4626EVCCollateral.transferFrom(from, to, amount);
     }
 
     /// @notice Deposits a certain amount of assets for a receiver.
@@ -161,9 +101,11 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateral {
         nonReentrant
         whenNotPaused
         whenNotFrozen(receiver)
+        takeSnapshot
         returns (uint256 shares)
     {
-        return super.deposit(assets, receiver);
+        shares = ERC4626EVCCollateral.deposit(assets, receiver);
+        evc.requireVaultStatusCheck();
     }
 
     /// @notice Mints a certain amount of shares for a receiver.
@@ -178,9 +120,11 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateral {
         nonReentrant
         whenNotPaused
         whenNotFrozen(receiver)
+        takeSnapshot
         returns (uint256 assets)
     {
-        return super.mint(shares, receiver);
+        assets = ERC4626EVCCollateral.mint(shares, receiver);
+        evc.requireVaultStatusCheck();
     }
 
     /// @notice Withdraws a certain amount of assets for a receiver.
@@ -198,7 +142,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateral {
         whenNotFrozen(owner)
         returns (uint256 shares)
     {
-        return super.withdraw(assets, receiver, owner);
+        shares = ERC4626EVCCollateral.withdraw(assets, receiver, owner);
     }
 
     /// @notice Redeems a certain amount of shares for a receiver.
@@ -216,7 +160,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateral {
         whenNotFrozen(owner)
         returns (uint256 assets)
     {
-        return super.redeem(shares, receiver, owner);
+        assets = ERC4626EVCCollateral.redeem(shares, receiver, owner);
     }
 
     /// @notice Checks whether a given account is frozen based on its address prefix.

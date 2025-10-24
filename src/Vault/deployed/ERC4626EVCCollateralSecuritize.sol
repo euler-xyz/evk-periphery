@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {
     ERC4626EVCCollateralFreezable,
+    ERC4626EVCCollateralCappedPausable,
     ERC4626EVCCollateral,
     ERC4626EVC
 } from "../implementation/ERC4626EVCCollateralFreezable.sol";
@@ -40,7 +41,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @param symbol The symbol of the vault.
     constructor(address evc, address permit2, address admin, address asset, string memory name, string memory symbol)
         ERC4626EVC(evc, permit2, asset, name, symbol)
-        ERC4626EVCCollateralFreezable(admin)
+        ERC4626EVCCollateralCappedPausable(admin)
     {
         complianceService = IDSToken(asset).getDSService(IDSToken(asset).COMPLIANCE_SERVICE());
     }
@@ -58,6 +59,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         nonReentrant
         onlyEVCAccountOwner
         governorOnly
+        whenNotPaused
         whenNotFrozen(to)
         returns (bool result)
     {
@@ -75,7 +77,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// liquidation context.
     /// @param to The recipient of the transfer.
     /// @param amount The amount shares to transfer.
-    /// @return A boolean indicating whether the transfer was successful.
+    /// @return result A boolean indicating whether the transfer was successful.
     function transfer(address to, uint256 amount)
         public
         virtual
@@ -85,7 +87,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         whenNotPaused
         whenNotFrozen(_msgSender())
         whenNotFrozen(to)
-        returns (bool)
+        returns (bool result)
     {
         if (
             !isCommonOwner(_msgSender(), to)
@@ -93,7 +95,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         ) {
             revert NotAuthorized();
         }
-        return ERC4626EVCCollateral.transfer(to, amount);
+        result = ERC4626EVCCollateral.transfer(to, amount);
     }
 
     /// @notice Transfers a certain amount of shares from a sender to a recipient.
@@ -102,7 +104,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @param from The sender of the transfer.
     /// @param to The recipient of the transfer.
     /// @param amount The amount of shares to transfer.
-    /// @return A boolean indicating whether the transfer was successful.
+    /// @return result A boolean indicating whether the transfer was successful.
     function transferFrom(address from, address to, uint256 amount)
         public
         virtual
@@ -112,12 +114,12 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         whenNotPaused
         whenNotFrozen(from)
         whenNotFrozen(to)
-        returns (bool)
+        returns (bool result)
     {
         if (!isCommonOwner(from, to) && !(evc.isControlCollateralInProgress() && isTransferCompliant(to, amount))) {
             revert NotAuthorized();
         }
-        return ERC4626EVCCollateral.transferFrom(from, to, amount);
+        result = ERC4626EVCCollateral.transferFrom(from, to, amount);
     }
 
     /// @notice Deposits a certain amount of assets for a receiver.
@@ -133,10 +135,12 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         nonReentrant
         whenNotPaused
         whenNotFrozen(receiver)
+        takeSnapshot
         returns (uint256 shares)
     {
         if (!isCommonOwner(_msgSender(), receiver)) revert NotAuthorized();
-        return ERC4626EVCCollateral.deposit(assets, receiver);
+        shares = ERC4626EVCCollateral.deposit(assets, receiver);
+        evc.requireVaultStatusCheck();
     }
 
     /// @notice Mints a certain amount of shares for a receiver.
@@ -152,10 +156,12 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         nonReentrant
         whenNotPaused
         whenNotFrozen(receiver)
+        takeSnapshot
         returns (uint256 assets)
     {
         if (!isCommonOwner(_msgSender(), receiver)) revert NotAuthorized();
-        return ERC4626EVCCollateral.mint(shares, receiver);
+        assets = ERC4626EVCCollateral.mint(shares, receiver);
+        evc.requireVaultStatusCheck();
     }
 
     /// @notice Returns the balance for a specific address prefix.
@@ -211,4 +217,8 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
             if (to != address(0)) _addressPrefixBalances[_getAddressPrefix(to)] += value;
         }
     }
+
+    /// @notice Updates the cache with any necessary changes, i.e. interest accrual that may affect the snapshot.
+    /// @dev No-op for this contract.
+    function _updateCache() internal virtual override {}
 }
