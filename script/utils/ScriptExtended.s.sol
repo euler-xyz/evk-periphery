@@ -246,8 +246,16 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("force_zero_oracle", string("")), "--force-zero-oracle");
     }
 
-    function getSkipOFTHubChainConfig() internal view returns (bool) {
-        return _strEq(vm.envOr("skip_oft_hub_chain_config", string("")), "--skip-oft-hub-chain-config");
+    function getSkipOFTHubChainConfigEUL() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config_eul", string("")), "--skip-oft-hub-chain-config-eul");
+    }
+
+    function getSkipOFTHubChainConfigEUSD() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config_eusd", string("")), "--skip-oft-hub-chain-config-eusd");
+    }
+
+    function getSkipOFTHubChainConfigSEUSD() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config_seusd", string("")), "--skip-oft-hub-chain-config-seusd");
     }
 
     function getCheckPhasedOutVaults() internal view returns (bool) {

@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {stdJson} from "forge-std/StdJson.sol";
 import {ScriptUtils, ScriptExtended, Vm, console} from "../utils/ScriptUtils.s.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
+import {Arrays} from "openzeppelin-contracts/utils/Arrays.sol";
 import {IOFT, SendParam, OFTReceipt} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
 import {ILayerZeroEndpointV2, IOAppCore} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
 import {IMessageLibManager} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
@@ -32,10 +33,25 @@ contract LayerZeroUtil is ScriptExtended {
         address receiveUln302;
     }
 
+    uint32 internal constant ULN_CONFIG_TYPE = 2;
     uint256 internal constant DVN_VERSION = 2;
     uint256 internal constant MAX_DEPLOYMENTS = 10;
 
+    uint256 private _chainId;
+    string private _metadata;
+
+    constructor(uint256 chainId_) {
+        _metadata = getRawMetadata();
+        _chainId = chainId_;
+    }
+
+    function getMatadataAPIURL() public pure returns (string memory) {
+        return "https://metadata.layerzero-api.com/v1/metadata";
+    }
+
     function getRawMetadata() public returns (string memory) {
+        if (_chainId != 0) return _metadata;
+
         string[] memory inputs = new string[](3);
         inputs[0] = "curl";
         inputs[1] = "-s";
@@ -98,19 +114,117 @@ contract LayerZeroUtil is ScriptExtended {
         require(
             result.endpointV2 == address(0)
                 || (result.executor != address(0) && result.sendUln302 != address(0) && result.receiveUln302 != address(0)),
-            "getDeploymentInfo: executor, sendUln302, or receiveUln302 is not set"
+            string.concat("getDeploymentInfo: executor, sendUln302, or receiveUln302 is not set ", vm.toString(chainId))
+        );
+        require(
+            result.eid >= 30000 && result.eid < 40000,
+            string.concat("getDeploymentInfo: eid must indicate mainnet ", vm.toString(chainId))
         );
     }
 
-    function getDVNAddresses(string[] memory dvns, string memory chainKey)
-        public
-        returns (string[] memory, address[] memory)
-    {
-        return getDVNAddresses(getRawMetadata(), dvns, chainKey);
+    function getUlnConfig(
+        address oftAdapter,
+        uint256 chainIdOther,
+        string[] memory dvns,
+        uint8 requiredDVNCnt,
+        bool isSend
+    ) public returns (UlnConfig memory) {
+        LayerZeroUtil.DeploymentInfo memory info = getDeploymentInfo(_chainId);
+        return UlnConfig({
+            confirmations: abi.decode(
+                IMessageLibManager(info.endpointV2).getConfig(
+                    oftAdapter,
+                    isSend ? info.sendUln302 : info.receiveUln302,
+                    getDeploymentInfo(chainIdOther).eid,
+                    ULN_CONFIG_TYPE
+                ),
+                (UlnConfig)
+            ).confirmations,
+            requiredDVNCount: requiredDVNCnt,
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: getSortedDVNAddresses(dvns, info.chainKey, requiredDVNCnt),
+            optionalDVNs: new address[](0)
+        });
     }
 
-    function getDVNAddresses(string memory metadata, string[] memory dvns, string memory chainKey)
+    function getCompatibleUlnConfig(
+        address oftAdapterOther,
+        uint256 chainId,
+        uint256 chainIdOther,
+        string[] memory dvns,
+        bool isSend
+    ) public returns (UlnConfig memory) {
+        LayerZeroUtil.DeploymentInfo memory info = getDeploymentInfo(chainId);
+        LayerZeroUtil.DeploymentInfo memory infoOther = getDeploymentInfo(chainIdOther);
+        (string[] memory dvnNames, address[] memory dvnAddresses) = getDVNs(dvns, infoOther.chainKey);
+
+        require(selectFork(chainIdOther), string.concat("Failed to select fork for chain ", vm.toString(chainIdOther)));
+
+        UlnConfig memory ulnConfig = abi.decode(
+            IMessageLibManager(infoOther.endpointV2).getConfig(
+                oftAdapterOther, isSend ? infoOther.receiveUln302 : infoOther.sendUln302, info.eid, ULN_CONFIG_TYPE
+            ),
+            (UlnConfig)
+        );
+
+        selectFork(DEFAULT_FORK_CHAIN_ID);
+
+        dvns = new string[](ulnConfig.requiredDVNs.length);
+
+        for (uint256 i = 0; i < dvnAddresses.length; ++i) {
+            for (uint256 j = 0; j < ulnConfig.requiredDVNs.length; ++j) {
+                if (dvnAddresses[i] == ulnConfig.requiredDVNs[j]) {
+                    dvns[j] = dvnNames[i];
+                    break;
+                }
+            }
+        }
+
+        return UlnConfig({
+            confirmations: ulnConfig.confirmations,
+            requiredDVNCount: uint8(ulnConfig.requiredDVNs.length),
+            optionalDVNCount: 0,
+            optionalDVNThreshold: 0,
+            requiredDVNs: getSortedDVNAddresses(dvns, info.chainKey, ulnConfig.requiredDVNs.length),
+            optionalDVNs: new address[](0)
+        });
+    }
+
+    function getDVNs(string[] memory dvns, string memory chainKey) public returns (string[] memory, address[] memory) {
+        return getDVNs(getRawMetadata(), dvns, chainKey, false);
+    }
+
+    function getDVNs(string memory metadata, string[] memory dvns, string memory chainKey)
         public
+        view
+        returns (string[] memory dvnNames, address[] memory dvnAddresses)
+    {
+        return getDVNs(metadata, dvns, chainKey, false);
+    }
+
+    function getSortedDVNAddresses(string[] memory dvns, string memory chainKey, uint256 requiredCnt)
+        public
+        returns (address[] memory acceptedDvns)
+    {
+        return getSortedDVNAddresses(getRawMetadata(), dvns, chainKey, requiredCnt);
+    }
+
+    function getSortedDVNAddresses(
+        string memory metadata,
+        string[] memory dvns,
+        string memory chainKey,
+        uint256 requiredCnt
+    ) public view returns (address[] memory acceptedDvns) {
+        (, acceptedDvns) = getDVNs(metadata, dvns, chainKey, true);
+        require(acceptedDvns.length >= requiredCnt, string.concat("Failed to find enough accepted DVNs for ", chainKey));
+        assembly {
+            mstore(acceptedDvns, requiredCnt)
+        }
+    }
+
+    function getDVNs(string memory metadata, string[] memory dvns, string memory chainKey, bool sort)
+        private
         view
         returns (string[] memory dvnNames, address[] memory dvnAddresses)
     {
@@ -141,44 +255,44 @@ contract LayerZeroUtil is ScriptExtended {
             mstore(dvnNames, index)
             mstore(dvnAddresses, index)
         }
-    }
 
-    function getMatadataAPIURL() public pure returns (string memory) {
-        return "https://metadata.layerzero-api.com/v1/metadata";
+        // notice: only sorts the addresses
+        if (sort) {
+            Arrays.sort(dvnAddresses);
+        }
     }
 }
 
-contract LayerZeroReadConfig is ScriptUtils {
+contract LayerZeroReadConfigEUL is ScriptUtils {
     function run() public {
-        LayerZeroUtil lzUtil = new LayerZeroUtil();
-        string memory lzMetadata = lzUtil.getRawMetadata();
-        vm.makePersistent(address(lzUtil));
-        uint256[] memory srcChainIds = getBridgeConfigSrcChainIds();
+        uint256[] memory srcChainIds = getBridgeConfigSrcChainIds("EUL");
 
         for (uint256 i = 0; i < srcChainIds.length; ++i) {
             uint256 chainId = srcChainIds[i];
-            uint256[] memory dstChainIds = getBridgeConfigDstChainIds(chainId);
+            LayerZeroUtil lzUtil = new LayerZeroUtil(chainId);
+            vm.makePersistent(address(lzUtil));
+            uint256[] memory dstChainIds = getBridgeConfigDstChainIds("EUL", chainId);
 
             BridgeAddresses memory bridgeAddresses =
                 deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", chainId));
 
-            if (bridgeAddresses.oftAdapter == address(0)) {
+            if (bridgeAddresses.eulOFTAdapter == address(0)) {
                 console.log("OFT Adapter not deployed for chain %s. Skipping...", chainId);
                 console.log("--------------------------------");
                 continue;
             }
 
-            LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(lzMetadata, chainId);
+            LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(chainId);
 
             require(selectFork(chainId), "Fork not selected");
             require(IEndpointV2(info.endpointV2).eid() == info.eid, "Endpoint eid mismatch");
 
-            address sendLib = IEndpointV2(info.endpointV2).getSendLibrary(bridgeAddresses.oftAdapter, info.eid);
+            address sendLib = IEndpointV2(info.endpointV2).getSendLibrary(bridgeAddresses.eulOFTAdapter, info.eid);
             (address receiveLib, bool isDefault) =
-                IEndpointV2(info.endpointV2).getReceiveLibrary(bridgeAddresses.oftAdapter, info.eid);
+                IEndpointV2(info.endpointV2).getReceiveLibrary(bridgeAddresses.eulOFTAdapter, info.eid);
 
             console.log("OFT Adapter configuration for chain %s (eid %s):", chainId, info.eid);
-            console.log("    OFT adapter: %s", bridgeAddresses.oftAdapter);
+            console.log("    OFT adapter: %s", bridgeAddresses.eulOFTAdapter);
             console.log("    lzEndpoint: %s", info.endpointV2);
             console.log("    send library: %s", sendLib);
             console.log("    receive library: %s", receiveLib);
@@ -187,12 +301,12 @@ contract LayerZeroReadConfig is ScriptUtils {
             for (uint256 j = 0; j < dstChainIds.length; ++j) {
                 uint256 chainIdOther = dstChainIds[j];
 
-                LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(lzMetadata, chainIdOther);
+                LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(chainIdOther);
 
                 {
                     ExecutorConfig memory executorConfig = abi.decode(
                         IMessageLibManager(info.endpointV2).getConfig(
-                            bridgeAddresses.oftAdapter, sendLib, infoOther.eid, 1
+                            bridgeAddresses.eulOFTAdapter, sendLib, infoOther.eid, 1
                         ),
                         (ExecutorConfig)
                     );
@@ -204,7 +318,7 @@ contract LayerZeroReadConfig is ScriptUtils {
                 {
                     UlnConfig memory sendUlnConfig = abi.decode(
                         IMessageLibManager(info.endpointV2).getConfig(
-                            bridgeAddresses.oftAdapter, sendLib, infoOther.eid, 2
+                            bridgeAddresses.eulOFTAdapter, sendLib, infoOther.eid, 2
                         ),
                         (UlnConfig)
                     );
@@ -223,7 +337,7 @@ contract LayerZeroReadConfig is ScriptUtils {
                 {
                     UlnConfig memory receiveUlnConfig = abi.decode(
                         IMessageLibManager(info.endpointV2).getConfig(
-                            bridgeAddresses.oftAdapter, receiveLib, infoOther.eid, 2
+                            bridgeAddresses.eulOFTAdapter, receiveLib, infoOther.eid, 2
                         ),
                         (UlnConfig)
                     );
@@ -244,12 +358,12 @@ contract LayerZeroReadConfig is ScriptUtils {
                     "    peer for chain id %s (eid %s): %s",
                     chainIdOther,
                     infoOther.eid,
-                    address(uint160(uint256(IOAppCore(bridgeAddresses.oftAdapter).peers(infoOther.eid))))
+                    address(uint160(uint256(IOAppCore(bridgeAddresses.eulOFTAdapter).peers(infoOther.eid))))
                 );
 
                 {
                     bytes memory enforcedOptions =
-                        OAppOptionsType3(bridgeAddresses.oftAdapter).enforcedOptions(infoOther.eid, 1);
+                        OAppOptionsType3(bridgeAddresses.eulOFTAdapter).enforcedOptions(infoOther.eid, 1);
                     console.log(
                         string.concat(
                             "    msgType 1 enforced options are ",
@@ -262,7 +376,7 @@ contract LayerZeroReadConfig is ScriptUtils {
                         )
                     );
 
-                    enforcedOptions = OAppOptionsType3(bridgeAddresses.oftAdapter).enforcedOptions(infoOther.eid, 2);
+                    enforcedOptions = OAppOptionsType3(bridgeAddresses.eulOFTAdapter).enforcedOptions(infoOther.eid, 2);
                     console.log(
                         string.concat(
                             "    msgType 2 enforced options are ",
@@ -281,25 +395,24 @@ contract LayerZeroReadConfig is ScriptUtils {
     }
 
     function getLayerZeroConfig() public {
-        LayerZeroUtil lzUtil = new LayerZeroUtil();
-        string memory lzMetadata = lzUtil.getRawMetadata();
-        vm.makePersistent(address(lzUtil));
-        uint256[] memory srcChainIds = getBridgeConfigSrcChainIds();
+        uint256[] memory srcChainIds = getBridgeConfigSrcChainIds("EUL");
         string memory globalConfig;
 
         for (uint256 i = 0; i < srcChainIds.length; ++i) {
             uint256 chainId = srcChainIds[i];
-            uint256[] memory dstChainIds = getBridgeConfigDstChainIds(chainId);
+            LayerZeroUtil lzUtil = new LayerZeroUtil(chainId);
+            vm.makePersistent(address(lzUtil));
+            uint256[] memory dstChainIds = getBridgeConfigDstChainIds("EUL", chainId);
 
-            LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(lzMetadata, chainId);
+            LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(chainId);
             string memory eid = vm.toString(info.eid);
 
             vm.serializeString(eid, "chainKey", info.chainKey);
             vm.serializeString(eid, "chainId", vm.toString(chainId));
             vm.serializeAddress(
                 eid,
-                "oftAdapter",
-                deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", chainId)).oftAdapter
+                "eulOFTAdapter",
+                deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", chainId)).eulOFTAdapter
             );
             vm.serializeAddress(
                 eid, "eul", deserializeTokenAddresses(getAddressesJson("TokenAddresses.json", chainId)).EUL
@@ -308,7 +421,7 @@ contract LayerZeroReadConfig is ScriptUtils {
             string memory routes;
             for (uint256 j = 0; j < dstChainIds.length; ++j) {
                 uint256 chainIdOther = dstChainIds[j];
-                LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(lzMetadata, chainIdOther);
+                LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(chainIdOther);
                 string memory eidOther = vm.toString(infoOther.eid);
                 string memory key = string.concat("route.", eidOther);
 
@@ -316,8 +429,8 @@ contract LayerZeroReadConfig is ScriptUtils {
                 vm.serializeString(key, "chainId", vm.toString(chainIdOther));
                 vm.serializeAddress(
                     key,
-                    "oftAdapter",
-                    deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", chainIdOther)).oftAdapter
+                    "eulOFTAdapter",
+                    deserializeBridgeAddresses(getAddressesJson("BridgeAddresses.json", chainIdOther)).eulOFTAdapter
                 );
                 string memory route = vm.serializeAddress(
                     key, "eul", deserializeTokenAddresses(getAddressesJson("TokenAddresses.json", chainIdOther)).EUL
@@ -338,14 +451,19 @@ contract LayerZeroSendEUL is ScriptUtils {
         public
         returns (MessagingReceipt memory, OFTReceipt memory)
     {
-        ERC20 eul = ERC20(tokenAddresses.EUL);
-        (address oftAdapter, uint256 value, SendParam memory sendParam, MessagingFee memory fee, address refundAddress)
-        = getSendInputs(getDeployer(), dstChainId, dstAddress, amount, 0);
+        ERC20 eul = ERC20(tokenAddresses.seUSD);
+        (
+            address eulOFTAdapter,
+            uint256 value,
+            SendParam memory sendParam,
+            MessagingFee memory fee,
+            address refundAddress
+        ) = getSendInputs(getDeployer(), dstChainId, dstAddress, amount, 0);
 
         startBroadcast();
-        eul.approve(oftAdapter, amount);
+        eul.approve(eulOFTAdapter, amount);
         (MessagingReceipt memory receipt, OFTReceipt memory oftReceipt) =
-            IOFT(oftAdapter).send{value: value}(sendParam, fee, refundAddress);
+            IOFT(eulOFTAdapter).send{value: value}(sendParam, fee, refundAddress);
         stopBroadcast();
 
         return (receipt, oftReceipt);
@@ -362,7 +480,7 @@ contract LayerZeroSendEUL is ScriptUtils {
         returns (address to, uint256 value, SendParam memory sendParam, MessagingFee memory fee, address refundAddress)
     {
         sendParam = SendParam(
-            (new LayerZeroUtil()).getDeploymentInfo(dstChainId).eid,
+            (new LayerZeroUtil(dstChainId)).getDeploymentInfo(dstChainId).eid,
             bytes32(uint256(uint160(dstAddress))),
             amount,
             amount,
@@ -370,10 +488,10 @@ contract LayerZeroSendEUL is ScriptUtils {
             "",
             ""
         );
-        fee = IOFT(bridgeAddresses.oftAdapter).quoteSend(sendParam, false);
+        fee = IOFT(bridgeAddresses.seusdOFTAdapter).quoteSend(sendParam, false);
         fee.nativeFee = fee.nativeFee * ((1e4 + nativeFeeMultiplierBps) / 1e4);
 
-        return (bridgeAddresses.oftAdapter, fee.nativeFee, sendParam, fee, srcAddress);
+        return (bridgeAddresses.seusdOFTAdapter, fee.nativeFee, sendParam, fee, srcAddress);
     }
 
     function getSendCalldata(
