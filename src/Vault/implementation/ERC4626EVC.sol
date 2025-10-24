@@ -49,17 +49,29 @@ abstract contract ERC4626EVC is EVCUtil, ERC4626 {
     }
 
     /// @dev Internal conversion function (from assets to shares) with support for rounding direction.
-    function _convertToShares(uint256 assets, Math.Rounding rounding) internal view override returns (uint256) {
+    function _convertToShares(uint256 assets, Math.Rounding rounding)
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return assets.mulDiv(totalSupply() + VIRTUAL_AMOUNT, totalAssets() + VIRTUAL_AMOUNT, rounding);
     }
 
     /// @dev Internal conversion function (from shares to assets) with support for rounding direction.
-    function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view override returns (uint256) {
+    function _convertToAssets(uint256 shares, Math.Rounding rounding)
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return shares.mulDiv(totalAssets() + VIRTUAL_AMOUNT, totalSupply() + VIRTUAL_AMOUNT, rounding);
     }
 
     /// @dev Deposit/mint common workflow.
-    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual override {
         SafeERC20Permit2Lib.safeTransferFromWithPermit2(
             SafeERC20Permit2LibIERC20(address(asset())), caller, address(this), assets, permit2Address
         );
@@ -71,6 +83,7 @@ abstract contract ERC4626EVC is EVCUtil, ERC4626 {
     /// @dev Withdraw/redeem common workflow.
     function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
         internal
+        virtual
         override
     {
         // assets sent to EVC sub-accounts would be lost, as the private key for a sub-account is not known

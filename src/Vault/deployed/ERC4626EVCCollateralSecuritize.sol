@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {
     ERC4626EVCCollateralFreezable,
-    ERC4626EVCCollateralCappedPausable,
+    ERC4626EVCCollateralCapped,
     ERC4626EVCCollateral,
     ERC4626EVC
 } from "../implementation/ERC4626EVCCollateralFreezable.sol";
@@ -41,7 +41,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @param symbol The symbol of the vault.
     constructor(address evc, address permit2, address admin, address asset, string memory name, string memory symbol)
         ERC4626EVC(evc, permit2, asset, name, symbol)
-        ERC4626EVCCollateralCappedPausable(admin)
+        ERC4626EVCCollateralCapped(admin)
     {
         complianceService = IDSToken(asset).getDSService(IDSToken(asset).COMPLIANCE_SERVICE());
     }
@@ -167,14 +167,14 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @notice Returns the balance for a specific address prefix.
     /// @param addressPrefix The address prefix (bytes19) whose balance is being queried.
     /// @return The balance associated with the given address prefix.
-    function balanceOfAddressPrefix(bytes19 addressPrefix) public view virtual returns (uint256) {
+    function balanceOfAddressPrefix(bytes19 addressPrefix) public view returns (uint256) {
         return _addressPrefixBalances[addressPrefix];
     }
 
     /// @notice Returns the balance for the EVC account family of a specific account.
     /// @param account The address whose prefix balance is being queried.
     /// @return The balance associated with the address prefix of the account.
-    function balanceOfAddressPrefix(address account) public view virtual returns (uint256) {
+    function balanceOfAddressPrefix(address account) public view returns (uint256) {
         if (evc.getAccountOwner(account) != account) revert InvalidAddress();
         return _addressPrefixBalances[_getAddressPrefix(account)];
     }
@@ -184,7 +184,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @param account First account to compare.
     /// @param otherAccount Second account to compare.
     /// @return True if both accounts share a common owner, false otherwise.
-    function isCommonOwner(address account, address otherAccount) public view virtual returns (bool) {
+    function isCommonOwner(address account, address otherAccount) public view returns (bool) {
         address owner = evc.getAccountOwner(account);
         return owner != address(0) && _haveCommonOwner(owner, otherAccount);
     }
@@ -195,7 +195,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @param to The owner of the address receiving the shares.
     /// @param amount The amount of shares to transfer.
     /// @return True if the transfer is allowed according to compliance, false otherwise.
-    function isTransferCompliant(address to, uint256 amount) public view virtual returns (bool) {
+    function isTransferCompliant(address to, uint256 amount) public view returns (bool) {
         address toOwner = evc.getAccountOwner(to);
         if (toOwner == address(0)) return false;
 
