@@ -82,7 +82,6 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
     /// @notice Sets a new governor admin for the vault.
     /// @param newGovernorAdmin The address of the new governor admin.
     function setGovernorAdmin(address newGovernorAdmin) public onlyEVCAccountOwner governorOnly {
-        if (newGovernorAdmin == address(0)) revert InvalidAddress();
         if (newGovernorAdmin == governorAdmin) return;
         governorAdmin = newGovernorAdmin;
         emit GovSetGovernorAdmin(newGovernorAdmin);
