@@ -13,8 +13,8 @@ import {
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice EVC-compatible collateral-only ERC4626 vault implementation that allows pausing and freezing accounts.
 abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
-    /// @notice Bitmap bit for pause status.
-    uint16 internal constant PAUSE_BIT = 1 << 3;
+    /// @notice Pause feature index.
+    uint8 internal constant PAUSE = 2;
 
     /// @notice Mapping indicating if a particular address prefix (EVC account family) is frozen.
     mapping(bytes19 addressPrefix => bool) internal _freezes;
@@ -39,11 +39,8 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
 
     /// @notice Modifier to restrict access to the contract when it is paused.
     modifier whenNotPaused() {
-        uint16 bitmap = _stateBitmap;
-        if (_isBitSet(bitmap, PAUSE_BIT)) revert Paused();
-        _stateBitmap = _setBit(bitmap, PAUSE_BIT);
+        if (_isEnabled(PAUSE)) revert Paused();
         _;
-        _stateBitmap = _clearBit(_stateBitmap, PAUSE_BIT);
     }
 
     /// @notice Modifier to restrict access to the account when it is frozen.
@@ -53,19 +50,22 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         _;
     }
 
+    /// @notice Initializes the contract and initializes the pause feature.
+    constructor() {
+        _initializeFeature(PAUSE);
+    }
+
     /// @notice Pauses the contract.
     function pause() public onlyEVCAccountOwner governorOnly {
-        uint16 bitmap = _stateBitmap;
-        if (_isBitSet(bitmap, PAUSE_BIT)) return;
-        _stateBitmap = _setBit(bitmap, PAUSE_BIT);
+        if (_isEnabled(PAUSE)) return;
+        _enableFeature(PAUSE);
         emit GovPaused();
     }
 
     /// @notice Unpauses the contract.
     function unpause() public onlyEVCAccountOwner governorOnly {
-        uint16 bitmap = _stateBitmap;
-        if (!_isBitSet(bitmap, PAUSE_BIT)) return;
-        _stateBitmap = _clearBit(bitmap, PAUSE_BIT);
+        if (!_isEnabled(PAUSE)) return;
+        _disableFeature(PAUSE);
         emit GovUnpaused();
     }
 
@@ -177,6 +177,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         nonReentrant
         whenNotPaused
         whenNotFrozen(owner)
+        takeSnapshot
         returns (uint256 shares)
     {
         shares = ERC4626EVCCollateral.withdraw(assets, receiver, owner);
@@ -195,6 +196,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         nonReentrant
         whenNotPaused
         whenNotFrozen(owner)
+        takeSnapshot
         returns (uint256 assets)
     {
         assets = ERC4626EVCCollateral.redeem(shares, receiver, owner);
@@ -203,7 +205,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
     /// @notice Checks whether the contract is paused.
     /// @return True if the contract is paused, false otherwise.
     function isPaused() public view returns (bool) {
-        return _isBitSet(_stateBitmap, PAUSE_BIT);
+        return _isEnabled(PAUSE);
     }
 
     /// @notice Checks whether a given account is frozen based on its address prefix.

@@ -14,26 +14,23 @@ import "evk/EVault/shared/Constants.sol";
 abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
     using AmountCapLib for AmountCap;
 
-    /// @notice Bitmap bit for initialization status.
-    uint16 internal constant INITIALIZATION_BIT = 1 << 0;
+    /// @notice Reentrancy feature index.
+    uint8 internal constant REENTRANCY = 0;
 
-    /// @notice Bitmap bit for reentrancy status.
-    uint16 internal constant REENTRANCY_BIT = 1 << 1;
-
-    /// @notice Bitmap bit for snapshot lock status.
-    uint16 internal constant SNAPSHOT_BIT = 1 << 2;
-
-    /// @notice General purpose bitmap for state flags.
-    uint16 internal _stateBitmap;
-
-    /// @notice The supply cap.
-    AmountCap internal _supplyCap;
+    /// @notice Snapshot feature index.
+    uint8 internal constant SNAPSHOT = 1;
 
     /// @notice The address of the governor admin.
     address public governorAdmin;
 
+    /// @notice General purpose bitmap for state features.
+    uint16 private _stateBitmap;
+
+    /// @notice The supply cap.
+    AmountCap internal _supplyCap;
+
     /// @notice The snapshot of the total assets.
-    uint256 internal _snapshotTotalAssets;
+    uint112 internal _snapshotTotalAssets;
 
     /// @notice Emitted when the governor admin is set.
     event GovSetGovernorAdmin(address indexed newGovernorAdmin);
@@ -41,6 +38,9 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
     /// @notice Set new supply cap
     /// @param newSupplyCap New supply cap in AmountCap format
     event GovSetSupplyCap(uint16 newSupplyCap);
+
+    /// @notice Error thrown when the feature is already initialized.
+    error AlreadyInitialized();
 
     /// @notice Error thrown when a reentrancy is detected.
     error Reentrancy();
@@ -53,11 +53,10 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
 
     /// @notice Modifier to prevent reentrancy.
     modifier nonReentrant() {
-        uint16 bitmap = _stateBitmap;
-        if (_isBitSet(bitmap, REENTRANCY_BIT)) revert Reentrancy();
-        _stateBitmap = _setBit(bitmap, REENTRANCY_BIT);
+        if (_isEnabled(REENTRANCY)) revert Reentrancy();
+        _enableFeature(REENTRANCY);
         _;
-        _stateBitmap = _clearBit(_stateBitmap, REENTRANCY_BIT);
+        _disableFeature(REENTRANCY);
     }
 
     /// @notice Modifier to restrict access to the governor admin.
@@ -75,7 +74,10 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
     /// @dev Initializes the contract.
     /// @param admin The address of the governor admin.
     constructor(address admin) {
-        _stateBitmap = _setBit(0, INITIALIZATION_BIT);
+        uint8 MAX_FEATURE_INDEX = 15;
+        _initializeFeature(MAX_FEATURE_INDEX);
+        _initializeFeature(REENTRANCY);
+        _initializeFeature(SNAPSHOT);
         governorAdmin = admin;
     }
 
@@ -93,8 +95,7 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
         AmountCap _cap = AmountCap.wrap(cap);
 
         // The raw uint16 cap amount == 0 is a special value. See comments in AmountCap.sol
-        // Max total assets is a sum of max pool size and max total debt, both Assets type
-        if (cap != 0 && _cap.resolve() > 2 * MAX_SANE_AMOUNT) revert BadSupplyCap();
+        if (cap != 0 && _cap.resolve() > MAX_SANE_AMOUNT) revert BadSupplyCap();
 
         _supplyCap = _cap;
 
@@ -172,15 +173,16 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
     /// @notice Checks the status of the vault and validates supply cap constraints.
     /// @return magicValue The selector of checkVaultStatus if the vault is in a valid state.
     function checkVaultStatus() external virtual onlyEVCWithChecksInProgress returns (bytes4 magicValue) {
-        uint16 bitmap = _stateBitmap;
-        if (_isBitSet(bitmap, SNAPSHOT_BIT)) {
+        if (_isEnabled(SNAPSHOT)) {
             uint256 finalTotalAssets = totalAssets();
 
             if (finalTotalAssets > _supplyCap.resolve() && finalTotalAssets > _snapshotTotalAssets) {
                 revert SupplyCapExceeded();
             }
 
-            _stateBitmap = _clearBit(bitmap, SNAPSHOT_BIT);
+            // Disable the snapshot feature to allow future snapshots to be taken. There's no need to clear the total
+            // assets snapshot itself.
+            _disableFeature(SNAPSHOT);
         }
 
         return IVault.checkVaultStatus.selector;
@@ -198,37 +200,44 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
         return _supplyCap.resolve();
     }
 
-    /// @notice Checks if a specific bit is set in a bitmap.
-    /// @param bitmap The bitmap to check.
-    /// @param bit The bit to check for.
-    /// @return True if the bit is set, false otherwise.
-    function _isBitSet(uint16 bitmap, uint16 bit) internal pure returns (bool) {
-        return (bitmap & bit) != 0;
+    /// @notice Checks if a specific feature is enabled.
+    /// @param index The feature index to check for.
+    /// @return True if the feature is enabled, false otherwise.
+    function _isEnabled(uint8 index) internal view returns (bool) {
+        /// forge-lint: disable-next-line(incorrect-shift)
+        return (_stateBitmap & (1 << index)) == 0;
     }
 
-    /// @notice Sets a specific bit in a bitmap.
-    /// @param bitmap The bitmap to modify.
-    /// @param bit The bit to set.
-    /// @return The new bitmap with the bit set.
-    function _setBit(uint16 bitmap, uint16 bit) internal pure returns (uint16) {
-        return bitmap | bit;
+    /// @notice Initializes the provided feature.
+    /// @dev Should be used to initialize the features when the contract is deployed.
+    /// @param index The feature index to initialize.
+    function _initializeFeature(uint8 index) internal {
+        if (!_isEnabled(index)) revert AlreadyInitialized();
+        _disableFeature(index);
     }
 
-    /// @notice Clears a specific bit in a bitmap.
-    /// @param bitmap The bitmap to modify.
-    /// @param bit The bit to clear.
-    /// @return The new bitmap with the bit cleared.
-    function _clearBit(uint16 bitmap, uint16 bit) internal pure returns (uint16) {
-        return bitmap & ~bit;
+    /// @notice Enables a specific feature.
+    /// @param index The feature index to enable.
+    function _enableFeature(uint8 index) internal {
+        /// forge-lint: disable-next-line(incorrect-shift)
+        _stateBitmap = _stateBitmap & ~uint16(1 << index);
+    }
+
+    /// @notice Disables a specific feature.
+    /// @param index The feature index to disable.
+    function _disableFeature(uint8 index) internal {
+        /// forge-lint: disable-next-line(incorrect-shift)
+        _stateBitmap = _stateBitmap | uint16(1 << index);
     }
 
     /// @notice Takes a snapshot of the current total assets if not locked.
     function _takeSnapshot() internal virtual {
-        if (_isBitSet(_stateBitmap, SNAPSHOT_BIT) || _supplyCap.resolve() == type(uint256).max) return;
+        if (_isEnabled(SNAPSHOT) || _supplyCap.resolve() == type(uint256).max) return;
 
         _updateCache();
-        _stateBitmap = _setBit(_stateBitmap, SNAPSHOT_BIT);
-        _snapshotTotalAssets = totalAssets();
+        uint256 totalAssetCache = totalAssets();
+        _enableFeature(SNAPSHOT);
+        _snapshotTotalAssets = totalAssetCache > type(uint112).max ? type(uint112).max : uint112(totalAssetCache);
     }
 
     /// @notice Updates the cache with any necessary changes, i.e. interest accrual that may affect the snapshot.
