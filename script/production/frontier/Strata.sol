@@ -63,6 +63,8 @@ contract Cluster is ManageCluster {
             cluster.irms[srUSDe ] = IRM_ADAPTIVE_USD_YB;
         }
 
+        cluster.rampDuration = 30 days;
+
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //               0          1         2         3         4         5         6         7         8
@@ -70,8 +72,8 @@ contract Cluster is ManageCluster {
             /* 0  USDC    */ [LTV_ZERO, LTV_HIGH, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 1  USDT    */ [LTV_HIGH, LTV_ZERO, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 2  USDe    */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 3  pUSDe   */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 4  PT_pUSDe*/ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 3  pUSDe   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 4  PT_pUSDe*/ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 5  srUSDe  */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 6  PT_srUSDe*/[LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 7  jrUSDe  */ [LTV__LOW, LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
