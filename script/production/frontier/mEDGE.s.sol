@@ -62,7 +62,7 @@ contract Cluster is ManageCluster {
             /* 0  USDC    */ [LTV_ZERO, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 1  USDT    */ [LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 2  mEDGE   */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 3  PT_mEDGE*/ [LTV_ZERO, LTV_ZERO, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 3  PT_mEDGE*/ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 4  PT_mEDGE*/ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 5  PT_mEDGE*/ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
