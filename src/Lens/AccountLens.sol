@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
+import {IPriceOracle} from "euler-price-oracle/interfaces/IPriceOracle.sol";
 import {IRewardStreams} from "reward-streams/interfaces/IRewardStreams.sol";
 import {IEVault} from "evk/EVault/IEVault.sol";
 import {Errors} from "evk/EVault/shared/Errors.sol";
@@ -158,82 +159,201 @@ contract AccountLens is Utils {
 
         result.isController = IEVC(evc).isControllerEnabled(account, vault);
         result.isCollateral = IEVC(evc).isCollateralEnabled(account, vault);
+        result.liquidityInfo = getAccountLiquidityInfo(account, vault);
+
+        return result;
+    }
+
+    function getAccountLiquidityInfo(address account, address vault)
+        public
+        view
+        returns (AccountLiquidityInfo memory)
+    {
+        AccountLiquidityInfo memory result;
+
+        result.account = account;
+        result.vault = vault;
+
+        (bool success, bytes memory data) = vault.staticcall(abi.encodeCall(IEVault(vault).unitOfAccount, ()));
+
+        if (success && data.length >= 32) {
+            result.unitOfAccount = abi.decode(data, (address));
+        } else {
+            result.queryFailure = true;
+            result.queryFailureReason = data;
+        }
 
         (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).accountLiquidity, (account, false)));
 
-        if (success) {
-            (result.liquidityInfo.collateralValueBorrowing, result.liquidityInfo.liabilityValue) =
-                abi.decode(data, (uint256, uint256));
+        if (success && data.length >= 64) {
+            (result.collateralValueBorrowing, result.liabilityValueBorrowing) = abi.decode(data, (uint256, uint256));
         } else {
-            result.liquidityInfo.queryFailure = true;
-            result.liquidityInfo.queryFailureReason = data;
+            result.queryFailure = true;
+            result.queryFailureReason = data;
         }
 
         (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).accountLiquidity, (account, true)));
 
-        if (success) {
-            (result.liquidityInfo.collateralValueLiquidation,) = abi.decode(data, (uint256, uint256));
+        if (success && data.length >= 64) {
+            (result.collateralValueLiquidation, result.liabilityValueLiquidation) = abi.decode(data, (uint256, uint256));
         } else {
-            result.liquidityInfo.queryFailure = true;
+            result.queryFailure = true;
+            result.queryFailureReason = data;
         }
 
         (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).accountLiquidityFull, (account, false)));
 
-        address[] memory collaterals;
-        uint256[] memory collateralValues;
-        if (success) {
-            (collaterals, collateralValues,) = abi.decode(data, (address[], uint256[], uint256));
-
-            result.liquidityInfo.collateralLiquidityBorrowingInfo = new CollateralLiquidityInfo[](collaterals.length);
-
-            for (uint256 i = 0; i < collaterals.length; ++i) {
-                result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateral = collaterals[i];
-                result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateralValue = collateralValues[i];
-            }
+        if (success && data.length >= 64) {
+            (result.collaterals, result.collateralValuesBorrowing,) = abi.decode(data, (address[], uint256[], uint256));
         } else {
-            result.liquidityInfo.queryFailure = true;
+            result.queryFailure = true;
+            result.queryFailureReason = data;
         }
 
         (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).accountLiquidityFull, (account, true)));
 
-        if (success) {
-            (collaterals, collateralValues,) = abi.decode(data, (address[], uint256[], uint256));
-
-            result.liquidityInfo.collateralLiquidityLiquidationInfo = new CollateralLiquidityInfo[](collaterals.length);
-
-            for (uint256 i = 0; i < collaterals.length; ++i) {
-                result.liquidityInfo.collateralLiquidityLiquidationInfo[i].collateral = collaterals[i];
-                result.liquidityInfo.collateralLiquidityLiquidationInfo[i].collateralValue = collateralValues[i];
-            }
+        if (success && data.length >= 64) {
+            (result.collaterals, result.collateralValuesLiquidation,) =
+                abi.decode(data, (address[], uint256[], uint256));
         } else {
-            result.liquidityInfo.queryFailure = true;
+            result.queryFailure = true;
+            result.queryFailureReason = data;
         }
 
-        if (!result.liquidityInfo.queryFailure) {
-            result.liquidityInfo.timeToLiquidation =
-                _calculateTimeToLiquidation(vault, result.liquidityInfo.liabilityValue, collaterals, collateralValues);
-        }
+        if (!result.queryFailure) {
+            result.collateralValuesRaw = new uint256[](result.collaterals.length);
 
-        if (!result.liquidityInfo.queryFailure) {
-            result.liquidityInfo.collateralLiquidityRawInfo = new CollateralLiquidityInfo[](collaterals.length);
-
-            for (uint256 i = 0; i < collaterals.length; ++i) {
-                (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).LTVBorrow, (collaterals[i])));
-
-                collateralValues[i] = 0;
+            for (uint256 i = 0; i < result.collaterals.length; ++i) {
+                (success, data) =
+                    vault.staticcall(abi.encodeCall(IEVault(vault).LTVLiquidation, (result.collaterals[i])));
 
                 if (success && data.length >= 32) {
-                    uint256 borrowLTV = abi.decode(data, (uint16));
+                    uint256 liquidationLTV = abi.decode(data, (uint16));
 
-                    if (borrowLTV != 0) {
-                        collateralValues[i] = result.liquidityInfo.collateralLiquidityBorrowingInfo[i].collateralValue
-                            * CONFIG_SCALE / borrowLTV;
+                    if (liquidationLTV != 0) {
+                        result.collateralValuesRaw[i] =
+                            result.collateralValuesLiquidation[i] * CONFIG_SCALE / liquidationLTV;
                     }
                 }
 
-                result.liquidityInfo.collateralLiquidityRawInfo[i].collateral = collaterals[i];
-                result.liquidityInfo.collateralLiquidityRawInfo[i].collateralValue = collateralValues[i];
-                result.liquidityInfo.collateralValueRaw += collateralValues[i];
+                result.collateralValueRaw += result.collateralValuesRaw[i];
+            }
+        }
+
+        if (!result.queryFailure) {
+            result.timeToLiquidation = _calculateTimeToLiquidation(
+                vault, result.liabilityValueLiquidation, result.collaterals, result.collateralValuesLiquidation
+            );
+        }
+
+        return result;
+    }
+
+    function getAccountLiquidityInfoNoValidation(address account, address vault)
+        public
+        view
+        returns (AccountLiquidityInfo memory)
+    {
+        AccountLiquidityInfo memory result = getAccountLiquidityInfo(account, vault);
+
+        if (
+            !result.queryFailure
+                || (
+                    bytes4(result.queryFailureReason) != Errors.E_TransientState.selector
+                        && bytes4(result.queryFailureReason) != Errors.E_NoLiability.selector
+                        && bytes4(result.queryFailureReason) != Errors.E_NotController.selector
+                        && bytes4(result.queryFailureReason) != Errors.E_NoPriceOracle.selector
+                )
+        ) return result;
+
+        result.queryFailure = false;
+        result.queryFailureReason = "";
+        result.account = account;
+        result.vault = vault;
+        result.timeToLiquidation = TTL_ERROR;
+        result.liabilityValueBorrowing = 0;
+        result.liabilityValueLiquidation = 0;
+        result.collateralValueBorrowing = 0;
+        result.collateralValueLiquidation = 0;
+        result.collateralValueRaw = 0;
+        result.unitOfAccount = IEVault(vault).unitOfAccount();
+        result.collaterals = IEVC(IEVault(vault).EVC()).getCollaterals(account);
+        result.collateralValuesBorrowing = new uint256[](result.collaterals.length);
+        result.collateralValuesLiquidation = new uint256[](result.collaterals.length);
+        result.collateralValuesRaw = new uint256[](result.collaterals.length);
+
+        address oracle = IEVault(vault).oracle();
+        uint256 debt = IEVault(vault).debtOf(account);
+
+        if (debt != 0) {
+            address asset = IEVault(vault).asset();
+
+            (bool success, bytes memory data) =
+                oracle.staticcall(abi.encodeCall(IPriceOracle.getQuotes, (debt, asset, result.unitOfAccount)));
+
+            if (success && data.length >= 32) {
+                (, result.liabilityValueBorrowing) = abi.decode(data, (uint256, uint256));
+            } else {
+                result.queryFailure = true;
+                result.queryFailureReason = data;
+            }
+
+            (success, data) =
+                oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (debt, asset, result.unitOfAccount)));
+
+            if (!result.queryFailure && success && data.length >= 32) {
+                result.liabilityValueLiquidation = abi.decode(data, (uint256));
+            } else {
+                result.queryFailure = true;
+                result.queryFailureReason = data;
+            }
+        }
+
+        if (result.queryFailure) return result;
+
+        for (uint256 i = 0; i < result.collaterals.length; ++i) {
+            address collateral = result.collaterals[i];
+            uint256 balance;
+
+            (bool success, bytes memory data) =
+                collateral.staticcall(abi.encodeCall(IEVault(collateral).balanceOf, (account)));
+
+            if (success && data.length >= 32) {
+                balance = abi.decode(data, (uint256));
+            } else {
+                result.queryFailure = true;
+                result.queryFailureReason = data;
+            }
+
+            if (balance == 0) continue;
+
+            (success, data) =
+                oracle.staticcall(abi.encodeCall(IPriceOracle.getQuote, (balance, collateral, result.unitOfAccount)));
+
+            if (success && data.length >= 32) {
+                result.collateralValuesRaw[i] = abi.decode(data, (uint256));
+                result.collateralValueRaw += result.collateralValuesRaw[i];
+
+                result.collateralValuesLiquidation[i] =
+                    result.collateralValuesRaw[i] * IEVault(vault).LTVLiquidation(collateral) / CONFIG_SCALE;
+                result.collateralValueLiquidation += result.collateralValuesLiquidation[i];
+            } else {
+                result.queryFailure = true;
+                result.queryFailureReason = data;
+            }
+
+            (success, data) =
+                oracle.staticcall(abi.encodeCall(IPriceOracle.getQuotes, (balance, collateral, result.unitOfAccount)));
+
+            if (success && data.length >= 32) {
+                (uint256 collateralValue,) = abi.decode(data, (uint256, uint256));
+
+                result.collateralValuesBorrowing[i] =
+                    collateralValue * IEVault(vault).LTVBorrow(collateral) / CONFIG_SCALE;
+                result.collateralValueBorrowing += result.collateralValuesBorrowing[i];
+            } else {
+                result.queryFailure = true;
+                result.queryFailureReason = data;
             }
         }
 

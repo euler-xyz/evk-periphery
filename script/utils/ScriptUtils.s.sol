@@ -78,6 +78,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address swapVerifier;
         address feeFlowController;
         address feeFlowControllerUtil;
+        address feeCollector;
         address evkFactoryPerspective;
         address governedPerspective;
         address escrowedCollateralPerspective;
@@ -108,6 +109,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "swapVerifier", Addresses.swapVerifier);
         result = vm.serializeAddress("peripheryAddresses", "feeFlowController", Addresses.feeFlowController);
         result = vm.serializeAddress("peripheryAddresses", "feeFlowControllerUtil", Addresses.feeFlowControllerUtil);
+        result = vm.serializeAddress("peripheryAddresses", "feeCollector", Addresses.feeCollector);
         result = vm.serializeAddress("peripheryAddresses", "evkFactoryPerspective", Addresses.evkFactoryPerspective);
         result = vm.serializeAddress("peripheryAddresses", "governedPerspective", Addresses.governedPerspective);
         result = vm.serializeAddress(
@@ -152,6 +154,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             swapVerifier: getAddressFromJson(json, ".swapVerifier"),
             feeFlowController: getAddressFromJson(json, ".feeFlowController"),
             feeFlowControllerUtil: getAddressFromJson(json, ".feeFlowControllerUtil"),
+            feeCollector: getAddressFromJson(json, ".feeCollector"),
             evkFactoryPerspective: getAddressFromJson(json, ".evkFactoryPerspective"),
             governedPerspective: getAddressFromJson(json, ".governedPerspective"),
             escrowedCollateralPerspective: getAddressFromJson(json, ".escrowedCollateralPerspective"),
@@ -208,6 +211,7 @@ abstract contract GovernorAddressesLib is ScriptExtended {
         address accessControlEmergencyGovernorAdminTimelockController;
         address accessControlEmergencyGovernorWildcardTimelockController;
         address capRiskSteward;
+        address eUSDAdminTimelockController;
     }
 
     function serializeGovernorAddresses(GovernorAddresses memory Addresses) internal returns (string memory result) {
@@ -229,6 +233,9 @@ abstract contract GovernorAddressesLib is ScriptExtended {
             Addresses.accessControlEmergencyGovernorWildcardTimelockController
         );
         result = vm.serializeAddress("governorAddresses", "capRiskSteward", Addresses.capRiskSteward);
+        result = vm.serializeAddress(
+            "governorAddresses", "eUSDAdminTimelockController", Addresses.eUSDAdminTimelockController
+        );
     }
 
     function deserializeGovernorAddresses(string memory json) internal pure returns (GovernorAddresses memory) {
@@ -242,7 +249,8 @@ abstract contract GovernorAddressesLib is ScriptExtended {
             accessControlEmergencyGovernorWildcardTimelockController: getAddressFromJson(
                 json, ".accessControlEmergencyGovernorWildcardTimelockController"
             ),
-            capRiskSteward: getAddressFromJson(json, ".capRiskSteward")
+            capRiskSteward: getAddressFromJson(json, ".capRiskSteward"),
+            eUSDAdminTimelockController: getAddressFromJson(json, ".eUSDAdminTimelockController")
         });
     }
 }
@@ -251,15 +259,24 @@ abstract contract TokenAddressesLib is ScriptExtended {
     struct TokenAddresses {
         address EUL;
         address rEUL;
+        address eUSD;
+        address seUSD;
     }
 
     function serializeTokenAddresses(TokenAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("tokenAddresses", "EUL", Addresses.EUL);
         result = vm.serializeAddress("tokenAddresses", "rEUL", Addresses.rEUL);
+        result = vm.serializeAddress("tokenAddresses", "eUSD", Addresses.eUSD);
+        result = vm.serializeAddress("tokenAddresses", "seUSD", Addresses.seUSD);
     }
 
     function deserializeTokenAddresses(string memory json) internal pure returns (TokenAddresses memory) {
-        return TokenAddresses({EUL: getAddressFromJson(json, ".EUL"), rEUL: getAddressFromJson(json, ".rEUL")});
+        return TokenAddresses({
+            EUL: getAddressFromJson(json, ".EUL"),
+            rEUL: getAddressFromJson(json, ".rEUL"),
+            eUSD: getAddressFromJson(json, ".eUSD"),
+            seUSD: getAddressFromJson(json, ".seUSD")
+        });
     }
 }
 
@@ -332,15 +349,23 @@ abstract contract EulerSwapAddressesLib is ScriptExtended {
 
 abstract contract BridgeAddressesLib is ScriptExtended {
     struct BridgeAddresses {
-        address oftAdapter;
+        address eulOFTAdapter;
+        address eusdOFTAdapter;
+        address seusdOFTAdapter;
     }
 
     function serializeBridgeAddresses(BridgeAddresses memory Addresses) internal returns (string memory result) {
-        result = vm.serializeAddress("bridgeAddresses", "oftAdapter", Addresses.oftAdapter);
+        result = vm.serializeAddress("bridgeAddresses", "eulOFTAdapter", Addresses.eulOFTAdapter);
+        result = vm.serializeAddress("bridgeAddresses", "eusdOFTAdapter", Addresses.eusdOFTAdapter);
+        result = vm.serializeAddress("bridgeAddresses", "seusdOFTAdapter", Addresses.seusdOFTAdapter);
     }
 
     function deserializeBridgeAddresses(string memory json) internal pure returns (BridgeAddresses memory) {
-        return BridgeAddresses({oftAdapter: getAddressFromJson(json, ".oftAdapter")});
+        return BridgeAddresses({
+            eulOFTAdapter: getAddressFromJson(json, ".eulOFTAdapter"),
+            eusdOFTAdapter: getAddressFromJson(json, ".eusdOFTAdapter"),
+            seusdOFTAdapter: getAddressFromJson(json, ".seusdOFTAdapter")
+        });
     }
 }
 
@@ -348,53 +373,86 @@ abstract contract BridgeConfigCache is ScriptExtended {
     using stdJson for string;
     using Arrays for uint256[];
     using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableMap for EnumerableMap.UintToUintMap;
 
-    EnumerableSet.UintSet internal srcChainIds;
-    mapping(uint256 srcChainIds => EnumerableMap.UintToUintMap) internal config;
+    EnumerableSet.Bytes32Set internal keys;
+    mapping(bytes32 keyBytes => string) internal keyNames;
+    mapping(bytes32 keyBytes => EnumerableSet.UintSet) internal srcChainIds;
+    mapping(bytes32 keyBytes => mapping(uint256 srcChainId => EnumerableMap.UintToUintMap)) internal config;
 
-    function addBridgeConfigCache(uint256 srcChainId, uint256 dstChainId) internal returns (bool) {
-        srcChainIds.add(srcChainId);
-        return config[srcChainId].set(dstChainId, 1);
+    function addBridgeConfigCache(string memory key, uint256 srcChainId, uint256 dstChainId) internal returns (bool) {
+        bytes32 keyBytes = keccak256(abi.encode(key));
+        keyNames[keyBytes] = key;
+        keys.add(keyBytes);
+        srcChainIds[keyBytes].add(srcChainId);
+        return config[keyBytes][srcChainId].set(dstChainId, 1);
     }
 
-    function removeBridgeConfigCache(uint256 srcChainId, uint256 dstChainId) internal returns (bool) {
-        if (config[srcChainId].length() == 1) {
-            srcChainIds.remove(srcChainId);
-        }
-        return config[srcChainId].remove(dstChainId);
+    function removeBridgeConfigCache(string memory key, uint256 srcChainId, uint256 dstChainId) internal {
+        bytes32 keyBytes = keccak256(abi.encode(key));
+        config[keyBytes][srcChainId].remove(dstChainId);
+        if (config[keyBytes][srcChainId].length() == 0) srcChainIds[keyBytes].remove(srcChainId);
+        if (srcChainIds[keyBytes].length() == 0) keys.remove(keyBytes);
     }
 
-    function bridgeConfigCacheExists(uint256 srcChainId, uint256 dstChainId) internal view returns (bool) {
-        return config[srcChainId].contains(dstChainId);
+    function bridgeConfigCacheExists(string memory key, uint256 srcChainId, uint256 dstChainId)
+        internal
+        view
+        returns (bool)
+    {
+        return config[keccak256(abi.encode(key))][srcChainId].contains(dstChainId);
     }
 
-    function getBridgeConfigSrcChainIds() internal view returns (uint256[] memory) {
-        return srcChainIds.values();
+    function getBridgeConfigSrcChainIds(string memory key) internal view returns (uint256[] memory) {
+        return srcChainIds[keccak256(abi.encode(key))].values();
     }
 
-    function getBridgeConfigDstChainIds(uint256 srcChainId) internal view returns (uint256[] memory) {
-        return config[srcChainId].keys();
+    function getBridgeConfigDstChainIds(string memory key, uint256 srcChainId)
+        internal
+        view
+        returns (uint256[] memory)
+    {
+        return config[keccak256(abi.encode(key))][srcChainId].keys();
     }
 
     function serializeBridgeConfigCache() internal returns (string memory result) {
-        for (uint256 i = 0; i < srcChainIds.length(); ++i) {
-            uint256 srcChainId = srcChainIds.at(i);
-            result = vm.serializeUint("bridgeConfigCache", vm.toString(srcChainId), config[srcChainId].keys().sort());
+        for (uint256 i = 0; i < keys.length(); ++i) {
+            bytes32 keyBytes = keys.at(i);
+            string memory keyString = keyNames[keyBytes];
+
+            string memory keyJson = "";
+            uint256[] memory srcChainIdsArray = srcChainIds[keyBytes].values();
+
+            for (uint256 j = 0; j < srcChainIdsArray.length; ++j) {
+                uint256 srcChainId = srcChainIdsArray[j];
+                uint256[] memory dstChainIds = config[keyBytes][srcChainId].keys();
+                keyJson = vm.serializeUint(keyString, vm.toString(srcChainId), dstChainIds.sort());
+            }
+
+            result = vm.serializeString("bridgeConfigCache", keyString, bytes(keyJson).length == 0 ? "{}" : keyJson);
         }
-        return vm.serializeString("bridgeConfig", "oft", bytes(result).length == 0 ? "{}" : result);
+
+        return result;
     }
 
     function deserializeBridgeConfigCache(string memory json) internal {
-        if (bytes(json).length == 0 || !vm.keyExists(json, ".oft")) return;
+        if (bytes(json).length == 0) return;
 
-        string[] memory keys = vm.parseJsonKeys(json, ".oft");
+        string[] memory jsonKeys = vm.parseJsonKeys(json, "");
 
-        for (uint256 i = 0; i < keys.length; ++i) {
-            uint256[] memory values = json.readUintArrayOr(string.concat(".oft.", keys[i]), new uint256[](0));
+        for (uint256 i = 0; i < jsonKeys.length; ++i) {
+            string memory key = jsonKeys[i];
+            string[] memory srcChainKeys = vm.parseJsonKeys(json, string.concat(".", key));
 
-            for (uint256 j = 0; j < values.length; ++j) {
-                addBridgeConfigCache(vm.parseUint(keys[i]), values[j]);
+            for (uint256 j = 0; j < srcChainKeys.length; ++j) {
+                uint256 srcChainId = vm.parseUint(srcChainKeys[j]);
+                uint256[] memory dstChainIds =
+                    json.readUintArrayOr(string.concat(".", key, ".", srcChainKeys[j]), new uint256[](0));
+
+                for (uint256 k = 0; k < dstChainIds.length; ++k) {
+                    addBridgeConfigCache(key, srcChainId, dstChainIds[k]);
+                }
             }
         }
     }
@@ -555,6 +613,11 @@ abstract contract ScriptUtils is
 
             // Plasma
             if (block.chainid == 9745) {
+                return address(0);
+            }
+
+            // Monad
+            if (block.chainid == 143) {
                 return address(0);
             }
 

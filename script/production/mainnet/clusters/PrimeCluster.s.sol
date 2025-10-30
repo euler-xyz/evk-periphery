@@ -110,7 +110,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[cbETH      ] = 575;
         cluster.supplyCaps[weETH      ] = 13_500;
         cluster.supplyCaps[ezETH      ] = 9_750;
-        cluster.supplyCaps[RETH       ] = 275;
+        cluster.supplyCaps[RETH       ] = 400;
         cluster.supplyCaps[rsETH      ] = 27_000;
         cluster.supplyCaps[tETH       ] = 9_400;
         cluster.supplyCaps[USDC       ] = 75_000_000;
