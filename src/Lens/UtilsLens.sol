@@ -126,7 +126,7 @@ contract UtilsLens is Utils {
 
         if (adapters.length == 0) {
             (bool success, bytes memory data) =
-                asset.staticcall(abi.encodeCall(IEVault(asset).convertToAssets, (amountIn)));
+                asset.staticcall{gas: 100000}(abi.encodeCall(IEVault(asset).convertToAssets, (amountIn)));
 
             if (success && data.length >= 32) {
                 amountIn = abi.decode(data, (uint256));

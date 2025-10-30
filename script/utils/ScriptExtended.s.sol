@@ -226,8 +226,11 @@ abstract contract ScriptExtended is Script {
     function getEmergencyVaultAddress() internal view returns (address) {
         string memory vaultAddress = vm.envOr("vault_address", string(""));
         require(isEmergency(), "getEmergencyVaultAddress: Emergency mode is not enabled");
-        require(bytes(vaultAddress).length == 42, "getEmergencyVaultAddress: Vault address is not set");
-        return _toAddress(vaultAddress);
+        require(
+            bytes(vaultAddress).length == 42 || _strEq(vaultAddress, "all"),
+            "getEmergencyVaultAddress: Vault address is not set"
+        );
+        return bytes(vaultAddress).length == 42 ? _toAddress(vaultAddress) : address(0);
     }
 
     function setNoStubOracle(bool value) internal {
@@ -239,8 +242,20 @@ abstract contract ScriptExtended is Script {
             || _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
     }
 
-    function getSkipOFTHubChainConfig() internal view returns (bool) {
-        return _strEq(vm.envOr("skip_oft_hub_chain_config", string("")), "--skip-oft-hub-chain-config");
+    function isForceZeroOracle() internal view returns (bool) {
+        return _strEq(vm.envOr("force_zero_oracle", string("")), "--force-zero-oracle");
+    }
+
+    function getSkipOFTHubChainConfigEUL() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config_eul", string("")), "--skip-oft-hub-chain-config-eul");
+    }
+
+    function getSkipOFTHubChainConfigEUSD() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config_eusd", string("")), "--skip-oft-hub-chain-config-eusd");
+    }
+
+    function getSkipOFTHubChainConfigSEUSD() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config_seusd", string("")), "--skip-oft-hub-chain-config-seusd");
     }
 
     function getCheckPhasedOutVaults() internal view returns (bool) {
