@@ -45,7 +45,7 @@ contract ERC20BurnableMintable is AccessControlEnumerable, ERC20Burnable, ERC20P
     /// @notice Mints new tokens and assigns them to an account
     /// @param _account The address that will receive the minted tokens
     /// @param _amount The amount of tokens to mint
-    function mint(address _account, uint256 _amount) external onlyRole(MINTER_ROLE) {
+    function mint(address _account, uint256 _amount) external virtual onlyRole(MINTER_ROLE) {
         _mint(_account, _amount);
     }
 

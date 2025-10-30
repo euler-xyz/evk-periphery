@@ -1,0 +1,41 @@
+{
+  "lib/ethereum-vault-connector": {
+    "rev": "a7d3c29ef7e4964736e47675e0588630d6afbfd7"
+  },
+  "lib/euler-earn": {
+    "rev": "b2fd6e699ee20bcfe7459f375b3cee5d2fa53345"
+  },
+  "lib/euler-price-oracle": {
+    "rev": "ffc3cb82615fc7d003a7f431175bd1eaf0bf41c5"
+  },
+  "lib/euler-swap": {
+    "rev": "b948f4052d7ab3116235ec754368b7125dbd5082"
+  },
+  "lib/euler-vault-kit": {
+    "rev": "422bf2447047d32aa9f4e5bab4be16ab3ea67ec2"
+  },
+  "lib/fee-flow": {
+    "rev": "4a419c94e9cd68f65e11f07da9a69f726177cb9c"
+  },
+  "lib/forge-std": {
+    "rev": "b93cf4bc34ff214c099dc970b153f85ade8c9f66"
+  },
+  "lib/layerzero-devtools": {
+    "rev": "cc871a1bd4a28931fd3db4bb097ca30a8e057501"
+  },
+  "lib/layerzero-v2": {
+    "rev": "7da76840e41dc593d3c2007ce35b911b1d816b4b"
+  },
+  "lib/openzeppelin-contracts": {
+    "rev": "69c8def5f222ff96f2b5beff05dfba996368aa79"
+  },
+  "lib/openzeppelin-contracts-upgradeable": {
+    "rev": "fa525310e45f91eb20a6d3baa2644be8e0adba31"
+  },
+  "lib/reward-streams": {
+    "rev": "9eb7b8a7fa31c275d688063c4abd07165b50b89f"
+  },
+  "lib/solidity-bytes-utils": {
+    "rev": "e0115c4d231910df47ce3b60625ce562fe4af985"
+  }
+}

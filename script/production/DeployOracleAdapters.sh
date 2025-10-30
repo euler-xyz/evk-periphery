@@ -49,7 +49,11 @@ fi
 read -p "Provide the deployment name used to save results (default: default): " deployment_name
 deployment_name=${deployment_name:-default}
 
-if [[ "$@" == *"--account"* ]]; then
+if [ -n "$DEPLOYER_KEY" ]; then
+    set -- "$@" --private-key "$DEPLOYER_KEY"
+fi
+
+if [[ "$@" == *"--account"* && -z "$DEPLOYER_KEY" ]]; then
     read -s -p "Enter keystore password: " password
     set -- "$@" --password "$password"
     echo ""
@@ -394,6 +398,30 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
                 quote: $quote,
                 twapWindow: $twapWindow
             }' --indent 4 > script/${jsonName}_input.json
+    elif [[ "$provider" == "PendleUniversal" ]]; then
+        scriptName=${baseName}.s.sol:PendleUniversalAdapter
+        jsonName=03_PendleUniversalAdapter
+
+        base="${columns[8]}"
+        quote="${columns[9]}"
+
+        jq -n \
+            --argjson addToAdapterRegistry false \
+            --arg adapterRegistry "0x0000000000000000000000000000000000000000" \
+            --arg pendleOracle "${columns[6]}" \
+            --arg pendleMarket "${columns[7]}" \
+            --arg base "${columns[8]}" \
+            --arg quote "${columns[9]}" \
+            --arg twapWindow "${columns[10]}" \
+            '{
+                addToAdapterRegistry: $addToAdapterRegistry,
+                adapterRegistry: $adapterRegistry,
+                pendleOracle: $pendleOracle,
+                pendleMarket: $pendleMarket,
+                base: $base,
+                quote: $quote,
+                twapWindow: $twapWindow
+            }' --indent 4 > script/${jsonName}_input.json
     elif [[ "$provider" == "Idle" ]]; then
         scriptName=${baseName}.s.sol:IdleTranchesAdapter
         jsonName=03_IdleTranchesAdapter
@@ -423,7 +451,23 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         continue
     fi
 
-    if script/utils/executeForgeScript.sh $scriptName "$@"; then
+    skip=false
+    if [[ "$provider" == *Pendle* ]]; then
+        result=$(cast call "${columns[6]}" "getOracleState(address,uint32)(bool,uint16,bool)" ${columns[7]} ${columns[10]} --rpc-url $DEPLOYMENT_RPC_URL)
+        increaseCardinalityRequired=$(echo "$result" | head -1)
+        cardinalityRequired=$(echo "$result" | sed -n '2p')
+        oldestObservationSatisfied=$(echo "$result" | tail -1)
+        
+        if [[ "$increaseCardinalityRequired" == "true" ]]; then
+            echo "Increasing observation cardinality for $adapterName..."
+            cast send "${columns[7]}" "increaseObservationsCardinalityNext(uint16)" $cardinalityRequired --rpc-url $DEPLOYMENT_RPC_URL "$@"
+            skip=true
+        elif [[ "$oldestObservationSatisfied" == "false" ]]; then
+            skip=true
+        fi
+    fi
+
+    if [[ "$skip" != "true" ]] && script/utils/executeForgeScript.sh $scriptName "$@"; then
         counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/${jsonName}.json")
         adapter=$(jq -r '.adapter' "script/${jsonName}_output.json")
         entry="${baseSymbol},${quoteSymbol},${provider},${adapterName},${adapter},$base,$quote,${shouldWhitelist}"
@@ -442,7 +486,13 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         for json_file in script/*.json; do
             rm "$json_file"
         done
-        echo "Error deploying $adapterName. Exiting..."
-        exit 1
+
+        if [[ "$skip" == "true" ]]; then
+            echo "Skipping deployment of $adapterName. Insufficient observation history."
+            continue
+        else
+            echo "Error deploying $adapterName. Exiting..."
+            exit 1
+        fi
     fi
 done < <(tr -d '\r' < "$csv_file")

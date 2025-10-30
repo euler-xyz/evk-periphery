@@ -49,19 +49,19 @@ struct VaultAccountInfo {
 struct AccountLiquidityInfo {
     bool queryFailure;
     bytes queryFailureReason;
+    address account;
+    address vault;
+    address unitOfAccount;
     int256 timeToLiquidation;
-    uint256 liabilityValue;
+    uint256 liabilityValueBorrowing;
+    uint256 liabilityValueLiquidation;
     uint256 collateralValueBorrowing;
     uint256 collateralValueLiquidation;
     uint256 collateralValueRaw;
-    CollateralLiquidityInfo[] collateralLiquidityBorrowingInfo;
-    CollateralLiquidityInfo[] collateralLiquidityLiquidationInfo;
-    CollateralLiquidityInfo[] collateralLiquidityRawInfo;
-}
-
-struct CollateralLiquidityInfo {
-    address collateral;
-    uint256 collateralValue;
+    address[] collaterals;
+    uint256[] collateralValuesBorrowing;
+    uint256[] collateralValuesLiquidation;
+    uint256[] collateralValuesRaw;
 }
 
 struct VaultInfoERC4626 {
@@ -77,6 +77,60 @@ struct VaultInfoERC4626 {
     uint256 totalShares;
     uint256 totalAssets;
     bool isEVault;
+}
+
+struct VaultInfoStatic {
+    uint256 timestamp;
+    address vault;
+    string vaultName;
+    string vaultSymbol;
+    uint256 vaultDecimals;
+    address asset;
+    string assetName;
+    string assetSymbol;
+    uint256 assetDecimals;
+    address unitOfAccount;
+    string unitOfAccountName;
+    string unitOfAccountSymbol;
+    uint256 unitOfAccountDecimals;
+    address dToken;
+    address oracle;
+    address evc;
+    address protocolConfig;
+    address balanceTracker;
+    address permit2;
+    address creator;
+}
+
+struct VaultInfoDynamic {
+    uint256 timestamp;
+    address vault;
+    uint256 totalShares;
+    uint256 totalCash;
+    uint256 totalBorrowed;
+    uint256 totalAssets;
+    uint256 accumulatedFeesShares;
+    uint256 accumulatedFeesAssets;
+    address governorFeeReceiver;
+    address protocolFeeReceiver;
+    uint256 protocolFeeShare;
+    uint256 interestFee;
+    uint256 hookedOperations;
+    uint256 configFlags;
+    uint256 supplyCap;
+    uint256 borrowCap;
+    uint256 maxLiquidationDiscount;
+    uint256 liquidationCoolOffTime;
+    address interestRateModel;
+    address hookTarget;
+    address governorAdmin;
+    VaultInterestRateModelInfo irmInfo;
+    LTVInfo[] collateralLTVInfo;
+    AssetPriceInfo liabilityPriceInfo;
+    AssetPriceInfo[] collateralPriceInfo;
+    OracleDetailedInfo oracleInfo;
+    AssetPriceInfo backupAssetPriceInfo;
+    OracleDetailedInfo backupAssetOracleInfo;
 }
 
 struct VaultInfoFull {

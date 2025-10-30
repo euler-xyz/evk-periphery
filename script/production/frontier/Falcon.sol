@@ -35,7 +35,7 @@ contract Cluster is ManageCluster {
         // although Redstone Classic oracles reuse the ChainlinkOracle contract and returns "ChainlinkOracle" name,
         // they should be referred to as "RedstoneClassicOracle".
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per
-        // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to
+        // External Vaults Registry, the string should be preceded by "ExternalVault|" prefix. this is in order to
         // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
@@ -58,6 +58,8 @@ contract Cluster is ManageCluster {
             cluster.irms[sUSDf ] = IRM_ADAPTIVE_USD_YB;
         }
 
+        cluster.rampDuration = 30 days;
+
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //               0          1         2         3         4         5         6
@@ -66,7 +68,7 @@ contract Cluster is ManageCluster {
             /* 1  USDT    */ [LTV_HIGH, LTV_ZERO, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 2  USDf    */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 3  sUSDf   */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 4  PT_sUSDf*/ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 4  PT_sUSDf*/ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 5  PT_sUSDf*/ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 6  PT_USDf */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];

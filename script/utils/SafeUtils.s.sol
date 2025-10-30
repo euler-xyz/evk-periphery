@@ -85,7 +85,7 @@ contract SafeUtil is ScriptExtended {
 
     function getStatus(address safe) public returns (Status memory) {
         string memory endpoint = string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/");
-        (uint256 status, bytes memory response) = endpoint.get();
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
 
         require(status == 200, "getSafes: Failed to get safes");
 
@@ -103,7 +103,7 @@ contract SafeUtil is ScriptExtended {
     function getNextNonce(address safe) public returns (uint256) {
         string memory endpoint =
             string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/multisig-transactions/?executed=false&limit=1");
-        (uint256 status, bytes memory response) = endpoint.get();
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
         require(status == 200, "getNextNonce: Failed to get last pending transaction");
 
         uint256 lastPendingNonce = vm.keyExists(string(response), _indexedKey(".results", 0, ".nonce"))
@@ -122,7 +122,7 @@ contract SafeUtil is ScriptExtended {
                 "/multisig-transactions/?executed=false&nonce=",
                 vm.toString(nonce)
             );
-            (status, response) = endpoint.get();
+            (status, response) = endpoint.get(getHeaders());
             require(status == 200, "getNextNonce: Failed to get pending transaction");
 
             if (!vm.keyExists(string(response), _indexedKey(".results", 0, ".nonce"))) return nonce;
@@ -133,7 +133,7 @@ contract SafeUtil is ScriptExtended {
 
     function getSafes(address owner) public returns (address[] memory) {
         string memory endpoint = string.concat(getOwnersAPIBaseURL(), vm.toString(owner), "/safes/");
-        (uint256 status, bytes memory response) = endpoint.get();
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
 
         require(status == 200, "getSafes: Failed to get safes");
 
@@ -142,7 +142,7 @@ contract SafeUtil is ScriptExtended {
 
     function getDelegates(address safe) public returns (address[] memory) {
         string memory endpoint = string.concat(getDelegatesAPIBaseURL(), "?safe=", vm.toString(safe));
-        (uint256 status, bytes memory response) = endpoint.get();
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
 
         require(status == 200, "getDelegates: Failed to get delegates");
 
@@ -158,8 +158,7 @@ contract SafeUtil is ScriptExtended {
 
     function getPendingTransactions(address safe) public returns (TransactionSimple[] memory) {
         string memory endpoint = string.concat(getSafesAPIBaseURL(), vm.toString(safe), "/transactions/queued");
-        (uint256 status, bytes memory response) = endpoint.get();
-
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
         require(status == 200, "getPendingTransactions: Failed to get pending transactions");
 
         uint256 length = 0;
@@ -191,7 +190,7 @@ contract SafeUtil is ScriptExtended {
 
     function getTransaction(string memory txId) public returns (TransactionSimple memory) {
         string memory endpoint = string.concat(getTransactionsAPIBaseURL(), txId);
-        (uint256 status, bytes memory response) = endpoint.get();
+        (uint256 status, bytes memory response) = endpoint.get(getHeaders());
 
         require(status == 200, "getTransaction: Failed to get transaction");
 
@@ -233,9 +232,9 @@ contract SafeUtil is ScriptExtended {
     function getSafeBaseURL() public view returns (string memory) {
         if (
             block.chainid == 1 || block.chainid == 10 || block.chainid == 100 || block.chainid == 130
-                || block.chainid == 137 || block.chainid == 146 || block.chainid == 42161 || block.chainid == 43114
-                || block.chainid == 480 || block.chainid == 56 || block.chainid == 57073 || block.chainid == 59144
-                || block.chainid == 8453
+                || block.chainid == 137 || block.chainid == 143 || block.chainid == 146 || block.chainid == 42161
+                || block.chainid == 43114 || block.chainid == 480 || block.chainid == 56 || block.chainid == 5000
+                || block.chainid == 57073 || block.chainid == 59144 || block.chainid == 8453 || block.chainid == 9745
         ) {
             return "https://safe-client.safe.global/";
         } else if (block.chainid == 1923) {
@@ -249,7 +248,7 @@ contract SafeUtil is ScriptExtended {
         } else if (block.chainid == 80094) {
             return "https://gateway.safe.berachain.com/";
         } else {
-            return "";
+            revert("getSafeBaseURL: Unsupported chain id");
         }
     }
 
@@ -257,20 +256,21 @@ contract SafeUtil is ScriptExtended {
         return string.concat(getSafeBaseURL(), version, "/chains/", vm.toString(block.chainid), "/");
     }
 
-    function getHeaders() internal pure returns (string[] memory) {
-        string[] memory headers = new string[](2);
-        headers[0] = "Accept: application/json";
-        headers[1] = "Content-Type: application/json";
-        return headers;
-    }
+    function getHeaders() internal view returns (string[] memory) {
+        string[] memory headers;
+        string memory safeApiKey = vm.envOr("SAFE_API_KEY", string(""));
 
-    function getHeadersString() internal pure returns (string memory) {
-        string[] memory headers = getHeaders();
-        string memory headersString = " ";
-        for (uint256 i = 0; i < headers.length; i++) {
-            headersString = string.concat(headersString, "-H \"", headers[i], "\" ");
+        if (bytes(safeApiKey).length == 0) {
+            headers = new string[](2);
+        } else {
+            headers = new string[](3);
+            headers[2] = string.concat("Authorization: Bearer ", safeApiKey);
         }
-        return headersString;
+
+        headers[0] = "Accept: application/json";
+        headers[1] = "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
+
+        return headers;
     }
 
     function parseJsonAddressesFromValueKeys(string memory response, string memory key)
@@ -536,10 +536,10 @@ contract SafeMultisendBuilder is SafeUtil {
     }
 
     function executeMultisend(address safe, uint256 safeNonce) public {
-        executeMultisend(safe, safeNonce, true);
+        executeMultisend(safe, safeNonce, true, true);
     }
 
-    function executeMultisend(address safe, uint256 safeNonce, bool isSimulation) public {
+    function executeMultisend(address safe, uint256 safeNonce, bool isCallOnly, bool isSimulation) public {
         if (multisendItems.length == 0) return;
 
         console.log("\nExecuting the multicall via Safe (%s)", safe);
@@ -553,7 +553,12 @@ contract SafeMultisendBuilder is SafeUtil {
         );
 
         transaction.create(
-            false, safe, _getMultisendAddress(block.chainid), _getMultisendValue(), _getMultisendCalldata(), safeNonce++
+            false,
+            safe,
+            _getMultisendAddress(block.chainid, isCallOnly),
+            _getMultisendValue(),
+            _getMultisendCalldata(),
+            safeNonce++
         );
 
         delete multisendItems;
@@ -582,9 +587,15 @@ contract SafeMultisendBuilder is SafeUtil {
         }
     }
 
-    function _getMultisendAddress(uint256 chainId) internal pure returns (address) {
-        if (chainId == 1 || chainId == 5 || chainId == 8453 || chainId == 42161 || chainId == 43114) {
-            return 0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761;
+    function _getMultisendAddress(uint256 chainId, bool isCallOnly) internal pure returns (address) {
+        if (
+            chainId == 1 || chainId == 10 || chainId == 100 || chainId == 130 || chainId == 137 || chainId == 239
+                || chainId == 2390 || chainId == 2818 || chainId == 30 || chainId == 42161 || chainId == 43114
+                || chainId == 480 || chainId == 5000 || chainId == 56 || chainId == 57073 || chainId == 59144
+                || chainId == 60808 || chainId == 80094 || chainId == 8453 || chainId == 9745 || chainId == 999
+        ) {
+            if (isCallOnly) return 0x9641d764fc13c8B624c04430C7356C1C7C8102e2;
+            revert("getMultisendAddress: Unsupported multisend mode");
         } else {
             revert("getMultisendAddress: Unsupported chain");
         }
