@@ -86,6 +86,7 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
         _initializeFeature(REENTRANCY);
         _initializeFeature(SNAPSHOT);
         governorAdmin = admin;
+        emit GovSetGovernorAdmin(admin);
     }
 
     /// @notice Sum of all eToken balances
@@ -442,8 +443,9 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
     }
 
     /// @notice Initializes the provided feature.
-    /// @dev Should be used to initialize the features when the contract is deployed.
     /// @param index The feature index to initialize.
+    /// @dev Should be used to initialize the features when the contract is deployed. Initialization ensures, among
+    /// others, that an inheriting contract will not be able to reuse a conflicting feature index
     function _initializeFeature(uint8 index) internal {
         if (!_isEnabled(index)) revert AlreadyInitialized();
         _disableFeature(index);
