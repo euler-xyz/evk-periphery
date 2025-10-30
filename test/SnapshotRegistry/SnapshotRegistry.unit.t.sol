@@ -34,7 +34,7 @@ contract SnapshotRegistryTest is Test {
     }
 
     /// @dev EVC address is stored and the owner is set to `msg.sender` in constructor.
-    function testInitalize() public view {
+    function testInitialize() public view {
         assertEq(registry.EVC(), address(evc));
         assertEq(registry.owner(), OWNER);
     }
@@ -83,7 +83,7 @@ contract SnapshotRegistryTest is Test {
         assertSingleElement(element, base, quote, timestamp1, true);
     }
 
-    /// @dev Many element can be added for the same base and quote. They can be queried by base and quote.
+    /// @dev Many elements can be added for the same base and quote. They can be queried by base and quote.
     /// forge-config: default.fuzz.runs = 100
     function testAddMany(uint256 length, address base, address quote, uint256 timestamp0, uint256 timestamp1) public {
         length = bound(length, 2, 100);

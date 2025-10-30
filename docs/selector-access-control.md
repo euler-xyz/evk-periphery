@@ -87,9 +87,9 @@ If you prefer to deploy the components individually:
 
 This contract is a specialized risk management contract that combines `SelectorAccessControl` with controlled parameter adjustment capabilities for EVK vaults. It is compatible with the `GovernorAccessControl` and `GovernorAccessControlEmergency` contracts and enables authorized users to modify vault parameters (caps and interest rate models) while enforcing safety limits.
 
-`CapRiskSteward` allows autorized users to increase/decrease supply and borrow caps by up to 50% over 3 days. The maximum readjustment factor recharges over time. 
+`CapRiskSteward` allows authorized users to increase/decrease supply and borrow caps by up to 50% over 3 days. The maximum readjustment factor recharges over time. 
 
-`CapRiskSteward` allows autorized users to substitute the interest rate model for an interest model deployed by the recognized factory.
+`CapRiskSteward` allows authorized users to substitute the interest rate model for an interest model deployed by the recognized factory.
 
 ### Usage
 

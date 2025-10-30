@@ -1,28 +1,19 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {AccessControlEnumerable} from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
-import {IEulerEarn} from "euler-earn/interface/IEulerEarn.sol";
-import {OracleLens} from "./OracleLens.sol";
+import {
+    IEulerEarn, IERC4626, MarketConfig, PendingUint136, PendingAddress
+} from "euler-earn/interfaces/IEulerEarn.sol";
+import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {UtilsLens} from "./UtilsLens.sol";
 import {Utils} from "./Utils.sol";
-import "euler-earn/lib/AmountCapLib.sol";
-import "euler-earn/lib/ConstantsLib.sol";
 import "./LensTypes.sol";
 
 contract EulerEarnVaultLens is Utils {
-    OracleLens public immutable oracleLens;
     UtilsLens public immutable utilsLens;
-    address[] internal backupUnitsOfAccount;
 
-    constructor(address _oracleLens, address _utilsLens) {
-        oracleLens = OracleLens(_oracleLens);
+    constructor(address _utilsLens) {
         utilsLens = UtilsLens(_utilsLens);
-
-        address WETH = getWETHAddress();
-        backupUnitsOfAccount.push(address(840));
-        if (WETH != address(0)) backupUnitsOfAccount.push(WETH);
-        backupUnitsOfAccount.push(0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB);
     }
 
     function getVaultInfoFull(address vault) public view returns (EulerEarnVaultInfoFull memory) {
@@ -42,91 +33,79 @@ contract EulerEarnVaultLens is Utils {
 
         result.totalShares = IEulerEarn(vault).totalSupply();
         result.totalAssets = IEulerEarn(vault).totalAssets();
-        result.totalAssetsDeposited = IEulerEarn(vault).totalAssetsDeposited();
-        result.totalAssetsAllocated = IEulerEarn(vault).totalAllocated();
-        result.totalAssetsAllocatable = IEulerEarn(vault).totalAssetsAllocatable();
-        result.totalAllocationPoints = IEulerEarn(vault).totalAllocationPoints();
-        result.interestAccrued = IEulerEarn(vault).interestAccrued();
+        result.lostAssets = IEulerEarn(vault).lostAssets();
 
-        (result.lastInterestUpdate, result.interestSmearEnd, result.interestLeft) =
-            IEulerEarn(vault).getEulerEarnSavingRate();
-
-        result.lastHarvestTimestamp = IEulerEarn(vault).lastHarvestTimestamp();
-
-        result.interestSmearingPeriod = IEulerEarn(vault).interestSmearingPeriod();
-        (result.feeReceiver, result.performanceFee) = IEulerEarn(vault).performanceFeeConfig();
-        (result.hookTarget, result.hookedOperations) = IEulerEarn(vault).getHooksConfig();
-
-        result.evc = IEulerEarn(vault).EVC();
-        result.balanceTracker = IEulerEarn(vault).balanceTrackerAddress();
-        result.permit2 = IEulerEarn(vault).permit2Address();
-        result.isHarvestCoolDownCheckOn = IEulerEarn(vault).isCheckingHarvestCoolDown();
-
-        result.accessControlInfo = getVaultAccessControlInfo(vault);
-
-        address[] memory withdrawalQueue = IEulerEarn(vault).withdrawalQueue();
-        result.strategies = new EulerEarnVaultStrategyInfo[](withdrawalQueue.length + 1);
-
-        for (uint256 i; i < withdrawalQueue.length + 1; i++) {
-            address strategyAddress = i == 0 ? address(0) : withdrawalQueue[i - 1];
-            IEulerEarn.Strategy memory strategy = IEulerEarn(vault).getStrategy(strategyAddress);
-
-            result.strategies[i].strategy = strategyAddress;
-            result.strategies[i].assetsAllocated = strategy.allocated;
-            result.strategies[i].allocationPoints = strategy.allocationPoints;
-            result.strategies[i].allocationCap = AmountCapLib.resolve(strategy.cap);
-            result.strategies[i].isInEmergency = strategy.status == IEulerEarn.StrategyStatus.Emergency;
-
-            if (strategyAddress != address(0)) {
-                result.strategies[i].info = utilsLens.getVaultInfoERC4626(strategyAddress);
-            }
+        if (result.lostAssets > 0) {
+            uint256 coveredLostAssets = IEulerEarn(vault).convertToAssets(IEulerEarn(vault).balanceOf(address(1)));
+            result.lostAssets = result.lostAssets > coveredLostAssets ? result.lostAssets - coveredLostAssets : 0;
         }
 
-        address[] memory bases = new address[](1);
-        address[] memory quotes = new address[](1);
-        for (uint256 i = 0; i < backupUnitsOfAccount.length; ++i) {
-            bases[0] = result.asset;
-            quotes[0] = backupUnitsOfAccount[i];
+        result.timelock = IEulerEarn(vault).timelock();
+        result.performanceFee = IEulerEarn(vault).fee();
+        result.feeReceiver = IEulerEarn(vault).feeRecipient();
+        result.owner = IEulerEarn(vault).owner();
+        result.creator = IEulerEarn(vault).creator();
+        result.curator = IEulerEarn(vault).curator();
+        result.guardian = IEulerEarn(vault).guardian();
+        result.evc = EVCUtil(vault).EVC();
+        result.permit2 = IEulerEarn(vault).permit2Address();
 
-            result.backupAssetPriceInfo = utilsLens.getAssetPriceInfo(bases[0], quotes[0]);
+        PendingUint136 memory pendingTimelock = IEulerEarn(vault).pendingTimelock();
+        PendingAddress memory pendingGuardian = IEulerEarn(vault).pendingGuardian();
 
-            if (
-                !result.backupAssetPriceInfo.queryFailure
-                    || oracleLens.isStalePullOracle(
-                        result.backupAssetPriceInfo.oracle, result.backupAssetPriceInfo.queryFailureReason
-                    )
-            ) {
-                result.backupAssetOracleInfo =
-                    oracleLens.getOracleInfo(result.backupAssetPriceInfo.oracle, bases, quotes);
+        result.pendingTimelock = pendingTimelock.value;
+        result.pendingTimelockValidAt = pendingTimelock.validAt;
+        result.pendingGuardian = pendingGuardian.value;
+        result.pendingGuardianValidAt = pendingGuardian.validAt;
 
-                break;
-            }
+        result.supplyQueue = new address[](IEulerEarn(vault).supplyQueueLength());
+        for (uint256 i; i < result.supplyQueue.length; ++i) {
+            result.supplyQueue[i] = address(IEulerEarn(vault).supplyQueue(i));
+        }
+
+        result.strategies = new EulerEarnVaultStrategyInfo[](IEulerEarn(vault).withdrawQueueLength());
+
+        for (uint256 i; i < result.strategies.length; ++i) {
+            result.strategies[i] = getStrategyInfo(vault, address(IEulerEarn(vault).withdrawQueue(i)));
+            result.availableAssets += result.strategies[i].availableAssets;
         }
 
         return result;
     }
 
-    function getVaultAccessControlInfo(address vault) public view returns (EulerEarnVaultAccessControlInfo memory) {
-        EulerEarnVaultAccessControlInfo memory result;
+    function getStrategiesInfo(address vault, address[] calldata strategies)
+        public
+        view
+        returns (EulerEarnVaultStrategyInfo[] memory)
+    {
+        EulerEarnVaultStrategyInfo[] memory result = new EulerEarnVaultStrategyInfo[](strategies.length);
 
-        result.defaultAdmins =
-            AccessControlEnumerable(vault).getRoleMembers(AccessControlEnumerable(vault).DEFAULT_ADMIN_ROLE());
-        result.guardianAdmins = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.GUARDIAN_ADMIN);
-        result.strategyOperatorAdmins =
-            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.STRATEGY_OPERATOR_ADMIN);
-        result.eulerEarnManagerAdmins =
-            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.EULER_EARN_MANAGER_ADMIN);
-        result.withdrawalQueueManagerAdmins =
-            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.WITHDRAWAL_QUEUE_MANAGER_ADMIN);
-        result.rebalancerAdmins = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.REBALANCER_ADMIN);
-
-        result.guardians = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.GUARDIAN);
-        result.strategyOperators = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.STRATEGY_OPERATOR);
-        result.eulerEarnManagers = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.EULER_EARN_MANAGER);
-        result.withdrawalQueueManagers =
-            AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.WITHDRAWAL_QUEUE_MANAGER);
-        result.rebalancers = AccessControlEnumerable(vault).getRoleMembers(ConstantsLib.REBALANCER);
+        for (uint256 i; i < strategies.length; ++i) {
+            result[i] = getStrategyInfo(vault, strategies[i]);
+        }
 
         return result;
+    }
+
+    function getStrategyInfo(address _vault, address _strategy)
+        public
+        view
+        returns (EulerEarnVaultStrategyInfo memory)
+    {
+        IEulerEarn vault = IEulerEarn(_vault);
+        IERC4626 strategy = IERC4626(_strategy);
+        MarketConfig memory config = vault.config(strategy);
+        PendingUint136 memory pendingConfig = vault.pendingCap(strategy);
+
+        return EulerEarnVaultStrategyInfo({
+            strategy: _strategy,
+            allocatedAssets: vault.expectedSupplyAssets(strategy),
+            availableAssets: vault.maxWithdrawFromStrategy(strategy),
+            currentAllocationCap: config.cap,
+            pendingAllocationCap: pendingConfig.value,
+            pendingAllocationCapValidAt: pendingConfig.validAt,
+            removableAt: config.removableAt,
+            info: utilsLens.getVaultInfoERC4626(_strategy)
+        });
     }
 }

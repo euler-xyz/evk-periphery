@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {ScriptExtended} from "../utils/ScriptExtended.s.sol";
-import {Vm} from "../utils/ScriptUtils.s.sol";
+import {Vm, console} from "../utils/ScriptUtils.s.sol";
 
 contract ExecuteTimelockTx is ScriptExtended {
     bytes32[] topic = new bytes32[](1);
@@ -28,8 +28,10 @@ contract ExecuteTimelockTx is ScriptExtended {
             "ExecuteTimelockTx: Timelock transaction id not ready"
         );
 
-        uint256 toBlock = block.number;
+        uint256 toBlock = getToBlock();
         uint256 intervals;
+
+        if (toBlock == 0) toBlock = block.number;
 
         while (intervals < 100 && !TimelockController(timelock).isOperationDone(timelockId)) {
             Vm.EthGetLogs[] memory ethLogs = vm.eth_getLogs(toBlock - 1e4, toBlock, timelock, topic);
@@ -57,7 +59,7 @@ contract ExecuteTimelockTx is ScriptExtended {
                     bytes32 predecessor;
 
                     for (uint256 j = i; j < i + counter; ++j) {
-                        (targets[j], values[j], datas[j], predecessor,) =
+                        (targets[j - i], values[j - i], datas[j - i], predecessor,) =
                             abi.decode(ethLogs[j].data, (address, uint256, bytes, bytes32, uint256));
                     }
 
@@ -65,6 +67,8 @@ contract ExecuteTimelockTx is ScriptExtended {
                     TimelockController(timelock).executeBatch(targets, values, datas, predecessor, getTimelockSalt());
                     vm.stopBroadcast();
                 }
+
+                return;
             }
 
             toBlock -= 1e4;

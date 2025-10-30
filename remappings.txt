@@ -13,6 +13,10 @@ lib/layerzero-devtools/packages/oapp-evm-upgradeable/contracts:@openzeppelin/con
 @layerzerolabs/lz-evm-oapp-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/oapp
 openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/
 openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+lib/fee-flow/src:solmate/=lib/fee-flow/lib/solmate/src
+lib/fee-flow/utils:solmate/=lib/fee-flow/lib/solmate/utils
+lib/fee-flow/tokens:solmate/=lib/fee-flow/lib/solmate/tokens
+lib/euler-swap:solmate/=lib/euler-swap/lib/euler-vault-kit/lib/permit2/lib/solmate
 ethereum-vault-connector/=lib/ethereum-vault-connector/src/
 evc/=lib/ethereum-vault-connector/src/
 evk/=lib/euler-vault-kit/src/

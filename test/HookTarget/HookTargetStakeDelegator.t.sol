@@ -297,7 +297,7 @@ contract HookTargetStakeDelegatorTest is EVaultTestBase {
         assertEq(IRewardVault(rewardVault).getDelegateStake(user2, address(hookTargetStakeDelegator)), 1000);
     }
 
-    function test_HookTargetStakeDelegator_wihdraw_from_subaccount() public {
+    function test_HookTargetStakeDelegator_withdraw_from_subaccount() public {
         address user2 = makeAddr("user2");
         address user2_subaccount1 = address(uint160(user2) ^ 0x1);
 

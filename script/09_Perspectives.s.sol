@@ -423,15 +423,8 @@ contract EulerEarnPerspectivesDeployer is ScriptUtils {
     }
 
     function execute(address eulerEarnFactory) public returns (address[] memory perspectives) {
-        address evc;
-        {
-            (bool success, bytes memory data) = eulerEarnFactory.staticcall(abi.encodeWithSignature("eulerEarnImpl()"));
-            assert(success && data.length == 32);
-            evc = EVCUtil(abi.decode(data, (address))).EVC();
-        }
-
         address eulerEarnFactoryPerspective = address(new EulerEarnFactoryPerspective(eulerEarnFactory));
-        address governedPerspective = address(new GovernedPerspective(evc, getDeployer()));
+        address governedPerspective = address(new GovernedPerspective(EVCUtil(eulerEarnFactory).EVC(), getDeployer()));
 
         perspectives = new address[](2);
         perspectives[0] = eulerEarnFactoryPerspective;
