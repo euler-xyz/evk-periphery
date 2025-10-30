@@ -9,6 +9,12 @@ import {ERC4626EVC, ERC20, IERC20} from "./ERC4626EVC.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice EVK-compatible collateral-only ERC4626 vault.
 abstract contract ERC4626EVCCollateral is ERC4626EVC {
+    /// @notice Error thrown when shares received from deposit round down to zero
+    error ZeroShares();
+
+    /// @notice Error thrown when assets received from redemption round down to zero
+    error ZeroAssets();
+
     /// @notice Transfers a certain amount of shares to a recipient.
     /// @param to The recipient of the transfer.
     /// @param amount The amount shares to transfer.
@@ -45,6 +51,7 @@ abstract contract ERC4626EVCCollateral is ERC4626EVC {
         }
 
         shares = super.deposit(assets, receiver);
+        if (assets > 0 && shares == 0) revert ZeroShares();
     }
 
     /// @notice Mints a certain amount of shares for a receiver.
@@ -81,6 +88,8 @@ abstract contract ERC4626EVCCollateral is ERC4626EVC {
         }
 
         assets = super.redeem(shares, receiver, owner);
+        if (shares > 0 && assets == 0) revert ZeroAssets();
+
         evc.requireAccountStatusCheck(owner);
     }
 }
