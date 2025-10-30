@@ -36,10 +36,14 @@ abstract contract ERC4626EVCCollateral is ERC4626EVC {
     }
 
     /// @notice Deposits a certain amount of assets for a receiver.
-    /// @param assets The assets to deposit.
+    /// @param assets The assets to deposit. Use max uint256 for full sender's balance.
     /// @param receiver The receiver of the deposit.
     /// @return shares The shares equivalent to the deposited assets.
     function deposit(uint256 assets, address receiver) public virtual override returns (uint256 shares) {
+        if (assets == type(uint256).max) {
+            assets = IERC20(asset()).balanceOf(_msgSender());
+        }
+
         shares = super.deposit(assets, receiver);
     }
 
@@ -67,11 +71,15 @@ abstract contract ERC4626EVCCollateral is ERC4626EVC {
     }
 
     /// @notice Redeems a certain amount of shares for a receiver.
-    /// @param shares The shares to redeem.
+    /// @param shares The shares to redeem. Use max uint256 for full sender's balance.
     /// @param receiver The receiver of the redemption.
     /// @param owner The owner of the shares.
     /// @return assets The assets equivalent to the redeemed shares.
     function redeem(uint256 shares, address receiver, address owner) public virtual override returns (uint256 assets) {
+        if (shares == type(uint256).max) {
+            shares = balanceOf(owner);
+        }
+
         assets = super.redeem(shares, receiver, owner);
         evc.requireAccountStatusCheck(owner);
     }
