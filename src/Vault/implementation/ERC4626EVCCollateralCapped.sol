@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
-import {ERC4626EVC, ERC4626EVCCollateral} from "../implementation/ERC4626EVCCollateral.sol";
+import {ERC4626EVC, ERC4626EVCCollateral, ERC20, IERC20} from "../implementation/ERC4626EVCCollateral.sol";
 import {IVault} from "evc/interfaces/IVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
@@ -59,6 +59,12 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
         _disableFeature(REENTRANCY);
     }
 
+    /// @notice Modifier to prevent reentrancy on view functions.
+    modifier nonReentrantView() {
+        if (msg.sender != address(this) && _isEnabled(REENTRANCY)) revert Reentrancy();
+        _;
+    }
+
     /// @notice Modifier to restrict access to the governor admin.
     modifier governorOnly() {
         if (governorAdmin != _msgSender()) revert NotAuthorized();
@@ -79,6 +85,117 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
         _initializeFeature(REENTRANCY);
         _initializeFeature(SNAPSHOT);
         governorAdmin = admin;
+    }
+
+    /// @notice Sum of all eToken balances
+    /// @return The total supply of the eToken
+    function totalSupply() public view virtual override (ERC20, IERC20) nonReentrantView returns (uint256) {
+        return super.totalSupply();
+    }
+
+    /// @notice Balance of a particular account, in eTokens
+    /// @param account Address to query
+    /// @return The balance of the account
+    function balanceOf(address account)
+        public
+        view
+        virtual
+        override (ERC20, IERC20)
+        nonReentrantView
+        returns (uint256)
+    {
+        return super.balanceOf(account);
+    }
+
+    /// @notice Retrieve the current allowance
+    /// @param holder The account holding the eTokens
+    /// @param spender Trusted address
+    /// @return The allowance from holder for spender
+    function allowance(address holder, address spender)
+        public
+        view
+        virtual
+        override (ERC20, IERC20)
+        nonReentrantView
+        returns (uint256)
+    {
+        return super.allowance(holder, spender);
+    }
+
+    /// @notice Returns the total assets of the vault.
+    /// @return The total assets.
+    function totalAssets() public view virtual override nonReentrantView returns (uint256) {
+        return super.totalAssets();
+    }
+
+    /// @notice Calculate amount of assets corresponding to the requested shares amount
+    /// @param shares Amount of shares to convert
+    /// @return The amount of assets
+    function convertToAssets(uint256 shares) public view virtual override nonReentrantView returns (uint256) {
+        return super.convertToAssets(shares);
+    }
+
+    /// @notice Calculate amount of shares corresponding to the requested assets amount
+    /// @param assets Amount of assets to convert
+    /// @return The amount of shares
+    function convertToShares(uint256 assets) public view virtual override nonReentrantView returns (uint256) {
+        return super.convertToShares(assets);
+    }
+
+    /// @notice Fetch the maximum amount of assets a user can deposit
+    /// @param account Address to query
+    /// @return The max amount of assets the account can deposit
+    function maxDeposit(address account) public view virtual override nonReentrantView returns (uint256) {
+        return super.maxDeposit(account);
+    }
+
+    /// @notice Calculate an amount of shares that would be created by depositing assets
+    /// @param assets Amount of assets deposited
+    /// @return Amount of shares received
+    function previewDeposit(uint256 assets) public view virtual override nonReentrantView returns (uint256) {
+        return super.previewDeposit(assets);
+    }
+
+    /// @notice Fetch the maximum amount of shares a user can mint
+    /// @param account Address to query
+    /// @return The max amount of shares the account can mint
+    function maxMint(address account) public view virtual override nonReentrantView returns (uint256) {
+        return super.maxMint(account);
+    }
+
+    /// @notice Calculate an amount of assets that would be required to mint requested amount of shares
+    /// @param shares Amount of shares to be minted
+    /// @return Required amount of assets
+    function previewMint(uint256 shares) public view virtual override nonReentrantView returns (uint256) {
+        return super.previewMint(shares);
+    }
+
+    /// @notice Fetch the maximum amount of assets a user is allowed to withdraw
+    /// @param owner Account holding the shares
+    /// @return The maximum amount of assets the owner is allowed to withdraw
+    function maxWithdraw(address owner) public view virtual override nonReentrantView returns (uint256) {
+        return super.maxWithdraw(owner);
+    }
+
+    /// @notice Calculate the amount of shares that will be burned when withdrawing requested amount of assets
+    /// @param assets Amount of assets withdrawn
+    /// @return Amount of shares burned
+    function previewWithdraw(uint256 assets) public view virtual override nonReentrantView returns (uint256) {
+        return super.previewWithdraw(assets);
+    }
+
+    /// @notice Fetch the maximum amount of shares a user is allowed to redeem for assets
+    /// @param owner Account holding the shares
+    /// @return The maximum amount of shares the owner is allowed to redeem
+    function maxRedeem(address owner) public view virtual override nonReentrantView returns (uint256) {
+        return super.maxRedeem(owner);
+    }
+
+    /// @notice Calculate the amount of assets that will be transferred when redeeming requested amount of shares
+    /// @param shares Amount of shares redeemed
+    /// @return Amount of assets transferred
+    function previewRedeem(uint256 shares) public view virtual override nonReentrantView returns (uint256) {
+        return super.previewRedeem(shares);
     }
 
     /// @notice Sets a new governor admin for the vault.
