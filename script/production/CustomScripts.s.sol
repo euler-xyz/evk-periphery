@@ -406,6 +406,14 @@ contract DeployAndConfigureCRSAndGACE is BatchBuilder {
     }
 }
 
+contract RedeployAccountLens is BatchBuilder {
+    function run() public {
+        LensAccountDeployer deployer = new LensAccountDeployer();
+        lensAddresses.accountLens = deployer.deploy();
+        saveAddresses();
+    }
+}
+
 contract RedeployOracleUtilsAndVaultLenses is BatchBuilder {
     function run() public {
         {

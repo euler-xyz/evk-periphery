@@ -49,19 +49,19 @@ struct VaultAccountInfo {
 struct AccountLiquidityInfo {
     bool queryFailure;
     bytes queryFailureReason;
+    address account;
+    address vault;
+    address unitOfAccount;
     int256 timeToLiquidation;
-    uint256 liabilityValue;
+    uint256 liabilityValueBorrowing;
+    uint256 liabilityValueLiquidation;
     uint256 collateralValueBorrowing;
     uint256 collateralValueLiquidation;
     uint256 collateralValueRaw;
-    CollateralLiquidityInfo[] collateralLiquidityBorrowingInfo;
-    CollateralLiquidityInfo[] collateralLiquidityLiquidationInfo;
-    CollateralLiquidityInfo[] collateralLiquidityRawInfo;
-}
-
-struct CollateralLiquidityInfo {
-    address collateral;
-    uint256 collateralValue;
+    address[] collaterals;
+    uint256[] collateralValuesBorrowing;
+    uint256[] collateralValuesLiquidation;
+    uint256[] collateralValuesRaw;
 }
 
 struct VaultInfoERC4626 {

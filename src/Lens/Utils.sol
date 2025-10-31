@@ -62,6 +62,11 @@ abstract contract Utils {
                 return address(0);
             }
 
+            // Monad
+            if (block.chainid == 143) {
+                return address(0);
+            }
+
             // Sepolia
             if (block.chainid == 11155111) {
                 return address(0);

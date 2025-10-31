@@ -8,6 +8,7 @@ import {ManageCluster} from "./ManageCluster.s.sol";
 /// @dev NOTE: Deploy
 contract Cluster is ManageCluster {
     address internal constant mevBTC = 0xb64C014307622eB15046C66fF71D04258F5963DC;
+    address internal constant PT_mevBTC = 0x41d49208a7E61EEd06b3504262C54E7C5fF04bFc;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
@@ -18,7 +19,7 @@ contract Cluster is ManageCluster {
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [WBTC, mevBTC];
+        cluster.assets = [WBTC, mevBTC, PT_mevBTC];
     }
 
     function configureCluster() internal override {
@@ -39,6 +40,7 @@ contract Cluster is ManageCluster {
         // of a string.
 
         cluster.oracleProviders[mevBTC] = "0x7cb33Db0f992dD388a9A3351004D89F4F5996fAA";
+        cluster.oracleProviders[PT_mevBTC] = "0x33Fcb37A54fBB3717B0D87CF3B9Fc6b57d7eF847";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
@@ -47,16 +49,17 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //               0          1               
-            //               WBTC       mevBTC  
-            /* 0  WBTC    */ [LTV_ZERO, LTV_ZERO],
-            /* 1  mevBTC   */ [LTV__LOW, LTV_ZERO]
+            //                0          1         2
+            //                WBTC       mevBTC    PT_mevBTC
+            /* 0  WBTC     */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 1  mevBTC   */ [LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 2  PT_mevBTC*/ [LTV__LOW, LTV_HIGH, LTV_ZERO]
         ];
 
          cluster.externalLTVs = [
-        //                     0         1         
-        //                     WBTC      mevBTC    
-        /* 0  Prime WBTC   */ [LTV_HIGH, LTV_ZERO]
+        //                     0         1         2
+        //                     WBTC      mevBTC    PT_mevBTC
+        /* 0  Prime WBTC   */ [LTV_HIGH, LTV_ZERO, LTV_ZERO]
         ];
 
     }
