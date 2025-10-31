@@ -38,7 +38,7 @@ if ! script/utils/checkEnvironment.sh "$@"; then
 fi
 
 eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26 --out out-euler-earn"
-eulerSwapCompilerOptions="--optimize --optimizer-runs 1000000 --use 0.8.27 --out out-euler-swap"
+eulerSwapCompilerOptions="--optimize --optimizer-runs 2500 --use 0.8.27 --out out-euler-swap"
 
 while true; do
     echo ""
@@ -1249,7 +1249,7 @@ while true; do
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 eulerEarnFactory=${eulerEarnFactory:-$addressZero}
-                eulerSwapV1Factory=$(jq -r '.eulerSwapV1Factory' "$addresses_dir_path/EulerSwapAddresses.json" 2>/dev/null)
+                eulerSwapV2Factory=$(jq -r '.eulerSwapV2Factory' "$addresses_dir_path/EulerSwapAddresses.json" 2>/dev/null)
             fi
 
             if [ -z "$multisig_dao" ] || [ "$multisig_dao" == "$addressZero" ] || [ "$multisig_dao" == "null" ]; then
@@ -1281,13 +1281,13 @@ while true; do
                 read -p "Should deploy Euler Earn? (y/n) (default: n): " deploy_euler_earn
             fi
 
-            if [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ] || [ "$eulerSwapV1Factory" == "null" ]; then
-                read -p "Should deploy EulerSwap V1? (y/n) (default: n): " deploy_euler_swap_v1
+            if [ -z "$eulerSwapV2Factory" ] || [ "$eulerSwapV2Factory" == "$addressZero" ] || [ "$eulerSwapV2Factory" == "null" ]; then
+                read -p "Should deploy EulerSwap V2? (y/n) (default: n): " deploy_euler_swap
                 
-                if [ "$deploy_euler_swap_v1" = "y" ]; then
+                if [ "$deploy_euler_swap" = "y" ]; then
                     read -p "Enter the Uniswap V4 Pool Manager address (default: address(0) or look up https://docs.uniswap.org/contracts/v4/deployments): " uniswap_pool_manager
-                    read -p "Enter the EulerSwap fee owner (default: DAO multisig): " euler_swap_fee_owner
-                    read -p "Enter the EulerSwap fee recipient setter (default: DAO multisig): " euler_swap_fee_recipient_setter
+                    read -p "Enter the EulerSwap protocol fee config admin address (default: DAO multisig): " euler_swap_protocol_fee_config_admin
+                    read -p "Enter the EulerSwap registry curator (default: Labs multisig): " euler_swap_registry_curator
                 fi
             fi
 
@@ -1310,18 +1310,18 @@ while true; do
             init_price=${init_price:-1000000000000000000}
             deploy_eul_oft=${deploy_eul_oft:-n}
             deploy_euler_earn=${deploy_euler_earn:-n}
-            deploy_euler_swap_v1=${deploy_euler_swap_v1:-n}
+            deploy_euler_swap=${deploy_euler_swap:-n}
             deploy_eusd=${deploy_eusd:-n}
             deploy_seusd=${deploy_seusd:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
-            euler_swap_fee_owner=${euler_swap_fee_owner:-$multisig_dao}
-            euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$multisig_dao}
+            euler_swap_protocol_fee_config_admin=${euler_swap_protocol_fee_config_admin:-$multisig_dao}
+            euler_swap_registry_curator=${euler_swap_registry_curator:-$multisig_labs}
 
             if { [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ] || [ "$eulerEarnFactory" == "null" ]; } && [ "$deploy_euler_earn" = "y" ]; then
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
             fi
 
-            if { [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ] || [ "$eulerSwapV1Factory" == "null" ]; } && [ "$deploy_euler_swap_v1" = "y" ]; then
+            if { [ -z "$eulerSwapV2Factory" ] || [ "$eulerSwapV2Factory" == "$addressZero" ] || [ "$eulerSwapV2Factory" == "null" ]; } && [ "$deploy_euler_swap" = "y" ]; then
                 forge compile lib/euler-swap/src $eulerSwapCompilerOptions --force
             fi
 
@@ -1341,12 +1341,12 @@ while true; do
                 --arg initPrice "$init_price" \
                 --argjson deployEULOFT "$(jq -n --argjson val \"$deploy_eul_oft\" 'if $val == "y" then true else false end')" \
                 --argjson deployEulerEarn "$(jq -n --argjson val \"$deploy_euler_earn\" 'if $val == "y" then true else false end')" \
-                --argjson deployEulerSwapV1 "$(jq -n --argjson val \"$deploy_euler_swap_v1\" 'if $val == "y" then true else false end')" \
+                --argjson deployEulerSwap "$(jq -n --argjson val \"$deploy_euler_swap\" 'if $val == "y" then true else false end')" \
                 --argjson deployEUSD "$(jq -n --argjson val \"$deploy_eusd\" 'if $val == "y" then true else false end')" \
                 --argjson deploySEUSD "$(jq -n --argjson val \"$deploy_seusd\" 'if $val == "y" then true else false end')" \
                 --arg uniswapPoolManager "$uniswap_pool_manager" \
-                --arg eulerSwapFeeOwner "$euler_swap_fee_owner" \
-                --arg eulerSwapFeeRecipientSetter "$euler_swap_fee_recipient_setter" \
+                --arg eulerSwapProtocolFeeConfigAdmin "$euler_swap_protocol_fee_config_admin" \
+                --arg eulerSwapRegistryCurator "$euler_swap_registry_curator" \
                 '{
                     multisigDAO: $multisigDAO,
                     multisigLabs: $multisigLabs,
@@ -1359,12 +1359,12 @@ while true; do
                     feeFlowInitPrice: $initPrice,
                     deployEULOFT: $deployEULOFT,
                     deployEulerEarn: $deployEulerEarn,
-                    deployEulerSwapV1: $deployEulerSwapV1,
+                    deployEulerSwap: $deployEulerSwap,
                     deployEUSD: $deployEUSD,
                     deploySEUSD: $deploySEUSD,
                     uniswapPoolManager: $uniswapPoolManager,
-                    eulerSwapFeeOwner: $eulerSwapFeeOwner,
-                    eulerSwapFeeRecipientSetter: $eulerSwapFeeRecipientSetter
+                    eulerSwapProtocolFeeConfigAdmin: $eulerSwapProtocolFeeConfigAdmin,
+                    eulerSwapRegistryCurator: $eulerSwapRegistryCurator
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         51)

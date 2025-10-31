@@ -202,7 +202,7 @@ function verify_broadcast {
             if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 2 ]; then
                 # try to verify as EulerEarn contracts
                 local src="lib/euler-earn/src"
-                local verificationOptions="--via-ir --num-of-optimizations 200 --compiler-version 0.8.26"
+                local verificationOptions="--via-ir --num-of-optimizations 200 --compiler-version 0.8.26 --root lib/euler-earn/src"
                 local compilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26"
 
                 while true; do
@@ -253,19 +253,34 @@ function verify_broadcast {
                 while true; do
                     case $eulerSwapIndex in
                         0)
-                            # try to verify as EulerSwap
-                            contractName=lib/euler-swap/src/EulerSwap.sol:EulerSwap
+                            # try to verify as EulerSwapProtocolFeeConfig
+                            contractName=lib/euler-swap/src/EulerSwapProtocolFeeConfig.sol:EulerSwapProtocolFeeConfig
                             constructorBytesSize=64
                             ;;
                         1)
-                            # try to verify as EulerSwapFactory
-                            contractName=lib/euler-swap/src/EulerSwapFactory.sol:EulerSwapFactory
-                            constructorBytesSize=160
+                            # try to verify as EulerSwapManagement
+                            contractName=lib/euler-swap/src/EulerSwapManagement.sol:EulerSwapManagement
+                            constructorBytesSize=32
                             ;;
                         2)
+                            # try to verify as EulerSwap
+                            contractName=lib/euler-swap/src/EulerSwap.sol:EulerSwap
+                            constructorBytesSize=128
+                            ;;
+                        3)
+                            # try to verify as EulerSwapFactory
+                            contractName=lib/euler-swap/src/EulerSwapFactory.sol:EulerSwapFactory
+                            constructorBytesSize=64
+                            ;;
+                        4)
                             # try to verify as EulerSwapPeriphery
                             contractName=lib/euler-swap/src/EulerSwapPeriphery.sol:EulerSwapPeriphery
                             constructorBytesSize=0
+                            ;;
+                        5)
+                            # try to verify as EulerSwapRegistry
+                            contractName=lib/euler-swap/src/EulerSwapRegistry.sol:EulerSwapRegistry
+                            constructorBytesSize=128
                             ;;
                         *)
                             break
