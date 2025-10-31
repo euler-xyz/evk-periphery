@@ -385,6 +385,7 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
         returns (uint256 shares)
     {
         shares = super.withdraw(assets, receiver, owner);
+        evc.requireVaultStatusCheck();
     }
 
     /// @notice Redeems a certain amount of shares for a receiver.
@@ -402,6 +403,7 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
         returns (uint256 assets)
     {
         assets = super.redeem(shares, receiver, owner);
+        evc.requireVaultStatusCheck();
     }
 
     /// @notice Checks the status of the vault and validates supply cap constraints.
