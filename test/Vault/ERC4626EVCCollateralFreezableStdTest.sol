@@ -5,15 +5,15 @@ import "../../lib/euler-earn/lib/erc4626-tests/ERC4626.test.sol";
 
 import {MockToken} from "../FeeFlow/lib/MockToken.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
-import {ERC4626EVCCollateralCappedHarness} from "./lib/VaultMocks.sol";
+import {ERC4626EVCCollateralFreezableHarness} from "./lib/VaultHarnesses.sol";
 
-contract ERC4626EVCCollateralStdTest is EVaultTestBase, ERC4626Test {
+contract ERC4626EVCCollateralFreezableStdTest is EVaultTestBase, ERC4626Test {
     function setUp() public override (EVaultTestBase, ERC4626Test) {
         super.setUp();
 
         _underlying_ = address(new MockToken("Mock ERC20", "MERC20"));
         _vault_ = address(
-            new ERC4626EVCCollateralCappedHarness(admin, address(evc), address(permit2), _underlying_, "EVC Collateral", "EVCC")
+            new ERC4626EVCCollateralFreezableHarness(admin, address(evc), address(permit2), _underlying_, "EVC Collateral", "EVCC")
         );
         _delta_ = 0;
         _vaultMayBeEmpty = true;

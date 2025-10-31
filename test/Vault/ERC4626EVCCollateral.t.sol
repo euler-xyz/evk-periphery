@@ -3,8 +3,9 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
-import {ERC4626EVCCollateralHarness} from "./lib/VaultMocks.sol";
+import {ERC4626EVCCollateralHarness} from "./lib/VaultHarnesses.sol";
 import {ERC4626EVC} from "../../src/Vault/implementation/ERC4626EVC.sol";
+import {ERC4626EVCCollateral} from "../../src/Vault/implementation/ERC4626EVCCollateral.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IAllowanceTransfer} from "../../lib/euler-vault-kit/lib/permit2/src/interfaces/IAllowanceTransfer.sol";
 import {MockController} from "./lib/MockController.sol";
@@ -227,5 +228,29 @@ contract ERC4626EVCCollateralTest is EVaultTestBase {
             address(mockController), abi.encodeCall(MockController.checkAccountStatus, (depositor, new address[](0)))
         );
         vault.redeem(1, secondUser, depositor);
+    }
+
+    function testCollateralVault_zeroShares() public {
+        vm.startPrank(depositor);
+        vault.deposit(1, depositor);
+        vault.mockSetTotalAssets(2);
+
+        vm.expectRevert(ERC4626EVCCollateral.ZeroShares.selector);
+        vault.deposit(1, depositor);
+
+        // no-op is ok
+        vault.deposit(0, depositor);
+    }
+
+    function testCollateralVault_zeroAssets() public {
+        vm.startPrank(depositor);
+        vault.deposit(2, depositor);
+        vault.mockSetTotalAssets(1);
+
+        vm.expectRevert(ERC4626EVCCollateral.ZeroAssets.selector);
+        vault.redeem(1, depositor, depositor);
+
+        // no-op is ok
+        vault.redeem(0, depositor, depositor);
     }
 }

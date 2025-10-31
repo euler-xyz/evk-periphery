@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC4626} from "forge-std/interfaces/IERC4626.sol";
-import {ERC4626EVCCollateralCappedHarness} from "./lib/VaultMocks.sol";
+import {ERC4626EVCCollateralCappedHarness} from "./lib/VaultHarnesses.sol";
 import {ERC4626EVC} from "../../src/Vault/implementation/ERC4626EVC.sol";
 import {ERC4626EVCCollateralCapped} from "../../src/Vault/implementation/ERC4626EVCCollateralCapped.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
@@ -13,6 +13,11 @@ import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import "forge-std/Vm.sol";
 
 contract ERC4626EVCCollateralCappedTest is EVaultTestBase {
+    uint16 constant CAP_RAW = 64018; // resolves to 10e18
+    uint8 internal constant REENTRANCY = 0;
+    uint8 internal constant SNAPSHOT = 1;
+    uint8 internal constant MAX_FEATURE_INDEX = 15;
+
     ERC4626EVCCollateralCappedHarness vault;
     address depositor;
 
@@ -67,11 +72,11 @@ contract ERC4626EVCCollateralCappedTest is EVaultTestBase {
     function testCollateralCappedVault_featuresBitmap() public {
         // reinitializing features is not possible
         vm.expectRevert(ERC4626EVCCollateralCapped.AlreadyInitialized.selector);
-        vault.mockInitializeFeature(0); // REENTRANCY
+        vault.mockInitializeFeature(REENTRANCY);
         vm.expectRevert(ERC4626EVCCollateralCapped.AlreadyInitialized.selector);
-        vault.mockInitializeFeature(1); // SNAPHOST
+        vault.mockInitializeFeature(SNAPSHOT);
         vm.expectRevert(ERC4626EVCCollateralCapped.AlreadyInitialized.selector);
-        vault.mockInitializeFeature(15); // MAX_FEATURE_INDEX
+        vault.mockInitializeFeature(MAX_FEATURE_INDEX);
 
         uint8 SOME_FEATURE = 2;
         vault.mockInitializeFeature(SOME_FEATURE);
@@ -153,12 +158,243 @@ contract ERC4626EVCCollateralCappedTest is EVaultTestBase {
         vm.prank(admin);
         vm.expectRevert(ERC4626EVCCollateralCapped.BadSupplyCap.selector);
         vault.setSupplyCap(type(uint16).max);
+
+        // can set when already over cap
+        vm.prank(depositor);
+        vault.deposit(20e18, depositor);
+
+        vm.prank(admin);
+        vault.setSupplyCap(CAP_RAW);
+
+        vm.prank(depositor);
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        vault.deposit(1, depositor);
+    }
+
+    function testCollateralCappedVault_supplyCap_noCap() public {
+        // no supply cap, can deposit max uint
+        vm.prank(depositor);
+        vault.deposit(type(uint256).max, depositor);
+        assertEq(vault.balanceOf(depositor), type(uint256).max);
+    }
+
+    function testCollateralCappedVault_supplyCap_basic() public {
+        vm.prank(admin);
+        vault.setSupplyCap(CAP_RAW);
+
+        vm.startPrank(depositor);
+        uint256 snapshot = vm.snapshotState();
+
+        // can deposit up to cap
+        vault.deposit(10e18, depositor);
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        vault.deposit(1, depositor);
+
+        vm.revertTo(snapshot);
+        vault.mint(10e18, depositor);
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        vault.mint(1, depositor);
+    }
+
+    function testCollateralCappedVault_supplyCap_transientlyExceedStartUnderCap() public {
+        vm.prank(admin);
+        vault.setSupplyCap(CAP_RAW);
+
+        vm.startPrank(depositor);
+        uint256 snapshot = vm.snapshotState();
+        // deposit/mint can transiently exceed cap if followed by withdraw - starting under cap
+
+        IEVC.BatchItem[] memory batchItems = new IEVC.BatchItem[](2);
+        batchItems[0] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.deposit, (20e18, depositor))
+        });
+        batchItems[1] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.withdraw, (10e18, depositor, depositor))
+        });
+        evc.batch(batchItems);
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        vault.mint(1, depositor);
+
+        vm.revertTo(snapshot);
+
+        batchItems = new IEVC.BatchItem[](2);
+        batchItems[0] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.mint, (20e18, depositor))
+        });
+        batchItems[1] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.withdraw, (10e18, depositor, depositor))
+        });
+        evc.batch(batchItems);
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        vault.mint(1, depositor);
+    }
+
+    function testCollateralCappedVault_supplyCap_canWithdrawWhenOverCap() public {
+        // set cap when already over it
+        vm.prank(depositor);
+        vault.deposit(20e18, depositor);
+
+        vm.prank(admin);
+        vault.setSupplyCap(CAP_RAW);
+
+        vm.startPrank(depositor);
+        address receiver = makeAddr("receiver");
+        uint256 snapshot = vm.snapshotState();
+   
+        // can always withdraw / redeem
+
+        vault.withdraw(100, receiver, depositor);
+        assertEq(vault.totalAssets(), 20e18 - 100);
+        assertEq(assetTST.balanceOf(receiver), 100);
+
+        vault.redeem(100, receiver, depositor);
+        assertEq(vault.totalAssets(), 20e18 - 200);
+        assertEq(assetTST.balanceOf(receiver), 200);
+
+        // can deposit after withdrawal in a batch as long as overall supply is the same
+
+        IEVC.BatchItem[] memory batchItems = new IEVC.BatchItem[](2);
+        batchItems[0] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.withdraw, (10e18, depositor, depositor))
+        });
+        batchItems[1] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.deposit, (10e18, depositor))
+        });
+        evc.batch(batchItems);
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        vault.mint(1, depositor);
+
+        vm.revertTo(snapshot);
+
+        // ... or lower
+
+        batchItems = new IEVC.BatchItem[](2);
+        batchItems[0] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.withdraw, (10e18, depositor, depositor))
+        });
+        batchItems[1] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.deposit, (10e18 - 1, depositor))
+        });
+        evc.batch(batchItems);
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        vault.mint(1, depositor);
+
+        vm.revertTo(snapshot);
+
+        // ... but not higher
+
+        batchItems = new IEVC.BatchItem[](2);
+        batchItems[0] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.withdraw, (10e18, depositor, depositor))
+        });
+        batchItems[1] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.deposit, (10e18 + 1, depositor))
+        });
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        evc.batch(batchItems);
+    }
+
+    function testCollateralCappedVault_supplyCap_transientlyIncreaseSupplyStartOverCap() public {
+        // set cap when already over it
+        vm.prank(depositor);
+        vault.deposit(20e18, depositor);
+
+        vm.prank(admin);
+        vault.setSupplyCap(CAP_RAW);
+
+        vm.startPrank(depositor);
+        uint256 snapshot = vm.snapshotState();
+
+        // deposit/mint can transiently increase supply when over cap, if overall the supply is lowered
+
+        IEVC.BatchItem[] memory batchItems = new IEVC.BatchItem[](2);
+        batchItems[0] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.deposit, (10e18, depositor))
+        });
+        batchItems[1] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.withdraw, (10e18 + 1, depositor, depositor))
+        });
+        evc.batch(batchItems);
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        vault.mint(1, depositor);
+
+        vm.revertTo(snapshot);
+
+        batchItems = new IEVC.BatchItem[](2);
+        batchItems[0] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.mint, (10e18, depositor))
+        });
+        batchItems[1] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: depositor,
+            value: 0,
+            data: abi.encodeCall(vault.withdraw, (10e18 + 1, depositor, depositor))
+        });
+        evc.batch(batchItems);
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        vault.mint(1, depositor);
+    }
+
+    function testCollateralCappedVault_snapshotIsCleared() public {
+        vm.prank(admin);
+        vault.setSupplyCap(CAP_RAW);
+
+        vm.startPrank(depositor);
+        // snapshot flag is cleared after every call
+        assertFalse(vault.mockIsEnabled(SNAPSHOT));
+        vault.deposit(2e18, depositor);
+        assertFalse(vault.mockIsEnabled(SNAPSHOT));
+        vault.mint(2e18, depositor);
+        assertFalse(vault.mockIsEnabled(SNAPSHOT));
+        vault.withdraw(1e18, depositor, depositor);
+        assertFalse(vault.mockIsEnabled(SNAPSHOT));
+        vault.redeem(1e18, depositor, depositor);
+        assertFalse(vault.mockIsEnabled(SNAPSHOT));
     }
 
     // ------ internal helpers -------
 
     function reenter(bytes memory call) internal {
-        uint256 snapshot = vm.snapshot();
+        uint256 snapshot = vm.snapshotState();
         assetTST.configure("transfer-from/call", abi.encode(address(vault), call));
 
         vm.expectRevert(ERC4626EVCCollateralCapped.Reentrancy.selector);
