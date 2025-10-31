@@ -1465,7 +1465,7 @@ contract Swaps1Inch is EVaultTestBase {
         startHoax(user);
         vm.expectRevert(); // no approvals
         swapVerifier.transferFromSender(address(assetTST), 1e18, address(swapper));
-        
+
         assetTST.approve(address(swapVerifier), 2e18);
 
         startHoax(user2);
@@ -1491,7 +1491,6 @@ contract Swaps1Inch is EVaultTestBase {
         startHoax(signer);
         vm.expectRevert(); // no approvals
         swapVerifier.transferFromSender(address(assetTST), 1e18, address(swapper));
-
 
         // approve permit2 contract to spend the tokens
         assetTST.approve(permit2, type(uint160).max);
