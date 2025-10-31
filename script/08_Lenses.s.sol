@@ -19,8 +19,17 @@ contract Lenses is ScriptUtils {
         address oracleAdapterRegistry = vm.parseJsonAddress(json, ".oracleAdapterRegistry");
         address kinkIRMFactory = vm.parseJsonAddress(json, ".kinkIRMFactory");
         address adaptiveCurveIRMFactory = vm.parseJsonAddress(json, ".adaptiveCurveIRMFactory");
+        address kinkyIRMFactory = vm.parseJsonAddress(json, ".kinkyIRMFactory");
+        address fixedCyclicalBinaryIRMFactory = vm.parseJsonAddress(json, ".fixedCyclicalBinaryIRMFactory");
 
-        lenses = execute(eVaultFactory, oracleAdapterRegistry, kinkIRMFactory, adaptiveCurveIRMFactory);
+        lenses = execute(
+            eVaultFactory,
+            oracleAdapterRegistry,
+            kinkIRMFactory,
+            adaptiveCurveIRMFactory,
+            kinkyIRMFactory,
+            fixedCyclicalBinaryIRMFactory
+        );
 
         string memory object;
         object = vm.serializeAddress("lenses", "accountLens", lenses[0]);
@@ -36,24 +45,37 @@ contract Lenses is ScriptUtils {
         address eVaultFactory,
         address oracleAdapterRegistry,
         address kinkIRMFactory,
-        address adaptiveCurveIRMFactory
+        address adaptiveCurveIRMFactory,
+        address kinkyIRMFactory,
+        address fixedCyclicalBinaryIRMFactory
     ) public broadcast returns (address[] memory lenses) {
-        lenses = execute(eVaultFactory, oracleAdapterRegistry, kinkIRMFactory, adaptiveCurveIRMFactory);
+        lenses = execute(
+            eVaultFactory,
+            oracleAdapterRegistry,
+            kinkIRMFactory,
+            adaptiveCurveIRMFactory,
+            kinkyIRMFactory,
+            fixedCyclicalBinaryIRMFactory
+        );
     }
 
     function execute(
         address eVaultFactory,
         address oracleAdapterRegistry,
         address kinkIRMFactory,
-        address adaptiveCurveIRMFactory
+        address adaptiveCurveIRMFactory,
+        address kinkyIRMFactory,
+        address fixedCyclicalBinaryIRMFactory
     ) public returns (address[] memory lenses) {
         lenses = new address[](6);
         lenses[0] = address(new AccountLens());
         lenses[1] = address(new OracleLens(oracleAdapterRegistry));
-        lenses[2] = address(new IRMLens(kinkIRMFactory, adaptiveCurveIRMFactory));
+        lenses[2] = address(
+            new IRMLens(kinkIRMFactory, adaptiveCurveIRMFactory, kinkyIRMFactory, fixedCyclicalBinaryIRMFactory)
+        );
         lenses[3] = address(new UtilsLens(eVaultFactory, address(lenses[1])));
         lenses[4] = address(new VaultLens(address(lenses[1]), address(lenses[3]), address(lenses[2])));
-        lenses[5] = address(new EulerEarnVaultLens(address(lenses[1]), address(lenses[3])));
+        lenses[5] = address(new EulerEarnVaultLens(address(lenses[3])));
     }
 }
 
@@ -107,24 +129,34 @@ contract LensIRMDeployer is ScriptUtils {
         string memory json = getScriptFile(inputScriptFileName);
         address kinkIRMFactory = vm.parseJsonAddress(json, ".kinkIRMFactory");
         address adaptiveCurveIRMFactory = vm.parseJsonAddress(json, ".adaptiveCurveIRMFactory");
+        address kinkyIRMFactory = vm.parseJsonAddress(json, ".kinkyIRMFactory");
+        address fixedCyclicalBinaryIRMFactory = vm.parseJsonAddress(json, ".fixedCyclicalBinaryIRMFactory");
 
-        irmLens = execute(kinkIRMFactory, adaptiveCurveIRMFactory);
+        irmLens = execute(kinkIRMFactory, adaptiveCurveIRMFactory, kinkyIRMFactory, fixedCyclicalBinaryIRMFactory);
 
         string memory object;
         object = vm.serializeAddress("lens", "irmLens", irmLens);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address kinkIRMFactory, address adaptiveCurveIRMFactory)
-        public
-        broadcast
-        returns (address irmLens)
-    {
-        irmLens = execute(kinkIRMFactory, adaptiveCurveIRMFactory);
+    function deploy(
+        address kinkIRMFactory,
+        address adaptiveCurveIRMFactory,
+        address kinkyIRMFactory,
+        address fixedCyclicalBinaryIRMFactory
+    ) public broadcast returns (address irmLens) {
+        irmLens = execute(kinkIRMFactory, adaptiveCurveIRMFactory, kinkyIRMFactory, fixedCyclicalBinaryIRMFactory);
     }
 
-    function execute(address kinkIRMFactory, address adaptiveCurveIRMFactory) public returns (address irmLens) {
-        irmLens = address(new IRMLens(kinkIRMFactory, adaptiveCurveIRMFactory));
+    function execute(
+        address kinkIRMFactory,
+        address adaptiveCurveIRMFactory,
+        address kinkyIRMFactory,
+        address fixedCyclicalBinaryIRMFactory
+    ) public returns (address irmLens) {
+        irmLens = address(
+            new IRMLens(kinkIRMFactory, adaptiveCurveIRMFactory, kinkyIRMFactory, fixedCyclicalBinaryIRMFactory)
+        );
     }
 }
 
@@ -186,21 +218,20 @@ contract LensEulerEarnVaultDeployer is ScriptUtils {
         string memory inputScriptFileName = "08_LensEulerEarnVault_input.json";
         string memory outputScriptFileName = "08_LensEulerEarnVault_output.json";
         string memory json = getScriptFile(inputScriptFileName);
-        address oracleLens = vm.parseJsonAddress(json, ".oracleLens");
         address utilsLens = vm.parseJsonAddress(json, ".utilsLens");
 
-        eulerEarnVaultLens = execute(oracleLens, utilsLens);
+        eulerEarnVaultLens = execute(utilsLens);
 
         string memory object;
         object = vm.serializeAddress("lens", "eulerEarnVaultLens", eulerEarnVaultLens);
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(address oracleLens, address utilsLens) public broadcast returns (address eulerEarnVaultLens) {
-        eulerEarnVaultLens = execute(oracleLens, utilsLens);
+    function deploy(address utilsLens) public broadcast returns (address eulerEarnVaultLens) {
+        eulerEarnVaultLens = execute(utilsLens);
     }
 
-    function execute(address oracleLens, address utilsLens) public returns (address eulerEarnVaultLens) {
-        eulerEarnVaultLens = address(new EulerEarnVaultLens(oracleLens, utilsLens));
+    function execute(address utilsLens) public returns (address eulerEarnVaultLens) {
+        eulerEarnVaultLens = address(new EulerEarnVaultLens(utilsLens));
     }
 }

@@ -11,6 +11,7 @@ abstract contract ScriptExtended is Script {
     mapping(uint256 => uint256) private forks;
     address private deployerAddress;
     address private safeSignerAddress;
+    bool private noStubOracle;
 
     constructor() {
         vm.pauseGasMetering();
@@ -194,7 +195,7 @@ abstract contract ScriptExtended is Script {
 
     function getSimulateSafe() internal view returns (address) {
         address safe = _getSafe("", "simulate_safe_address", false);
-        return safe == address(0) ? getSafe() : safe;
+        return safe == address(0) ? getSafe(false) : safe;
     }
 
     function getSimulateTimelock() internal view returns (address) {
@@ -225,13 +226,76 @@ abstract contract ScriptExtended is Script {
     function getEmergencyVaultAddress() internal view returns (address) {
         string memory vaultAddress = vm.envOr("vault_address", string(""));
         require(isEmergency(), "getEmergencyVaultAddress: Emergency mode is not enabled");
-        require(bytes(vaultAddress).length == 42, "getEmergencyVaultAddress: Vault address is not set");
-        return _toAddress(vaultAddress);
+        require(
+            bytes(vaultAddress).length == 42 || _strEq(vaultAddress, "all"),
+            "getEmergencyVaultAddress: Vault address is not set"
+        );
+        return bytes(vaultAddress).length == 42 ? _toAddress(vaultAddress) : address(0);
+    }
+
+    function setNoStubOracle(bool value) internal {
+        noStubOracle = value;
     }
 
     function isNoStubOracle() internal view returns (bool) {
-        return (block.chainid != 1 && block.chainid != 8453)
+        return noStubOracle || (block.chainid != 1 && block.chainid != 8453)
             || _strEq(vm.envOr("no_stub_oracle", string("")), "--no-stub-oracle");
+    }
+
+    function isForceZeroOracle() internal view returns (bool) {
+        return _strEq(vm.envOr("force_zero_oracle", string("")), "--force-zero-oracle");
+    }
+
+    function getSkipOFTHubChainConfigEUL() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config_eul", string("")), "--skip-oft-hub-chain-config-eul");
+    }
+
+    function getSkipOFTHubChainConfigEUSD() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config_eusd", string("")), "--skip-oft-hub-chain-config-eusd");
+    }
+
+    function getSkipOFTHubChainConfigSEUSD() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_hub_chain_config_seusd", string("")), "--skip-oft-hub-chain-config-seusd");
+    }
+
+    function getCheckPhasedOutVaults() internal view returns (bool) {
+        return _strEq(vm.envOr("check_phased_out_vaults", string("")), "--check-phased-out-vaults");
+    }
+
+    function getFromBlock() internal view returns (uint256) {
+        return vm.envOr("from_block", uint256(0));
+    }
+
+    function getToBlock() internal view returns (uint256) {
+        return vm.envOr("to_block", uint256(0));
+    }
+
+    function getSourceWallet() internal view returns (address) {
+        return vm.envOr("source_wallet", address(0));
+    }
+
+    function getDestinationWallet() internal view returns (address) {
+        return vm.envOr("destination_wallet", address(0));
+    }
+
+    function getSourceAccountId() internal view returns (uint8) {
+        return uint8(vm.envOr("source_account_id", uint256(0)));
+    }
+
+    function getDestinationAccountId() internal view returns (uint8) {
+        return uint8(vm.envOr("destination_account_id", uint256(0)));
+    }
+
+    function getPath() internal view returns (string memory) {
+        return vm.envOr("path", string(""));
+    }
+
+    function getConfigAddress(string memory key) internal view returns (address) {
+        return getConfigAddress(key, block.chainid);
+    }
+
+    function getConfigAddress(string memory key, uint256 chainId) internal view returns (address) {
+        return getAddressFromJson(getConfigAddressesJson("MultisigAddresses.json", chainId), string.concat(".", key));
     }
 
     function getAddressesDirPath() internal view returns (string memory) {

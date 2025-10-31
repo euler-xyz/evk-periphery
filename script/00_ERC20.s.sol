@@ -6,6 +6,7 @@ import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {MockERC20Mintable} from "./utils/MockERC20Mintable.sol";
 import {ERC20BurnableMintable} from "../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "../src/ERC20/deployed/RewardToken.sol";
+import {ERC20Synth} from "../src/ERC20/deployed/ERC20Synth.sol";
 
 contract MockERC20MintableDeployer is ScriptUtils {
     function run() public broadcast returns (address mockERC20Mintable) {
@@ -102,5 +103,38 @@ contract RewardTokenDeployer is ScriptUtils {
         returns (address rewardToken)
     {
         rewardToken = address(new RewardToken(evc, getDeployer(), receiver, underlying, name, symbol));
+    }
+}
+
+contract ERC20SynthDeployer is ScriptUtils {
+    function run() public broadcast returns (address erc20Synth) {
+        string memory inputScriptFileName = "00_ERC20Synth_input.json";
+        string memory outputScriptFileName = "00_ERC20Synth_output.json";
+        string memory json = getScriptFile(inputScriptFileName);
+        address evc = vm.parseJsonAddress(json, ".evc");
+        string memory name = vm.parseJsonString(json, ".name");
+        string memory symbol = vm.parseJsonString(json, ".symbol");
+        uint8 decimals = uint8(vm.parseJsonUint(json, ".decimals"));
+
+        erc20Synth = execute(evc, name, symbol, decimals);
+
+        string memory object;
+        object = vm.serializeAddress("erc20Synth", "erc20Synth", erc20Synth);
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address evc, string memory name, string memory symbol, uint8 decimals)
+        public
+        broadcast
+        returns (address erc20Synth)
+    {
+        erc20Synth = execute(evc, name, symbol, decimals);
+    }
+
+    function execute(address evc, string memory name, string memory symbol, uint8 decimals)
+        public
+        returns (address erc20Synth)
+    {
+        erc20Synth = address(new ERC20Synth(evc, getDeployer(), name, symbol, decimals));
     }
 }

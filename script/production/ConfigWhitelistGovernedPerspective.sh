@@ -15,7 +15,21 @@ eval 'set -- $SCRIPT_ARGS'
 
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
-governed_perspective=$(jq -r '.governedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
+
+if [[ "$@" != *"--earn"* && "$@" != *"--evk"* ]]; then
+    echo "Error: Either --earn or --evk option must be provided"
+    echo "Usage: $0 <csv_file_path> [--earn|--evk] [other_options...]"
+    exit 1
+fi
+
+if [[ "$@" == *"--earn"* ]]; then
+    governed_perspective=$(jq -r '.eulerEarnGovernedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
+else
+    governed_perspective=$(jq -r '.governedPerspective' "$addresses_dir_path/PeripheryAddresses.json")
+fi
+
+set -- "${@/--evk/}"
+set -- "${@/--earn/}"
 
 if ! script/utils/checkEnvironment.sh; then
     echo "Environment check failed. Exiting."
@@ -92,6 +106,7 @@ items="["
 
 while IFS=, read -r -a columns || [ -n "$columns" ]; do
     vault="${columns[0]}"
+    label="${columns[1]}"
     whitelist="${columns[2]}"
 
     if [[ "$vault" == "Vault" ]]; then
@@ -102,20 +117,20 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 
     if [[ "$whitelist" == "Yes" ]]; then
         if [[ $isVerified == *false* ]]; then
-            echo "Adding 'perspectiveVerify' batch item for vault $vault."
+            echo "Adding 'perspectiveVerify' batch item for vault $vault ($label)"
             items+="($governed_perspective,$onBehalfOf,0,$(cast calldata "perspectiveVerify(address,bool)" $vault true)),"
         elif [[ "$verbose" == "--verbose" ]]; then
-            echo "Vault $vault is already verified. Skipping..."
+            echo "Vault $vault ($label) is already verified. Skipping..."
         fi
     elif [[ "$whitelist" == "No" ]]; then
         if [[ $isVerified == *true* ]]; then
-            echo "Adding 'perspectiveUnverify' batch item for vault $vault."
+            echo "Adding 'perspectiveUnverify' batch item for vault $vault ($label)"
             items+="($governed_perspective,$onBehalfOf,0,$(cast calldata "perspectiveUnverify(address)" $vault)),"
         elif [[ "$verbose" == "--verbose" ]]; then
-            echo "Vault $vault is not verified. Skipping..."
+            echo "Vault $vault ($label) is not verified. Skipping..."
         fi
     else
-        echo "Invalid Whitelist value for vault $vault. Skipping..."
+        echo "Invalid Whitelist value for vault $vault ($label). Skipping..."
     fi
 done < <(tr -d '\r' < "$csv_file")
 

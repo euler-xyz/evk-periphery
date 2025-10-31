@@ -50,7 +50,7 @@ contract Swapper is GenericHandler, UniswapV2Handler, UniswapV3Handler {
     {}
 
     /// @inheritdoc ISwapper
-    function swap(SwapParams memory params) public externalLock {
+    function swap(SwapParams memory params) public virtual externalLock {
         if (params.mode >= MODE_MAX_VALUE) revert Swapper_UnknownMode();
 
         if (params.handler == HANDLER_GENERIC) {
@@ -77,7 +77,7 @@ contract Swapper is GenericHandler, UniswapV2Handler, UniswapV3Handler {
 
     /// @inheritdoc ISwapper
     /// @dev in case of over-swapping to repay, pass max uint amount
-    function repay(address token, address vault, uint256 repayAmount, address account) public externalLock {
+    function repay(address token, address vault, uint256 repayAmount, address account) public virtual externalLock {
         setMaxAllowance(token, vault);
         uint256 balance = IERC20(token).balanceOf(address(this));
         repayAmount = _capRepayToBalance(repayAmount, balance);
@@ -86,17 +86,21 @@ contract Swapper is GenericHandler, UniswapV2Handler, UniswapV3Handler {
     }
 
     /// @inheritdoc ISwapper
-    function repayAndDeposit(address token, address vault, uint256 repayAmount, address account) public externalLock {
+    function repayAndDeposit(address token, address vault, uint256 repayAmount, address account)
+        public
+        virtual
+        externalLock
+    {
         _repayAndDeposit(token, vault, repayAmount, account);
     }
 
     /// @inheritdoc ISwapper
-    function deposit(address token, address vault, uint256 amountMin, address account) public externalLock {
+    function deposit(address token, address vault, uint256 amountMin, address account) public virtual externalLock {
         _deposit(token, vault, amountMin, account);
     }
 
     /// @inheritdoc ISwapper
-    function sweep(address token, uint256 amountMin, address to) public externalLock {
+    function sweep(address token, uint256 amountMin, address to) public virtual externalLock {
         uint256 balance = IERC20(token).balanceOf(address(this));
         if (balance >= amountMin) {
             SafeERC20Lib.safeTransfer(IERC20(token), to, balance);
@@ -104,7 +108,7 @@ contract Swapper is GenericHandler, UniswapV2Handler, UniswapV3Handler {
     }
 
     /// @inheritdoc ISwapper
-    function multicall(bytes[] memory calls) external externalLock {
+    function multicall(bytes[] memory calls) public virtual externalLock {
         for (uint256 i; i < calls.length; i++) {
             (bool success, bytes memory result) = address(this).call(calls[i]);
             if (!success) RevertBytes.revertBytes(result);

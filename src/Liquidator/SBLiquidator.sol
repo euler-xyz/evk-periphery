@@ -34,7 +34,7 @@ contract SBuidlLiquidator is CustomLiquidatorBase {
         address collateral,
         uint256 repayAssets,
         uint256 minYieldBalance
-    ) internal override {
+    ) internal override onlyOwner {
         IEVault collateralVault = IEVault(collateral);
         IEVault liabilityVault = IEVault(liability);
         ISBToken sbToken = ISBToken(collateralVault.asset());

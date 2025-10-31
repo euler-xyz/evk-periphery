@@ -38,6 +38,8 @@ Options:
 - `--safe-address SAFE_ADDRESS`: Authorized Safe multisig address that will be used to create a batch transaction This option must be used in case the cluster is managed using Safe (even if not directly; i.e. Safe is a proposer on the timelock controller).
 - `--timelock-address`: Schedules the transactions in the timelock controller provided instead of trying to execute them immediately. This option must be used in case the timelock controller is installed as part of the governor contracts suite.
 - `--risk-steward-address`: Executes the transactions via the risk steward contract provided instead of trying to execute it directly. This option can be used in case the risk steward contract is installed as part of the governor contracts suite and the operation executed allows bypassing timelocks.
+- `--simulate-safe-address`: Simulates pending transactions in the provided Safe multisig address before executing the script. This is useful when there are pending transactions that affect the state of the vaults.
+- `--simulate-timelock-address`: Simulates pending transactions in the provided timelock controller address before executing the script. This is useful when there are pending transactions that affect the state of the vaults.
 
 Example - initial deployment:
 
@@ -113,7 +115,7 @@ Options:
 - `--emergency-operations` should be used if you intend disable all the operations of the `VAULT_ADDRESS`
 
 ```bash
-./script/production/ExecuteSolidityScript.sh PATH_TO_CLUSTER_SPECIFIC_SCRIPT --rpc-url RPC_URL --batch-via-safe --safe-address SAFE_ADDRESS --vault-address VAULT_ADDRESS [--emergency-ltv-collateral] [--emergency-ltv-borrowing] [--emergency-caps] [--emergency-caps]
+./script/production/ExecuteSolidityScript.sh PATH_TO_CLUSTER_SPECIFIC_SCRIPT --rpc-url RPC_URL --batch-via-safe --safe-address SAFE_ADDRESS --vault-address VAULT_ADDRESS [--emergency-ltv-collateral] [--emergency-ltv-borrowing] [--emergency-caps]
 ```
 
 Example command for the `PrimeCluster.s.sol` script:

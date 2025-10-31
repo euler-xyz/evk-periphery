@@ -43,12 +43,32 @@ abstract contract Utils {
             // bitcoin-specific and test networks
             if (
                 block.chainid == 30 || block.chainid == 21000000 || block.chainid == 10143 || block.chainid == 80084
-                    || block.chainid == 2390
+                    || block.chainid == 2390 || block.chainid == 998
             ) {
                 return address(0);
             }
             // hyperEVM
             if (block.chainid == 999) {
+                return address(0);
+            }
+
+            // TAC
+            if (block.chainid == 239) {
+                return address(0);
+            }
+
+            // Plasma
+            if (block.chainid == 9745) {
+                return address(0);
+            }
+
+            // Monad
+            if (block.chainid == 143) {
+                return address(0);
+            }
+
+            // Sepolia
+            if (block.chainid == 11155111) {
                 return address(0);
             }
         }

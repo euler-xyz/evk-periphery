@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.24;
 
-import {IEulerEarnFactory} from "euler-earn/interface/IEulerEarnFactory.sol";
+import {IEulerEarnFactory} from "euler-earn/interfaces/IEulerEarnFactory.sol";
 import {BasePerspective} from "../implementation/BasePerspective.sol";
 
 /// @title EulerEarnFactoryPerspective
@@ -21,21 +21,21 @@ contract EulerEarnFactoryPerspective is BasePerspective {
 
     /// @inheritdoc BasePerspective
     function perspectiveVerifyInternal(address vault) internal virtual override {
-        testProperty(IEulerEarnFactory(address(vaultFactory)).isValidDeployment(vault), ERROR__FACTORY);
+        testProperty(IEulerEarnFactory(address(vaultFactory)).isVault(vault), ERROR__FACTORY);
     }
 
     /// @inheritdoc BasePerspective
     function isVerified(address vault) public view virtual override returns (bool) {
-        return IEulerEarnFactory(address(vaultFactory)).isValidDeployment(vault);
+        return IEulerEarnFactory(address(vaultFactory)).isVault(vault);
     }
 
     /// @inheritdoc BasePerspective
     function verifiedLength() public view virtual override returns (uint256) {
-        return IEulerEarnFactory(address(vaultFactory)).getEulerEarnVaultsListLength();
+        return IEulerEarnFactory(address(vaultFactory)).getVaultListLength();
     }
 
     /// @inheritdoc BasePerspective
     function verifiedArray() public view virtual override returns (address[] memory) {
-        return IEulerEarnFactory(address(vaultFactory)).getEulerEarnVaultsListSlice(0, type(uint256).max);
+        return IEulerEarnFactory(address(vaultFactory)).getVaultListSlice(0, type(uint256).max);
     }
 }
