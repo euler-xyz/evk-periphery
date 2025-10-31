@@ -70,20 +70,16 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
     }
 
     /// @notice Freezes all accounts sharing an address prefix.
-    /// @param account The address whose prefix to freeze.
-    function freeze(address account) public onlyEVCAccountOwner governorOnly {
-        if (evc.getAccountOwner(account) != account) revert InvalidAddress();
-        bytes19 addressPrefix = _getAddressPrefix(account);
+    /// @param addressPrefix The address prefix to freeze.
+    function freeze(bytes19 addressPrefix) public onlyEVCAccountOwner governorOnly {
         if (_freezes[addressPrefix]) return;
         _freezes[addressPrefix] = true;
         emit GovFrozen(addressPrefix);
     }
 
     /// @notice Unfreezes all accounts sharing an address prefix.
-    /// @param account The address whose prefix to unfreeze.
-    function unfreeze(address account) public onlyEVCAccountOwner governorOnly {
-        if (evc.getAccountOwner(account) != account) revert InvalidAddress();
-        bytes19 addressPrefix = _getAddressPrefix(account);
+    /// @param addressPrefix The address prefix to unfreeze.
+    function unfreeze(bytes19 addressPrefix) public onlyEVCAccountOwner governorOnly {
         if (!_freezes[addressPrefix]) return;
         _freezes[addressPrefix] = false;
         emit GovUnfrozen(addressPrefix);
@@ -177,6 +173,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         nonReentrant
         whenNotPaused
         whenNotFrozen(owner)
+        whenNotFrozen(receiver)
         takeSnapshot
         returns (uint256 shares)
     {
@@ -196,6 +193,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         nonReentrant
         whenNotPaused
         whenNotFrozen(owner)
+        whenNotFrozen(receiver)
         takeSnapshot
         returns (uint256 assets)
     {
