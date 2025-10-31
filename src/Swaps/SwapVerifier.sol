@@ -8,7 +8,7 @@ import {TransferFromSender} from "./TransferFromSender.sol";
 /// @title SwapVerifier
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice Simple contract used to verify post swap conditions
+/// @notice Simple contract used to verify post swap conditions. Includes TransferFromSender helper for gas savings.
 /// @dev This contract is the only trusted code in the EVK swap periphery
 contract SwapVerifier is TransferFromSender {
     error SwapVerifier_skimMin();

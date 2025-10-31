@@ -746,7 +746,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("+ Deploying Swapper...");
             Swap deployer = new Swap();
             (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) =
-                deployer.deploy(coreAddresses.evc, input.permit2, input.uniswapV2Router, input.uniswapV3Router);
+                deployer.deploy(coreAddresses.evc, coreAddresses.permit2, input.uniswapV2Router, input.uniswapV3Router);
         } else {
             console.log("- At least one of the Swapper contracts already deployed. Skipping...");
         }
