@@ -22,21 +22,18 @@ contract EulerSwapRegistryDeployer is ScriptUtils {
         vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
     }
 
-    function deploy(
-        address evc,
-        address eulerSwapFactory,
-        address validVaultPerspective,
-        address curator
-    ) public broadcast returns (address eulerSwapRegistry) {
+    function deploy(address evc, address eulerSwapFactory, address validVaultPerspective, address curator)
+        public
+        broadcast
+        returns (address eulerSwapRegistry)
+    {
         eulerSwapRegistry = execute(evc, eulerSwapFactory, validVaultPerspective, curator);
     }
 
-    function execute(
-        address evc,
-        address eulerSwapFactory,
-        address validVaultPerspective,
-        address curator
-    ) public returns (address eulerSwapRegistry) {
+    function execute(address evc, address eulerSwapFactory, address validVaultPerspective, address curator)
+        public
+        returns (address eulerSwapRegistry)
+    {
         bytes memory bytecode = abi.encodePacked(
             vm.getCode("out-euler-swap/EulerSwapRegistry.sol/EulerSwapRegistry.json"),
             abi.encode(evc, eulerSwapFactory, validVaultPerspective, curator)

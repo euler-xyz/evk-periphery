@@ -38,7 +38,7 @@ if ! script/utils/checkEnvironment.sh "$@"; then
 fi
 
 eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26 --out out-euler-earn"
-eulerSwapCompilerOptions="--optimize --optimizer-runs 1000000 --use 0.8.27 --out out-euler-swap"
+eulerSwapCompilerOptions="--optimize --optimizer-runs 2500 --use 0.8.27 --out out-euler-swap"
 
 while true; do
     echo ""
@@ -1286,8 +1286,7 @@ while true; do
                 
                 if [ "$deploy_euler_swap" = "y" ]; then
                     read -p "Enter the Uniswap V4 Pool Manager address (default: address(0) or look up https://docs.uniswap.org/contracts/v4/deployments): " uniswap_pool_manager
-                    read -p "Enter the EulerSwap fee owner (default: DAO multisig): " euler_swap_fee_owner
-                    read -p "Enter the EulerSwap fee recipient setter (default: DAO multisig): " euler_swap_fee_recipient_setter
+                    read -p "Enter the EulerSwap protocol fee config admin address (default: DAO multisig): " euler_swap_protocol_fee_config_admin
                     read -p "Enter the EulerSwap registry curator (default: Labs multisig): " euler_swap_registry_curator
                 fi
             fi
@@ -1315,8 +1314,7 @@ while true; do
             deploy_eusd=${deploy_eusd:-n}
             deploy_seusd=${deploy_seusd:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
-            euler_swap_fee_owner=${euler_swap_fee_owner:-$multisig_dao}
-            euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$multisig_dao}
+            euler_swap_protocol_fee_config_admin=${euler_swap_protocol_fee_config_admin:-$multisig_dao}
             euler_swap_registry_curator=${euler_swap_registry_curator:-$multisig_labs}
 
             if { [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ] || [ "$eulerEarnFactory" == "null" ]; } && [ "$deploy_euler_earn" = "y" ]; then
@@ -1347,8 +1345,7 @@ while true; do
                 --argjson deployEUSD "$(jq -n --argjson val \"$deploy_eusd\" 'if $val == "y" then true else false end')" \
                 --argjson deploySEUSD "$(jq -n --argjson val \"$deploy_seusd\" 'if $val == "y" then true else false end')" \
                 --arg uniswapPoolManager "$uniswap_pool_manager" \
-                --arg eulerSwapFeeOwner "$euler_swap_fee_owner" \
-                --arg eulerSwapFeeRecipientSetter "$euler_swap_fee_recipient_setter" \
+                --arg eulerSwapProtocolFeeConfigAdmin "$euler_swap_protocol_fee_config_admin" \
                 --arg eulerSwapRegistryCurator "$euler_swap_registry_curator" \
                 '{
                     multisigDAO: $multisigDAO,
@@ -1366,8 +1363,7 @@ while true; do
                     deployEUSD: $deployEUSD,
                     deploySEUSD: $deploySEUSD,
                     uniswapPoolManager: $uniswapPoolManager,
-                    eulerSwapFeeOwner: $eulerSwapFeeOwner,
-                    eulerSwapFeeRecipientSetter: $eulerSwapFeeRecipientSetter,
+                    eulerSwapProtocolFeeConfigAdmin: $eulerSwapProtocolFeeConfigAdmin,
                     eulerSwapRegistryCurator: $eulerSwapRegistryCurator
                 }' --indent 4 > script/${jsonName}_input.json
             ;;

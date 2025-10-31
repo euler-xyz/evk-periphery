@@ -92,8 +92,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         bool deployEUSD;
         bool deploySEUSD;
         address uniswapPoolManager;
-        address eulerSwapFeeOwner;
-        address eulerSwapFeeRecipientSetter;
+        address eulerSwapProtocolFeeConfigAdmin;
         address eulerSwapRegistryCurator;
     }
 
@@ -200,8 +199,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             deployEUSD: vm.parseJsonBool(json, ".deployEUSD"),
             deploySEUSD: vm.parseJsonBool(json, ".deploySEUSD"),
             uniswapPoolManager: vm.parseJsonAddress(json, ".uniswapPoolManager"),
-            eulerSwapFeeOwner: vm.parseJsonAddress(json, ".eulerSwapFeeOwner"),
-            eulerSwapFeeRecipientSetter: vm.parseJsonAddress(json, ".eulerSwapFeeRecipientSetter"),
+            eulerSwapProtocolFeeConfigAdmin: vm.parseJsonAddress(json, ".eulerSwapProtocolFeeConfigAdmin"),
             eulerSwapRegistryCurator: vm.parseJsonAddress(json, ".eulerSwapRegistryCurator")
         });
 
@@ -965,27 +963,24 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (
-            eulerSwapAddresses.eulerSwapV2Implementation == address(0)
+            eulerSwapAddresses.eulerSwapV2ProtocolFeeConfig == address(0)
+                && eulerSwapAddresses.eulerSwapV2Implementation == address(0)
                 && eulerSwapAddresses.eulerSwapV2Factory == address(0)
                 && eulerSwapAddresses.eulerSwapV2Periphery == address(0)
                 && eulerSwapAddresses.eulerSwapV2Registry == address(0)
         ) {
             if (input.deployEulerSwap) {
                 {
-                    console.log("+ Deploying EulerSwap V2 implementation...");
+                    console.log("+ Deploying EulerSwap V2 protocol fee config and implementation...");
                     EulerSwapImplementationDeployer deployer = new EulerSwapImplementationDeployer();
-                    eulerSwapAddresses.eulerSwapV2Implementation =
-                        deployer.deploy(coreAddresses.evc, input.uniswapPoolManager);
+                    (eulerSwapAddresses.eulerSwapV2ProtocolFeeConfig, eulerSwapAddresses.eulerSwapV2Implementation) =
+                    deployer.deploy(coreAddresses.evc, input.eulerSwapProtocolFeeConfigAdmin, input.uniswapPoolManager);
                 }
                 {
                     console.log("+ Deploying EulerSwap V2 factory...");
                     EulerSwapFactoryDeployer deployer = new EulerSwapFactoryDeployer();
-                    eulerSwapAddresses.eulerSwapV2Factory = deployer.deploy(
-                        coreAddresses.evc,
-                        eulerSwapAddresses.eulerSwapV2Implementation,
-                        input.eulerSwapFeeOwner,
-                        input.eulerSwapFeeRecipientSetter
-                    );
+                    eulerSwapAddresses.eulerSwapV2Factory =
+                        deployer.deploy(coreAddresses.evc, eulerSwapAddresses.eulerSwapV2Implementation);
                 }
                 {
                     console.log("+ Deploying EulerSwap V2 periphery...");
@@ -1007,7 +1002,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 if (vm.isDir("out-euler-swap")) vm.removeDir("out-euler-swap", true);
             }
         } else {
-            console.log("- EulerSwap V2 implementation, factory, periphery, and registry already deployed. Skipping...");
+            console.log(
+                "- EulerSwap V2 protocol fee config, implementation, factory, periphery and registry already deployed. Skipping..."
+            );
             if (vm.isDir("out-euler-swap")) vm.removeDir("out-euler-swap", true);
         }
 
