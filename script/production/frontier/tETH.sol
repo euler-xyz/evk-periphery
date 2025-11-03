@@ -4,27 +4,27 @@ pragma solidity ^0.8.0;
 
 import {ManageCluster} from "./ManageCluster.s.sol";
 
-/// @dev NOTE: Deploy PT-uniBTC_18DEC2025 oracle
+/// @dev NOTE: Deploy ETH IRM
 contract Cluster is ManageCluster {
-    address internal constant uniBTC = 0x004E9C3EF86bc1ca1f0bB5C7662861Ee93350568;
+    address internal constant PT_tETH_18DEC2025 = 0x5982837D2D138Af78a42A92f8F2F6863Bb25F129;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/frontier/uniBTC.json";
+        cluster.clusterAddressesPath = "/script/production/frontier/tETH.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other
         // arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [WBTC, uniBTC];
+        cluster.assets = [WETH, PT_tETH_18DEC2025];
     }
 
     function configureCluster() internal override {
         super.configureCluster();
 
         // define unit of account here
-        cluster.unitOfAccount = WBTC;
+        cluster.unitOfAccount = WETH;
 
         // define oracle providers here.
         // adapter names can be found in the relevant adapter contract (as returned by the `name` function).
@@ -32,37 +32,30 @@ contract Cluster is ManageCluster {
         // although Redstone Classic oracles reuse the ChainlinkOracle contract and returns "ChainlinkOracle" name,
         // they should be referred to as "RedstoneClassicOracle".
         // in case the asset is an ERC4626 vault itself (i.e. sUSDS) and is recognized as a valid external vault as per
-        // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to
+        // External Vaults Registry, the string should be preceded by "ExternalVault|" prefix. this is in order to
         // resolve the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form
         // of a string.
-        cluster.oracleProviders[uniBTC] = "0xD802AD35342C39765B74205483c8f8558Fd3c311";
-
-        // unibtc to btc 0xeB2de8d8D64582A27CfA68E5A87a0cfDf7c1Ea1F
-        // pt to unibtc 0xD86BbBaC0C5aAb992fA2cA4Fb49156B3AA19E4cD
-        // btc to usd 0x0484Df76f561443d93548D86740b5C4A826e5A33
-        // pt to wbtc 0xF51f47ed3f7412EB10Cd2C0B6a7D190524D43bDc
-        // uni to wbtc 0xD802AD35342C39765B74205483c8f8558Fd3c311
+        cluster.oracleProviders[PT_tETH_18DEC2025] = "0x8A94450CFf1aEb11c86c8AaC02e1Ef86F769C85C";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            cluster.irms[WBTC ] = IRM_ADAPTIVE_BTC;
-            cluster.irms[uniBTC] = IRM_ADAPTIVE_BTC;
+            cluster.irms[WETH   ] = IRM_ADAPTIVE_ETH;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //                          0         1
-            //                          WBTC      uniBTC
-            /* 0  WBTC   */            [LTV_ZERO, LTV__LOW],
-            /* 1  uniBTC  */            [LTV__LOW, LTV_ZERO]
+            //                          WETH      PT_tETH_18DEC2025
+            /* 0  WETH              */ [LTV_ZERO, LTV_ZERO],
+            /* 1  PT_tETH_18DEC2025 */ [LTV_HIGH, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         cluster.externalLTVs = [
-        //                     0         1      
-        //                     WBTC      uniBTC  
-        /* 0  Prime WBTC   */ [LTV_HIGH, LTV_ZERO]
+        //                     0         1
+        //                     WETH      PT_tETH_18DEC2025
+        /* 0  Prime WETH   */ [LTV_HIGH, LTV_ZERO]
         ];
     }
 }

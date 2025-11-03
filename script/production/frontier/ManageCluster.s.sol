@@ -11,6 +11,7 @@ abstract contract Addresses {
     address internal immutable WETH;
     address internal immutable USDC;
     address internal immutable USDT;
+    address internal immutable USDE;
     address internal immutable WBTC;
     address internal immutable IRM_ADAPTIVE_USD;
     address internal immutable IRM_ADAPTIVE_USD_YB;
@@ -23,6 +24,7 @@ abstract contract Addresses {
             USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
             USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
             WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+            USDE = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
         } else if (block.chainid == 8453) {
             WETH = 0x4200000000000000000000000000000000000006;
             USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
