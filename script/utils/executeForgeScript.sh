@@ -52,6 +52,11 @@ if [[ "$@" == *"--batch-via-safe"* ]]; then
     fi
 fi
 
+if [[ "$@" == *"--skip-safe-simulation"* ]]; then
+    set -- "${@/--skip-safe-simulation/}"
+    skip_safe_simulation="--skip-safe-simulation"
+fi
+
 if [[ "$@" == *"--skip-pending-simulation"* ]]; then
     set -- "${@/--skip-pending-simulation/}"
     skip_pending_simulation="--skip-pending-simulation"
@@ -191,7 +196,7 @@ if [[ -n "$safe_address" ]] || [[ -n "$simulate_safe_address" ]] || [[ -n "$path
 fi
 
 if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe \
-    safe_owner_simulate=$safe_owner_simulate skip_pending_simulation=$skip_pending_simulation \
+    safe_owner_simulate=$safe_owner_simulate skip_safe_simulation=$skip_safe_simulation skip_pending_simulation=$skip_pending_simulation \
     simulate_safe_address=$simulate_safe_address simulate_timelock_address=$simulate_timelock_address \
     timelock_address=$timelock_address timelock_id=$timelock_id timelock_salt=$timelock_salt \
     risk_steward_address=$risk_steward_address path=$path \

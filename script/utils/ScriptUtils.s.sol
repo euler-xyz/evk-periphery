@@ -1044,7 +1044,7 @@ abstract contract BatchBuilder is ScriptUtils {
         if (batchItems.length == 0) return;
 
         SafeTransaction transaction = new SafeTransaction();
-        if (isEmergency()) transaction.setSimulationOff();
+        if (isSkipSafeSimulation() || isEmergency()) transaction.setSimulationOff();
 
         address safe = getSafe();
         address payable timelock = payable(getTimelock());

@@ -472,3 +472,39 @@ contract LiquidateAccount is BatchBuilder {
         executeBatch();
     }
 }
+
+contract CustomLiquidator is BatchBuilder {
+    address internal liquidator = 0xdD84A24eeddE63F10Ec3e928f1c8302A47538b6B;
+    address internal liquidatorAccount = address(uint160(liquidator) ^ 0);
+    address internal violator = 0x1597E4B7cF6D2877A1d690b6088668afDb045763;
+    address internal violatorAccount = address(uint160(violator) ^ 9);
+    address internal controller = 0xa446938b0204Aa4055cdFEd68Ddf0E0d1BAB3E9E;
+    address internal collateral = 0xb9CC370a8f19322FC4BF69Da80c6C39FF8F2dB90;
+    uint16 internal temporaryMaxLiquidationDiscount = 500;
+
+    function run() public {
+        uint16 maxLiquidationDiscount = IEVault(controller).maxLiquidationDiscount();
+        uint16 bltv = IEVault(controller).LTVBorrow(collateral);
+        uint16 lltv = IEVault(controller).LTVLiquidation(collateral);
+
+        setMaxLiquidationDiscount(controller, temporaryMaxLiquidationDiscount);
+        setLTV(controller, collateral, 0, 0, 0);
+
+        addBatchItem(
+            coreAddresses.evc, address(0), abi.encodeCall(IEVC.enableController, (liquidatorAccount, controller))
+        );
+        addBatchItem(
+            coreAddresses.evc, address(0), abi.encodeCall(IEVC.enableCollateral, (liquidatorAccount, collateral))
+        );
+        addBatchItem(
+            controller,
+            liquidatorAccount,
+            abi.encodeCall(IEVault(controller).liquidate, (violatorAccount, collateral, type(uint256).max, 0))
+        );
+
+        setMaxLiquidationDiscount(controller, maxLiquidationDiscount);
+        setLTV(controller, collateral, bltv, lltv, 0);
+
+        executeBatch();
+    }
+}
