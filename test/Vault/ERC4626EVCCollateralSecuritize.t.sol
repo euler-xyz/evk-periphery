@@ -122,6 +122,9 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
         );
         mockController.liquidate(depositor, address(vault), amountToSeize, 0);
 
+        // 0.5e18 of collateral vault shares are transfered to the liquidator
+        assertEq(vault.balanceOf(depositor), 0.5e18);
+        assertEq(vault.balanceOf(liquidator), 0.5e18);
     }
 
     function _getAddressPrefix(address account) internal pure returns (bytes19) {
