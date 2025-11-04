@@ -13,32 +13,34 @@ contract ERC4626EVCCollateralFreezableStdTest is EVaultTestBase, ERC4626Test {
 
         _underlying_ = address(new MockToken("Mock ERC20", "MERC20"));
         _vault_ = address(
-            new ERC4626EVCCollateralFreezableHarness(admin, address(evc), address(permit2), _underlying_, "EVC Collateral", "EVCC")
+            new ERC4626EVCCollateralFreezableHarness(
+                admin, address(evc), address(permit2), _underlying_, "EVC Collateral", "EVCC"
+            )
         );
         _delta_ = 0;
         _vaultMayBeEmpty = true;
         _unlimitedAmount = true;
     }
 
-    function test_deposit(Init memory init, uint assets, uint allowance) public virtual override {
+    function test_deposit(Init memory init, uint256 assets, uint256 allowance) public virtual override {
         // max uint is special cased
         assets = bound(assets, 0, type(uint256).max - 1);
         super.test_deposit(init, assets, allowance);
     }
 
-    function test_previewDeposit(Init memory init, uint assets) public virtual override {
+    function test_previewDeposit(Init memory init, uint256 assets) public virtual override {
         // max uint is special cased
         assets = bound(assets, 0, type(uint256).max - 1);
         super.test_previewDeposit(init, assets);
     }
 
-    function test_redeem(Init memory init, uint shares, uint allowance) public virtual override {
+    function test_redeem(Init memory init, uint256 shares, uint256 allowance) public virtual override {
         // max uint is special cased
         shares = bound(shares, 0, type(uint256).max - 1);
         super.test_redeem(init, shares, allowance);
     }
 
-    function test_previewRedeem(Init memory init, uint shares) public virtual override {
+    function test_previewRedeem(Init memory init, uint256 shares) public virtual override {
         // max uint is special cased
         shares = bound(shares, 0, type(uint256).max - 1);
         super.test_previewRedeem(init, shares);

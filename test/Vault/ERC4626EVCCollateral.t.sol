@@ -181,7 +181,7 @@ contract ERC4626EVCCollateralTest is EVaultTestBase {
     }
 
     function testCollateralVault_accountStatusChecks() public {
-        MockController mockController = new MockController();
+        MockController mockController = new MockController(address(evc));
         address secondUser = makeAddr("secondUser");
 
         vm.prank(secondUser);

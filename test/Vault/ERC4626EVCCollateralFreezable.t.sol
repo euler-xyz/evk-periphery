@@ -142,11 +142,13 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         vault.freeze(depositorPrefix);
         assertTrue(vault.isFrozen(depositor));
         assertTrue(vault.isFrozen(subDepositor));
+        assertTrue(vault.isFrozen(_getAddressPrefix(depositor)));
         // indempotent
         vm.prank(admin);
         vault.freeze(depositorPrefix);
         assertTrue(vault.isFrozen(depositor));
         assertTrue(vault.isFrozen(subDepositor));
+        assertTrue(vault.isFrozen(_getAddressPrefix(depositor)));
 
         // no value transfer when frozen on owner account
 
@@ -173,6 +175,8 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         vault.withdraw(1, depositor, otherDepositor);
         vm.expectRevert(ERC4626EVCCollateralFreezable.Frozen.selector);
         vault.redeem(1, depositor, otherDepositor);
+        vm.expectRevert(ERC4626EVCCollateralFreezable.Frozen.selector);
+        vault.transfer(depositor, 1);
 
         vm.stopPrank();
 
@@ -192,9 +196,11 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         vault.unfreeze(depositorPrefix);
         assertFalse(vault.isFrozen(depositor));
         assertFalse(vault.isFrozen(subDepositor));
+        assertFalse(vault.isFrozen(_getAddressPrefix(depositor)));
         vm.prank(admin);
         assertFalse(vault.isFrozen(depositor));
         assertFalse(vault.isFrozen(subDepositor));
+        assertFalse(vault.isFrozen(_getAddressPrefix(depositor)));
 
         // value transfer is allowed after unpusing
         vm.startPrank(depositor);
@@ -211,11 +217,11 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         vm.startPrank(otherDepositor);
         vault.withdraw(1, depositor, otherDepositor);
         vault.redeem(1, depositor, otherDepositor);
+        vault.transfer(depositor, 1);
     }
 
     function _getAddressPrefix(address account) internal pure returns (bytes19) {
         uint160 ACCOUNT_ID_OFFSET = 8;
         return bytes19(uint152(uint160(account) >> ACCOUNT_ID_OFFSET));
     }
-
 }

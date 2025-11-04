@@ -127,6 +127,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @param assets The assets to deposit.
     /// @param receiver The receiver of the deposit.
     /// @return shares The shares equivalent to the deposited assets.
+    /// @dev If called directly (not through EVC batch), the sender's owner address needs to be registered in EVC
     function deposit(uint256 assets, address receiver)
         public
         virtual
@@ -148,6 +149,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @param shares The shares to mint.
     /// @param receiver The receiver of the mint.
     /// @return assets The assets equivalent to the minted shares.
+    /// @dev If called directly (not through EVC batch), the sender's owner address needs to be registered in EVC
     function mint(uint256 shares, address receiver)
         public
         virtual

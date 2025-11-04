@@ -252,7 +252,7 @@ contract ERC4626EVCCollateralCappedTest is EVaultTestBase {
         vm.startPrank(depositor);
         address receiver = makeAddr("receiver");
         uint256 snapshot = vm.snapshotState();
-   
+
         // can always withdraw / redeem
 
         vault.withdraw(100, receiver, depositor);
