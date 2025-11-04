@@ -206,11 +206,17 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         return _isEnabled(PAUSE);
     }
 
-    /// @notice Checks whether a given account is frozen based on its address prefix.
+    /// @notice Checks whether a given address prefix (EVC account family) is frozen.
+    /// @param addressPrefix The adress prefix to check.
+    /// @return True if the address prefix is frozen, false otherwise.
+    function isFrozen(bytes19 addressPrefix) public view returns (bool) {
+        return _freezes[addressPrefix];
+    }
+
+    /// @notice Checks whether a given account and it's EVC account family is frozen.
     /// @param account The account to check.
     /// @return True if the account is frozen, false otherwise.
     function isFrozen(address account) public view returns (bool) {
-        bytes19 addressPrefix = _getAddressPrefix(account);
-        return _freezes[addressPrefix];
+        return _freezes[_getAddressPrefix(account)];
     }
 }
