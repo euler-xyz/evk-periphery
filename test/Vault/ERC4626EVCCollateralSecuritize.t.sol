@@ -6,7 +6,11 @@ import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC4626} from "forge-std/interfaces/IERC4626.sol";
 import {ERC4626EVC} from "../../src/Vault/implementation/ERC4626EVC.sol";
 import {ERC4626EVCCollateralFreezable} from "../../src/Vault/implementation/ERC4626EVCCollateralFreezable.sol";
-import {ERC4626EVCCollateralSecuritize, IComplianceServiceRegulated} from "../../src/Vault/deployed/ERC4626EVCCollateralSecuritize.sol";
+import {ERC4626EVCCollateralCapped} from "../../src/Vault/implementation/ERC4626EVCCollateralCapped.sol";
+import {
+    ERC4626EVCCollateralSecuritize,
+    IComplianceServiceRegulated
+} from "../../src/Vault/deployed/ERC4626EVCCollateralSecuritize.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
@@ -37,6 +41,8 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
         securitizeToken.mint(depositor, type(uint256).max);
         vm.prank(depositor);
         securitizeToken.approve(address(vault), type(uint256).max);
+        vm.prank(depositor);
+        evc.call(address(0), depositor, 0, ""); // register on evc
     }
 
     function testCollateralSecuritize_pause() public {
@@ -53,6 +59,10 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
         vault.transfer(depositor, 1);
         vm.expectRevert(ERC4626EVCCollateralFreezable.Paused.selector);
         vault.transferFrom(depositor, to, 1);
+
+        vm.startPrank(admin);
+        vm.expectRevert(ERC4626EVCCollateralFreezable.Paused.selector);
+        vault.seize(depositor, to, 1);
     }
 
     function testCollateralSecuritizeVault_freeze() public {
@@ -90,6 +100,63 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
         vault.redeem(1, depositor, otherDepositor);
         vm.expectRevert(ERC4626EVCCollateralFreezable.Frozen.selector);
         vault.transfer(depositor, 1);
+
+        vm.startPrank(admin);
+        vm.expectRevert(ERC4626EVCCollateralFreezable.Frozen.selector);
+        vault.seize(otherDepositor, depositor, 1);
+    }
+
+    function testCollateralSecuritizeVault_callThroughEVC() public {
+        expectCallThroughEVC(abi.encodeCall(IERC20.transfer, (depositor, 0)));
+        expectCallThroughEVC(abi.encodeCall(IERC20.transferFrom, (depositor, address(uint160(depositor) ^ 1), 0)));
+        expectCallThroughEVC(abi.encodeCall(IERC4626.deposit, (0, depositor)));
+        expectCallThroughEVC(abi.encodeCall(IERC4626.mint, (0, depositor)));
+
+        vm.prank(liquidator);
+        evc.call(address(0), liquidator, 0, ""); // register on evc
+        vm.startPrank(admin);
+        evc.call(address(0), admin, 0, ""); // register on evc
+        vm.mockCall(
+            mockComplianceService,
+            0,
+            abi.encodeCall(IComplianceServiceRegulated.preTransferCheck, (address(vault), liquidator, 0)),
+            abi.encode(uint256(0), string(""))
+        );
+        bytes memory call = abi.encodeCall(ERC4626EVCCollateralSecuritize.seize, (depositor, liquidator, 0));
+        vm.expectCall(address(evc), 0, abi.encodeCall(IEVC.call, (address(vault), admin, 0, call)));
+        (bool success,) = address(vault).call(call);
+        assertTrue(success);
+    }
+
+    function testCollateralSecuritizeVault_reentrancy() public {
+        reenter(abi.encodeCall(IERC20.transfer, (depositor, 1)));
+        reenter(abi.encodeCall(IERC20.transferFrom, (depositor, makeAddr("to"), 1)));
+        reenter(abi.encodeCall(IERC4626.deposit, (1, depositor)));
+        reenter(abi.encodeCall(IERC4626.mint, (1, depositor)));
+        reenter(abi.encodeCall(ERC4626EVCCollateralSecuritize.seize, (depositor, liquidator, 1)));
+
+        reenter(abi.encodeWithSignature("balanceOfAddressPrefix(bytes19)", (_getAddressPrefix(depositor))));
+        reenter(abi.encodeWithSignature("balanceOfAddressPrefix(address)", (depositor)));
+        reenter(abi.encodeCall(ERC4626EVCCollateralSecuritize.isTransferCompliant, (depositor, 0)));
+    }
+
+    function testCollateralSecuritizeVault_supplyCap_basic() public {
+        uint16 CAP_RAW = 64018; // resolves to 10e18
+        vm.prank(admin);
+        vault.setSupplyCap(CAP_RAW);
+
+        vm.startPrank(depositor);
+        uint256 snapshot = vm.snapshotState();
+
+        // can deposit up to cap
+        vault.deposit(10e18, depositor);
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        vault.deposit(1, depositor);
+
+        vm.revertTo(snapshot);
+        vault.mint(10e18, depositor);
+        vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
+        vault.mint(1, depositor);
     }
 
     function testCollateralSecuritizeVault_liquidate() public {
@@ -107,7 +174,8 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
         evc.call(address(0), liquidator, 0, ""); // register liquidator in EVC
         // simulate liquidation
         // The mock controller, through EVC, will enforce a transfer of collateral to the liquidator account
-        // The liquidation function signature is the same as in real Euler vaults, but the mock contract will transfer amount
+        // The liquidation function signature is the same as in real Euler vaults, but the mock contract will transfer
+        // amount
         // of collateral equal to `repayAssets`. `minYieldBalance` is ignored.
         // https://github.com/euler-xyz/euler-vault-kit/blob/master/src/EVault/IEVault.sol#L295
 
@@ -130,5 +198,22 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
     function _getAddressPrefix(address account) internal pure returns (bytes19) {
         uint160 ACCOUNT_ID_OFFSET = 8;
         return bytes19(uint152(uint160(account) >> ACCOUNT_ID_OFFSET));
+    }
+
+    function expectCallThroughEVC(bytes memory call) internal {
+        vm.expectCall(address(evc), 0, abi.encodeCall(IEVC.call, (address(vault), depositor, 0, call)));
+        vm.prank(depositor);
+        (bool success,) = address(vault).call(call);
+        assertTrue(success);
+    }
+
+    function reenter(bytes memory call) internal {
+        uint256 snapshot = vm.snapshotState();
+        securitizeToken.configure("transfer-from/call", abi.encode(address(vault), call));
+
+        vm.expectRevert(ERC4626EVCCollateralCapped.Reentrancy.selector);
+        vm.prank(depositor);
+        vault.deposit(1e18, depositor);
+        vm.revertTo(snapshot);
     }
 }

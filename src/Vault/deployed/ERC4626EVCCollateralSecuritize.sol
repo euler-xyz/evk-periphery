@@ -169,14 +169,24 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @notice Returns the balance for a specific address prefix.
     /// @param addressPrefix The address prefix (bytes19) whose balance is being queried.
     /// @return The balance associated with the given address prefix.
-    function balanceOfAddressPrefix(bytes19 addressPrefix) nonReentrantView(bytes4(keccak256("balanceOfAddressPrefix(bytes19)"))) public view returns (uint256) {
+    function balanceOfAddressPrefix(bytes19 addressPrefix)
+        public
+        view
+        nonReentrantView(bytes4(keccak256("balanceOfAddressPrefix(bytes19)")))
+        returns (uint256)
+    {
         return _addressPrefixBalances[addressPrefix];
     }
 
     /// @notice Returns the balance for the EVC account family of a specific account.
     /// @param account The address whose prefix balance is being queried.
     /// @return The balance associated with the address prefix of the account.
-    function balanceOfAddressPrefix(address account) nonReentrantView(bytes4(keccak256("balanceOfAddressPrefix(account)"))) public view returns (uint256) {
+    function balanceOfAddressPrefix(address account)
+        public
+        view
+        nonReentrantView(bytes4(keccak256("balanceOfAddressPrefix(address)")))
+        returns (uint256)
+    {
         if (evc.getAccountOwner(account) != account) revert InvalidAddress();
         return _addressPrefixBalances[_getAddressPrefix(account)];
     }
@@ -197,7 +207,12 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @param to The owner of the address receiving the shares.
     /// @param amount The amount of shares to transfer.
     /// @return True if the transfer is allowed according to compliance, false otherwise.
-    function isTransferCompliant(address to, uint256 amount) nonReentrantView(this.isTransferCompliant.selector) public view returns (bool) {
+    function isTransferCompliant(address to, uint256 amount)
+        public
+        view
+        nonReentrantView(this.isTransferCompliant.selector)
+        returns (bool)
+    {
         address toOwner = evc.getAccountOwner(to);
         if (toOwner == address(0)) return false;
 

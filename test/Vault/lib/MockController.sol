@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 pragma solidity ^0.8.0;
+
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {IERC20} from "evk/EVault/IEVault.sol";
 
@@ -11,6 +12,7 @@ contract MockController {
     constructor(address _evc) {
         evc = IEVC(_evc);
     }
+
     function checkAccountStatus(address, address[] calldata) public view returns (bytes4 magicValue) {
         if (revertOnCheck) revert("revert on check");
         magicValue = this.checkAccountStatus.selector;
