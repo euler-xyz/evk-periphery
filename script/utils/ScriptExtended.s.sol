@@ -189,6 +189,10 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("safe_owner_simulate", string("")), "--safe-owner-simulate");
     }
 
+    function isSkipSafeSimulation() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_safe_simulation", string("")), "--skip-safe-simulation");
+    }
+
     function isSkipPendingSimulation() internal view returns (bool) {
         return _strEq(vm.envOr("skip_pending_simulation", string("")), "--skip-pending-simulation");
     }
