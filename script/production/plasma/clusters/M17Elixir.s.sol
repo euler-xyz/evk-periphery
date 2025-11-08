@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
+import "evk/EVault/shared/Constants.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
@@ -23,7 +24,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = multisigAddresses.DAO; //governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -41,6 +42,7 @@ contract Cluster is ManageCluster {
         // define hook target and hooked ops here. if needed to be defined per asset, populate the hookTargetOverride and hookedOpsOverride mappings
         cluster.hookTarget = address(0);
         cluster.hookedOps = 0;
+        cluster.hookedOpsOverride[USDT0] = OP_WITHDRAW | OP_REDEEM;
 
         // define config flags here. if needed to be defined per asset, populate the configFlagsOverride mapping
         cluster.configFlags = 0;
@@ -61,7 +63,7 @@ contract Cluster is ManageCluster {
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[sdeUSD] = type(uint256).max;
         cluster.supplyCaps[deUSD ] = type(uint256).max;
-        cluster.supplyCaps[USDT0] = 10_000;
+        cluster.supplyCaps[USDT0] = 0;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[sdeUSD] = type(uint256).max;
@@ -70,7 +72,7 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets
         cluster.irms[deUSD ] = IRM_ADAPTIVE_USD;
-        cluster.irms[USDT0] = IRM_ADAPTIVE_USD;
+        cluster.kinkIRMParams[USDT0] = [uint256(0), uint256(0),  uint256(0), uint256(type(uint32).max)];
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
         cluster.rampDuration = 1 days;
