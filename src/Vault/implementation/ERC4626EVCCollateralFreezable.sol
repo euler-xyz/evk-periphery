@@ -178,6 +178,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         returns (uint256 shares)
     {
         shares = ERC4626EVCCollateral.withdraw(assets, receiver, owner);
+        evc.requireVaultStatusCheck();
     }
 
     /// @notice Redeems a certain amount of shares for a receiver.
@@ -198,6 +199,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         returns (uint256 assets)
     {
         assets = ERC4626EVCCollateral.redeem(shares, receiver, owner);
+        evc.requireVaultStatusCheck();
     }
 
     /// @notice Checks whether the contract is paused.
