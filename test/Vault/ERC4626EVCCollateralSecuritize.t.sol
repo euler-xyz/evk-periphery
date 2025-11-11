@@ -9,7 +9,8 @@ import {ERC4626EVCCollateralFreezable} from "../../src/Vault/implementation/ERC4
 import {ERC4626EVCCollateralCapped} from "../../src/Vault/implementation/ERC4626EVCCollateralCapped.sol";
 import {
     ERC4626EVCCollateralSecuritize,
-    IComplianceServiceRegulated
+    IComplianceServiceRegulated,
+    IPerspective
 } from "../../src/Vault/deployed/ERC4626EVCCollateralSecuritize.sol";
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
@@ -25,6 +26,7 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
     address mockComplianceService;
     address depositor;
     address liquidator;
+    address mockPerspective;
 
     function setUp() public virtual override {
         super.setUp();
@@ -32,10 +34,10 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
         depositor = makeAddr("depositor");
         liquidator = makeAddr("liquidator");
         mockComplianceService = makeAddr("mockComplianceService");
+        mockPerspective = makeAddr("mockPerspective");
         securitizeToken = new MockSecuritizeToken(mockComplianceService);
-
         vault = new ERC4626EVCCollateralSecuritize(
-            address(evc), address(permit2), admin, address(securitizeToken), "Collateral TST", "cTST"
+            address(evc), address(permit2), admin, mockPerspective, address(securitizeToken), "Collateral TST", "cTST"
         );
 
         securitizeToken.mint(depositor, type(uint256).max);
@@ -181,10 +183,33 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
 
         uint256 amountToSeize = 0.5e18;
 
-        // mock compliance service reply
+        // unverified controller
+        vm.mockCall(
+            mockPerspective, abi.encodeCall(IPerspective.isVerified, (address(mockController))), abi.encode(false)
+        );
+        vm.expectRevert(EVCUtil.NotAuthorized.selector);
+        mockController.liquidate(depositor, address(vault), amountToSeize, 0);
+        vm.clearMockedCalls();
+
+        // not compliant
+        vm.mockCall(
+            mockPerspective, abi.encodeCall(IPerspective.isVerified, (address(mockController))), abi.encode(true)
+        );
         vm.mockCall(
             mockComplianceService,
-            0,
+            abi.encodeCall(IComplianceServiceRegulated.preTransferCheck, (address(vault), liquidator, amountToSeize)),
+            abi.encode(uint256(1), string(""))
+        );
+        vm.expectRevert(EVCUtil.NotAuthorized.selector);
+        mockController.liquidate(depositor, address(vault), amountToSeize, 0);
+        vm.clearMockedCalls();
+
+        // success finally
+        vm.mockCall(
+            mockPerspective, abi.encodeCall(IPerspective.isVerified, (address(mockController))), abi.encode(true)
+        );
+        vm.mockCall(
+            mockComplianceService,
             abi.encodeCall(IComplianceServiceRegulated.preTransferCheck, (address(vault), liquidator, amountToSeize)),
             abi.encode(uint256(0), string(""))
         );
@@ -193,6 +218,26 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
         // 0.5e18 of collateral vault shares are transfered to the liquidator
         assertEq(vault.balanceOf(depositor), 0.5e18);
         assertEq(vault.balanceOf(liquidator), 0.5e18);
+    }
+
+    function testCollateralSecuritizeVault_perspective() public {
+        address newPerspective = makeAddr("newPerspective");
+        vm.prank(depositor);
+        vm.expectRevert(EVCUtil.NotAuthorized.selector);
+        vault.setControllerPerspective(newPerspective);
+
+        // not an admin sub-account
+        vm.startPrank(admin);
+        address subAdmin = address(uint160(admin) ^ 1);
+        evc.enableCollateral(admin, makeAddr("collateral")); // register owner
+        vm.expectRevert(EVCUtil.NotAuthorized.selector);
+        evc.call(address(vault), subAdmin, 0, abi.encodeCall(vault.setControllerPerspective, (newPerspective)));
+
+        vm.expectEmit();
+        emit ERC4626EVCCollateralSecuritize.GovSetControllerPerspective(newPerspective);
+        vault.setControllerPerspective(newPerspective);
+
+        assertEq(vault.controllerPerspective(), newPerspective);
     }
 
     function _getAddressPrefix(address account) internal pure returns (bytes19) {

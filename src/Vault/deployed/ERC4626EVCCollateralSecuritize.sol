@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import {IPerspective} from "../../Perspectives/implementation/interfaces/IPerspective.sol";
 import {
     ERC4626EVCCollateralFreezable,
     ERC4626EVCCollateralCapped,
@@ -29,21 +30,40 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     /// @notice Mapping indicating the balance for a specific address prefix.
     mapping(bytes19 addressPrefix => uint256) internal _addressPrefixBalances;
 
+    /// @notice Address of a perspective contract which whitelists controllers allowed to transfer shares in
+    /// liquidation.
+    address public controllerPerspective;
+
     /// @notice Emitted after a successful transfer executed via `seize`.
     event GovSeized(address indexed from, address indexed to, uint256 amount);
+
+    /// @notice Event emitted when controller perspective is set
+    event GovSetControllerPerspective(address indexed controllerPerspective);
 
     /// @dev Initializes the contract.
     /// @param evc The EVC address.
     /// @param permit2 The address of the permit2 contract.
     /// @param admin The address of the governor admin.
+    /// @param controllerPerspectiveAddress The address of the perspective contract which verifies controllers which are
+    /// whitelisted to execute liquidation transfer.
     /// @param asset The address of the underlying asset.
     /// @param name The name of the vault.
     /// @param symbol The symbol of the vault.
-    constructor(address evc, address permit2, address admin, address asset, string memory name, string memory symbol)
-        ERC4626EVC(evc, permit2, asset, name, symbol)
-        ERC4626EVCCollateralCapped(admin)
-    {
+    constructor(
+        address evc,
+        address permit2,
+        address admin,
+        address controllerPerspectiveAddress,
+        address asset,
+        string memory name,
+        string memory symbol
+    ) ERC4626EVC(evc, permit2, asset, name, symbol) ERC4626EVCCollateralCapped(admin) {
+        if (controllerPerspectiveAddress == address(0)) revert InvalidAddress();
+        controllerPerspective = controllerPerspectiveAddress;
+
         complianceService = IDSToken(asset).getDSService(IDSToken(asset).COMPLIANCE_SERVICE());
+
+        emit GovSetControllerPerspective(controllerPerspectiveAddress);
     }
 
     /// @notice Seizes a certain amount of shares from an address.
@@ -89,12 +109,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         whenNotFrozen(to)
         returns (bool result)
     {
-        if (
-            !isCommonOwner(_msgSender(), to)
-                && !(evc.isControlCollateralInProgress() && isTransferCompliant(to, amount))
-        ) {
-            revert NotAuthorized();
-        }
+        _requireTransferAuthorized(_msgSender(), to, amount);
         result = ERC4626EVCCollateral.transfer(to, amount);
     }
 
@@ -116,9 +131,7 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         whenNotFrozen(to)
         returns (bool result)
     {
-        if (!isCommonOwner(from, to) && !(evc.isControlCollateralInProgress() && isTransferCompliant(to, amount))) {
-            revert NotAuthorized();
-        }
+        _requireTransferAuthorized(from, to, amount);
         result = ERC4626EVCCollateral.transferFrom(from, to, amount);
     }
 
@@ -164,6 +177,14 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         if (!isCommonOwner(_msgSender(), receiver)) revert NotAuthorized();
         assets = ERC4626EVCCollateral.mint(shares, receiver);
         evc.requireVaultStatusCheck();
+    }
+
+    function setControllerPerspective(address _controllerPerspective) public onlyEVCAccountOwner governorOnly {
+        if (_controllerPerspective == address(0)) revert InvalidAddress();
+
+        controllerPerspective = _controllerPerspective;
+
+        emit GovSetControllerPerspective(_controllerPerspective);
     }
 
     /// @notice Returns the balance for a specific address prefix.
@@ -220,6 +241,21 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
             address(this), toOwner, previewRedeem(amount)
         );
         return code == 0;
+    }
+
+    function _requireTransferAuthorized(address from, address to, uint256 amount) internal view {
+        if (!isCommonOwner(from, to)) {
+            // EVC ensures that during `controlCollateral` call there is exactly one controller enabled
+            address[] memory controllers = evc.getControllers(from);
+            if (
+                !(
+                    evc.isControlCollateralInProgress()
+                        && IPerspective(controllerPerspective).isVerified(controllers[0]) && isTransferCompliant(to, amount)
+                )
+            ) {
+                revert NotAuthorized();
+            }
+        }
     }
 
     /// @dev Transfers a `value` amount of tokens from `from` to `to`, or alternatively mints (or burns) if `from` (or
