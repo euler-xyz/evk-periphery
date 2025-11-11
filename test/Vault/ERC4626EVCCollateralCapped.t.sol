@@ -10,6 +10,7 @@ import {ERC4626EVCCollateralCapped} from "../../src/Vault/implementation/ERC4626
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
+import {ERC4626} from "openzeppelin-contracts/token/ERC20/extensions/ERC4626.sol";
 import "forge-std/Vm.sol";
 
 contract ERC4626EVCCollateralCappedTest is EVaultTestBase {
@@ -181,19 +182,33 @@ contract ERC4626EVCCollateralCappedTest is EVaultTestBase {
     function testCollateralCappedVault_supplyCap_basic() public {
         vm.prank(admin);
         vault.setSupplyCap(CAP_RAW);
+        assertEq(vault.maxDeposit(depositor), 10e18);
+        assertEq(vault.maxMint(depositor), 10e18);
 
         vm.startPrank(depositor);
         uint256 snapshot = vm.snapshotState();
 
         // can deposit up to cap
         vault.deposit(10e18, depositor);
+        assertEq(vault.maxDeposit(depositor), 0);
+        assertEq(vault.maxMint(depositor), 0);
+
         vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
         vault.deposit(1, depositor);
 
         vm.revertTo(snapshot);
         vault.mint(10e18, depositor);
+        assertEq(vault.maxDeposit(depositor), 0);
+        assertEq(vault.maxMint(depositor), 0);
+
         vm.expectRevert(ERC4626EVCCollateralCapped.SupplyCapExceeded.selector);
         vault.mint(1, depositor);
+
+        vm.revertTo(snapshot);
+        vault.deposit(5e18, depositor);
+
+        assertEq(vault.maxDeposit(depositor), 5e18);
+        assertEq(vault.maxMint(depositor), 5e18);
     }
 
     function testCollateralCappedVault_supplyCap_transientlyExceedStartUnderCap() public {
