@@ -69,7 +69,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         emit GovUnpaused();
     }
 
-    /// @notice Freezes all accounts sharing an address prefix.
+    /// @notice Freezes all accounts sharing an address prefix. A frozen account's balance can not change.
     /// @param addressPrefix The address prefix to freeze.
     function freeze(bytes19 addressPrefix) public onlyEVCAccountOwner governorOnly {
         if (_freezes[addressPrefix]) return;
