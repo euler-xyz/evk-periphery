@@ -53,6 +53,10 @@ contract Cluster is ManageCluster {
             cluster.irms[YU  ] = IRM_ADAPTIVE_USD;
         }
 
+        cluster.borrowCaps[USDC] = 0;
+        cluster.borrowCaps[USDT] = 0;
+        cluster.borrowCaps[YU] = 0;
+
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //                          0         1         2         3         4

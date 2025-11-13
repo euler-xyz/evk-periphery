@@ -107,10 +107,10 @@ contract Cluster is ManageCluster {
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH       ] = 75_000;
         cluster.supplyCaps[wstETH     ] = 10_000;
-        cluster.supplyCaps[cbETH      ] = 1_150;
+        cluster.supplyCaps[cbETH      ] = 575;
         cluster.supplyCaps[weETH      ] = 13_500;
         cluster.supplyCaps[ezETH      ] = 9_750;
-        cluster.supplyCaps[RETH       ] = 550;
+        cluster.supplyCaps[RETH       ] = 400;
         cluster.supplyCaps[rsETH      ] = 27_000;
         cluster.supplyCaps[tETH       ] = 9_400;
         cluster.supplyCaps[USDC       ] = 75_000_000;
@@ -132,10 +132,10 @@ contract Cluster is ManageCluster {
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[WETH       ] = 67_500;
         cluster.borrowCaps[wstETH     ] = 7_500;
-        cluster.borrowCaps[cbETH      ] = 450;
+        cluster.borrowCaps[cbETH      ] = 225;
         cluster.borrowCaps[weETH      ] = 3_380;
         cluster.borrowCaps[ezETH      ] = 2_340;
-        cluster.borrowCaps[RETH       ] = 200;
+        cluster.borrowCaps[RETH       ] = 100;
         cluster.borrowCaps[rsETH      ] = 6_750;
         cluster.borrowCaps[tETH       ] = 1_600;
         cluster.borrowCaps[USDC       ] = 67_500_000;
@@ -171,8 +171,8 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(25%)=4.60% APY  Max=848.77% APY
             uint256[4] memory irmETH_LRT   = [uint256(0), uint256(1327273625), uint256(21691866441), uint256(1073741824)];
 
-            // Base=0.00% APY,  Kink(90.00%)=6.50% APY  Max=13.00% APY
-            uint256[4] memory irmUSD_1     = [uint256(0), uint256(516261061),  uint256(4371001016), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=6.50% APY  Max=30.00% APY
+            uint256[4] memory irmUSD_1     = [uint256(0), uint256(516261061),  uint256(14711172812), uint256(3865470566)];
             
             // Base=0% APY,  Kink(40%)=2.79% APY  Max=145.96% APY
             uint256[4] memory irmRWA_YLD_1 = [uint256(0), uint256(507574932),  uint256(10728765229), uint256(1717986918)];

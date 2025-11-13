@@ -23,6 +23,8 @@ contract Cluster is ManageCluster {
     function configureCluster() internal override {
         super.configureCluster();
 
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x75178137D3B4B9A0F771E0e149b00fB8167BA325;
+
         // define unit of account here
         cluster.unitOfAccount = USD;
 
@@ -46,12 +48,16 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            // Base=0% APY  Kink(90%)=2.7% APY  Max=40.00% APY
-            //cluster.kinkIRMParams[WETH] = [uint256(0), uint256(218407859), uint256(22859618857), uint256(3865470566)];
+            // Base=0% APY,  Kink(90%)=10.00% APY  Max=30.00% APY
+            uint256[4] memory irm = [uint256(0), uint256(781341783),  uint256(12325426837), uint256(3865470566)];
 
-            cluster.irms[USDC ] = IRM_ADAPTIVE_USD;
-            cluster.irms[USDT ] = IRM_ADAPTIVE_USD;
-            cluster.irms[mHYPER] = IRM_ADAPTIVE_USD_YB;
+            cluster.kinkIRMParams[USDC] = irm;
+            cluster.kinkIRMParams[USDT] = irm;
+            cluster.kinkIRMParams[mHYPER] = irm;
+
+            //cluster.irms[USDC ] = IRM_ADAPTIVE_USD;
+            //cluster.irms[USDT ] = IRM_ADAPTIVE_USD;
+            //cluster.irms[mHYPER] = IRM_ADAPTIVE_USD_YB;
         }
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
@@ -71,5 +77,8 @@ contract Cluster is ManageCluster {
         /* 0  Prime USDC   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO],
         /* 1  Prime USDT   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO]
         ];
+
+        cluster.supplyCaps[USDC] = 10_000;
+        cluster.supplyCaps[USDT] = 10_000;
     }
 }

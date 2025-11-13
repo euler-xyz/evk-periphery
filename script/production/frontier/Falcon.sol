@@ -58,6 +58,8 @@ contract Cluster is ManageCluster {
             cluster.irms[sUSDf ] = IRM_ADAPTIVE_USD_YB;
         }
 
+        cluster.rampDuration = 30 days;
+
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //               0          1         2         3         4         5         6
@@ -66,7 +68,7 @@ contract Cluster is ManageCluster {
             /* 1  USDT    */ [LTV_HIGH, LTV_ZERO, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 2  USDf    */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 3  sUSDf   */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 4  PT_sUSDf*/ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 4  PT_sUSDf*/ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 5  PT_sUSDf*/ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 6  PT_USDf */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];

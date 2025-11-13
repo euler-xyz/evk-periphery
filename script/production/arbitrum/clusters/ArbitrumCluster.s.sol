@@ -85,13 +85,13 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[sUSDC ] = 10_000_000;
         cluster.supplyCaps[WETH  ] = 18_800;
         cluster.supplyCaps[wstETH] = 11_500;
-        cluster.supplyCaps[weETH ] = 11_300;
+        cluster.supplyCaps[weETH ] = 5_650;
         cluster.supplyCaps[rsETH ] = 30;
         cluster.supplyCaps[tETH  ] = 150;
-        cluster.supplyCaps[ezETH ] = 188;
+        cluster.supplyCaps[ezETH ] = 94;
         cluster.supplyCaps[rETH  ] = 300;
         cluster.supplyCaps[WBTC  ] = 600;
-        cluster.supplyCaps[ARB   ] = 10_000_000;
+        cluster.supplyCaps[ARB   ] = 5_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC  ] = 90_000_000;
@@ -100,13 +100,13 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[sUSDC ] = 8_000_000;
         cluster.borrowCaps[WETH  ] = 16_500;
         cluster.borrowCaps[wstETH] = 5_500;
-        cluster.borrowCaps[weETH ] = 5_500;
+        cluster.borrowCaps[weETH ] = 2_750;
         cluster.borrowCaps[rsETH ] = 15;
         cluster.borrowCaps[tETH  ] = 75;
-        cluster.borrowCaps[ezETH ] = 90;
+        cluster.borrowCaps[ezETH ] = 45;
         cluster.borrowCaps[rETH  ] = type(uint256).max;
         cluster.borrowCaps[WBTC  ] = 540;
-        cluster.borrowCaps[ARB   ] = 8_000_000;
+        cluster.borrowCaps[ARB   ] = 4_000_000;
 
         // define IRM classes here and assign them to the assets
         {
@@ -161,7 +161,7 @@ contract Cluster is ManageCluster {
         /* 5  wstETH  */ [uint16(0.84e4), 0.84e4, 0.82e4, 0.82e4, 0.95e4, 0.000e4, 0.93e4, 0.92e4, 0.925e4, 0.92e4, 0.92e4, 0.84e4, 0.65e4],
         /* 6  weETH   */ [uint16(0.83e4), 0.83e4, 0.81e4, 0.81e4, 0.94e4, 0.930e4, 0.00e4, 0.91e4, 0.910e4, 0.91e4, 0.91e4, 0.83e4, 0.65e4],
         /* 7  rsETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.920e4, 0.91e4, 0.00e4, 0.910e4, 0.91e4, 0.91e4, 0.00e4, 0.00e4],
-        /* 8  tETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.925e4, 0.91e4, 0.91e4, 0.000e4, 0.91e4, 0.91e4, 0.00e4, 0.00e4],
+        /* 8  tETH    */ [uint16(0.75e4), 0.75e4, 0.00e4, 0.00e4, 0.93e4, 0.925e4, 0.91e4, 0.91e4, 0.000e4, 0.91e4, 0.91e4, 0.00e4, 0.00e4],
         /* 9  ezETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.920e4, 0.91e4, 0.91e4, 0.910e4, 0.00e4, 0.91e4, 0.00e4, 0.00e4],
         /* 10 rETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.920e4, 0.91e4, 0.91e4, 0.910e4, 0.91e4, 0.00e4, 0.00e4, 0.00e4],
         /* 11 WBTC    */ [uint16(0.86e4), 0.86e4, 0.84e4, 0.84e4, 0.86e4, 0.840e4, 0.84e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.65e4],

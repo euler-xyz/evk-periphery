@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
+import "evk/EVault/shared/Constants.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
@@ -23,7 +24,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x060DB084bF41872861f175d83f3cb1B5566dfEA3;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -65,7 +66,7 @@ contract Cluster is ManageCluster {
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[sUSDai] = type(uint256).max;
-        cluster.borrowCaps[USDai ] = type(uint256).max;
+        cluster.borrowCaps[USDai ] = 25_000_000;
         cluster.borrowCaps[USDT0] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
@@ -73,10 +74,13 @@ contract Cluster is ManageCluster {
         cluster.irms[USDT0]  = IRM_ADAPTIVE_USD;
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 7 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
+
+        cluster.borrowLTVsOverride[0][1] = 0.8e4;
+        cluster.borrowLTVsOverride[2][1] = 0.8e4;
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
