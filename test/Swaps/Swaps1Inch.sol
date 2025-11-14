@@ -10,6 +10,9 @@ import {ISwapper} from "../../src/Swaps/ISwapper.sol";
 import {Swapper} from "../../src/Swaps/Swapper.sol";
 import {SwapVerifier} from "../../src/Swaps/SwapVerifier.sol";
 
+import {Permit2ECDSASigner} from "evk-test/mocks/Permit2ECDSASigner.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+
 import "./Payloads.sol";
 
 import "forge-std/Test.sol";
@@ -25,6 +28,7 @@ contract Swaps1Inch is EVaultTestBase {
     address constant uniswapRouterV2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address constant uniswapRouterV3 = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address constant uniswapRouter02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address constant permit2Address = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
     address constant GRT = 0xc944E90C64B2c07662A292be6244BDf05Cda44a7;
     address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -53,7 +57,7 @@ contract Swaps1Inch is EVaultTestBase {
         user2 = makeAddr("user2");
 
         swapper = new Swapper(uniswapRouterV2, uniswapRouterV3);
-        swapVerifier = new SwapVerifier();
+        swapVerifier = new SwapVerifier(address(evc), permit2Address);
 
         if (bytes(FORK_RPC_URL).length != 0) {
             mainnetFork = vm.createSelectFork(FORK_RPC_URL);
@@ -1452,5 +1456,75 @@ contract Swaps1Inch is EVaultTestBase {
         swapper.repayAndDeposit(address(assetTST), address(eTST), type(uint256).max, user2);
         assertEq(eTST.debtOf(user2), 0);
         assertEq(eTST.balanceOf(user2), 2e18);
+    }
+
+    function test_transferFromSender_allowance() external {
+        assetTST.mint(user, 1e18);
+        assertEq(assetTST.balanceOf(address(swapper)), 0);
+
+        startHoax(user);
+        vm.expectRevert(); // no approvals
+        swapVerifier.transferFromSender(address(assetTST), 1e18, address(swapper));
+
+        assetTST.approve(address(swapVerifier), 2e18);
+
+        startHoax(user2);
+        vm.expectRevert(); // other users can't pull
+        swapVerifier.transferFromSender(address(assetTST), 1e18, address(swapper));
+
+        startHoax(user);
+        swapVerifier.transferFromSender(address(assetTST), 1e18, address(swapper));
+
+        assertEq(assetTST.balanceOf(address(swapper)), 1e18);
+    }
+
+    function test_transferFromSender_permit2() external {
+        assertEq(assetTST.balanceOf(address(swapper)), 0);
+
+        Permit2ECDSASigner permit2Signer = new Permit2ECDSASigner(address(permit2));
+
+        uint256 userPK = 0x123400;
+        address signer = vm.addr(userPK);
+
+        assetTST.mint(signer, 1e18);
+
+        startHoax(signer);
+        vm.expectRevert(); // no approvals
+        swapVerifier.transferFromSender(address(assetTST), 1e18, address(swapper));
+
+        // approve permit2 contract to spend the tokens
+        assetTST.approve(permit2, type(uint160).max);
+
+        // build permit2 object
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer.PermitSingle({
+            details: IAllowanceTransfer.PermitDetails({
+                token: address(assetTST),
+                amount: type(uint160).max,
+                expiration: type(uint48).max,
+                nonce: 0
+            }),
+            spender: address(swapVerifier),
+            sigDeadline: type(uint256).max
+        });
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](2);
+        items[0].onBehalfOfAccount = signer;
+        items[0].targetContract = permit2;
+        items[0].value = 0;
+        items[0].data = abi.encodeWithSignature(
+            "permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)",
+            signer,
+            permitSingle,
+            permit2Signer.signPermitSingle(userPK, permitSingle)
+        );
+
+        items[1].onBehalfOfAccount = signer;
+        items[1].targetContract = address(swapVerifier);
+        items[1].value = 0;
+        items[1].data = abi.encodeCall(swapVerifier.transferFromSender, (address(assetTST), 1e18, address(swapper)));
+
+        evc.batch(items);
+
+        assertEq(assetTST.balanceOf(address(swapper)), 1e18);
     }
 }
