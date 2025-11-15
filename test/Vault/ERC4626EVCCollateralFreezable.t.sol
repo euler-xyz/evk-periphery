@@ -32,6 +32,9 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
     }
 
     function testCollateralFreezableVault_pause() public {
+        vm.prank(depositor);
+        vault.deposit(10, depositor); // deposit something to check maxWithdraw/maxRedeem
+
         // only admin can pause
         vm.prank(depositor);
         vm.expectRevert(EVCUtil.NotAuthorized.selector);
@@ -73,8 +76,13 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         vault.transfer(depositor, 1);
         vm.expectRevert(ERC4626EVCCollateralFreezable.Paused.selector);
         vault.transferFrom(depositor, to, 1);
-
         vm.stopPrank();
+
+        // view functions
+        assertEq(vault.maxDeposit(depositor), 0);
+        assertEq(vault.maxMint(depositor), 0);
+        assertEq(vault.maxWithdraw(depositor), 0);
+        assertEq(vault.maxRedeem(depositor), 0);
 
         // only admin can unpause
         vm.prank(depositor);
@@ -106,37 +114,38 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         vault.transfer(to, 1);
         vault.approve(depositor, 1);
         vault.transferFrom(depositor, to, 1);
+
+        assertGt(vault.maxDeposit(depositor), 0);
+        assertGt(vault.maxMint(depositor), 0);
+        assertGt(vault.maxWithdraw(depositor), 0);
+        assertGt(vault.maxRedeem(depositor), 0);
     }
 
     function testCollateralFreezableVault_freeze() public {
         address otherDepositor = makeAddr("otherDepositor");
         assetTST.mint(otherDepositor, type(uint256).max);
-        vm.prank(otherDepositor);
+        vm.startPrank(otherDepositor);
         assetTST.approve(address(vault), type(uint256).max);
-        vm.prank(otherDepositor);
         vault.deposit(1e18, otherDepositor);
-        vm.prank(otherDepositor);
         vault.approve(depositor, type(uint256).max);
 
         address subAdmin = address(uint160(admin) ^ 1);
         address subDepositor = address(uint160(depositor) ^ 1);
         bytes19 depositorPrefix = _getAddressPrefix(depositor);
 
-        vm.prank(depositor);
+        vm.startPrank(depositor);
+        vault.deposit(10, depositor); // deposit something to check maxWithdraw/maxRedeem
         evc.enableCollateral(depositor, address(1));
         // only admin can freeze an account
-        vm.prank(depositor);
         vm.expectRevert(EVCUtil.NotAuthorized.selector);
         vault.freeze(depositorPrefix);
 
         // not an admin sub-account
-        vm.prank(admin);
+        vm.startPrank(admin);
         evc.enableCollateral(admin, makeAddr("collateral")); // register owner
-        vm.prank(admin);
         vm.expectRevert(EVCUtil.NotAuthorized.selector);
         evc.call(address(vault), subAdmin, 0, abi.encodeCall(ERC4626EVCCollateralFreezable.freeze, (depositorPrefix)));
 
-        vm.prank(admin);
         vm.expectEmit();
         emit ERC4626EVCCollateralFreezable.GovFrozen(depositorPrefix);
         vault.freeze(depositorPrefix);
@@ -144,7 +153,6 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         assertTrue(vault.isFrozen(subDepositor));
         assertTrue(vault.isFrozen(_getAddressPrefix(depositor)));
         // indempotent
-        vm.prank(admin);
         vault.freeze(depositorPrefix);
         assertTrue(vault.isFrozen(depositor));
         assertTrue(vault.isFrozen(subDepositor));
@@ -177,8 +185,13 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         vault.redeem(1, depositor, otherDepositor);
         vm.expectRevert(ERC4626EVCCollateralFreezable.Frozen.selector);
         vault.transfer(depositor, 1);
-
         vm.stopPrank();
+
+        // view functions
+        assertEq(vault.maxDeposit(depositor), 0);
+        assertEq(vault.maxMint(depositor), 0);
+        assertEq(vault.maxWithdraw(depositor), 0);
+        assertEq(vault.maxRedeem(depositor), 0);
 
         // only admin can unfreeze
         vm.prank(depositor);
@@ -218,6 +231,11 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         vault.withdraw(1, depositor, otherDepositor);
         vault.redeem(1, depositor, otherDepositor);
         vault.transfer(depositor, 1);
+
+        assertGt(vault.maxDeposit(depositor), 0);
+        assertGt(vault.maxMint(depositor), 0);
+        assertGt(vault.maxWithdraw(depositor), 0);
+        assertGt(vault.maxRedeem(depositor), 0);
     }
 
     function _getAddressPrefix(address account) internal pure returns (bytes19) {
