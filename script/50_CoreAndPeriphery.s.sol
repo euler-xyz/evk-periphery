@@ -408,7 +408,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (bridgeAddresses.eusdOFTAdapter == address(0)) {
-            if (input.deployEUSD) {
+            if (tokenAddresses.eUSD != address(0)) {
                 console.log("+ Deploying OFT Adapter for eUSD...");
                 bridgeAddresses.eusdOFTAdapter = deployAndConfigureOFTAdapter(tokenAddresses.eUSD, false);
 
@@ -435,7 +435,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     );
                 }
             } else {
-                console.log("! eUSD OFT Adapter deployment deliberately skipped. Skipping...");
+                console.log("! eUSD OFT Adapter deployment skipped. Skipping...");
             }
         } else {
             console.log("- eUSD OFT Adapter already deployed. Skipping...");
@@ -478,11 +478,11 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (bridgeAddresses.seusdOFTAdapter == address(0)) {
-            if (input.deploySEUSD) {
+            if (tokenAddresses.seUSD != address(0)) {
                 console.log("+ Deploying OFT Adapter for seUSD...");
                 bridgeAddresses.seusdOFTAdapter = deployAndConfigureOFTAdapter(tokenAddresses.seUSD, true);
             } else {
-                console.log("! seUSD OFT Adapter deployment deliberately skipped. Skipping...");
+                console.log("! seUSD OFT Adapter deployment skipped. Skipping...");
             }
         } else {
             console.log("- seUSD OFT Adapter already deployed. Skipping...");
@@ -497,7 +497,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (peripheryAddresses.feeCollector == address(0)) {
-            if (input.deployEUSD) {
+            if (
+                tokenAddresses.eUSD != address(0) && bridgeAddresses.eusdOFTAdapter != address(0)
+                    && tokenAddresses.seUSD != address(0)
+            ) {
                 console.log("+ Deploying eUSD fee collecting system...");
                 if (block.chainid == HUB_CHAIN_ID) {
                     startBroadcast();
@@ -812,7 +815,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 (coreAddresses.eulerEarnFactory, peripheryAddresses.eulerEarnPublicAllocator) =
                     deployer.deploy(coreAddresses.evc, coreAddresses.permit2, peripheryAddresses.evkFactoryPerspective);
             } else {
-                console.log("- EulerEarn not deployed. Skipping...");
+                console.log("- EulerEarn deliberately skipped. Skipping...");
                 if (vm.isDir("out-euler-earn")) vm.removeDir("out-euler-earn", true);
             }
         } else {
@@ -998,7 +1001,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     );
                 }
             } else {
-                console.log("- EulerSwap v1 not deployed. Skipping...");
+                console.log("- EulerSwap V2 deliberately skipped. Skipping...");
                 if (vm.isDir("out-euler-swap")) vm.removeDir("out-euler-swap", true);
             }
         } else {
