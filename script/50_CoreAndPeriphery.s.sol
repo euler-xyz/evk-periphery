@@ -111,7 +111,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     uint256 internal constant EVAULT_FACTORY_TIMELOCK_MIN_DELAY = 4 days;
     uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
     uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_WILDCARD_TIMELOCK_MIN_DELAY = 2 days;
-    uint256 internal constant EUSD_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
+    uint256 internal constant EUSD_ADMIN_TIMELOCK_MIN_DELAY = 7 days;
     address[2] internal EVAULT_FACTORY_GOVERNOR_PAUSERS =
         [0xff217004BdD3A6A592162380dc0E6BbF143291eB, 0xcC6451385685721778E7Bd80B54F8c92b484F601];
 
@@ -372,9 +372,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 bytes32 revokeMinterRole = ERC20BurnableMintable(tokenAddresses.eUSD).REVOKE_MINTER_ROLE();
                 AccessControl(tokenAddresses.eUSD).grantRole(revokeMinterRole, multisigAddresses.labs);
 
-                console.log("    Granting eUSD allocator role to the desired address %s", multisigAddresses.labs);
+                console.log("    Granting eUSD allocator role to the desired address %s", multisigAddresses.DAO);
                 bytes32 allocatorRole = ERC20Synth(tokenAddresses.eUSD).ALLOCATOR_ROLE();
-                AccessControl(tokenAddresses.eUSD).grantRole(allocatorRole, multisigAddresses.labs);
+                AccessControl(tokenAddresses.eUSD).grantRole(allocatorRole, multisigAddresses.DAO);
                 stopBroadcast();
 
                 console.log(" + Deploying eUSD timelock controller...");
