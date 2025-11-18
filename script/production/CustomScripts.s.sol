@@ -20,6 +20,7 @@ import {
     LensUtilsDeployer,
     LensEulerEarnVaultDeployer
 } from "../08_Lenses.s.sol";
+import {ERC20Synth} from "../../src/ERC20/deployed/ERC20Synth.sol";
 import {VaultLens, VaultInfoFull} from "../../src/Lens/VaultLens.sol";
 import {AccountLens, AccountInfo, AccountMultipleVaultsInfo} from "../../src/Lens/AccountLens.sol";
 
@@ -448,9 +449,8 @@ contract LiquidateAccount is BatchBuilder {
         view
         returns (uint256 maxRepay, uint256 maxYield)
     {
-        (maxRepay, maxYield) = IEVault(IEVC(coreAddresses.evc).getControllers(account)[0]).checkLiquidation(
-            getDeployer(), account, collateral
-        );
+        (maxRepay, maxYield) = IEVault(IEVC(coreAddresses.evc).getControllers(account)[0])
+            .checkLiquidation(getDeployer(), account, collateral);
     }
 
     function execute(address account, address collateral) internal {
@@ -469,6 +469,41 @@ contract LiquidateAccount is BatchBuilder {
             controllers[0],
             abi.encodeCall(IEVault(controllers[0]).liquidate, (account, collateral, type(uint256).max, 0))
         );
+        executeBatch();
+    }
+}
+
+contract eUSDAllocate is BatchBuilder {
+    function run(address vault, uint256 amount) public {
+        execute(vault, uint128(amount));
+    }
+
+    function execute(address vault, uint128 amount) internal {
+        bytes32 allocatorRole = ERC20Synth(tokenAddresses.eUSD).ALLOCATOR_ROLE();
+        bool isAllocator = ERC20Synth(tokenAddresses.eUSD).hasRole(allocatorRole, getAppropriateOnBehalfOfAccount());
+
+        addBatchItem(
+            tokenAddresses.eUSD, abi.encodeCall(ERC20Synth.setCapacity, (getAppropriateOnBehalfOfAccount(), amount))
+        );
+
+        addBatchItem(tokenAddresses.eUSD, abi.encodeCall(ERC20Synth.mint, (tokenAddresses.eUSD, amount)));
+
+        if (!isAllocator) {
+            addBatchItem(
+                tokenAddresses.eUSD,
+                abi.encodeCall(ERC20Synth.grantRole, (allocatorRole, getAppropriateOnBehalfOfAccount()))
+            );
+        }
+
+        addBatchItem(tokenAddresses.eUSD, abi.encodeCall(ERC20Synth.allocate, (vault, amount)));
+
+        if (!isAllocator) {
+            addBatchItem(
+                tokenAddresses.eUSD,
+                abi.encodeCall(ERC20Synth.revokeRole, (allocatorRole, getAppropriateOnBehalfOfAccount()))
+            );
+        }
+
         executeBatch();
     }
 }

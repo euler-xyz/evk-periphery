@@ -373,10 +373,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 console.log("    Granting eUSD revoke minter role to the desired address %s", multisigAddresses.labs);
                 bytes32 revokeMinterRole = ERC20BurnableMintable(tokenAddresses.eUSD).REVOKE_MINTER_ROLE();
                 AccessControl(tokenAddresses.eUSD).grantRole(revokeMinterRole, multisigAddresses.labs);
-
-                console.log("    Granting eUSD allocator role to the desired address %s", multisigAddresses.DAO);
-                bytes32 allocatorRole = ERC20Synth(tokenAddresses.eUSD).ALLOCATOR_ROLE();
-                AccessControl(tokenAddresses.eUSD).grantRole(allocatorRole, multisigAddresses.DAO);
                 stopBroadcast();
 
                 console.log(" + Deploying eUSD timelock controller...");
@@ -400,6 +396,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     TimelockController(payable(governorAddresses.eUSDAdminTimelockController)).CANCELLER_ROLE();
                 AccessControl(governorAddresses.eUSDAdminTimelockController)
                     .grantRole(cancellerRole, multisigAddresses.labs);
+
+                console.log("    Granting eUSD allocator role to the desired address %s", governorAddresses.eUSDAdminTimelockController);
+                bytes32 allocatorRole = ERC20Synth(tokenAddresses.eUSD).ALLOCATOR_ROLE();
+                AccessControl(tokenAddresses.eUSD).grantRole(allocatorRole, governorAddresses.eUSDAdminTimelockController);
                 stopBroadcast();
             } else {
                 console.log("! eUSD deployment deliberately skipped. Skipping...");

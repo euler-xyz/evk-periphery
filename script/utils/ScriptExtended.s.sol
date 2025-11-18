@@ -119,6 +119,8 @@ abstract contract ScriptExtended is Script {
                 timelockAddress = "accessControlEmergencyGovernorAdminTimelockController";
             } else if (_strEq(timelockAddress, "wildcard") || _strEq(timelockAddress, "Wildcard")) {
                 timelockAddress = "accessControlEmergencyGovernorWildcardTimelockController";
+            } else if (_strEq(timelockAddress, "eusd") || _strEq(timelockAddress, "eUSD")) {
+                timelockAddress = "eUSDAdminTimelockController";
             }
 
             timelock =
