@@ -179,6 +179,10 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         evc.requireVaultStatusCheck();
     }
 
+    /// @notice Sets a perspective contract to whitelist allowed controllers
+    /// @param _controllerPerspective The perspective contract to set.
+    /// @dev Only whitelisted controllers are allowed, otherwise users would be able to set a trivial controller
+    /// which would be allowed to transfer shares through a liquidation flow.
     function setControllerPerspective(address _controllerPerspective) public onlyEVCAccountOwner governorOnly {
         if (_controllerPerspective == address(0)) revert InvalidAddress();
 
