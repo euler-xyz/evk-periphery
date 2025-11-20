@@ -10,6 +10,7 @@ import {ERC4626EVCCollateralFreezable} from "../../src/Vault/implementation/ERC4
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
+import {MockController} from "./lib/MockController.sol";
 import "forge-std/Vm.sol";
 
 contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
@@ -84,22 +85,31 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         assertEq(vault.maxWithdraw(depositor), 0);
         assertEq(vault.maxRedeem(depositor), 0);
 
+
+        // no borrows on paused account
+        MockController mockController = new MockController(address(evc));
+        vm.startPrank(depositor);
+        evc.enableController(depositor, address(mockController));
+        mockController.setCheckZeroBalanceCollateral(address(vault));
+
+        // mockBorrow schedules an account status check
+        vm.expectRevert("zero collateral balance"); // collateral balance should be zero to prevent borrows against frozen collateral
+        mockController.mockBorrow();
+        mockController.disableController();
+
         // only admin can unpause
-        vm.prank(depositor);
         vm.expectRevert(EVCUtil.NotAuthorized.selector);
         vault.unpause();
 
         // not a sub-account
-        vm.prank(admin);
+        vm.startPrank(admin);
         vm.expectRevert(EVCUtil.NotAuthorized.selector);
         evc.call(address(vault), sub, 0, abi.encodeCall(ERC4626EVCCollateralFreezable.unpause, ()));
 
-        vm.prank(admin);
         vm.expectEmit();
         emit ERC4626EVCCollateralFreezable.GovUnpaused();
         vault.unpause();
         assertFalse(vault.isPaused());
-        vm.prank(admin);
         vault.unpause();
         assertFalse(vault.isPaused());
 
@@ -119,6 +129,15 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         assertGt(vault.maxMint(depositor), 0);
         assertGt(vault.maxWithdraw(depositor), 0);
         assertGt(vault.maxRedeem(depositor), 0);
+
+        // borrowing can be resumed, collateral balance is restored after unpause
+
+        mockController.setCheckZeroBalanceCollateral(address(0));
+        vm.startPrank(depositor);
+        evc.enableController(depositor, address(mockController));
+        mockController.setCheckZeroBalanceCollateral(address(vault));
+        vm.expectRevert("non-zero collateral balance"); // collateral balance is correctly non-zero
+        mockController.mockBorrow();
     }
 
     function testCollateralFreezableVault_freeze() public {
@@ -193,24 +212,32 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         assertEq(vault.maxWithdraw(depositor), 0);
         assertEq(vault.maxRedeem(depositor), 0);
 
+        // no borrows on frozen account
+        MockController mockController = new MockController(address(evc));
+        vm.startPrank(depositor);
+        evc.enableController(depositor, address(mockController));
+        mockController.setCheckZeroBalanceCollateral(address(vault));
+
+        // mockBorrow schedules an account status check
+        vm.expectRevert("zero collateral balance"); // collateral balance should be zero to prevent borrows against frozen collateral
+        mockController.mockBorrow();
+        mockController.disableController();
+
         // only admin can unfreeze
-        vm.prank(depositor);
         vm.expectRevert(EVCUtil.NotAuthorized.selector);
         vault.unfreeze(depositorPrefix);
 
         // not a sub-account
-        vm.prank(admin);
+        vm.startPrank(admin);
         vm.expectRevert(EVCUtil.NotAuthorized.selector);
         evc.call(address(vault), subAdmin, 0, abi.encodeCall(ERC4626EVCCollateralFreezable.unfreeze, (depositorPrefix)));
 
-        vm.prank(admin);
         vm.expectEmit();
         emit ERC4626EVCCollateralFreezable.GovUnfrozen(depositorPrefix);
         vault.unfreeze(depositorPrefix);
         assertFalse(vault.isFrozen(depositor));
         assertFalse(vault.isFrozen(subDepositor));
         assertFalse(vault.isFrozen(_getAddressPrefix(depositor)));
-        vm.prank(admin);
         assertFalse(vault.isFrozen(depositor));
         assertFalse(vault.isFrozen(subDepositor));
         assertFalse(vault.isFrozen(_getAddressPrefix(depositor)));
@@ -236,6 +263,15 @@ contract ERC4626EVCCollateralFreezableTest is EVaultTestBase {
         assertGt(vault.maxMint(depositor), 0);
         assertGt(vault.maxWithdraw(depositor), 0);
         assertGt(vault.maxRedeem(depositor), 0);
+
+        // borrowing can be resumed, collateral balance is restored after unfreeze
+
+        mockController.setCheckZeroBalanceCollateral(address(0));
+        vm.startPrank(depositor);
+        evc.enableController(depositor, address(mockController));
+        mockController.setCheckZeroBalanceCollateral(address(vault));
+        vm.expectRevert("non-zero collateral balance"); // collateral balance is correctly non-zero
+        mockController.mockBorrow();
     }
 
     function _getAddressPrefix(address account) internal pure returns (bytes19) {
