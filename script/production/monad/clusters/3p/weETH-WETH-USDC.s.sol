@@ -55,8 +55,8 @@ contract Cluster is ManageCluster {
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[weETH] = "";
-        cluster.oracleProviders[WETH] = "0x4B4d71DF97d83C44eF1784646D1A6c6B385704E7";
-        cluster.oracleProviders[USDC] = "0x111B5A62407d1Cb51B575387b9CfA112FAd36753";
+        cluster.oracleProviders[WETH] = "0x7Ca484Fa74D66E83F53C35B02D82b1C01C942F20";
+        cluster.oracleProviders[USDC] = "0x922d28eEa3f3946c098bF6b216459AE783bf13FF";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[weETH] = 16_700;

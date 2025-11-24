@@ -9,14 +9,13 @@ import {OracleVerifier} from "../../../../utils/SanityCheckOracle.s.sol";
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/monad/clusters/3p/wstETH-WETH-USDC.json";
+        cluster.clusterAddressesPath = "/script/production/monad/clusters/2p/BTCb-USDC.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
-            wstETH,
-            WETH,
+            BTCb,
             USDC
         ];
     }
@@ -54,31 +53,25 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[wstETH] = "0x6AFa68Dace647A96911183D820F43678d0c0B9bB";
-        cluster.oracleProviders[WETH] = "0x7Ca484Fa74D66E83F53C35B02D82b1C01C942F20";
+        cluster.oracleProviders[BTCb] = "";
         cluster.oracleProviders[USDC] = "0x922d28eEa3f3946c098bF6b216459AE783bf13FF";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[wstETH] = 16_700;
-        cluster.supplyCaps[WETH] = 15_000;
-        cluster.supplyCaps[USDC] = 45_000_000;
+        cluster.supplyCaps[BTCb] = 150;
+        cluster.supplyCaps[USDC] = 12_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[wstETH] = 10_000;
-        cluster.borrowCaps[WETH] = 13_500;
-        cluster.borrowCaps[USDC] = 40_500_000;
+        cluster.borrowCaps[BTCb] = 120;
+        cluster.borrowCaps[USDC] = 10_800_000;
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=1.00% APY,  Kink(60.00%)=5.00% APY  Max=50.00% APY
-            uint256[4] memory irmweETH = [uint256(315313405426480960), uint256(477607572),  uint256(6578966875), uint256(2576980377)];
-            // Base=0.00% APY,  Kink(90.00%)=2.70% APY  Max=15.00% APY
-            uint256[4] memory irmWETH = [uint256(0), uint256(218407859),  uint256(8346118211), uint256(3865470566)];
+            // Base=1.00% APY,  Kink(80.00%)=3.00% APY  Max=25.00% APY
+            uint256[4] memory irmBTCb = [uint256(315313405426480960), uint256(180841814),  uint256(7141447258), uint256(3435973836)];
             // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
             uint256[4] memory irmUSDC = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
 
-            cluster.kinkIRMParams[wstETH] = irmweETH;
-            cluster.kinkIRMParams[WETH] = irmWETH;
+            cluster.kinkIRMParams[BTCb] = irmBTCb;
             cluster.kinkIRMParams[USDC] = irmUSDC;
         }
 
@@ -90,16 +83,20 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0                1        2    
-        //                wstETH           WETH      USDC
-        /* 0  wstETH   */ [uint16(0.00e4), 0.96e4, 0.87e4],
-        /* 1  WETH     */ [uint16(0.87e4), 0.00e4, 0.87e4],
-        /* 2  USDC     */ [uint16(0.87e4), 0.87e4, 0.00e4]
+        //                0               1    
+        //                BTCb            USDC
+        /* 0  BTCb    */ [uint16(0.00e4), 0.87e4],
+        /* 1  USDC    */ [uint16(0.87e4), 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
-        // No external vaults in this cluster
+        cluster.externalLTVs = [
+        //                     0               1    
+        //                     BTCb            USDC
+        /* 0  Escrow BTCb  */ [uint16(0.97e4), 0.87e4],
+        /* 1  Escrow USDC  */ [uint16(0.87e4), 0.97e4]
+        ];
     }
 
     function postOperations() internal view override {

@@ -56,7 +56,7 @@ contract Cluster is ManageCluster {
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[gMON] = "";
         cluster.oracleProviders[WMON] = "";
-        cluster.oracleProviders[AUSD] = "";
+        cluster.oracleProviders[AUSD] = "0xcd82e60229DC4ea93AfEaa83D296Bd5F9E506D97";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[gMON] = 240_000_000;
