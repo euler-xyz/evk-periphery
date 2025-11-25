@@ -54,18 +54,18 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[gMON] = "";
-        cluster.oracleProviders[WMON] = "";
+        cluster.oracleProviders[gMON] = "0x5c1EBde8adbBB238CF04BDA5064Eca0b4C8c6c4E";
+        cluster.oracleProviders[WMON] = "0x03e574FAD8b74FE9DA7F32d709bD881A6e8eF2dE";
         cluster.oracleProviders[USDC] = "0x922d28eEa3f3946c098bF6b216459AE783bf13FF";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[gMON] = 400_000_000;
-        cluster.supplyCaps[WMON] = 360_000_000;
+        cluster.supplyCaps[gMON] = 800_000_000;
+        cluster.supplyCaps[WMON] = 720_000_000;
         cluster.supplyCaps[USDC] = 36_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[gMON] = 240_000_000;
-        cluster.borrowCaps[WMON] = 324_000_000;
+        cluster.borrowCaps[gMON] = 480_000_000;
+        cluster.borrowCaps[WMON] = 648_000_000;
         cluster.borrowCaps[USDC] = 32_400_000;
 
         // define IRM classes here and assign them to the assets

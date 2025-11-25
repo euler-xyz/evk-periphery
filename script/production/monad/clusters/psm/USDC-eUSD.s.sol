@@ -39,7 +39,7 @@ contract Cluster is ManageCluster {
 
         // define hook target and hooked ops here. if needed to be defined per asset, populate the hookTargetOverride and hookedOpsOverride mappings
         cluster.hookTarget = 0xF5b821Efb4F6e13DE7521A3E4fc07fd2a153e280;
-        cluster.hookedOps = OP_DEPOSIT | OP_MINT | OP_SKIM | OP_BORROW | OP_PULL_DEBT | OP_LIQUIDATE | OP_FLASHLOAN;
+        cluster.hookedOps = OP_DEPOSIT | OP_MINT | OP_TRANSFER | OP_SKIM | OP_BORROW | OP_REPAY_WITH_SHARES | OP_PULL_DEBT | OP_LIQUIDATE | OP_FLASHLOAN;
 
         // define config flags here. if needed to be defined per asset, populate the configFlagsOverride mapping
         cluster.configFlags = 0;
