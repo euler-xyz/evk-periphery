@@ -22,7 +22,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = getDeployer(); //governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -58,11 +58,11 @@ contract Cluster is ManageCluster {
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[XAUT0] = 12_500;
-        cluster.supplyCaps[USDT] = 40_000_000;
+        cluster.supplyCaps[USDT] = 12_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[XAUT0] = 10_000;
-        cluster.borrowCaps[USDT] = 36_000_000;
+        cluster.borrowCaps[USDT] = 10_800_000;
 
         // define IRM classes here and assign them to the assets
         {
@@ -76,7 +76,7 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 0 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.01e4;
@@ -85,8 +85,8 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1    
         //                XAUT0            USDT
-        /* 0  XAUT0   */ [uint16(0.00e4), 0.75e4],
-        /* 1  USDT    */ [uint16(0.75e4), 0.00e4]
+        /* 0  XAUT0   */ [uint16(0.00e4), 0.83e4],
+        /* 1  USDT    */ [uint16(0.83e4), 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
@@ -94,8 +94,8 @@ contract Cluster is ManageCluster {
         cluster.externalLTVs = [
         //                     0               1    
         //                     XAUT0            USDT
-        /* 0  Escrow XAUT0 */ [uint16(0.97e4), 0.75e4],
-        /* 1  Escrow USDT  */ [uint16(0.75e4), 0.97e4]
+        /* 0  Escrow XAUT0 */ [uint16(0.97e4), 0.83e4],
+        /* 1  Escrow USDT  */ [uint16(0.83e4), 0.97e4]
         ];
     }
 

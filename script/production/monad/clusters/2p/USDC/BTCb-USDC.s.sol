@@ -22,7 +22,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = getDeployer(); //governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -76,7 +76,7 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 0 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.01e4;
@@ -85,8 +85,8 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1    
         //                BTCb            USDC
-        /* 0  BTCb    */ [uint16(0.00e4), 0.87e4],
-        /* 1  USDC    */ [uint16(0.87e4), 0.00e4]
+        /* 0  BTCb    */ [uint16(0.00e4), 0.83e4],
+        /* 1  USDC    */ [uint16(0.83e4), 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
@@ -94,8 +94,8 @@ contract Cluster is ManageCluster {
         cluster.externalLTVs = [
         //                     0               1    
         //                     BTCb            USDC
-        /* 0  Escrow BTCb  */ [uint16(0.97e4), 0.87e4],
-        /* 1  Escrow USDC  */ [uint16(0.87e4), 0.97e4]
+        /* 0  Escrow BTCb  */ [uint16(0.97e4), 0.83e4],
+        /* 1  Escrow USDC  */ [uint16(0.83e4), 0.97e4]
         ];
     }
 

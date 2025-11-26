@@ -23,7 +23,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = getDeployer(); //governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -64,26 +64,23 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDC] = 36_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[sMON] = 480_000_000;
+        cluster.borrowCaps[sMON] = type(uint256).max;
         cluster.borrowCaps[WMON] = 648_000_000;
         cluster.borrowCaps[USDC] = 32_400_000;
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=1.00% APY,  Kink(60.00%)=6.00% APY  Max=50.00% APY
-            uint256[4] memory irmshMON = [uint256(315313405426480960), uint256(594166256),  uint256(6404128850), uint256(2576980377)];
             // Base=0.00% APY,  Kink(90.00%)=3.00% APY  Max=15.00% APY
             uint256[4] memory irmWMON = [uint256(0), uint256(242320082),  uint256(8130908205), uint256(3865470566)];
             // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
             uint256[4] memory irmUSDC = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
 
-            cluster.kinkIRMParams[sMON] = irmshMON;
             cluster.kinkIRMParams[WMON] = irmWMON;
             cluster.kinkIRMParams[USDC] = irmUSDC;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 0 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.01e4;
@@ -92,9 +89,9 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0                1        2    
         //                sMON             WMON     USDC
-        /* 0  sMON     */ [uint16(0.00e4), 0.95e4, 0.87e4],
-        /* 1  WMON     */ [uint16(0.87e4), 0.00e4, 0.87e4],
-        /* 2  USDC     */ [uint16(0.87e4), 0.87e4, 0.00e4]
+        /* 0  sMON     */ [uint16(0.00e4), 0.92e4, 0.78e4],
+        /* 1  WMON     */ [uint16(0.00e4), 0.00e4, 0.84e4],
+        /* 2  USDC     */ [uint16(0.00e4), 0.84e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 

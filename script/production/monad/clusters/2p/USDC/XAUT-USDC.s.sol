@@ -9,15 +9,14 @@ import {OracleVerifier} from "../../../../../utils/SanityCheckOracle.s.sol";
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/monad/clusters/3p/USDT/sMON-WMON-USDT.json";
+        cluster.clusterAddressesPath = "/script/production/monad/clusters/2p/USDC/XAUT-USDC.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
-            sMON,
-            WMON,
-            USDT
+            XAUT0,
+            USDC
         ];
     }
 
@@ -54,29 +53,26 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[sMON] = "0x43e1245caC8CC4aA2A496a014F32a09E181D9d3d";
-        cluster.oracleProviders[WMON] = "0x03e574FAD8b74FE9DA7F32d709bD881A6e8eF2dE";
-        cluster.oracleProviders[USDT] = "0x2D842527F1E6CD19a643C127B175bb80924B3036";
+        cluster.oracleProviders[XAUT0] = "0xCC7E96c68Cc443283a553D79fBA03F7a41392019";
+        cluster.oracleProviders[USDC] = "0x922d28eEa3f3946c098bF6b216459AE783bf13FF";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[sMON] = 800_000_000;
-        cluster.supplyCaps[WMON] = 720_000_000;
-        cluster.supplyCaps[USDT] = 36_000_000;
+        cluster.supplyCaps[XAUT0] = 12_500;
+        cluster.supplyCaps[USDC] = 12_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[sMON] = type(uint256).max;
-        cluster.borrowCaps[WMON] = 648_000_000;
-        cluster.borrowCaps[USDT] = 32_400_000;
+        cluster.borrowCaps[XAUT0] = 10_000;
+        cluster.borrowCaps[USDC] = 10_800_000;
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0.00% APY,  Kink(90.00%)=3.00% APY  Max=15.00% APY
-            uint256[4] memory irmWMON = [uint256(0), uint256(242320082),  uint256(8130908205), uint256(3865470566)];
+            // Base=1.00% APY,  Kink(80.00%)=3.00% APY  Max=25.00% APY
+            uint256[4] memory irmXAUT0 = [uint256(315313405426480960), uint256(180841814),  uint256(7141447258), uint256(3435973836)];
             // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
-            uint256[4] memory irmUSDT = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
+            uint256[4] memory irmUSDC = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
 
-            cluster.kinkIRMParams[WMON] = irmWMON;
-            cluster.kinkIRMParams[USDT] = irmUSDT;
+            cluster.kinkIRMParams[XAUT0] = irmXAUT0;
+            cluster.kinkIRMParams[USDC] = irmUSDC;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -87,16 +83,20 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0                1        2    
-        //                sMON             WMON     USDT
-        /* 0  sMON     */ [uint16(0.00e4), 0.92e4, 0.78e4],
-        /* 1  WMON     */ [uint16(0.00e4), 0.00e4, 0.84e4],
-        /* 2  USDT     */ [uint16(0.00e4), 0.84e4, 0.00e4]
+        //                0               1    
+        //                XAUT0            USDC
+        /* 0  XAUT0   */ [uint16(0.00e4), 0.83e4],
+        /* 1  USDC    */ [uint16(0.83e4), 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
-        // No external vaults in this cluster
+        cluster.externalLTVs = [
+        //                     0               1    
+        //                     XAUT0            USDC
+        /* 0  Escrow XAUT0 */ [uint16(0.97e4), 0.83e4],
+        /* 1  Escrow USDC  */ [uint16(0.83e4), 0.97e4]
+        ];
     }
 
     function postOperations() internal view override {
