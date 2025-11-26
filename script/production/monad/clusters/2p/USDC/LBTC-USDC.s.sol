@@ -85,8 +85,8 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1    
         //                LBTC            USDC
-        /* 0  LBTC    */ [uint16(0.00e4), 0.86e4],
-        /* 1  USDC    */ [uint16(0.86e4), 0.00e4]
+        /* 0  LBTC    */ [uint16(0.00e4), 0.80e4],
+        /* 1  USDC    */ [uint16(0.80e4), 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
@@ -94,8 +94,8 @@ contract Cluster is ManageCluster {
         cluster.externalLTVs = [
         //                     0               1    
         //                     LBTC            USDC
-        /* 0  Escrow LBTC  */ [uint16(0.97e4), 0.86e4],
-        /* 1  Escrow USDC  */ [uint16(0.86e4), 0.97e4]
+        /* 0  Escrow LBTC  */ [uint16(0.97e4), 0.80e4],
+        /* 1  Escrow USDC  */ [uint16(0.80e4), 0.97e4]
         ];
     }
 

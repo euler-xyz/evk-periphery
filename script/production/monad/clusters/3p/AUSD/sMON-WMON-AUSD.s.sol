@@ -90,8 +90,8 @@ contract Cluster is ManageCluster {
         //                0                1        2    
         //                sMON             WMON     AUSD
         /* 0  sMON     */ [uint16(0.00e4), 0.92e4, 0.78e4],
-        /* 1  WMON     */ [uint16(0.00e4), 0.00e4, 0.84e4],
-        /* 2  AUSD     */ [uint16(0.00e4), 0.84e4, 0.00e4]
+        /* 1  WMON     */ [uint16(0.00e4), 0.00e4, 0.78e4],
+        /* 2  AUSD     */ [uint16(0.00e4), 0.78e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 

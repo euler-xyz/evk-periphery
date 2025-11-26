@@ -66,8 +66,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=1.00% APY,  Kink(80.00%)=3.00% APY  Max=25.00% APY
-            uint256[4] memory irmXAUT0 = [uint256(315313405426480960), uint256(180841814),  uint256(7141447258), uint256(3435973836)];
+            // Base=1.00% APY,  Kink(80.00%)=5.00% APY  Max=20.00% APY
+            uint256[4] memory irmXAUT0 = [uint256(315313405426480960), uint256(358205679),  uint256(4926046076), uint256(3435973836)];
             // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
             uint256[4] memory irmAUSD = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
 
@@ -85,8 +85,8 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1    
         //                XAUT0            AUSD
-        /* 0  XAUT0   */ [uint16(0.00e4), 0.83e4],
-        /* 1  AUSD    */ [uint16(0.83e4), 0.00e4]
+        /* 0  XAUT0   */ [uint16(0.00e4), 0.76e4],
+        /* 1  AUSD    */ [uint16(0.76e4), 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
@@ -94,8 +94,8 @@ contract Cluster is ManageCluster {
         cluster.externalLTVs = [
         //                     0               1    
         //                     XAUT0            AUSD
-        /* 0  Escrow XAUT0 */ [uint16(0.97e4), 0.83e4],
-        /* 1  Escrow AUSD  */ [uint16(0.83e4), 0.97e4]
+        /* 0  Escrow XAUT0 */ [uint16(0.97e4), 0.76e4],
+        /* 1  Escrow AUSD  */ [uint16(0.76e4), 0.97e4]
         ];
     }
 
