@@ -3,21 +3,20 @@
 pragma solidity ^0.8.0;
 
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {ManageCluster} from "../ManageCluster.s.sol";
-import {OracleVerifier} from "../../../../utils/SanityCheckOracle.s.sol";
+import {ManageCluster} from "../../ManageCluster.s.sol";
+import {OracleVerifier} from "../../../../../utils/SanityCheckOracle.s.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/monad/clusters/3p/gMON-WMON-USDC.json";
+        cluster.clusterAddressesPath = "/script/production/monad/clusters/2p/USDT/LBTC-USDT.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
-            gMON,
-            WMON,
-            USDC
+            LBTC,
+            USDT
         ];
     }
 
@@ -54,32 +53,26 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[gMON] = "0x5c1EBde8adbBB238CF04BDA5064Eca0b4C8c6c4E";
-        cluster.oracleProviders[WMON] = "0x03e574FAD8b74FE9DA7F32d709bD881A6e8eF2dE";
-        cluster.oracleProviders[USDC] = "0x922d28eEa3f3946c098bF6b216459AE783bf13FF";
+        cluster.oracleProviders[LBTC] = "0xA72384C9aCE53C7EA783EDc5d47FD755426a883e";
+        cluster.oracleProviders[USDT] = "0x2D842527F1E6CD19a643C127B175bb80924B3036";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[gMON] = 800_000_000;
-        cluster.supplyCaps[WMON] = 720_000_000;
-        cluster.supplyCaps[USDC] = 36_000_000;
+        cluster.supplyCaps[LBTC] = 150;
+        cluster.supplyCaps[USDT] = 12_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[gMON] = 480_000_000;
-        cluster.borrowCaps[WMON] = 648_000_000;
-        cluster.borrowCaps[USDC] = 32_400_000;
+        cluster.borrowCaps[LBTC] = 120;
+        cluster.borrowCaps[USDT] = 10_800_000;
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=1.00% APY,  Kink(60.00%)=6.00% APY  Max=50.00% APY
-            uint256[4] memory irmshMON = [uint256(315313405426480960), uint256(594166256),  uint256(6404128850), uint256(2576980377)];
-            // Base=0.00% APY,  Kink(90.00%)=3.00% APY  Max=15.00% APY
-            uint256[4] memory irmWMON = [uint256(0), uint256(242320082),  uint256(8130908205), uint256(3865470566)];
+            // Base=1.00% APY,  Kink(80.00%)=3.00% APY  Max=25.00% APY
+            uint256[4] memory irmLBTC = [uint256(315313405426480960), uint256(180841814),  uint256(7141447258), uint256(3435973836)];
             // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
-            uint256[4] memory irmUSDC = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
+            uint256[4] memory irmUSDT = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
 
-            cluster.kinkIRMParams[gMON] = irmshMON;
-            cluster.kinkIRMParams[WMON] = irmWMON;
-            cluster.kinkIRMParams[USDC] = irmUSDC;
+            cluster.kinkIRMParams[LBTC] = irmLBTC;
+            cluster.kinkIRMParams[USDT] = irmUSDT;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -90,16 +83,20 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0                1        2    
-        //                gMON             WMON     USDC
-        /* 0  gMON     */ [uint16(0.00e4), 0.95e4, 0.87e4],
-        /* 1  WMON     */ [uint16(0.87e4), 0.00e4, 0.87e4],
-        /* 2  USDC     */ [uint16(0.87e4), 0.87e4, 0.00e4]
+        //                0               1    
+        //                LBTC            USDT
+        /* 0  LBTC    */ [uint16(0.00e4), 0.87e4],
+        /* 1  USDT    */ [uint16(0.87e4), 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
-        // No external vaults in this cluster
+        cluster.externalLTVs = [
+        //                     0               1    
+        //                     LBTC            USDT
+        /* 0  Escrow LBTC  */ [uint16(0.97e4), 0.87e4],
+        /* 1  Escrow USDT  */ [uint16(0.87e4), 0.97e4]
+        ];
     }
 
     function postOperations() internal view override {

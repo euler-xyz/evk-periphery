@@ -26,6 +26,7 @@ abstract contract Addresses {
     address internal constant shMON = 0x1B68626dCa36c7fE922fD2d55E4f631d962dE19c;
     address internal constant gMON = 0x8498312A6B3CbD158bf0c93AbdCF29E6e4F55081;
     address internal constant sMON = 0xA3227C5969757783154C60bF0bC1944180ed81B9;
+    address internal constant MVT = 0x04f8c38AE80BcF690B947f60F62BdA18145c3D67;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}

@@ -3,20 +3,20 @@
 pragma solidity ^0.8.0;
 
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {ManageCluster} from "../ManageCluster.s.sol";
-import {OracleVerifier} from "../../../../utils/SanityCheckOracle.s.sol";
+import {ManageCluster} from "../../ManageCluster.s.sol";
+import {OracleVerifier} from "../../../../../utils/SanityCheckOracle.s.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/monad/clusters/2p/FBTC-USDC.json";
+        cluster.clusterAddressesPath = "/script/production/monad/clusters/2p/AUSD/WBTC-AUSD.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
-            FBTC,
-            USDC
+            WBTC,
+            AUSD
         ];
     }
 
@@ -53,16 +53,16 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[FBTC] = "";
-        cluster.oracleProviders[USDC] = "0x922d28eEa3f3946c098bF6b216459AE783bf13FF";
+        cluster.oracleProviders[WBTC] = "0x20Aa74E9a43011D0f5b0feDaE182D460e8a4BE06";
+        cluster.oracleProviders[AUSD] = "0xcd82e60229DC4ea93AfEaa83D296Bd5F9E506D97";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[FBTC] = 150;
-        cluster.supplyCaps[USDC] = 12_000_000;
+        cluster.supplyCaps[WBTC] = 300;
+        cluster.supplyCaps[AUSD] = 24_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[FBTC] = 120;
-        cluster.borrowCaps[USDC] = 10_800_000;
+        cluster.borrowCaps[WBTC] = 240;
+        cluster.borrowCaps[AUSD] = 21_600_000;
 
         // define IRM classes here and assign them to the assets
         {
@@ -71,8 +71,8 @@ contract Cluster is ManageCluster {
             // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
             uint256[4] memory irmUSDC = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
 
-            cluster.kinkIRMParams[FBTC] = irmWBTC;
-            cluster.kinkIRMParams[USDC] = irmUSDC;
+            cluster.kinkIRMParams[WBTC] = irmWBTC;
+            cluster.kinkIRMParams[AUSD] = irmUSDC;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -84,18 +84,18 @@ contract Cluster is ManageCluster {
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
         //                0               1    
-        //                FBTC            USDC
-        /* 0  FBTC    */ [uint16(0.00e4), 0.87e4],
-        /* 1  USDC    */ [uint16(0.87e4), 0.00e4]
+        //                WBTC            AUSD
+        /* 0  WBTC    */ [uint16(0.00e4), 0.87e4],
+        /* 1  AUSD    */ [uint16(0.87e4), 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
         cluster.externalLTVs = [
         //                     0               1    
-        //                     FBTC            USDC
-        /* 0  Escrow FBTC  */ [uint16(0.97e4), 0.87e4],
-        /* 1  Escrow USDC  */ [uint16(0.87e4), 0.97e4]
+        //                     WBTC            AUSD
+        /* 0  Escrow WBTC  */ [uint16(0.97e4), 0.87e4],
+        /* 1  Escrow AUSD  */ [uint16(0.87e4), 0.97e4]
         ];
     }
 

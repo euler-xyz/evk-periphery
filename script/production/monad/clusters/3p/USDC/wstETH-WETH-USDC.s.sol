@@ -3,20 +3,20 @@
 pragma solidity ^0.8.0;
 
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {ManageCluster} from "../ManageCluster.s.sol";
-import {OracleVerifier} from "../../../../utils/SanityCheckOracle.s.sol";
+import {ManageCluster} from "../../ManageCluster.s.sol";
+import {OracleVerifier} from "../../../../../utils/SanityCheckOracle.s.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/monad/clusters/3p/shMON-WMON-USDC.json";
+        cluster.clusterAddressesPath = "/script/production/monad/clusters/3p/USDC/wstETH-WETH-USDC.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
-            shMON,
-            WMON,
+            wstETH,
+            WETH,
             USDC
         ];
     }
@@ -54,31 +54,31 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[shMON] = "0xFD8db30cE78b019700861F21F3b44117c0A2e000";
-        cluster.oracleProviders[WMON] = "0x03e574FAD8b74FE9DA7F32d709bD881A6e8eF2dE";
+        cluster.oracleProviders[wstETH] = "0x6AFa68Dace647A96911183D820F43678d0c0B9bB";
+        cluster.oracleProviders[WETH] = "0x7Ca484Fa74D66E83F53C35B02D82b1C01C942F20";
         cluster.oracleProviders[USDC] = "0x922d28eEa3f3946c098bF6b216459AE783bf13FF";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[shMON] = 800_000_000;
-        cluster.supplyCaps[WMON] = 720_000_000;
-        cluster.supplyCaps[USDC] = 36_000_000;
+        cluster.supplyCaps[wstETH] = 16_700;
+        cluster.supplyCaps[WETH] = 15_000;
+        cluster.supplyCaps[USDC] = 45_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[shMON] = 480_000_000;
-        cluster.borrowCaps[WMON] = 648_000_000;
-        cluster.borrowCaps[USDC] = 32_400_000;
+        cluster.borrowCaps[wstETH] = 10_000;
+        cluster.borrowCaps[WETH] = 13_500;
+        cluster.borrowCaps[USDC] = 40_500_000;
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=1.00% APY,  Kink(60.00%)=6.00% APY  Max=50.00% APY
-            uint256[4] memory irmshMON = [uint256(315313405426480960), uint256(594166256),  uint256(6404128850), uint256(2576980377)];
-            // Base=0.00% APY,  Kink(90.00%)=3.00% APY  Max=15.00% APY
-            uint256[4] memory irmWMON = [uint256(0), uint256(242320082),  uint256(8130908205), uint256(3865470566)];
+            // Base=1.00% APY,  Kink(60.00%)=5.00% APY  Max=50.00% APY
+            uint256[4] memory irmweETH = [uint256(315313405426480960), uint256(477607572),  uint256(6578966875), uint256(2576980377)];
+            // Base=0.00% APY,  Kink(90.00%)=2.70% APY  Max=15.00% APY
+            uint256[4] memory irmWETH = [uint256(0), uint256(218407859),  uint256(8346118211), uint256(3865470566)];
             // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
             uint256[4] memory irmUSDC = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
 
-            cluster.kinkIRMParams[shMON] = irmshMON;
-            cluster.kinkIRMParams[WMON] = irmWMON;
+            cluster.kinkIRMParams[wstETH] = irmweETH;
+            cluster.kinkIRMParams[WETH] = irmWETH;
             cluster.kinkIRMParams[USDC] = irmUSDC;
         }
 
@@ -91,9 +91,9 @@ contract Cluster is ManageCluster {
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
         //                0                1        2    
-        //                shMON            WMON     USDC
-        /* 0  shMON    */ [uint16(0.00e4), 0.95e4, 0.87e4],
-        /* 1  WMON     */ [uint16(0.87e4), 0.00e4, 0.87e4],
+        //                wstETH           WETH      USDC
+        /* 0  wstETH   */ [uint16(0.00e4), 0.96e4, 0.87e4],
+        /* 1  WETH     */ [uint16(0.87e4), 0.00e4, 0.87e4],
         /* 2  USDC     */ [uint16(0.87e4), 0.87e4, 0.00e4]
         ];
 

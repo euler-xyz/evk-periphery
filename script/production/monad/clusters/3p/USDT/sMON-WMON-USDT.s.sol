@@ -3,21 +3,21 @@
 pragma solidity ^0.8.0;
 
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {ManageCluster} from "../ManageCluster.s.sol";
-import {OracleVerifier} from "../../../../utils/SanityCheckOracle.s.sol";
+import {ManageCluster} from "../../ManageCluster.s.sol";
+import {OracleVerifier} from "../../../../../utils/SanityCheckOracle.s.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/monad/clusters/3p/gMON-WMON-AUSD.json";
+        cluster.clusterAddressesPath = "/script/production/monad/clusters/3p/USDT/sMON-WMON-USDT.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
-            gMON,
+            sMON,
             WMON,
-            AUSD
+            USDT
         ];
     }
 
@@ -54,19 +54,19 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[gMON] = "0x5c1EBde8adbBB238CF04BDA5064Eca0b4C8c6c4E";
+        cluster.oracleProviders[sMON] = "0x43e1245caC8CC4aA2A496a014F32a09E181D9d3d";
         cluster.oracleProviders[WMON] = "0x03e574FAD8b74FE9DA7F32d709bD881A6e8eF2dE";
-        cluster.oracleProviders[AUSD] = "0xcd82e60229DC4ea93AfEaa83D296Bd5F9E506D97";
+        cluster.oracleProviders[USDT] = "0x2D842527F1E6CD19a643C127B175bb80924B3036";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[gMON] = 480_000_000;
-        cluster.supplyCaps[WMON] = 432_000_000;
-        cluster.supplyCaps[AUSD] = 21_600_000;
+        cluster.supplyCaps[sMON] = 800_000_000;
+        cluster.supplyCaps[WMON] = 720_000_000;
+        cluster.supplyCaps[USDT] = 36_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[gMON] = 288_000_000;
-        cluster.borrowCaps[WMON] = 388_000_000;
-        cluster.borrowCaps[AUSD] = 19_400_000;
+        cluster.borrowCaps[sMON] = 480_000_000;
+        cluster.borrowCaps[WMON] = 648_000_000;
+        cluster.borrowCaps[USDT] = 32_400_000;
 
         // define IRM classes here and assign them to the assets
         {
@@ -75,11 +75,11 @@ contract Cluster is ManageCluster {
             // Base=0.00% APY,  Kink(90.00%)=3.00% APY  Max=15.00% APY
             uint256[4] memory irmWMON = [uint256(0), uint256(242320082),  uint256(8130908205), uint256(3865470566)];
             // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
-            uint256[4] memory irmUSDC = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
+            uint256[4] memory irmUSDT = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
 
-            cluster.kinkIRMParams[gMON] = irmshMON;
+            cluster.kinkIRMParams[sMON] = irmshMON;
             cluster.kinkIRMParams[WMON] = irmWMON;
-            cluster.kinkIRMParams[AUSD] = irmUSDC;
+            cluster.kinkIRMParams[USDT] = irmUSDT;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -91,10 +91,10 @@ contract Cluster is ManageCluster {
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
         //                0                1        2    
-        //                gMON             WMON     AUSD
-        /* 0  gMON     */ [uint16(0.00e4), 0.96e4, 0.87e4],
+        //                sMON             WMON     USDT
+        /* 0  sMON     */ [uint16(0.00e4), 0.95e4, 0.87e4],
         /* 1  WMON     */ [uint16(0.87e4), 0.00e4, 0.87e4],
-        /* 2  AUSD     */ [uint16(0.87e4), 0.87e4, 0.00e4]
+        /* 2  USDT     */ [uint16(0.87e4), 0.87e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 

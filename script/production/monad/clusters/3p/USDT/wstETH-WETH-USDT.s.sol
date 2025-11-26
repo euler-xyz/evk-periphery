@@ -3,21 +3,21 @@
 pragma solidity ^0.8.0;
 
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {ManageCluster} from "../ManageCluster.s.sol";
-import {OracleVerifier} from "../../../../utils/SanityCheckOracle.s.sol";
+import {ManageCluster} from "../../ManageCluster.s.sol";
+import {OracleVerifier} from "../../../../../utils/SanityCheckOracle.s.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/monad/clusters/3p/weETH-WETH-USDC.json";
+        cluster.clusterAddressesPath = "/script/production/monad/clusters/3p/USDT/wstETH-WETH-USDT.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
-            weETH,
+            wstETH,
             WETH,
-            USDC
+            USDT
         ];
     }
 
@@ -54,19 +54,19 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[weETH] = "";
+        cluster.oracleProviders[wstETH] = "0x6AFa68Dace647A96911183D820F43678d0c0B9bB";
         cluster.oracleProviders[WETH] = "0x7Ca484Fa74D66E83F53C35B02D82b1C01C942F20";
-        cluster.oracleProviders[USDC] = "0x922d28eEa3f3946c098bF6b216459AE783bf13FF";
+        cluster.oracleProviders[USDT] = "0x2D842527F1E6CD19a643C127B175bb80924B3036";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[weETH] = 16_700;
+        cluster.supplyCaps[wstETH] = 16_700;
         cluster.supplyCaps[WETH] = 15_000;
-        cluster.supplyCaps[USDC] = 45_000_000;
+        cluster.supplyCaps[USDT] = 45_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[weETH] = 10_000;
+        cluster.borrowCaps[wstETH] = 10_000;
         cluster.borrowCaps[WETH] = 13_500;
-        cluster.borrowCaps[USDC] = 40_500_000;
+        cluster.borrowCaps[USDT] = 40_500_000;
 
         // define IRM classes here and assign them to the assets
         {
@@ -75,11 +75,11 @@ contract Cluster is ManageCluster {
             // Base=0.00% APY,  Kink(90.00%)=2.70% APY  Max=15.00% APY
             uint256[4] memory irmWETH = [uint256(0), uint256(218407859),  uint256(8346118211), uint256(3865470566)];
             // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
-            uint256[4] memory irmUSDC = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
+            uint256[4] memory irmUSDT = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
 
-            cluster.kinkIRMParams[weETH] = irmweETH;
+            cluster.kinkIRMParams[wstETH] = irmweETH;
             cluster.kinkIRMParams[WETH] = irmWETH;
-            cluster.kinkIRMParams[USDC] = irmUSDC;
+            cluster.kinkIRMParams[USDT] = irmUSDT;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -91,10 +91,10 @@ contract Cluster is ManageCluster {
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
         //                0                1        2    
-        //                weETH            WETH     USDC
-        /* 0  weETH    */ [uint16(0.00e4), 0.95e4, 0.87e4],
+        //                wstETH           WETH      USDT
+        /* 0  wstETH   */ [uint16(0.00e4), 0.96e4, 0.87e4],
         /* 1  WETH     */ [uint16(0.87e4), 0.00e4, 0.87e4],
-        /* 2  USDC     */ [uint16(0.87e4), 0.87e4, 0.00e4]
+        /* 2  USDT     */ [uint16(0.87e4), 0.87e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
