@@ -202,6 +202,19 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         evc.requireVaultStatusCheck();
     }
 
+    /// @notice Returns shares balance of an account
+    /// @param account Address to query
+    /// @return The balance of the account
+    /// @dev Returns 0 balance when checks are in progress and account is freezed or paused
+    /// to zero out collateral value and prevent taking out borrows in this state
+    function balanceOf(address account) public view virtual override returns (uint256) {
+        if (evc.areChecksInProgress() && (isFrozen(account) || isPaused())) {
+            return 0;
+        }
+
+        return super.balanceOf(account);
+    }
+
     /// @notice Fetch the maximum amount of assets a user can deposit
     /// @param receiver Address to query
     /// @return The max amount of assets the account can deposit

@@ -24,9 +24,6 @@ interface IComplianceServiceRegulated {
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice EVC-compatible collateral-only ERC4626 vault implementation for Securitize RWA tokens.
 contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
-    /// @notice The address of the compliance service.
-    address public immutable complianceService;
-
     /// @notice Mapping indicating the balance for a specific address prefix.
     mapping(bytes19 addressPrefix => uint256) internal _addressPrefixBalances;
 
@@ -60,8 +57,6 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     ) ERC4626EVC(evc, permit2, asset, name, symbol) ERC4626EVCCollateralCapped(admin) {
         if (controllerPerspectiveAddress == address(0)) revert InvalidAddress();
         controllerPerspective = controllerPerspectiveAddress;
-
-        complianceService = IDSToken(asset).getDSService(IDSToken(asset).COMPLIANCE_SERVICE());
 
         emit GovSetControllerPerspective(controllerPerspectiveAddress);
     }
@@ -241,9 +236,10 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         address toOwner = evc.getAccountOwner(to);
         if (toOwner == address(0)) return false;
 
-        (uint256 code,) = IComplianceServiceRegulated(complianceService).preTransferCheck(
-            address(this), toOwner, previewRedeem(amount)
-        );
+        address complianceService = IDSToken(asset()).getDSService(IDSToken(asset()).COMPLIANCE_SERVICE());
+
+        (uint256 code,) = IComplianceServiceRegulated(complianceService)
+            .preTransferCheck(address(this), toOwner, previewRedeem(amount));
         return code == 0;
     }
 
@@ -251,12 +247,8 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         if (!isCommonOwner(from, to)) {
             // EVC ensures that during `controlCollateral` call there is exactly one controller enabled
             address[] memory controllers = evc.getControllers(from);
-            if (
-                !(
-                    evc.isControlCollateralInProgress()
-                        && IPerspective(controllerPerspective).isVerified(controllers[0]) && isTransferCompliant(to, amount)
-                )
-            ) {
+            if (!(evc.isControlCollateralInProgress() && IPerspective(controllerPerspective).isVerified(controllers[0])
+                        && isTransferCompliant(to, amount))) {
                 revert NotAuthorized();
             }
         }
