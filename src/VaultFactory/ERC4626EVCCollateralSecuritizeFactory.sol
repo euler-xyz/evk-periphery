@@ -26,12 +26,20 @@ contract ERC4626EVCCollateralSecuritizeFactory is BaseFactory, IERC4626EVCCollat
     }
 
     /// @notice Deploys a new ERC4626EVCCollateralSecuritize vault.
+    /// @param controllerPerspective The address of the perspective contract whitelisting controllers able to liquidate
+    /// the new vault.
     /// @param asset The address of the underlying asset for the new vault.
     /// @param name The name of the new vault.
     /// @param symbol The symbol of the new vault.
     /// @return The deployment address.
-    function deploy(address asset, string memory name, string memory symbol) external override returns (address) {
-        address vault = address(new ERC4626EVCCollateralSecuritize(evc, permit2, msg.sender, asset, name, symbol));
+    function deploy(address controllerPerspective, address asset, string memory name, string memory symbol)
+        external
+        override
+        returns (address)
+    {
+        address vault = address(
+            new ERC4626EVCCollateralSecuritize(evc, permit2, msg.sender, controllerPerspective, asset, name, symbol)
+        );
 
         deploymentInfo[vault] = DeploymentInfo(msg.sender, uint96(block.timestamp));
         deployments.push(vault);

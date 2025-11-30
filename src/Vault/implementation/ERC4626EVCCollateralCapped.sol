@@ -176,7 +176,14 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
         nonReentrantView(this.maxDeposit.selector)
         returns (uint256)
     {
-        return super.maxDeposit(account);
+        uint256 cap = _supplyCap.resolve();
+        if (cap == type(uint256).max) return super.maxDeposit(account);
+
+        uint256 totalAssetsCache = totalAssets();
+        if (totalAssetsCache >= cap) return 0;
+        unchecked {
+            return cap - totalAssetsCache;
+        }
     }
 
     /// @notice Calculate an amount of shares that would be created by depositing assets
@@ -204,7 +211,13 @@ abstract contract ERC4626EVCCollateralCapped is ERC4626EVCCollateral {
         nonReentrantView(this.maxMint.selector)
         returns (uint256)
     {
-        return super.maxMint(account);
+        uint256 cap = _supplyCap.resolve();
+        if (cap == type(uint256).max) return super.maxMint(account);
+
+        uint256 totalAssetsCache = totalAssets();
+        if (totalAssetsCache >= cap) return 0;
+
+        return previewDeposit(cap - totalAssetsCache);
     }
 
     /// @notice Calculate an amount of assets that would be required to mint requested amount of shares

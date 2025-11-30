@@ -45,12 +45,16 @@ abstract contract ERC4626EVCCollateral is ERC4626EVC {
     /// @param assets The assets to deposit. Use max uint256 for full sender's balance.
     /// @param receiver The receiver of the deposit.
     /// @return shares The shares equivalent to the deposited assets.
+    /// @dev maxDeposit check from original implementation is removed to allow transient violation of limitations
+    /// while vault status checks are deferred in EVC batch.
     function deposit(uint256 assets, address receiver) public virtual override returns (uint256 shares) {
         if (assets == type(uint256).max) {
             assets = IERC20(asset()).balanceOf(_msgSender());
         }
 
-        shares = super.deposit(assets, receiver);
+        shares = previewDeposit(assets);
+        _deposit(_msgSender(), receiver, assets, shares);
+
         if (assets > 0 && shares == 0) revert ZeroShares();
     }
 
@@ -58,8 +62,11 @@ abstract contract ERC4626EVCCollateral is ERC4626EVC {
     /// @param shares The shares to mint.
     /// @param receiver The receiver of the mint.
     /// @return assets The assets equivalent to the minted shares.
+    /// @dev maxMint check from original implementation is removed to allow transient violation of limitations
+    /// while vault status checks are deferred in EVC batch.
     function mint(uint256 shares, address receiver) public virtual override returns (uint256 assets) {
-        assets = super.mint(shares, receiver);
+        assets = previewMint(shares);
+        _deposit(_msgSender(), receiver, assets, shares);
     }
 
     /// @notice Withdraws a certain amount of assets for a receiver.

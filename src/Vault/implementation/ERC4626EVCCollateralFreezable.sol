@@ -69,7 +69,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         emit GovUnpaused();
     }
 
-    /// @notice Freezes all accounts sharing an address prefix.
+    /// @notice Freezes all accounts sharing an address prefix. A frozen account's balance can not change.
     /// @param addressPrefix The address prefix to freeze.
     function freeze(bytes19 addressPrefix) public onlyEVCAccountOwner governorOnly {
         if (_freezes[addressPrefix]) return;
@@ -178,6 +178,7 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         returns (uint256 shares)
     {
         shares = ERC4626EVCCollateral.withdraw(assets, receiver, owner);
+        evc.requireVaultStatusCheck();
     }
 
     /// @notice Redeems a certain amount of shares for a receiver.
@@ -198,6 +199,52 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         returns (uint256 assets)
     {
         assets = ERC4626EVCCollateral.redeem(shares, receiver, owner);
+        evc.requireVaultStatusCheck();
+    }
+
+    /// @notice Returns shares balance of an account
+    /// @param account Address to query
+    /// @return The balance of the account
+    /// @dev Returns 0 balance when checks are in progress and account is freezed or paused
+    /// to zero out collateral value and prevent taking out borrows in this state
+    function balanceOf(address account) public view virtual override returns (uint256) {
+        if (evc.areChecksInProgress() && (isFrozen(account) || isPaused())) {
+            return 0;
+        }
+
+        return super.balanceOf(account);
+    }
+
+    /// @notice Fetch the maximum amount of assets a user can deposit
+    /// @param receiver Address to query
+    /// @return The max amount of assets the account can deposit
+    function maxDeposit(address receiver) public view virtual override returns (uint256) {
+        if (isFrozen(_getAddressPrefix(receiver)) || isPaused()) return 0;
+        return super.maxDeposit(receiver);
+    }
+
+    /// @notice Fetch the maximum amount of shares a user can mint
+    /// @param receiver Address to query
+    /// @return The max amount of shares the account can mint
+    function maxMint(address receiver) public view virtual override returns (uint256) {
+        if (isFrozen(_getAddressPrefix(receiver)) || isPaused()) return 0;
+        return super.maxMint(receiver);
+    }
+
+    /// @notice Fetch the maximum amount of assets a user is allowed to withdraw
+    /// @param owner Account to query
+    /// @return The maximum amount of assets the owner is allowed to withdraw
+    function maxWithdraw(address owner) public view virtual override returns (uint256) {
+        if (isFrozen(_getAddressPrefix(owner)) || isPaused()) return 0;
+        return super.maxWithdraw(owner);
+    }
+
+    /// @notice Fetch the maximum amount of shares a user is allowed to redeem for assets
+    /// @param owner Account to query
+    /// @return The maximum amount of shares the owner is allowed to redeem
+    function maxRedeem(address owner) public view virtual override returns (uint256) {
+        if (isFrozen(_getAddressPrefix(owner)) || isPaused()) return 0;
+        return super.maxRedeem(owner);
     }
 
     /// @notice Checks whether the contract is paused.
@@ -206,11 +253,17 @@ abstract contract ERC4626EVCCollateralFreezable is ERC4626EVCCollateralCapped {
         return _isEnabled(PAUSE);
     }
 
-    /// @notice Checks whether a given account is frozen based on its address prefix.
+    /// @notice Checks whether a given address prefix (EVC account family) is frozen.
+    /// @param addressPrefix The adress prefix to check.
+    /// @return True if the address prefix is frozen, false otherwise.
+    function isFrozen(bytes19 addressPrefix) public view returns (bool) {
+        return _freezes[addressPrefix];
+    }
+
+    /// @notice Checks whether a given account and it's EVC account family is frozen.
     /// @param account The account to check.
     /// @return True if the account is frozen, false otherwise.
     function isFrozen(address account) public view returns (bool) {
-        bytes19 addressPrefix = _getAddressPrefix(account);
-        return _freezes[addressPrefix];
+        return _freezes[_getAddressPrefix(account)];
     }
 }
