@@ -144,7 +144,7 @@ contract EdgeFactory is IEdgeFactory {
 
         list = new address[][](end - start);
         for (uint256 i; i < end - start; ++i) {
-            list[i] = deployments[i];
+            list[i] = deployments[i + start];
         }
     }
 }
