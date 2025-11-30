@@ -53,7 +53,7 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[USDC] = "0xDf599a2a950b2cA1D1D79D28A520b62C00c8d061";
+        cluster.oracleProviders[USDC] = "0x922d28eEa3f3946c098bF6b216459AE783bf13FF";
         cluster.oracleProviders[eUSD] = "0xD3149A4e8CDA42af2DC8d64bD0A1084c24e6D844";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
@@ -74,7 +74,7 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 0 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.01e4;

@@ -3,20 +3,21 @@
 pragma solidity ^0.8.0;
 
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {ManageCluster} from "../ManageCluster.s.sol";
-import {OracleVerifier} from "../../../../utils/SanityCheckOracle.s.sol";
-import "evk/EVault/shared/Constants.sol";
+import {ManageCluster} from "../../ManageCluster.s.sol";
+import {OracleVerifier} from "../../../../../utils/SanityCheckOracle.s.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/monad/clusters/psm/USDC-eUSD.json";
+        cluster.clusterAddressesPath = "/script/production/monad/clusters/3p/USDT/weETH-WETH-USDT.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
-            eUSD
+            weETH,
+            WETH,
+            USDT
         ];
     }
 
@@ -32,14 +33,14 @@ contract Cluster is ManageCluster {
         cluster.interestFee = 0.1e4;
 
         // define max liquidation discount here. if needed to be defined per asset, populate the maxLiquidationDiscountOverride mapping
-        cluster.maxLiquidationDiscount = 0;
+        cluster.maxLiquidationDiscount = 0.15e4;
 
         // define liquidation cool off time here. if needed to be defined per asset, populate the liquidationCoolOffTimeOverride mapping
         cluster.liquidationCoolOffTime = 1;
 
         // define hook target and hooked ops here. if needed to be defined per asset, populate the hookTargetOverride and hookedOpsOverride mappings
-        cluster.hookTarget = 0xF5b821Efb4F6e13DE7521A3E4fc07fd2a153e280;
-        cluster.hookedOps = OP_DEPOSIT | OP_MINT | OP_TRANSFER | OP_SKIM | OP_BORROW | OP_REPAY_WITH_SHARES | OP_PULL_DEBT | OP_LIQUIDATE | OP_FLASHLOAN;
+        cluster.hookTarget = address(0);
+        cluster.hookedOps = 0;
 
         // define config flags here. if needed to be defined per asset, populate the configFlagsOverride mapping
         cluster.configFlags = 0;
@@ -53,35 +54,49 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[USDC] = "0x922d28eEa3f3946c098bF6b216459AE783bf13FF";
-        cluster.oracleProviders[eUSD] = "0xD3149A4e8CDA42af2DC8d64bD0A1084c24e6D844";
+        cluster.oracleProviders[weETH] = "";
+        cluster.oracleProviders[WETH] = "0x7Ca484Fa74D66E83F53C35B02D82b1C01C942F20";
+        cluster.oracleProviders[USDT] = "0x2D842527F1E6CD19a643C127B175bb80924B3036";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[eUSD] = type(uint256).max;
+        cluster.supplyCaps[weETH] = 16_700;
+        cluster.supplyCaps[WETH] = 15_000;
+        cluster.supplyCaps[USDT] = 45_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[eUSD] = type(uint256).max;
+        cluster.borrowCaps[weETH] = type(uint256).max;
+        cluster.borrowCaps[WETH] = 13_500;
+        cluster.borrowCaps[USDT] = 40_500_000;
+
+        // define IRM classes here and assign them to the assets
+        {
+            // Base=0.00% APY,  Kink(90.00%)=2.70% APY  Max=15.00% APY
+            uint256[4] memory irmWETH = [uint256(0), uint256(218407859),  uint256(8346118211), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
+            uint256[4] memory irmUSDT = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
+
+            cluster.kinkIRMParams[WETH] = irmWETH;
+            cluster.kinkIRMParams[USDT] = irmUSDT;
+        }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 0 days;
 
         // define the spread between borrow and liquidation ltv
-        cluster.spreadLTV = 0.0;
+        cluster.spreadLTV = 0.01e4;
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0   
-        //                eUSD
-        /* 0  eUSD    */ [uint16(0.00e4)]
+        //                0                1        2    
+        //                weETH            WETH     USDT
+        /* 0  weETH    */ [uint16(0.00e4), 0.94e4, 0.85e4],
+        /* 1  WETH     */ [uint16(0.00e4), 0.00e4, 0.86e4],
+        /* 2  USDT     */ [uint16(0.00e4), 0.84e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
-        cluster.externalLTVs = [
-        //                     0   
-        //                     eUSD
-        /* 0  Escrow USDC  */ [uint16(9999)]
-        ];
+        // No external vaults in this cluster
     }
 
     function postOperations() internal view override {

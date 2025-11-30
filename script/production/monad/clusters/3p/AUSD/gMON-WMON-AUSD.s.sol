@@ -3,26 +3,27 @@
 pragma solidity ^0.8.0;
 
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {ManageCluster} from "../ManageCluster.s.sol";
-import {OracleVerifier} from "../../../../utils/SanityCheckOracle.s.sol";
-import "evk/EVault/shared/Constants.sol";
+import {ManageCluster} from "../../ManageCluster.s.sol";
+import {OracleVerifier} from "../../../../../utils/SanityCheckOracle.s.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
-        cluster.clusterAddressesPath = "/script/production/monad/clusters/psm/USDC-eUSD.json";
+        cluster.clusterAddressesPath = "/script/production/monad/clusters/3p/AUSD/gMON-WMON-AUSD.json";
 
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
         cluster.assets = [
-            eUSD
+            gMON,
+            WMON,
+            AUSD
         ];
     }
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = getDeployer(); //governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -32,14 +33,14 @@ contract Cluster is ManageCluster {
         cluster.interestFee = 0.1e4;
 
         // define max liquidation discount here. if needed to be defined per asset, populate the maxLiquidationDiscountOverride mapping
-        cluster.maxLiquidationDiscount = 0;
+        cluster.maxLiquidationDiscount = 0.15e4;
 
         // define liquidation cool off time here. if needed to be defined per asset, populate the liquidationCoolOffTimeOverride mapping
         cluster.liquidationCoolOffTime = 1;
 
         // define hook target and hooked ops here. if needed to be defined per asset, populate the hookTargetOverride and hookedOpsOverride mappings
-        cluster.hookTarget = 0xF5b821Efb4F6e13DE7521A3E4fc07fd2a153e280;
-        cluster.hookedOps = OP_DEPOSIT | OP_MINT | OP_TRANSFER | OP_SKIM | OP_BORROW | OP_REPAY_WITH_SHARES | OP_PULL_DEBT | OP_LIQUIDATE | OP_FLASHLOAN;
+        cluster.hookTarget = address(0);
+        cluster.hookedOps = 0;
 
         // define config flags here. if needed to be defined per asset, populate the configFlagsOverride mapping
         cluster.configFlags = 0;
@@ -53,35 +54,49 @@ contract Cluster is ManageCluster {
         // External Vaults Registry, the string should be preceeded by "ExternalVault|" prefix. this is in order to resolve 
         // the asset (vault) in the oracle router.
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
-        cluster.oracleProviders[USDC] = "0x922d28eEa3f3946c098bF6b216459AE783bf13FF";
-        cluster.oracleProviders[eUSD] = "0xD3149A4e8CDA42af2DC8d64bD0A1084c24e6D844";
+        cluster.oracleProviders[gMON] = "0x5c1EBde8adbBB238CF04BDA5064Eca0b4C8c6c4E";
+        cluster.oracleProviders[WMON] = "0x03e574FAD8b74FE9DA7F32d709bD881A6e8eF2dE";
+        cluster.oracleProviders[AUSD] = "0xcd82e60229DC4ea93AfEaa83D296Bd5F9E506D97";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[eUSD] = type(uint256).max;
+        cluster.supplyCaps[gMON] = 480_000_000;
+        cluster.supplyCaps[WMON] = 432_000_000;
+        cluster.supplyCaps[AUSD] = 21_600_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[eUSD] = type(uint256).max;
+        cluster.borrowCaps[gMON] = type(uint256).max;
+        cluster.borrowCaps[WMON] = 388_000_000;
+        cluster.borrowCaps[AUSD] = 19_400_000;
+
+        // define IRM classes here and assign them to the assets
+        {
+            // Base=0.00% APY,  Kink(90.00%)=3.00% APY  Max=15.00% APY
+            uint256[4] memory irmWMON = [uint256(0), uint256(242320082),  uint256(8130908205), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
+            uint256[4] memory irmUSDC = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
+
+            cluster.kinkIRMParams[WMON] = irmWMON;
+            cluster.kinkIRMParams[AUSD] = irmUSDC;
+        }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 0 days;
 
         // define the spread between borrow and liquidation ltv
-        cluster.spreadLTV = 0.0;
+        cluster.spreadLTV = 0.01e4;
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0   
-        //                eUSD
-        /* 0  eUSD    */ [uint16(0.00e4)]
+        //                0                1        2    
+        //                gMON             WMON     AUSD
+        /* 0  gMON     */ [uint16(0.00e4), 0.92e4, 0.78e4],
+        /* 1  WMON     */ [uint16(0.00e4), 0.00e4, 0.78e4],
+        /* 2  AUSD     */ [uint16(0.00e4), 0.78e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
-        cluster.externalLTVs = [
-        //                     0   
-        //                     eUSD
-        /* 0  Escrow USDC  */ [uint16(9999)]
-        ];
+        // No external vaults in this cluster
     }
 
     function postOperations() internal view override {
