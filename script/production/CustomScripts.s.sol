@@ -101,7 +101,7 @@ contract MigratePosition is BatchBuilder {
     function execute(uint8[] memory sourceIds, uint8[] memory destinationIds) public {
         require(
             sourceIds.length == destinationIds.length && sourceIds.length > 0,
-            "sourceIds and destinationIds must have the same length and be less than or equal to 5"
+            "sourceIds and destinationIds must have the same length and be non-empty"
         );
 
         address sourceWallet = getSourceWallet();
