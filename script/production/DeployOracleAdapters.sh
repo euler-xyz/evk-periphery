@@ -23,8 +23,39 @@ find_adapter_address() {
     echo "$result"
 }
 
+show_help() {
+    echo "Usage: $0 <csv_input_file_path> [csv_oracle_adapters_addresses_path] [options]"
+    echo ""
+    echo "Deploy oracle adapters based on a CSV configuration file."
+    echo ""
+    echo "Arguments:"
+    echo "  csv_input_file_path              CSV file with adapter configurations to deploy"
+    echo "  csv_oracle_adapters_addresses    Optional: existing adapters CSV to avoid duplicates"
+    echo ""
+    echo "Options:"
+    echo "  --rpc-url <URL|CHAIN_ID>   RPC endpoint or chain ID"
+    echo "  --account <NAME>           Use named Foundry account"
+    echo "  --ledger                   Use Ledger hardware wallet"
+    echo "  --dry-run                  Simulate without deploying"
+    echo "  --verbose                  Show skipped adapters"
+    echo "  --verify                   Verify contracts after deployment"
+    echo "  -h, --help                 Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  # Deploy adapters"
+    echo "  $0 adapters.csv --rpc-url mainnet --account DEPLOYER"
+    echo ""
+    echo "  # Deploy avoiding duplicates from existing file"
+    echo "  $0 new_adapters.csv existing_adapters.csv --rpc-url mainnet --account DEPLOYER"
+}
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    show_help
+    exit 0
+fi
+
 if [ -z "$1" ]; then
-    echo "Usage: $0 <csv_input_file_path> [csv_oracle_adapters_addresses_path]"
+    show_help
     exit 1
 fi
 
@@ -113,14 +144,20 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
         adapterName="${provider// /}_${baseSymbol}/${quoteSymbol}"
     fi
 
+    has_whitespace=false
     for i in "${!columns[@]}"; do
         stripped=$(echo "${columns[$i]}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
         if [[ "$stripped" != "${columns[$i]}" ]]; then
             echo "Skipping deployment of $adapterName. Whitespace detected in column $i"
-            continue
+            has_whitespace=true
+            break
         fi
     done
+
+    if [[ "$has_whitespace" == "true" ]]; then
+        continue
+    fi
 
     if [[ "$avoid_duplicates" == "y" ]]; then
         adapterAddress=$(find_adapter_address "$adapterName" "$csv_oracle_adapters_addresses_path")
