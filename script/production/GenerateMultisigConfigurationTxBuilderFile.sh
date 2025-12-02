@@ -242,6 +242,30 @@ for key in "${keys[@]}"; do
             fi
         done
         
+        # Calculate final owner count after all operations
+        final_owner_count=${#desired_signers[@]}
+        
+        # Determine the threshold to use during removals
+        # If final owner count < current threshold, we need to reduce threshold first
+        if [ "$final_owner_count" -lt "$current_threshold" ]; then
+            if [ "$desired_threshold" -gt "$final_owner_count" ]; then
+                echo "Error: Desired threshold ($desired_threshold) exceeds final owner count ($final_owner_count)"
+                echo "Skipping $key"
+                echo ""
+                continue
+            fi
+            # Reduce threshold before removing owners
+            echo "Reducing threshold to $desired_threshold before removing owners"
+            json=$(echo $json | jq --arg to "$multisig_address" --argjson contractMethod "$contract_method_changeThreshold" \
+                --arg _threshold "$desired_threshold" \
+                '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"_threshold": $_threshold}}]' )
+            removal_threshold=$desired_threshold
+            threshold_already_changed=true
+        else
+            removal_threshold=$current_threshold
+            threshold_already_changed=false
+        fi
+        
         # Remove owners in reverse order (end to beginning) to avoid affecting prevOwner of subsequent removals
         for ((i=${#owners_to_remove[@]}-1; i>=0; i--)); do
             owner_to_remove="${owners_to_remove[$i]}"
@@ -271,7 +295,7 @@ for key in "${keys[@]}"; do
             
             echo "Removing owner: $owner_to_remove"
             json=$(echo $json | jq --arg to "$multisig_address" --argjson contractMethod "$contract_method_removeOwner" \
-                --arg owner "$owner_to_remove" --arg _threshold "$current_threshold" --arg prev_owner "$prev_owner" \
+                --arg owner "$owner_to_remove" --arg _threshold "$removal_threshold" --arg prev_owner "$prev_owner" \
                 '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"prevOwner": $prev_owner, "owner": $owner, "_threshold": $_threshold}}]' )
             
             # Simulate the linked list change: owners[prevOwner] = owners[owner]
@@ -287,12 +311,14 @@ for key in "${keys[@]}"; do
             done
             working_owners_array=("${new_working_array[@]}")
         done
+        
     else
         echo "No owners need to be removed"
+        threshold_already_changed=false
     fi
     
-    # Phase 3: Adjust threshold if needed
-    if [ "$current_threshold" -ne "$desired_threshold" ]; then
+    # Phase 3: Adjust threshold if needed (skip if already changed in Phase 2)
+    if [ "$current_threshold" -ne "$desired_threshold" ] && [ "$threshold_already_changed" != "true" ]; then
         echo "Setting threshold to $desired_threshold"
         json=$(echo $json | jq --arg to "$multisig_address" --argjson contractMethod "$contract_method_changeThreshold" \
             --arg _threshold "$desired_threshold" \
