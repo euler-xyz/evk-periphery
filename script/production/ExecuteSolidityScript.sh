@@ -97,8 +97,10 @@ for rpc_url in "${rpc_urls_array[@]}"; do
 
         mkdir -p "$deployment_dir/broadcast" "$deployment_dir/output"
 
-        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
-        cp "$broadcast_dir/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
+        if [ -e "$broadcast_dir/run-latest.json" ]; then
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
+            cp "$broadcast_dir/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
+        fi
 
         for json_file in script/*.json; do
             [ -e "$json_file" ] || continue
