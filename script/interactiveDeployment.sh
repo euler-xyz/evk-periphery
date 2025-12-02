@@ -560,7 +560,7 @@ while true; do
             echo "Select the type of IRM to deploy:"
             echo "0. Kink"
             echo "1. Adaptive Curve"
-            read -p "Enter your choice (0-0): " irm_choice
+            read -p "Enter your choice (0-1): " irm_choice
 
             baseName=04_IRM
 
@@ -773,6 +773,12 @@ while true; do
                     read -p "Enter the EVault Factory address: " eVaultFactory
                     read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
                     read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+                    read -p "Enter the Adaptive Curve IRM Factory address (or press Enter for address(0)): " adaptive_curve_irm_factory
+                    adaptive_curve_irm_factory=${adaptive_curve_irm_factory:-0x0000000000000000000000000000000000000000}
+                    read -p "Enter the Kinky IRM Factory address (or press Enter for address(0)): " kinky_irm_factory
+                    kinky_irm_factory=${kinky_irm_factory:-0x0000000000000000000000000000000000000000}
+                    read -p "Enter the Fixed Cyclical Binary IRM Factory address (or press Enter for address(0)): " fixed_cyclical_binary_irm_factory
+                    fixed_cyclical_binary_irm_factory=${fixed_cyclical_binary_irm_factory:-0x0000000000000000000000000000000000000000}
 
                     jq -n \
                         --arg eVaultFactory "$eVaultFactory" \
@@ -1215,7 +1221,7 @@ while true; do
             jq -n \
                 --arg evc "$evc" \
                 --arg permit2 "$permit2" \
-                --arg evc "$perspective" \
+                --arg perspective "$perspective" \
                 '{
                     evc: $evc,
                     permit2: $permit2,
@@ -1469,6 +1475,7 @@ while true; do
         cp "$broadcast_dir/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
 
         for json_file in script/*_input.json; do
+            [ -e "$json_file" ] || continue
             jsonFileName=$(basename "${json_file/_input/}")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/$jsonFileName")
 
@@ -1476,6 +1483,7 @@ while true; do
         done
 
         for json_file in script/*_output.json; do
+            [ -e "$json_file" ] || continue
             jsonFileName=$(basename "${json_file/_output/}")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
 
@@ -1483,6 +1491,7 @@ while true; do
         done
 
         for json_file in script/*.json; do
+            [ -e "$json_file" ] || continue
             jsonFileName=$(basename "${json_file}")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
 
@@ -1490,6 +1499,7 @@ while true; do
         done
     else
         for json_file in script/*.json; do
+            [ -e "$json_file" ] || continue
             rm "$json_file"
         done
     fi
