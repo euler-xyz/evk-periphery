@@ -235,6 +235,7 @@ contract SafeUtil is ScriptExtended {
                 || block.chainid == 137 || block.chainid == 143 || block.chainid == 146 || block.chainid == 42161
                 || block.chainid == 43114 || block.chainid == 480 || block.chainid == 56 || block.chainid == 5000
                 || block.chainid == 57073 || block.chainid == 59144 || block.chainid == 8453 || block.chainid == 9745
+                || block.chainid == 999
         ) {
             return "https://safe-client.safe.global/";
         } else if (block.chainid == 1923) {
@@ -589,11 +590,11 @@ contract SafeMultisendBuilder is SafeUtil {
 
     function _getMultisendAddress(uint256 chainId, bool isCallOnly) internal pure returns (address) {
         if (
-            chainId == 1 || chainId == 10 || chainId == 100 || chainId == 130 || chainId == 137 || chainId == 143 || chainId == 146
-                || chainId == 239 || chainId == 2390 || chainId == 2818 || chainId == 30 || chainId == 42161
-                || chainId == 43114 || chainId == 480 || chainId == 5000 || chainId == 56 || chainId == 57073
-                || chainId == 59144 || chainId == 60808 || chainId == 80094 || chainId == 8453 || chainId == 9745
-                || chainId == 999
+            chainId == 1 || chainId == 10 || chainId == 100 || chainId == 130 || chainId == 137 || chainId == 143
+                || chainId == 146 || chainId == 239 || chainId == 2390 || chainId == 2818 || chainId == 30
+                || chainId == 42161 || chainId == 43114 || chainId == 480 || chainId == 5000 || chainId == 56
+                || chainId == 57073 || chainId == 59144 || chainId == 60808 || chainId == 80094 || chainId == 8453
+                || chainId == 9745 || chainId == 999
         ) {
             if (isCallOnly) return 0x9641d764fc13c8B624c04430C7356C1C7C8102e2;
             revert("getMultisendAddress: Unsupported multisend mode");
