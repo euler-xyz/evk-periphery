@@ -127,7 +127,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[WBTC       ] = 600;
         cluster.supplyCaps[cbBTC      ] = 500;
         cluster.supplyCaps[LBTC       ] = 300;
-        cluster.supplyCaps[xAUt       ] = 200;
+        cluster.supplyCaps[xAUt       ] = 300;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[WETH       ] = 67_500;
