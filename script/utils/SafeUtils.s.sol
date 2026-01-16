@@ -198,13 +198,23 @@ contract SafeUtil is ScriptExtended {
             safe: vm.parseJsonAddress(string(response), ".safeAddress"),
             txId: vm.parseJsonString(string(response), ".txId"),
             txStatus: vm.parseJsonString(string(response), ".txStatus"),
-            to: vm.parseJsonAddress(string(response), ".txInfo.to.value"),
-            value: vm.parseJsonUint(string(response), ".txInfo.value"),
+            to: address(0),
+            value: 0,
             data: "",
             operation: Operation(vm.parseJsonUint(string(response), ".txData.operation")),
             nonce: vm.parseJsonUint(string(response), ".detailedExecutionInfo.nonce"),
             hash: vm.parseJsonBytes32(string(response), ".detailedExecutionInfo.safeTxHash")
         });
+
+        try vm.parseJsonAddress(string(response), ".txInfo.to.value") returns (address to) {
+            transaction.to = to;
+        } catch {
+            transaction.to = transaction.safe;
+        }
+
+        try vm.parseJsonUint(string(response), ".txInfo.value") returns (uint256 value) {
+            transaction.value = value;
+        } catch {}
 
         try vm.parseJsonBytes(string(response), ".txData.hexData") returns (bytes memory data) {
             transaction.data = data;
