@@ -91,6 +91,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         bool deployEulerSwap;
         bool deployEUSD;
         bool deploySEUSD;
+        bool deploySecuritizeFactory;
         address uniswapPoolManager;
         address eulerSwapProtocolFeeConfigAdmin;
         address eulerSwapRegistryCurator;
@@ -202,6 +203,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             deployEulerSwap: vm.parseJsonBool(json, ".deployEulerSwap"),
             deployEUSD: vm.parseJsonBool(json, ".deployEUSD"),
             deploySEUSD: vm.parseJsonBool(json, ".deploySEUSD"),
+            deploySecuritizeFactory: vm.parseJsonBool(json, ".deploySecuritizeFactory"),
             uniswapPoolManager: vm.parseJsonAddress(json, ".uniswapPoolManager"),
             eulerSwapProtocolFeeConfigAdmin: vm.parseJsonAddress(json, ".eulerSwapProtocolFeeConfigAdmin"),
             eulerSwapRegistryCurator: vm.parseJsonAddress(json, ".eulerSwapRegistryCurator")
@@ -858,6 +860,31 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             peripheryAddresses.edgeFactoryPerspective = deployer.deploy(peripheryAddresses.edgeFactory)[0];
         } else {
             console.log("- EdgeFactoryPerspective already deployed. Skipping...");
+        }
+
+        if (peripheryAddresses.securitizeFactory == address(0)) {
+            if (input.deploySecuritizeFactory) {
+                console.log("+ Deploying ERC4626EVCCollateralSecuritizeFactory...");
+                bytes memory bytecode = abi.encodePacked(
+                    vm.getCode(
+                        "out-securitize-factory/ERC4626EVCCollateralSecuritizeFactory.sol/ERC4626EVCCollateralSecuritizeFactory.json"
+                    ),
+                    abi.encode(coreAddresses.evc, coreAddresses.permit2)
+                );
+                address factory;
+                startBroadcast();
+                assembly {
+                    factory := create(0, add(bytecode, 0x20), mload(bytecode))
+                }
+                stopBroadcast();
+                peripheryAddresses.securitizeFactory = factory;
+            } else {
+                console.log("! ERC4626EVCCollateralSecuritizeFactory deployment deliberately skipped. Skipping...");
+                if (vm.isDir("out-securitize-factory")) vm.removeDir("out-securitize-factory", true);
+            }
+        } else {
+            console.log("- ERC4626EVCCollateralSecuritizeFactory already deployed. Skipping...");
+            if (vm.isDir("out-securitize-factory")) vm.removeDir("out-securitize-factory", true);
         }
 
         if (peripheryAddresses.termsOfUseSigner == address(0)) {

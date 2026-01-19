@@ -22,7 +22,14 @@ import {
 } from "../08_Lenses.s.sol";
 import {ERC20Synth} from "../../src/ERC20/deployed/ERC20Synth.sol";
 import {VaultLens, VaultInfoFull} from "../../src/Lens/VaultLens.sol";
+import {UtilsLens, VaultInfoERC4626} from "../../src/Lens/UtilsLens.sol";
 import {AccountLens, AccountInfo, AccountMultipleVaultsInfo} from "../../src/Lens/AccountLens.sol";
+
+contract GetVaultInfoERC4626 is ScriptUtils {
+    function run(address vault) public view returns (VaultInfoERC4626 memory) {
+        return UtilsLens(lensAddresses.utilsLens).getVaultInfoERC4626(vault);
+    }
+}
 
 contract GetVaultInfoFull is ScriptUtils {
     function run(address vault) public view returns (VaultInfoFull memory) {

@@ -39,6 +39,7 @@ fi
 
 eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26 --out out-euler-earn"
 eulerSwapCompilerOptions="--optimize --optimizer-runs 2500 --use 0.8.27 --out out-euler-swap"
+securitizeFactoryCompilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24 --out out-securitize-factory"
 
 while true; do
     echo ""
@@ -1248,10 +1249,11 @@ while true; do
                 multisig_security_partner_B=$(jq -r '.securityPartnerB' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
                 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+                securitizeFactory=$(jq -r '.securitizeFactory' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulOFTAdapter=$(jq -r '.eulOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 eusdOFTAdapter=$(jq -r '.eusdOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 seusdOFTAdapter=$(jq -r '.seusdOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
-                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 eulerEarnFactory=${eulerEarnFactory:-$addressZero}
                 eulerSwapV2Factory=$(jq -r '.eulerSwapV2Factory' "$addresses_dir_path/EulerSwapAddresses.json" 2>/dev/null)
@@ -1304,6 +1306,10 @@ while true; do
                 read -p "Should deploy and configure seUSD contracts system? (y/n) (default: n): " deploy_seusd
             fi
 
+            if [ -z "$securitizeFactory" ] || [ "$securitizeFactory" == "$addressZero" ] || [ "$securitizeFactory" == "null" ]; then
+                read -p "Should deploy Securitize Vault Factory? (y/n) (default: n): " deploy_securitize_factory
+            fi
+
             multisig_dao=${multisig_dao:-$addressZero}
             multisig_labs=${multisig_labs:-$addressZero}
             multisig_security_council=${multisig_security_council:-$addressZero}
@@ -1318,6 +1324,7 @@ while true; do
             deploy_euler_swap=${deploy_euler_swap:-n}
             deploy_eusd=${deploy_eusd:-n}
             deploy_seusd=${deploy_seusd:-n}
+            deploy_securitize_factory=${deploy_securitize_factory:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
             euler_swap_protocol_fee_config_admin=${euler_swap_protocol_fee_config_admin:-$multisig_dao}
             euler_swap_registry_curator=${euler_swap_registry_curator:-$multisig_labs}
@@ -1328,6 +1335,10 @@ while true; do
 
             if { [ -z "$eulerSwapV2Factory" ] || [ "$eulerSwapV2Factory" == "$addressZero" ] || [ "$eulerSwapV2Factory" == "null" ]; } && [ "$deploy_euler_swap" = "y" ]; then
                 forge compile lib/euler-swap/src $eulerSwapCompilerOptions --force
+            fi
+
+            if { [ -z "$securitizeFactory" ] || [ "$securitizeFactory" == "$addressZero" ] || [ "$securitizeFactory" == "null" ]; } && [ "$deploy_securitize_factory" = "y" ]; then
+                forge compile src/VaultFactory/ERC4626EVCCollateralSecuritizeFactory.sol $securitizeFactoryCompilerOptions --force
             fi
 
             if [[ "$@" != *"--ffi"* ]]; then
@@ -1349,6 +1360,7 @@ while true; do
                 --argjson deployEulerSwap "$(jq -n --argjson val \"$deploy_euler_swap\" 'if $val == "y" then true else false end')" \
                 --argjson deployEUSD "$(jq -n --argjson val \"$deploy_eusd\" 'if $val == "y" then true else false end')" \
                 --argjson deploySEUSD "$(jq -n --argjson val \"$deploy_seusd\" 'if $val == "y" then true else false end')" \
+                --argjson deploySecuritizeFactory "$(jq -n --argjson val \"$deploy_securitize_factory\" 'if $val == "y" then true else false end')" \
                 --arg uniswapPoolManager "$uniswap_pool_manager" \
                 --arg eulerSwapProtocolFeeConfigAdmin "$euler_swap_protocol_fee_config_admin" \
                 --arg eulerSwapRegistryCurator "$euler_swap_registry_curator" \
@@ -1367,6 +1379,7 @@ while true; do
                     deployEulerSwap: $deployEulerSwap,
                     deployEUSD: $deployEUSD,
                     deploySEUSD: $deploySEUSD,
+                    deploySecuritizeFactory: $deploySecuritizeFactory,
                     uniswapPoolManager: $uniswapPoolManager,
                     eulerSwapProtocolFeeConfigAdmin: $eulerSwapProtocolFeeConfigAdmin,
                     eulerSwapRegistryCurator: $eulerSwapRegistryCurator
