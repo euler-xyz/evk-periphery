@@ -11,27 +11,52 @@ show_usage() {
     echo "Generate multisig configuration transaction builder files."
     echo ""
     echo "OPTIONS:"
-    echo "  --safe-address KEY    Process only the specified multisig (KEY can be: DAO, labs, securityCouncil, securityPartnerA, securityPartnerB)"
+    echo "  --safe-address VALUE  Process only the specified multisig"
+    echo "                        VALUE can be either:"
+    echo "                        - A multisig key (e.g., DAO, labs, securityCouncil, riskSteward, etc.)"
+    echo "                        - An actual address (0x...)"
     echo "  --help, -h            Show this help message"
     echo ""
     echo "If no specific multisig is provided, all multisigs will be processed."
     echo ""
-    echo "Available multisig keys: DAO, labs, securityCouncil, securityPartnerA, securityPartnerB"
+    echo "Available multisig keys are read from MultisigAddresses.json files in:"
+    echo "  - addresses/[chain_id]/MultisigAddresses.json"
+    echo "  - config/addresses/[chain_id]/MultisigAddresses.json"
+}
+
+# Helper function to check if a string is an Ethereum address
+is_address() {
+    local input="$1"
+    if [[ "$input" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Helper function to normalize addresses (convert to lowercase)
+normalize_address() {
+    echo "$1" | tr '[:upper:]' '[:lower:]'
 }
 
 # Parse command line arguments
 selected_keys=()
+selected_addresses=()
 all_multisigs=true
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --safe-address)
             if [[ $# -lt 2 ]]; then
-                echo "Error: --safe-address requires a multisig key"
+                echo "Error: --safe-address requires a multisig key or address"
                 echo "Use --help for usage information."
                 exit 1
             fi
-            selected_keys+=("$2")
+            if is_address "$2"; then
+                selected_addresses+=("$2")
+            else
+                selected_keys+=("$2")
+            fi
             all_multisigs=false
             shift 2
             ;;
@@ -47,13 +72,116 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Validate selected keys
+if ! script/utils/checkEnvironment.sh; then
+    echo "Environment check failed. Exiting."
+    exit 1
+fi
+
+chain_id=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
+addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$chain_id"
+config_dir_path="${ADDRESSES_DIR_PATH%/}/../config/multisig"
+multisig_addresses_file="$addresses_dir_path/MultisigAddresses.json"
+config_multisig_addresses_file="${ADDRESSES_DIR_PATH%/}/../config/addresses/$chain_id/MultisigAddresses.json"
+
+# Validate that at least one MultisigAddresses.json exists
+if [ ! -f "$multisig_addresses_file" ] && [ ! -f "$config_multisig_addresses_file" ]; then
+    echo "Error: MultisigAddresses.json not found in either:"
+    echo "  - $multisig_addresses_file"
+    echo "  - $config_multisig_addresses_file"
+    exit 1
+fi
+
+# Helper function to get a value from MultisigAddresses.json (checks both locations)
+get_multisig_address() {
+    local key="$1"
+    local result=""
+    
+    # Try main addresses directory first
+    if [ -f "$multisig_addresses_file" ]; then
+        result=$(jq -r ".$key" "$multisig_addresses_file" 2>/dev/null)
+        if [ "$result" != "null" ] && [ -n "$result" ]; then
+            echo "$result"
+            return 0
+        fi
+    fi
+    
+    # Try config addresses directory
+    if [ -f "$config_multisig_addresses_file" ]; then
+        result=$(jq -r ".$key" "$config_multisig_addresses_file" 2>/dev/null)
+        if [ "$result" != "null" ] && [ -n "$result" ]; then
+            echo "$result"
+            return 0
+        fi
+    fi
+    
+    # Return empty if not found
+    echo ""
+    return 1
+}
+
+# Resolve addresses to keys
+if [ ${#selected_addresses[@]} -gt 0 ]; then
+    echo "Resolving addresses to multisig keys..."
+    for addr in "${selected_addresses[@]}"; do
+        # Normalize the address to lowercase for comparison
+        normalized_addr=$(normalize_address "$addr")
+        
+        # Search for the address in both MultisigAddresses.json files
+        found_key=""
+        
+        # First, check the main addresses directory
+        if [ -f "$multisig_addresses_file" ]; then
+            found_key=$(jq -r --arg addr "$normalized_addr" '
+                to_entries[] | 
+                select(.value | ascii_downcase == $addr) | 
+                .key
+            ' "$multisig_addresses_file" 2>/dev/null | head -n 1)
+        fi
+        
+        # If not found, check the config addresses directory
+        if [ -z "$found_key" ] && [ -f "$config_multisig_addresses_file" ]; then
+            found_key=$(jq -r --arg addr "$normalized_addr" '
+                to_entries[] | 
+                select(.value | ascii_downcase == $addr) | 
+                .key
+            ' "$config_multisig_addresses_file" 2>/dev/null | head -n 1)
+        fi
+        
+        if [ -z "$found_key" ]; then
+            echo "Error: Address $addr not found in MultisigAddresses.json"
+            echo "Available addresses:"
+            if [ -f "$multisig_addresses_file" ]; then
+                echo "  From $multisig_addresses_file:"
+                jq -r 'to_entries[] | "    \(.key): \(.value)"' "$multisig_addresses_file"
+            fi
+            if [ -f "$config_multisig_addresses_file" ]; then
+                echo "  From $config_multisig_addresses_file:"
+                jq -r 'to_entries[] | "    \(.key): \(.value)"' "$config_multisig_addresses_file"
+            fi
+            exit 1
+        fi
+        
+        echo "  $addr -> $found_key"
+        selected_keys+=("$found_key")
+    done
+fi
+
+# Validate selected keys by checking if they exist in MultisigAddresses.json files
 if [ "$all_multisigs" = false ]; then
-    valid_keys=('DAO' 'labs' 'securityCouncil' 'securityPartnerA' 'securityPartnerB')
     for key in "${selected_keys[@]}"; do
-        if [[ ! " ${valid_keys[@]} " =~ " ${key} " ]]; then
-            echo "Error: Invalid multisig key '$key'"
-            echo "Valid keys are: ${valid_keys[*]}"
+        # Check if the key exists in either MultisigAddresses.json file
+        key_address=$(get_multisig_address "$key")
+        if [ -z "$key_address" ]; then
+            echo "Error: Multisig key '$key' not found in MultisigAddresses.json"
+            echo "Available keys:"
+            if [ -f "$multisig_addresses_file" ]; then
+                echo "  From $multisig_addresses_file:"
+                jq -r 'keys[]' "$multisig_addresses_file" 2>/dev/null | sed 's/^/    /'
+            fi
+            if [ -f "$config_multisig_addresses_file" ]; then
+                echo "  From $config_multisig_addresses_file:"
+                jq -r 'keys[]' "$config_multisig_addresses_file" 2>/dev/null | sed 's/^/    /'
+            fi
             exit 1
         fi
     done
@@ -68,18 +196,29 @@ if [ "$all_multisigs" = false ]; then
     selected_keys=("${unique_keys[@]}")
 fi
 
-if ! script/utils/checkEnvironment.sh; then
-    echo "Environment check failed. Exiting."
-    exit 1
-fi
-
-chain_id=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
-addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$chain_id"
-config_dir_path="${ADDRESSES_DIR_PATH%/}/../config/multisig"
-
 # Set keys array based on selection
 if [ "$all_multisigs" = true ]; then
-    keys=('DAO' 'labs' 'securityCouncil' 'securityPartnerA' 'securityPartnerB')
+    # Collect all unique keys from both MultisigAddresses.json files
+    keys=()
+    if [ -f "$multisig_addresses_file" ]; then
+        while IFS= read -r key; do
+            keys+=("$key")
+        done < <(jq -r 'keys[]' "$multisig_addresses_file" 2>/dev/null)
+    fi
+    if [ -f "$config_multisig_addresses_file" ]; then
+        while IFS= read -r key; do
+            # Only add if not already in the array
+            if [[ ! " ${keys[@]} " =~ " ${key} " ]]; then
+                keys+=("$key")
+            fi
+        done < <(jq -r 'keys[]' "$config_multisig_addresses_file" 2>/dev/null)
+    fi
+    
+    if [ ${#keys[@]} -eq 0 ]; then
+        echo "Error: No multisig keys found in MultisigAddresses.json files"
+        exit 1
+    fi
+    
     echo "Processing all multisigs: ${keys[*]}"
 else
     keys=("${selected_keys[@]}")
@@ -118,11 +257,6 @@ contract_method_changeThreshold=$(jq -n '{
     payable: false
   }
 }' | jq -c '.contractMethod')
-
-# Helper function to normalize addresses (convert to lowercase)
-normalize_address() {
-    echo "$1" | tr '[:upper:]' '[:lower:]'
-}
 
 # Helper function to check if an address is in an array
 is_address_in_array() {
@@ -163,7 +297,13 @@ directory_path="script/deployments/$directory_name/$chain_id/output"
 mkdir -p "$directory_path"
 
 for key in "${keys[@]}"; do
-    multisig_address=$(jq -r ".$key" "$addresses_dir_path/MultisigAddresses.json")
+    multisig_address=$(get_multisig_address "$key")
+    if [ -z "$multisig_address" ]; then
+        echo "Error: Could not find address for multisig key '$key' in either MultisigAddresses.json file"
+        echo "Skipping $key"
+        echo ""
+        continue
+    fi
     desired_threshold=$(jq -r ".threshold" "$config_dir_path/${key}.json")
     IFS=$'\n' read -d '' -r -a desired_signers < <(jq -r '.signers[]' "$config_dir_path/${key}.json")
     json='{"chainId":"'$chain_id'","createdAt":'$(date +%s)',"meta":{"name":"'"$key"' multisig configuration batch","createdFromSafeAddress":"'"$multisig_address"'"},"transactions":[]}'
@@ -183,7 +323,10 @@ for key in "${keys[@]}"; do
     for i in "${!desired_signers[@]}"; do
         signer="${desired_signers[$i]}"
         if [[ ! "$signer" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
-            resolved_signer=$(jq -r ".$signer" "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null || echo "$signer")
+            resolved_signer=$(get_multisig_address "$signer")
+            if [ -z "$resolved_signer" ]; then
+                resolved_signer="$signer"
+            fi
             desired_signers[$i]=$resolved_signer
         fi
     done

@@ -5,7 +5,7 @@ function verify_contract {
     local contractAddress=$1
     local contractName=$2
     local constructorArgs=$3
-    shift 3
+    shift 4
     
     local verifier_url_var="VERIFIER_URL_${chainId}"
     local verifier_api_key_var="VERIFIER_API_KEY_${chainId}"

@@ -62,15 +62,15 @@ contract Cluster is ManageCluster {
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC] = 100_000_000;
         cluster.supplyCaps[USDT0] = 100_000_000;
-        cluster.supplyCaps[thBILL] = 10_000_000;
-        cluster.supplyCaps[PT_tbBILL_27NOV2025] = 30_000_000;
+        cluster.supplyCaps[thBILL] = 20_000_000;
+        cluster.supplyCaps[PT_tbBILL_27NOV2025] = 100_000;
         cluster.supplyCaps[PT_tbBILL_19FEB2026] = 30_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC] = 90_000_000;
         cluster.borrowCaps[USDT0] = 90_000_000;
-        cluster.borrowCaps[thBILL] = 9_000_000;
-        cluster.borrowCaps[PT_tbBILL_27NOV2025] = type(uint256).max;
+        cluster.borrowCaps[thBILL] = 18_000_000;
+        cluster.borrowCaps[PT_tbBILL_27NOV2025] = 0;
         cluster.borrowCaps[PT_tbBILL_19FEB2026] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
@@ -84,7 +84,7 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 30 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.01e4;
@@ -96,7 +96,7 @@ contract Cluster is ManageCluster {
             /* 0  USDC              */ [uint16(0.00e4), 0.95e4, 0.91e4, 0.00e4, 0.00e4],
             /* 1  USDT              */ [uint16(0.95e4), 0.00e4, 0.91e4, 0.00e4, 0.00e4],
             /* 2  thBILL            */ [uint16(0.91e4), 0.91e4, 0.00e4, 0.00e4, 0.00e4],
-            /* 3  PT_thBILL_27NOV   */ [uint16(0.91e4), 0.91e4, 0.95e4, 0.00e4, 0.00e4],
+            /* 3  PT_thBILL_27NOV   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4],
             /* 4  PT_thBILL_19FEB   */ [uint16(0.91e4), 0.91e4, 0.95e4, 0.00e4, 0.00e4]
         ];
 
