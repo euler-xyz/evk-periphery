@@ -88,14 +88,14 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDC  ] = 100_000_000;
         cluster.supplyCaps[USDT0 ] = 100_000_000;
         cluster.supplyCaps[USDS  ] = 50_000_000;
-        cluster.supplyCaps[sUSDS ] = 20_000_000;
-        cluster.supplyCaps[sUSDC ] = 20_000_000;
-        cluster.supplyCaps[USDe  ] = 20_000_000;
+        cluster.supplyCaps[sUSDS ] = 100_000;
+        cluster.supplyCaps[sUSDC ] = 100_000;
+        cluster.supplyCaps[USDe  ] = 100_000;
         cluster.supplyCaps[USR   ] = 100_000;
         cluster.supplyCaps[USDai ] = 0;
         cluster.supplyCaps[thBILL] = 10_000;
-        cluster.supplyCaps[sUSDe ] = 20_000_000;
-        cluster.supplyCaps[syrupUSDC] = 20_000_000;
+        cluster.supplyCaps[sUSDe ] = 100_000;
+        cluster.supplyCaps[syrupUSDC] = 100_000;
         cluster.supplyCaps[wstUSR ] = 100_000;
         cluster.supplyCaps[sUSDai] = 0;
         cluster.supplyCaps[RLP   ] = 7_500_000;
@@ -106,14 +106,14 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDC  ] = 90_000_000;
         cluster.borrowCaps[USDT0 ] = 90_000_000;
         cluster.borrowCaps[USDS  ] = 45_000_000;
-        cluster.borrowCaps[sUSDS ] = 18_000_000;
-        cluster.borrowCaps[sUSDC ] = 18_000_000;
-        cluster.borrowCaps[USDe  ] = 18_000_000;
+        cluster.borrowCaps[sUSDS ] = 0;
+        cluster.borrowCaps[sUSDC ] = 0;
+        cluster.borrowCaps[USDe  ] = 0;
         cluster.borrowCaps[USR   ] = 0;
         cluster.borrowCaps[USDai ] = 0;
         cluster.borrowCaps[thBILL] = 0;
-        cluster.borrowCaps[sUSDe ] = type(uint256).max;
-        cluster.borrowCaps[syrupUSDC] = type(uint256).max;
+        cluster.borrowCaps[sUSDe ] = 0;
+        cluster.borrowCaps[syrupUSDC] = 0;
         cluster.borrowCaps[wstUSR ] = 0;
         cluster.borrowCaps[sUSDai] = 0;
         cluster.borrowCaps[RLP   ] = type(uint256).max;
@@ -148,20 +148,20 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                            0               1       2       3       4       5       6       7       8       9       10      11      12      13      14      15
         //                            USDC            USDT0   USDS    sUSDS   sUSDC   USDe    USR     USDai   thBILL  sUSDe syrupUSDC wstUSR  sUSDai  RLP     PT_USDai_20NOV2025 PT_sUSDai_20NOV2025
-        /* 0  USDC                */ [uint16(0.00e4), 0.96e4, 0.95e4, 0.94e4, 0.94e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 1  USDT0               */ [uint16(0.96e4), 0.00e4, 0.95e4, 0.94e4, 0.94e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 2  USDS                */ [uint16(0.95e4), 0.95e4, 0.00e4, 0.96e4, 0.96e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 3  sUSDS               */ [uint16(0.94e4), 0.94e4, 0.96e4, 0.00e4, 0.96e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 4  sUSDC               */ [uint16(0.94e4), 0.94e4, 0.96e4, 0.96e4, 0.00e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 5  USDe                */ [uint16(0.93e4), 0.93e4, 0.93e4, 0.92e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 0  USDC                */ [uint16(0.00e4), 0.96e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 1  USDT0               */ [uint16(0.96e4), 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 2  USDS                */ [uint16(0.95e4), 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 3  sUSDS               */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 4  sUSDC               */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 5  USDe                */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 6  USR                 */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 7  USDai               */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 8  thBILL              */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 9  sUSDe               */ [uint16(0.92e4), 0.92e4, 0.91e4, 0.91e4, 0.91e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 10 syrupUSDC           */ [uint16(0.92e4), 0.92e4, 0.91e4, 0.91e4, 0.91e4, 0.88e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 9  sUSDe               */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 10 syrupUSDC           */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 11 wstUSR              */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 12 sUSDai              */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 13 RLP                 */ [uint16(0.88e4), 0.88e4, 0.87e4, 0.87e4, 0.87e4, 0.85e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 13 RLP                 */ [uint16(0.88e4), 0.88e4, 0.87e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 14 PT_USDai_20NOV2025  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 15 PT_sUSDai_20NOV2025 */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];

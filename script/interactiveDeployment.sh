@@ -1444,7 +1444,7 @@ while true; do
                     ;;
             esac
 
-            cast send $access_control_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $broadcast $@
+            cast send $access_control_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $@
             ;;
         *)
             echo "Invalid choice. Exiting."
