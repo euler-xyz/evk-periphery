@@ -156,8 +156,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0.00% APY,  Kink(90.00%)=2.85% APY  Max=40.00% APY
-            uint256[4] memory irmETH       = [uint256(0), uint256(230372693),  uint256(22751935351), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=2.30% APY  Max=40.00% APY
+            uint256[4] memory irmETH       = [uint256(0), uint256(186416016),  uint256(23147545444), uint256(3865470566)];
 
             // Base=0% APY,  Kink(85.00%)=0.50% APY  Max=80.00% APY
             uint256[4] memory irmWSTETH    = [uint256(0), uint256(43292497), uint256(28666371159), uint256(3650722201)];

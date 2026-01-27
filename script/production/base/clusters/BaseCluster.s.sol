@@ -140,6 +140,9 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(90%)=6.50% APY  Max=40.00% APY
             uint256[4] memory irmUSD       = [uint256(0), uint256(516261061),  uint256(20178940043), uint256(3865470566)];
 
+            // Base=0% APY,  Kink(90%)=6.00% APY  Max=40.00% APY
+            uint256[4] memory irmUSDC      = [uint256(0), uint256(477682641),  uint256(20526145828), uint256(3865470566)];
+
             // Base=0% APY,  Kink(25%)=2.50% APY  Max=100.00% APY
             uint256[4] memory irmBTC_LRT   = [uint256(0), uint256(728739169), uint256(6575907893), uint256(1073741824)];
 
@@ -156,7 +159,7 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[ezETH ] = irmETH_LRT;
             cluster.kinkIRMParams[RETH  ] = irmETH_LRT;
             cluster.kinkIRMParams[wsuperOETHb] = irmETH_LRT;
-            cluster.kinkIRMParams[USDC  ] = irmUSD;
+            cluster.kinkIRMParams[USDC  ] = irmUSDC;
             cluster.kinkIRMParams[USDT0  ] = irmUSD;
             cluster.kinkIRMParams[EURC  ] = irmUSD;
             cluster.kinkIRMParams[cbBTC ] = irmBTC;
