@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
+import {IEVault, IERC4626} from "evk/EVault/IEVault.sol";
+import {SafeERC20, IERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title SwapVerifier
 /// @custom:security-contact security@euler.xyz
@@ -11,6 +12,7 @@ import {IEVault, IERC20} from "evk/EVault/IEVault.sol";
 /// @dev This contract is the only trusted code in the EVK swap periphery
 contract SwapVerifier {
     error SwapVerifier_skimMin();
+    error SwapVerifier_depositMin();
     error SwapVerifier_debtMax();
     error SwapVerifier_pastDeadline();
 
@@ -33,6 +35,26 @@ contract SwapVerifier {
         }
 
         IEVault(vault).skim(type(uint256).max, receiver);
+    }
+
+    /// @notice Verify results of a regular swap, when bought tokens are sent to the verifier, and deposit for the buyer
+    /// @param vault The ERC4626 vault to deposit to
+    /// @param receiver Account to deposit for
+    /// @param amountMin Minimum amount of assets that should be available for deposit
+    /// @param deadline Timestamp after which the swap transaction is outdated
+    /// @dev Swapper contract will send bought assets to the verifier in certain situations.
+    /// @dev Calling this function is then necessary to perform slippage check and claim the output for the buyer
+    function verifyAmountMinAndDeposit(address vault, address receiver, uint256 amountMin, uint256 deadline) external {
+        if (deadline < block.timestamp) revert SwapVerifier_pastDeadline();
+        if (amountMin == 0) return;
+
+        IERC20 asset = IERC20(IERC4626(vault).asset());
+        uint256 balance = asset.balanceOf(address(this));
+
+        if (balance < amountMin) revert SwapVerifier_depositMin();
+
+        SafeERC20.forceApprove(asset, vault, balance);
+        IERC4626(vault).deposit(balance, receiver);
     }
 
     /// @notice Verify results of a swap and repay operation, when debt is repaid down to a requested target
