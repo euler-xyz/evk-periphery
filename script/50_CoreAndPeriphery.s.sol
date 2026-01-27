@@ -91,6 +91,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         bool deployEulerSwap;
         bool deployEUSD;
         bool deploySEUSD;
+        bool deploySecuritizeFactory;
         address uniswapPoolManager;
         address eulerSwapProtocolFeeConfigAdmin;
         address eulerSwapRegistryCurator;
@@ -111,7 +112,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     uint256 internal constant EVAULT_FACTORY_TIMELOCK_MIN_DELAY = 4 days;
     uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
     uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_WILDCARD_TIMELOCK_MIN_DELAY = 2 days;
-    uint256 internal constant EUSD_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
+    uint256 internal constant EUSD_ADMIN_TIMELOCK_MIN_DELAY = 7 days;
     address[2] internal EVAULT_FACTORY_GOVERNOR_PAUSERS =
         [0xff217004BdD3A6A592162380dc0E6BbF143291eB, 0xcC6451385685721778E7Bd80B54F8c92b484F601];
 
@@ -130,6 +131,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     mapping(string => uint128) internal OFT_ENFORCED_GAS_LIMIT_CALL;
     mapping(string => uint8) internal OFT_REQUIRED_DVNS_COUNT;
     mapping(string => uint256[]) internal OFT_HUB_CHAIN_IDS;
+    mapping(string => uint256[]) internal OFT_CONFIG_IGNORE_CHAIN_IDS;
 
     int256 internal constant YEAR = 365 days;
     int256 internal constant IRM_TARGET_UTILIZATION = 0.9e18;
@@ -147,16 +149,19 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         OFT_ENFORCED_GAS_LIMIT_CALL["EUL"] = 100000;
         OFT_REQUIRED_DVNS_COUNT["EUL"] = 2;
         OFT_HUB_CHAIN_IDS["EUL"] = [HUB_CHAIN_ID, 8453];
+        OFT_CONFIG_IGNORE_CHAIN_IDS["EUL"] = [10, 100, 137, 480, 2818, 5000, 999, 57073, 21000000];
 
         OFT_ENFORCED_GAS_LIMIT_SEND["eUSD"] = 150000;
         OFT_ENFORCED_GAS_LIMIT_CALL["eUSD"] = 100000;
         OFT_REQUIRED_DVNS_COUNT["eUSD"] = 3;
         OFT_HUB_CHAIN_IDS["eUSD"] = [HUB_CHAIN_ID];
+        OFT_CONFIG_IGNORE_CHAIN_IDS["eUSD"] = [10, 100, 137, 480, 2818, 5000, 999, 57073, 21000000];
 
         OFT_ENFORCED_GAS_LIMIT_SEND["seUSD"] = 100000;
         OFT_ENFORCED_GAS_LIMIT_CALL["seUSD"] = 100000;
         OFT_REQUIRED_DVNS_COUNT["seUSD"] = 3;
         OFT_HUB_CHAIN_IDS["seUSD"] = [HUB_CHAIN_ID];
+        OFT_CONFIG_IGNORE_CHAIN_IDS["seUSD"] = [10, 100, 137, 480, 2818, 5000, 999, 57073, 21000000];
 
         for (uint256 i = 0; i < IRM_INITIAL_RATES_AT_TARGET.length; ++i) {
             DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.push(
@@ -198,6 +203,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             deployEulerSwap: vm.parseJsonBool(json, ".deployEulerSwap"),
             deployEUSD: vm.parseJsonBool(json, ".deployEUSD"),
             deploySEUSD: vm.parseJsonBool(json, ".deploySEUSD"),
+            deploySecuritizeFactory: vm.parseJsonBool(json, ".deploySecuritizeFactory"),
             uniswapPoolManager: vm.parseJsonAddress(json, ".uniswapPoolManager"),
             eulerSwapProtocolFeeConfigAdmin: vm.parseJsonAddress(json, ".eulerSwapProtocolFeeConfigAdmin"),
             eulerSwapRegistryCurator: vm.parseJsonAddress(json, ".eulerSwapRegistryCurator")
@@ -275,9 +281,8 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
             for (uint256 i = 0; i < EVAULT_FACTORY_GOVERNOR_PAUSERS.length; ++i) {
                 console.log("    Granting pause guardian role to address %s", EVAULT_FACTORY_GOVERNOR_PAUSERS[i]);
-                AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(
-                    pauseGuardianRole, EVAULT_FACTORY_GOVERNOR_PAUSERS[i]
-                );
+                AccessControl(governorAddresses.eVaultFactoryGovernor)
+                    .grantRole(pauseGuardianRole, EVAULT_FACTORY_GOVERNOR_PAUSERS[i]);
             }
 
             console.log("    Granting unpause admin role to address %s", multisigAddresses.labs);
@@ -305,9 +310,8 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             startBroadcast();
             bytes32 cancellerRole =
                 TimelockController(payable(governorAddresses.eVaultFactoryTimelockController)).CANCELLER_ROLE();
-            AccessControl(governorAddresses.eVaultFactoryTimelockController).grantRole(
-                cancellerRole, multisigAddresses.securityCouncil
-            );
+            AccessControl(governorAddresses.eVaultFactoryTimelockController)
+                .grantRole(cancellerRole, multisigAddresses.securityCouncil);
             stopBroadcast();
         } else {
             console.log("- EVault factory timelock controller already deployed. Skipping...");
@@ -371,10 +375,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 console.log("    Granting eUSD revoke minter role to the desired address %s", multisigAddresses.labs);
                 bytes32 revokeMinterRole = ERC20BurnableMintable(tokenAddresses.eUSD).REVOKE_MINTER_ROLE();
                 AccessControl(tokenAddresses.eUSD).grantRole(revokeMinterRole, multisigAddresses.labs);
-
-                console.log("    Granting eUSD allocator role to the desired address %s", multisigAddresses.labs);
-                bytes32 allocatorRole = ERC20Synth(tokenAddresses.eUSD).ALLOCATOR_ROLE();
-                AccessControl(tokenAddresses.eUSD).grantRole(allocatorRole, multisigAddresses.labs);
                 stopBroadcast();
 
                 console.log(" + Deploying eUSD timelock controller...");
@@ -396,9 +396,12 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 startBroadcast();
                 bytes32 cancellerRole =
                     TimelockController(payable(governorAddresses.eUSDAdminTimelockController)).CANCELLER_ROLE();
-                AccessControl(governorAddresses.eUSDAdminTimelockController).grantRole(
-                    cancellerRole, multisigAddresses.labs
-                );
+                AccessControl(governorAddresses.eUSDAdminTimelockController)
+                    .grantRole(cancellerRole, multisigAddresses.labs);
+
+                console.log("    Granting eUSD allocator role to the desired address %s", governorAddresses.eUSDAdminTimelockController);
+                bytes32 allocatorRole = ERC20Synth(tokenAddresses.eUSD).ALLOCATOR_ROLE();
+                AccessControl(tokenAddresses.eUSD).grantRole(allocatorRole, governorAddresses.eUSDAdminTimelockController);
                 stopBroadcast();
             } else {
                 console.log("! eUSD deployment deliberately skipped. Skipping...");
@@ -408,7 +411,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (bridgeAddresses.eusdOFTAdapter == address(0)) {
-            if (input.deployEUSD) {
+            if (tokenAddresses.eUSD != address(0)) {
                 console.log("+ Deploying OFT Adapter for eUSD...");
                 bridgeAddresses.eusdOFTAdapter = deployAndConfigureOFTAdapter(tokenAddresses.eUSD, false);
 
@@ -435,7 +438,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     );
                 }
             } else {
-                console.log("! eUSD OFT Adapter deployment deliberately skipped. Skipping...");
+                console.log("! eUSD OFT Adapter deployment skipped. Skipping...");
             }
         } else {
             console.log("- eUSD OFT Adapter already deployed. Skipping...");
@@ -478,11 +481,11 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (bridgeAddresses.seusdOFTAdapter == address(0)) {
-            if (input.deploySEUSD) {
+            if (tokenAddresses.seUSD != address(0)) {
                 console.log("+ Deploying OFT Adapter for seUSD...");
                 bridgeAddresses.seusdOFTAdapter = deployAndConfigureOFTAdapter(tokenAddresses.seUSD, true);
             } else {
-                console.log("! seUSD OFT Adapter deployment deliberately skipped. Skipping...");
+                console.log("! seUSD OFT Adapter deployment skipped. Skipping...");
             }
         } else {
             console.log("- seUSD OFT Adapter already deployed. Skipping...");
@@ -497,7 +500,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (peripheryAddresses.feeCollector == address(0)) {
-            if (input.deployEUSD) {
+            if (
+                tokenAddresses.eUSD != address(0) && bridgeAddresses.eusdOFTAdapter != address(0)
+                    && tokenAddresses.seUSD != address(0)
+            ) {
                 console.log("+ Deploying eUSD fee collecting system...");
                 if (block.chainid == HUB_CHAIN_ID) {
                     startBroadcast();
@@ -514,17 +520,18 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
                     LayerZeroUtil lzUtil = new LayerZeroUtil(HUB_CHAIN_ID);
                     LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(HUB_CHAIN_ID);
-                    address feeCollectorOther = deserializePeripheryAddresses(
-                        getAddressesJson("PeripheryAddresses.json", HUB_CHAIN_ID)
-                    ).feeCollector;
+                    address feeCollectorOther =
+                        deserializePeripheryAddresses(getAddressesJson("PeripheryAddresses.json", HUB_CHAIN_ID))
+                    .feeCollector;
 
                     require(feeCollectorOther != address(0), "Hub chain feeCollector is not deployed yet");
 
                     startBroadcast();
                     console.log("    Configuring OFTFeeCollector");
-                    OFTFeeCollector(payable(peripheryAddresses.feeCollector)).configure(
-                        bridgeAddresses.eusdOFTAdapter, feeCollectorOther, infoOther.eid, abi.encode(true), ""
-                    );
+                    OFTFeeCollector(payable(peripheryAddresses.feeCollector))
+                        .configure(
+                            bridgeAddresses.eusdOFTAdapter, feeCollectorOther, infoOther.eid, abi.encode(true), ""
+                        );
                     stopBroadcast();
                 }
 
@@ -545,10 +552,11 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (
             peripheryAddresses.oracleRouterFactory == address(0)
                 && peripheryAddresses.oracleAdapterRegistry == address(0)
-                && peripheryAddresses.externalVaultRegistry == address(0) && peripheryAddresses.kinkIRMFactory == address(0)
-                && peripheryAddresses.kinkyIRMFactory == address(0)
+                && peripheryAddresses.externalVaultRegistry == address(0)
+                && peripheryAddresses.kinkIRMFactory == address(0) && peripheryAddresses.kinkyIRMFactory == address(0)
                 && peripheryAddresses.fixedCyclicalBinaryIRMFactory == address(0)
-                && peripheryAddresses.adaptiveCurveIRMFactory == address(0) && peripheryAddresses.irmRegistry == address(0)
+                && peripheryAddresses.adaptiveCurveIRMFactory == address(0)
+                && peripheryAddresses.irmRegistry == address(0)
                 && peripheryAddresses.governorAccessControlEmergencyFactory == address(0)
                 && peripheryAddresses.capRiskStewardFactory == address(0)
         ) {
@@ -565,7 +573,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             peripheryAddresses.adaptiveCurveIRMFactory = peripheryContracts.adaptiveCurveIRMFactory;
             peripheryAddresses.irmRegistry = peripheryContracts.irmRegistry;
             peripheryAddresses.governorAccessControlEmergencyFactory =
-                peripheryContracts.governorAccessControlEmergencyFactory;
+            peripheryContracts.governorAccessControlEmergencyFactory;
             peripheryAddresses.capRiskStewardFactory = peripheryContracts.capRiskStewardFactory;
         } else {
             console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
@@ -607,25 +615,18 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     bytes32 defaultAdminRole =
                         OFTFeeCollector(payable(peripheryAddresses.feeCollector)).DEFAULT_ADMIN_ROLE();
                     bytes32 collectorRole = OFTFeeCollector(payable(peripheryAddresses.feeCollector)).COLLECTOR_ROLE();
-                    if (
-                        OFTFeeCollector(payable(peripheryAddresses.feeCollector)).hasRole(
-                            defaultAdminRole, getDeployer()
-                        )
-                    ) {
+                    if (OFTFeeCollector(payable(peripheryAddresses.feeCollector))
+                            .hasRole(defaultAdminRole, getDeployer())) {
                         vm.startBroadcast();
                         console.log(
                             "    Granting OFTFeeCollector collector role to the desired address %s",
                             peripheryAddresses.feeFlowController
                         );
-                        AccessControl(peripheryAddresses.feeCollector).grantRole(
-                            collectorRole, peripheryAddresses.feeFlowController
-                        );
+                        AccessControl(peripheryAddresses.feeCollector)
+                            .grantRole(collectorRole, peripheryAddresses.feeFlowController);
                         stopBroadcast();
-                    } else if (
-                        OFTFeeCollector(payable(peripheryAddresses.feeCollector)).hasRole(
-                            defaultAdminRole, getSafe(false)
-                        )
-                    ) {
+                    } else if (OFTFeeCollector(payable(peripheryAddresses.feeCollector))
+                            .hasRole(defaultAdminRole, getSafe(false))) {
                         console.log(
                             "    Adding multisend item to grant OFTFeeCollector collector role to the desired address %s",
                             peripheryAddresses.feeFlowController
@@ -728,9 +729,13 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 governorAddresses.accessControlEmergencyGovernorAdminTimelockController,
                 governorAddresses.accessControlEmergencyGovernorWildcardTimelockController,
                 governorAddresses.accessControlEmergencyGovernor
-            ) = GovernorAccessControlEmergencyFactory(peripheryAddresses.governorAccessControlEmergencyFactory).deploy(
-                adminTimelockControllerParams, wildcardTimelockControllerParams, governorAccessControlEmergencyGuardians
-            );
+            ) =
+                GovernorAccessControlEmergencyFactory(peripheryAddresses.governorAccessControlEmergencyFactory)
+                    .deploy(
+                        adminTimelockControllerParams,
+                        wildcardTimelockControllerParams,
+                        governorAccessControlEmergencyGuardians
+                    );
 
             //governorAddresses.capRiskSteward = CapRiskStewardFactory(peripheryAddresses.capRiskStewardFactory).deploy(
             //    governorAddresses.accessControlEmergencyGovernor,
@@ -747,7 +752,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("+ Deploying Swapper...");
             Swap deployer = new Swap();
             (peripheryAddresses.swapper, peripheryAddresses.swapVerifier) =
-                deployer.deploy(input.uniswapV2Router, input.uniswapV3Router);
+                deployer.deploy(coreAddresses.evc, coreAddresses.permit2, input.uniswapV2Router, input.uniswapV3Router);
         } else {
             console.log("- At least one of the Swapper contracts already deployed. Skipping...");
         }
@@ -812,7 +817,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 (coreAddresses.eulerEarnFactory, peripheryAddresses.eulerEarnPublicAllocator) =
                     deployer.deploy(coreAddresses.evc, coreAddresses.permit2, peripheryAddresses.evkFactoryPerspective);
             } else {
-                console.log("- EulerEarn not deployed. Skipping...");
+                console.log("- EulerEarn deliberately skipped. Skipping...");
                 if (vm.isDir("out-euler-earn")) vm.removeDir("out-euler-earn", true);
             }
         } else {
@@ -855,6 +860,31 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             peripheryAddresses.edgeFactoryPerspective = deployer.deploy(peripheryAddresses.edgeFactory)[0];
         } else {
             console.log("- EdgeFactoryPerspective already deployed. Skipping...");
+        }
+
+        if (peripheryAddresses.securitizeFactory == address(0)) {
+            if (input.deploySecuritizeFactory) {
+                console.log("+ Deploying ERC4626EVCCollateralSecuritizeFactory...");
+                bytes memory bytecode = abi.encodePacked(
+                    vm.getCode(
+                        "out-securitize-factory/ERC4626EVCCollateralSecuritizeFactory.sol/ERC4626EVCCollateralSecuritizeFactory.json"
+                    ),
+                    abi.encode(coreAddresses.evc, coreAddresses.permit2)
+                );
+                address factory;
+                startBroadcast();
+                assembly {
+                    factory := create(0, add(bytecode, 0x20), mload(bytecode))
+                }
+                stopBroadcast();
+                peripheryAddresses.securitizeFactory = factory;
+            } else {
+                console.log("! ERC4626EVCCollateralSecuritizeFactory deployment deliberately skipped. Skipping...");
+                if (vm.isDir("out-securitize-factory")) vm.removeDir("out-securitize-factory", true);
+            }
+        } else {
+            console.log("- ERC4626EVCCollateralSecuritizeFactory already deployed. Skipping...");
+            if (vm.isDir("out-securitize-factory")) vm.removeDir("out-securitize-factory", true);
         }
 
         if (peripheryAddresses.termsOfUseSigner == address(0)) {
@@ -916,9 +946,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
         if (peripheryAddresses.adaptiveCurveIRMFactory != address(0) && peripheryAddresses.irmRegistry != address(0)) {
             if (
-                SnapshotRegistry(peripheryAddresses.irmRegistry).getValidAddresses(
-                    address(0), address(0), block.timestamp
-                ).length == 0
+                SnapshotRegistry(peripheryAddresses.irmRegistry)
+                    .getValidAddresses(address(0), address(0), block.timestamp)
+                    .length == 0
             ) {
                 address owner = SnapshotRegistry(peripheryAddresses.irmRegistry).owner();
                 if (owner == getDeployer() || owner == getSafe(false)) {
@@ -974,7 +1004,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     console.log("+ Deploying EulerSwap V2 protocol fee config and implementation...");
                     EulerSwapImplementationDeployer deployer = new EulerSwapImplementationDeployer();
                     (eulerSwapAddresses.eulerSwapV2ProtocolFeeConfig, eulerSwapAddresses.eulerSwapV2Implementation) =
-                    deployer.deploy(coreAddresses.evc, input.eulerSwapProtocolFeeConfigAdmin, input.uniswapPoolManager);
+                        deployer.deploy(
+                            coreAddresses.evc, input.eulerSwapProtocolFeeConfigAdmin, input.uniswapPoolManager
+                        );
                 }
                 {
                     console.log("+ Deploying EulerSwap V2 factory...");
@@ -998,7 +1030,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     );
                 }
             } else {
-                console.log("- EulerSwap v1 not deployed. Skipping...");
+                console.log("- EulerSwap V2 deliberately skipped. Skipping...");
                 if (vm.isDir("out-euler-swap")) vm.removeDir("out-euler-swap", true);
             }
         } else {
@@ -1082,7 +1114,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     eid: infoHub.eid,
                     configType: OFT_ULN_CONFIG_TYPE,
                     config: abi.encode(
-                        lzUtil.getUlnConfig(adapter, hubChainId, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT[tokenKey], true)
+                        lzUtil.getUlnConfig(
+                            adapter, hubChainId, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT[tokenKey], true
+                        )
                     )
                 });
 
@@ -1182,9 +1216,43 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 continue;
             }
 
-            LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(chainIdOther);
+            if (
+                bridgeConfigCacheExists(tokenKey, block.chainid, chainIdOther)
+                    && containsOFTConfigIgnoreChainId(token, chainIdOther)
+            ) {
+                LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(chainIdOther);
+                removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
 
-            if (addBridgeConfigCache(tokenKey, block.chainid, chainIdOther)) {
+                if (delegate == getDeployer()) {
+                    vm.startBroadcast();
+                    console.log(
+                        "    + Removing %s OFT Adapter config on chain %s for chain %s by setting peer to address zero",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                    IOAppCore(adapter).setPeer(infoOther.eid, bytes32(0));
+                    vm.stopBroadcast();
+                } else if (delegate == getSafe(false)) {
+                    console.log(
+                        "    + Adding multisend item to remove %s OFT Adapter config on chain %s for chain %s by setting peer to address zero",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                    addMultisendItem(adapter, abi.encodeCall(IOAppCore.setPeer, (infoOther.eid, bytes32(0))));
+                } else {
+                    addBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
+                    console.log(
+                        "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter config on chain %s for chain %s must be removed manually.",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                }
+            } else if (addBridgeConfigCache(tokenKey, block.chainid, chainIdOther)) {
+                LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(chainIdOther);
+
                 SetConfigParam[] memory params = new SetConfigParam[](2);
                 params[0] = SetConfigParam({
                     eid: infoOther.eid,
@@ -1196,7 +1264,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     configType: OFT_ULN_CONFIG_TYPE,
                     config: abi.encode(
                         bridgeConfigCacheExists(tokenKey, chainIdOther, block.chainid)
-                            ? lzUtil.getCompatibleUlnConfig(adapterOther, block.chainid, chainIdOther, getAcceptedDVNs(), true)
+                            ? lzUtil.getCompatibleUlnConfig(
+                                adapterOther, block.chainid, chainIdOther, getAcceptedDVNs(), true
+                            )
                             : lzUtil.getUlnConfig(
                                 adapter, chainIdOther, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT[tokenKey], true
                             )
@@ -1240,7 +1310,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     configType: OFT_ULN_CONFIG_TYPE,
                     config: abi.encode(
                         bridgeConfigCacheExists(tokenKey, chainIdOther, block.chainid)
-                            ? lzUtil.getCompatibleUlnConfig(adapterOther, block.chainid, chainIdOther, getAcceptedDVNs(), false)
+                            ? lzUtil.getCompatibleUlnConfig(
+                                adapterOther, block.chainid, chainIdOther, getAcceptedDVNs(), false
+                            )
                             : lzUtil.getUlnConfig(
                                 adapter, chainIdOther, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT[tokenKey], false
                             )
@@ -1384,6 +1456,17 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
         for (uint256 i = 0; i < OFT_HUB_CHAIN_IDS[tokenKey].length; ++i) {
             if (OFT_HUB_CHAIN_IDS[tokenKey][i] == chainId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function containsOFTConfigIgnoreChainId(address token, uint256 chainId) internal view returns (bool) {
+        string memory tokenKey = getTokenKey(token);
+
+        for (uint256 i = 0; i < OFT_CONFIG_IGNORE_CHAIN_IDS[tokenKey].length; ++i) {
+            if (OFT_CONFIG_IGNORE_CHAIN_IDS[tokenKey][i] == chainId) {
                 return true;
             }
         }

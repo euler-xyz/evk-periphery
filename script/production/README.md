@@ -1,133 +1,188 @@
 # Cluster Deployment and Management
 
-This README explains how to manage a cluster using the provided scripts.
-
 ## Overview
 
-A cluster is a collection of vaults that accept each other as collateral and have a common governor. The `ManageClusterBase.s.sol` contract defined in the `evk-periphery` repository provides the base functionality for deploying, configuring and managing clusters, while specific cluster implementations (i.e. `PrimeCluster.s.sol`) define the actual configuration for each cluster.
+A **cluster** is a collection of vaults that accept each other as collateral and share a common governor. The cluster management system provides:
 
-## Management Process
+- **Initial deployment**: Deploy vaults, oracle routers, and IRMs
+- **Delta management**: Only apply configuration changes between script and on-chain state
+- **Emergency mode**: Rapid response to security incidents
 
-Refer to the `defineCluster()` and `configureCluster()` functions in the specific cluster script file. If no vaults are deployed yet, they will get deployed when the management script is executed for the first time. If the vaults are already deployed, the management script will only apply the delta between the cluster script file configuration and the current state of the cluster.
+## Cluster Structure
 
-Edit the specific cluster file (e.g., `PrimeCluster.s.sol`) to set up the desired configuration. Define assets, LTVs, oracle providers, supply caps, borrow caps, IRM parameters, and other settings.
+Each cluster consists of:
+- **Cluster script** (e.g., `BaseCluster.s.sol`): Defines assets, LTVs, oracles, caps, IRM parameters
+- **Cluster JSON** (e.g., `BaseCluster.json`): Deployed contract addresses cache (auto-generated)
+- **ManageCluster.s.sol**: Network-specific address definitions
+- **ManageClusterBase.s.sol**: Core management logic
 
-Note that the cluster specific contracts depend on the accompanying `Addresses` contracts which define the asset addresses. You might need to either expand them to include more addresses on mainnet or create a new dedicated contract for new network and allow the cluster contract to inherit from it.
+## Creating a New Cluster
 
-If you are creating a new cluster, it's best to copy the provided cluster contract and start editing it from top to bottom.
+1. Copy an existing cluster script as a template
+2. Define assets in `defineCluster()`:
 
-The corresponding `.json` files in the scripts directory that are created when running the script are used as the deployed contracts addresses cache. They are used for further management of the cluster. They must be retained as this is how the existing contract addresses are being loaded into the cluster management script hence after the cluster deployment, commit them!
-
-## Run the script:
-
-Use the `ExecuteSolidityScript.sh` script to run the management script.
-
-Use the following command:
-
-```bash
-./script/production/ExecuteSolidityScript.sh script/production/mainnet/clusters/<ClusterSpecificScript> [options]
+```solidity
+cluster.assets = [WETH, USDC, wstETH];
+cluster.clusterAddressesPath = "/script/production/<network>/clusters/MyCluster.json";
 ```
 
-Replace `<ClusterSpecificScript>` with the cluster specific file name, i.e. `PrimeCluster.s.sol`.
+3. Configure in `configureCluster()`:
 
-Options:
-- `--dry-run`: Simulates the script without actually executing transactions.
-- `--rpc-url URL|CHAIN_ID`: Must be used if `DEPLOYMENT_RPC_URL` not defined in `.env`. If `CHAIN_ID` passed, it will get resolved as per `.env`.
-- `--account ACCOUNT` or `--ledger`: Must be used if `DEPLOYER_KEY` not defined in `.env` and the transaction if not meant to be executed via Safe (no actual transaction executed on-chain).
-- `--batch-via-safe`: Creates a batch payload file that can be used to create a batch transaction via Safe. This option must be used in case the cluster is managed using Safe  (even if not directly; i.e. Safe is a proposer on the timelock controller).
-- `--safe-address SAFE_ADDRESS`: Authorized Safe multisig address that will be used to create a batch transaction This option must be used in case the cluster is managed using Safe (even if not directly; i.e. Safe is a proposer on the timelock controller).
-- `--timelock-address`: Schedules the transactions in the timelock controller provided instead of trying to execute them immediately. This option must be used in case the timelock controller is installed as part of the governor contracts suite.
-- `--risk-steward-address`: Executes the transactions via the risk steward contract provided instead of trying to execute it directly. This option can be used in case the risk steward contract is installed as part of the governor contracts suite and the operation executed allows bypassing timelocks.
-- `--simulate-safe-address`: Simulates pending transactions in the provided Safe multisig address before executing the script. This is useful when there are pending transactions that affect the state of the vaults.
-- `--simulate-timelock-address`: Simulates pending transactions in the provided timelock controller address before executing the script. This is useful when there are pending transactions that affect the state of the vaults.
+```solidity
+// Governor (typically GovernorAccessControlEmergency)
+cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
-Example - initial deployment:
+// Unit of account
+cluster.unitOfAccount = USD;
 
-```bash
-./script/production/ExecuteSolidityScript.sh ./script/production/mainnet/clusters/PrimeCluster.s.sol --account DEPLOYER --rpc-url 1
+// Oracle providers per asset
+cluster.oracleProviders[WETH] = "ChainlinkOracle";
+cluster.oracleProviders[wstETH] = "CrossAdapter=ChainlinkOracle+ChainlinkOracle";
+
+// Supply/borrow caps (in whole tokens, not wei)
+cluster.supplyCaps[WETH] = 10_000;
+cluster.borrowCaps[WETH] = 8_000;
+
+// IRM parameters: [baseRate, slope1, slope2, kink]
+cluster.kinkIRMParams[WETH] = [uint256(0), uint256(194425692), uint256(41617711740), uint256(3865470566)];
+
+// LTV matrix (row=vault, col=collateral, value=liquidationLTV in basis points)
+cluster.ltvs = [
+    //        WETH    USDC    wstETH
+    [uint16(0.00e4), 0.87e4, 0.93e4],  // WETH vault
+    [uint16(0.83e4), 0.00e4, 0.83e4],  // USDC vault
+    [uint16(0.93e4), 0.87e4, 0.00e4],  // wstETH vault
+];
 ```
 
-Example - management of the deployed cluster after the governance transferred to the governance contracts suite (GovernorAccessControl + TimelockController + Safe):
+4. Optionally define network-specific addresses in `ManageCluster.s.sol`
+
+## Running Cluster Scripts
 
 ```bash
-./script/production/ExecuteSolidityScript.sh ./script/production/mainnet/clusters/PrimeCluster.s.sol --batch-via-safe --safe-address DAO --timelock-address wildcard --rpc-url 1
+./script/production/ExecuteSolidityScript.sh <cluster_script> [options]
 ```
+
+### Initial Deployment
+
+First deployment when vaults don't exist yet:
+
+```bash
+./script/production/ExecuteSolidityScript.sh \
+  script/production/base/clusters/BaseCluster.s.sol \
+  --account DEPLOYER \
+  --rpc-url base
+```
+
+### Managed Cluster Updates
+
+After governance transferred to GovernorAccessControl + TimelockController + Safe:
+
+```bash
+./script/production/ExecuteSolidityScript.sh \
+  script/production/base/clusters/BaseCluster.s.sol \
+  --batch-via-safe \
+  --safe-address DAO \
+  --timelock-address wildcard \
+  --rpc-url base
+```
+
+### Common Options
+
+| Option | Description |
+|--------|-------------|
+| `--dry-run` | Simulate without broadcasting |
+| `--rpc-url <URL\|CHAIN_ID>` | RPC endpoint or chain ID shorthand |
+| `--account <NAME>` / `--ledger` | Signing method |
+| `--batch-via-safe` | Route transactions through Safe multisig |
+| `--safe-address <ADDR>` | Safe address or alias (`DAO`, `labs`, etc.) |
+| `--timelock-address <ADDR>` | Schedule via timelock (`admin`, `wildcard`, `eusd`) |
+| `--risk-steward-address <ADDR>` | Bypass timelock for caps/IRM changes |
+
+### Simulation Options
+
+Pending Safe/timelock transactions are automatically simulated before script execution to ensure correct fork state.
+
+| Option | Description |
+|--------|-------------|
+| `--simulate-safe-address <ADDR>` | Simulate different Safe than `--safe-address` |
+| `--simulate-timelock-address <ADDR>` | Simulate different timelock than `--timelock-address` |
+| `--skip-pending-simulation` | Disable pending transaction simulation |
 
 ## Important Notes
 
-Always try to use the `--dry-run` option first to simulate the transactions and check for any potential issues.
+- **Always use `--dry-run` first** to simulate and check for issues
+- **Commit the JSON file** after deployment — it's the deployed addresses cache
+- **Don't reorder assets** in `cluster.assets` — it must match the LTV matrix order
+- Oracle provider names match adapter contract `name()` return values
 
-# Emergency Vault Pause
+---
 
-In case of a governor contract installed, this section assumes that the cluster is governed by the `GovernorAccessControlEmergency` contract with a Safe multisig having an appropriate emergency role granted to it.
+# Emergency Operations
 
-> **IMPORTANT**: Environment variables defined in the `.env` file take precedence over the command line arguments!
+For rapid response to security incidents. Requires `GovernorAccessControlEmergency` with appropriate emergency roles granted to a Safe multisig.
 
-## Steps
+## Emergency Options
 
-1. Ensure that you have up to date foundry version installed:
+| Option | Effect |
+|--------|--------|
+| `--emergency-ltv-collateral` | Set borrow LTV to 0 for the vault when used as collateral (disables new borrows against it) |
+| `--emergency-ltv-borrowing` | Set borrow LTV to 0 for all collaterals on the vault (disables new borrows) |
+| `--emergency-caps` | Set supply and borrow caps to 0 (disables new deposits/borrows) |
+| `--emergency-operations` | Disable all vault operations via hook |
+| `--vault-address <ADDR>` | Target vault, or `all` for all cluster vaults |
+
+## Emergency Command
 
 ```bash
+./script/production/ExecuteSolidityScript.sh \
+  <cluster_script> \
+  --rpc-url <RPC_URL> \
+  --batch-via-safe \
+  --safe-address <EMERGENCY_SAFE> \
+  --vault-address <VAULT_OR_ALL> \
+  [--emergency-ltv-collateral] \
+  [--emergency-ltv-borrowing] \
+  [--emergency-caps] \
+  [--emergency-operations]
+```
+
+### Example
+
+Disable borrowing against a specific vault and set caps to zero:
+
+```bash
+./script/production/ExecuteSolidityScript.sh \
+  script/production/mainnet/clusters/PrimeCluster.s.sol \
+  --rpc-url mainnet \
+  --batch-via-safe \
+  --safe-address securityCouncil \
+  --vault-address 0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2 \
+  --emergency-ltv-collateral \
+  --emergency-caps
+```
+
+## After Running Emergency Script
+
+1. Load `SafeBatchBuilder_*.json` from `script/deployments/<name>/<chainId>/output/` into Safe Transaction Builder
+2. Coordinate signing with other multisig signers
+3. Execute the transaction
+
+---
+
+# Environment Setup
+
+```bash
+# Install/update Foundry
 foundryup
-```
 
-If you don't have foundry installed at all, before running `foundryup`, you need to first run:
+# Clone repositories
+git clone https://github.com/euler-xyz/evk-periphery.git && cd evk-periphery
+cd .. && git clone https://github.com/euler-xyz/euler-interfaces.git && cd evk-periphery
 
-```bash
-curl -L https://foundry.paradigm.xyz | bash
-```
-
-2. Clone the repository if you don't have it already:
-
-```bash
-git clone https://github.com/euler-xyz/euler-periphery.git && cd euler-periphery
-```
-
-3. Ensure that you have up to date dependencies installed:
-
-```bash
+# Install dependencies and compile
 forge install
-```
-
-4. Compile the contracts:
-
-```bash
 forge clean && forge compile
 ```
 
-5. Ensure you have the `euler-interfaces` repo cloned in the parent directory. If not run:
-
-```bash
-cd .. && git clone https://github.com/euler-xyz/euler-interfaces.git && cd euler-periphery
-```
-
-6. Run the script:
-
-Options:
-- `--rpc-url` required if `DEPLOYMENT_RPC_URL` not defined in `.env`
-- `--account ACCOUNT` or `--ledger` if `DEPLOYER_KEY` not defined in `.env` and the transaction if not meant to be executed via Safe
-- `--batch-via-safe` if operations must be executed via Safe multisig (typically should always be used)
-- `--safe-address SAFE_ADDRESS` authorized Safe multisig address
-- `--vault-address VAULT_ADDRESS` the vault being a subject of the emegency operation
-- `--emergency-ltv-collateral` should be used if you intend to disable the `VAULT_ADDRESS` from being used as collateral by modifying the borrow LTVs
-- `--emergency-ltv-borrowing` should be used if you intend to disable all collaterals on the `VAULT_ADDRESS` by modifying the borrow LTVs
-- `--emergency-caps` should be used if you intend to set the supply and the borrow caps of the `VAULT_ADDRESS` to zero
-- `--emergency-operations` should be used if you intend disable all the operations of the `VAULT_ADDRESS`
-
-```bash
-./script/production/ExecuteSolidityScript.sh PATH_TO_CLUSTER_SPECIFIC_SCRIPT --rpc-url RPC_URL --batch-via-safe --safe-address SAFE_ADDRESS --vault-address VAULT_ADDRESS [--emergency-ltv-collateral] [--emergency-ltv-borrowing] [--emergency-caps]
-```
-
-Example command for the `PrimeCluster.s.sol` script:
-
-```bash
-./script/production/ExecuteSolidityScript.sh script/production/mainnet/clusters/PrimeCluster.s.sol --rpc-url https://ethereum-rpc.publicnode.com --batch-via-safe --safe-address 0xB1345E7A4D35FB3E6bF22A32B3741Ae74E5Fba27 --vault-address 0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2 --emergency-ltv-collateral --emergency-caps
-```
-
-7. Create the transaction in the Safe UI (if the transaction if meant to be executed via Safe)
-
-Use the Safe UI Transaction Builder tool to create the transaction. Load the `<payload file>` file created by the script that can be found under the following path: `script/deployments/[YOUR_SPECIFIED_DIRECTORY]/[CHAIN_ID]/output/SafeBatchBuilder_*.json`.
-
-8. Coordinate signing process with the other Safe multisig signers.
-
-9. Execute the transaction in the Safe UI.
+> **Note**: Environment variables in `.env` take precedence over command line arguments.

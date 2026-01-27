@@ -53,6 +53,9 @@ contract Cluster is ManageCluster {
             cluster.irms[YU  ] = IRM_ADAPTIVE_USD;
         }
 
+        cluster.supplyCaps[USDC] = 0;
+        cluster.supplyCaps[USDT] = 0;
+        cluster.supplyCaps[YU] = 0;
         cluster.borrowCaps[USDC] = 0;
         cluster.borrowCaps[USDT] = 0;
         cluster.borrowCaps[YU] = 0;

@@ -105,6 +105,23 @@ function verify_broadcast {
                 contractName="./src/OFT/OFTAdapterUpgradeable.sol:OFTAdapterUpgradeable"
                 constructorBytesSize=64
                 constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+            elif [[ $contractName == "ERC4626EVCCollateralSecuritizeFactory" ]]; then
+                # Special handling for Securitize factory - needs different compiler settings
+                local src="src/VaultFactory/ERC4626EVCCollateralSecuritizeFactory.sol"
+                local verificationOptions="--num-of-optimizations 10000 --compiler-version 0.8.24"
+                local compilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24"
+                contractName="src/VaultFactory/ERC4626EVCCollateralSecuritizeFactory.sol:ERC4626EVCCollateralSecuritizeFactory"
+                constructorBytesSize=64
+                constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+
+                forge clean && forge compile $src $compilerOptions
+                verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
+
+                if [ $? -eq 0 ]; then
+                    verificationSuccessful=true
+                    createVerified=true
+                fi
+                continue
             fi
 
             verify_contract $contractAddress $contractName "$constructorArgs" "$@"
@@ -247,7 +264,7 @@ function verify_broadcast {
             if [ -d "out-euler-swap" ] && ([ ! -d "out-euler-earn" ] || [ $eulerEarnIndex -gt 1 ]); then
                 # try to verify as EulerSwap contracts
                 local src="lib/euler-swap/src"
-                local verificationOptions="--num-of-optimizations 2500 --compiler-version 0.8.27"
+                local verificationOptions="--num-of-optimizations 2500 --compiler-version 0.8.27 --root lib/euler-swap/src"
                 local compilerOptions="--optimize --optimizer-runs 2500 --use 0.8.27"
 
                 while true; do

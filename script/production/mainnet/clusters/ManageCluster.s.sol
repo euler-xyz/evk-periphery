@@ -80,14 +80,17 @@ abstract contract Addresses {
     address internal constant PT_USDe_31JUL2025 = 0x917459337CaAC939D41d7493B3999f571D20D667;
     address internal constant PT_USDe_25SEP2025 = 0xBC6736d346a5eBC0dEbc997397912CD9b8FAe10a;
     address internal constant PT_USDe_27NOV2025 = 0x62C6E813b9589C3631Ba0Cdb013acdB8544038B7;
+    address internal constant PT_USDe_05FEB2026 = 0x1F84a51296691320478c98b8d77f2Bbd17D34350;
     address internal constant PT_sUSDe_29MAY2025 = 0xb7de5dFCb74d25c2f21841fbd6230355C50d9308;
     address internal constant PT_sUSDe_31JULY2025 = 0x3b3fB9C57858EF816833dC91565EFcd85D96f634;
     address internal constant PT_sUSDe_25SEP2025 = 0x9F56094C450763769BA0EA9Fe2876070c0fD5F77;
     address internal constant PT_sUSDe_27NOV2025 = 0xe6A934089BBEe34F832060CE98848359883749B3;
+    address internal constant PT_sUSDe_05FEB2026 = 0xE8483517077afa11A9B07f849cee2552f040d7b2;
     address internal constant PT_eUSDe_29MAY2025 = 0x50D2C7992b802Eef16c04FeADAB310f31866a545;
     address internal constant PT_eUSDe_14AUG2025 = 0x14Bdc3A3AE09f5518b923b69489CBcAfB238e617;
     address internal constant PT_cUSDO_19JUN2025 = 0x933B9FfEE0Ad3Ef8E4DBb52688ea905826D73755;
     address internal constant PT_cUSDO_20NOV2025 = 0xB10DA2F9147f9cf2B8826877Cd0c95c18A0f42dc;
+    address internal constant PT_cUSDO_28MAY2026 = 0x67aEeEd39C1675e0Df93Ad8BaB543b17992d433B;
     address internal constant PT_syrupUSDC_28AUG2025 = 0xCcE7D12f683c6dAe700154f0BAdf779C0bA1F89A;
     address internal constant PT_USDS_14AUG2025 = 0xFfEc096c087C13Cc268497B89A613cACE4DF9A48;
     address internal constant PT_tUSDe_25SEP2025 = 0xd0a4B74A6B62aA2b6C02349463D9041606608F36;
@@ -95,6 +98,8 @@ abstract contract Addresses {
     address internal constant PT_pUSDe_16OCT2025 = 0xF3f491e5608f8B8a6Fd9E9d66a4a4036d7FD282C;
     address internal constant PT_jrUSDe_15JAN2026 = 0x53F3373F0D811902405f91eB0d5cc3957887220D;
     address internal constant PT_srUSDe_15JAN2026 = 0x1Fb3C5c35D95F48e48FFC8e36bCCe5CB5f29F57c;
+    address internal constant PT_srUSDe_02APR2026 = 0x9Bf45ab47747F4B4dD09B3C2c73953484b4eB375;
+    address internal constant PT_jrUSDe_02APR2026 = 0xd0609Ac13000d88B0BEbf5Bb21074916eDd92Bb1;
     address internal constant PT_alUSD_11DEC2025 = 0xd2E230f71CA8DB211067BC4070A94D268b313fA3;
     address internal constant PT_cUSD_29JAN2026 = 0x545A490f9ab534AdF409A2E682bc4098f49952e3;
     address internal constant PT_stcUSD_29JAN2026 = 0xC3c7E5E277d31CD24a3Ac4cC9af3B6770F30eA33;

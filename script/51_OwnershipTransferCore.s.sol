@@ -121,16 +121,20 @@ contract OwnershipTransferCore is BatchBuilder {
             console.log("- EVaultFactory upgrade admin is already set to the desired address. Skipping...");
         }
 
-        privilegedAddress = Ownable(coreAddresses.eulerEarnFactory).owner();
-        if (privilegedAddress != multisigAddresses.DAO) {
-            if (privilegedAddress == getDeployer()) {
-                console.log("+ Transferring ownership of EulerEarnFactory to %s", multisigAddresses.DAO);
-                transferOwnership(coreAddresses.eulerEarnFactory, multisigAddresses.DAO);
+        if (coreAddresses.eulerEarnFactory != address(0)) {
+            privilegedAddress = Ownable(coreAddresses.eulerEarnFactory).owner();
+            if (privilegedAddress != multisigAddresses.DAO) {
+                if (privilegedAddress == getDeployer()) {
+                    console.log("+ Transferring ownership of EulerEarnFactory to %s", multisigAddresses.DAO);
+                    transferOwnership(coreAddresses.eulerEarnFactory, multisigAddresses.DAO);
+                } else {
+                    console.log("! EulerEarnFactory owner is not the caller of this script. Skipping...");
+                }
             } else {
-                console.log("! EulerEarnFactory owner is not the caller of this script. Skipping...");
+                console.log("- EulerEarnFactory owner is already set to the desired address. Skipping...");
             }
         } else {
-            console.log("- EulerEarnFactory owner is already set to the desired address. Skipping...");
+            console.log("! EulerEarnFactory is not deployed yet. Skipping...");
         }
 
         if (block.chainid != HUB_CHAIN_ID) {

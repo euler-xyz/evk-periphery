@@ -17,6 +17,7 @@ abstract contract Addresses {
     address internal constant sUSDC = 0x14d9143BEcC348920b68D123687045db49a016C6;
     address internal constant WBTC = 0x0555E30da8f98308EdB960aa94C0Db47230d2B9c;
     address internal constant UNI = 0x8f187aA05619a017077f5308904739877ce9eA21;
+    address internal constant PT_cUSD_29JAN2026 = 0xB6168F597Cd37A232cb7CB94CD1786Be20eAD156;
 }
 
 abstract contract ManageCluster is ManageClusterBase, Addresses {}

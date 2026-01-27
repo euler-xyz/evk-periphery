@@ -1,8 +1,34 @@
 #!/bin/bash
 
+show_help() {
+    echo "Usage: $0 <old_perspective_address> <new_perspective_address> [options]"
+    echo ""
+    echo "Re-verify vaults from an old perspective on a new perspective."
+    echo "Useful when migrating to a new perspective contract."
+    echo ""
+    echo "Arguments:"
+    echo "  old_perspective_address    Source perspective to read verified vaults from"
+    echo "  new_perspective_address    Target perspective to verify vaults on"
+    echo ""
+    echo "Options:"
+    echo "  --rpc-url <URL|CHAIN_ID>   RPC endpoint or chain ID"
+    echo "  --account <NAME>           Use named Foundry account"
+    echo "  --ledger                   Use Ledger hardware wallet"
+    echo "  --dry-run                  Simulate without executing"
+    echo "  -h, --help                 Show this help message"
+    echo ""
+    echo "Example:"
+    echo "  $0 0x123...old 0x456...new --rpc-url mainnet --account DEPLOYER"
+}
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    show_help
+    exit 0
+fi
+
 if [ -z "$1" ] || [ -z "$2" ]; then
-  echo "Usage: $0 <old_perspective_address> <new_perspective_address>"
-  exit 1
+    show_help
+    exit 1
 fi
 
 old_perspective="$1"
@@ -16,7 +42,7 @@ eval 'set -- $SCRIPT_ARGS'
 addresses_dir_path="${ADDRESSES_DIR_PATH%/}/$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)"
 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
 
-if ! script/utils/checkEnvironment.sh; then
+if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
 fi
@@ -53,6 +79,11 @@ for vault in $(echo $vaults | tr -d '[]' | tr ',' ' '); do
 done
 
 items="${items%,}]"
+
+if [[ "$items" == "[]" ]]; then
+    echo "No vaults to re-verify. Exiting..."
+    exit 0
+fi
 
 if [[ "$broadcast" == "" ]]; then
     echo "Dry run. Exiting..."
