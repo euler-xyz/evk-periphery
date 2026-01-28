@@ -32,7 +32,6 @@ contract SwapVerifier is TransferFromSender {
     /// @dev Calling this function is then necessary to perform slippage check and claim the output for the buyer
     function verifyAmountMinAndSkim(address vault, address receiver, uint256 amountMin, uint256 deadline) external {
         if (deadline < block.timestamp) revert SwapVerifier_pastDeadline();
-        if (amountMin == 0) return;
 
         uint256 cash = IEVault(vault).cash();
         uint256 balance = IERC20(IEVault(vault).asset()).balanceOf(vault);
@@ -53,7 +52,6 @@ contract SwapVerifier is TransferFromSender {
     /// @dev Calling this function is then necessary to perform slippage check and claim the output for the buyer
     function verifyAmountMinAndDeposit(address vault, address receiver, uint256 amountMin, uint256 deadline) external {
         if (deadline < block.timestamp) revert SwapVerifier_pastDeadline();
-        if (amountMin == 0) return;
 
         IERC20 asset = IERC20(IERC4626(vault).asset());
         uint256 balance = asset.balanceOf(address(this));
