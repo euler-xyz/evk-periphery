@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# Store original foundry.toml src value
+ORIGINAL_FOUNDRY_SRC="src"
+
+function set_foundry_src {
+    local src_path=$1
+    sed -i.bak "s|^src = \".*\"|src = \"$src_path\"|" foundry.toml
+    rm -f foundry.toml.bak
+}
+
+function restore_foundry_src {
+    set_foundry_src "$ORIGINAL_FOUNDRY_SRC"
+}
+
+# Ensure foundry.toml is restored on exit/interrupt
+trap restore_foundry_src EXIT
+
 function verify_contract {
     local chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
     local contractAddress=$1
@@ -219,19 +235,22 @@ function verify_broadcast {
             if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 2 ]; then
                 # try to verify as EulerEarn contracts
                 local src="lib/euler-earn/src"
-                local verificationOptions="--via-ir --num-of-optimizations 200 --compiler-version 0.8.26 --root lib/euler-earn/src"
+                local verificationOptions="--via-ir --num-of-optimizations 200 --compiler-version 0.8.26"
                 local compilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26"
+
+                # Modify foundry.toml to use euler-earn src path
+                set_foundry_src "$src"
 
                 while true; do
                     case $eulerEarnIndex in
                         0)
                             # try to verify as EulerEarnFactory
-                            contractName=lib/euler-earn/src/EulerEarnFactory.sol:EulerEarnFactory
+                            contractName=EulerEarnFactory
                             constructorBytesSize=128
                             ;;
                         1)
                             # try to verify as PublicAllocator
-                            contractName=lib/euler-earn/src/PublicAllocator.sol:PublicAllocator
+                            contractName=PublicAllocator
                             constructorBytesSize=32
                             ;;
                         *)
@@ -259,44 +278,50 @@ function verify_broadcast {
 
                     ((eulerEarnIndex++))
                 done
+
+                # Restore foundry.toml src path
+                restore_foundry_src
             fi
 
             if [ -d "out-euler-swap" ] && ([ ! -d "out-euler-earn" ] || [ $eulerEarnIndex -gt 1 ]); then
                 # try to verify as EulerSwap contracts
                 local src="lib/euler-swap/src"
-                local verificationOptions="--num-of-optimizations 2500 --compiler-version 0.8.27 --root lib/euler-swap/src"
+                local verificationOptions="--num-of-optimizations 2500 --compiler-version 0.8.27"
                 local compilerOptions="--optimize --optimizer-runs 2500 --use 0.8.27"
+
+                # Modify foundry.toml to use euler-swap src path
+                set_foundry_src "$src"
 
                 while true; do
                     case $eulerSwapIndex in
                         0)
                             # try to verify as EulerSwapProtocolFeeConfig
-                            contractName=lib/euler-swap/src/EulerSwapProtocolFeeConfig.sol:EulerSwapProtocolFeeConfig
+                            contractName=EulerSwapProtocolFeeConfig
                             constructorBytesSize=64
                             ;;
                         1)
                             # try to verify as EulerSwapManagement
-                            contractName=lib/euler-swap/src/EulerSwapManagement.sol:EulerSwapManagement
+                            contractName=EulerSwapManagement
                             constructorBytesSize=32
                             ;;
                         2)
                             # try to verify as EulerSwap
-                            contractName=lib/euler-swap/src/EulerSwap.sol:EulerSwap
+                            contractName=EulerSwap
                             constructorBytesSize=128
                             ;;
                         3)
                             # try to verify as EulerSwapFactory
-                            contractName=lib/euler-swap/src/EulerSwapFactory.sol:EulerSwapFactory
+                            contractName=EulerSwapFactory
                             constructorBytesSize=64
                             ;;
                         4)
                             # try to verify as EulerSwapPeriphery
-                            contractName=lib/euler-swap/src/EulerSwapPeriphery.sol:EulerSwapPeriphery
+                            contractName=EulerSwapPeriphery
                             constructorBytesSize=0
                             ;;
                         5)
                             # try to verify as EulerSwapRegistry
-                            contractName=lib/euler-swap/src/EulerSwapRegistry.sol:EulerSwapRegistry
+                            contractName=EulerSwapRegistry
                             constructorBytesSize=128
                             ;;
                         *)
@@ -324,6 +349,9 @@ function verify_broadcast {
 
                     ((eulerSwapIndex++))
                 done
+
+                # Restore foundry.toml src path
+                restore_foundry_src
             fi
         fi
     done

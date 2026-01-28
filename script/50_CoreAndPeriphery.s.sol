@@ -611,7 +611,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 });
                 peripheryAddresses.feeFlowController = deployer.deploy(feeFlowInput);
 
-                if (block.chainid != HUB_CHAIN_ID) {
+                if (block.chainid != HUB_CHAIN_ID && peripheryAddresses.feeCollector != address(0)) {
                     bytes32 defaultAdminRole =
                         OFTFeeCollector(payable(peripheryAddresses.feeCollector)).DEFAULT_ADMIN_ROLE();
                     bytes32 collectorRole = OFTFeeCollector(payable(peripheryAddresses.feeCollector)).COLLECTOR_ROLE();
