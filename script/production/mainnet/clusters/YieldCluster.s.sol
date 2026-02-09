@@ -141,8 +141,8 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_srUSDe_02APR2026      ] = 20_000_000;
         cluster.supplyCaps[PT_jrUSDe_02APR2026      ] = 8_000_000;
         cluster.supplyCaps[PT_alUSD_11DEC2025       ] = 100_000;
-        cluster.supplyCaps[PT_cUSD_29JAN2026        ] = 12_000_000;
-        cluster.supplyCaps[PT_stcUSD_29JAN2026      ] = 5_000_000;
+        cluster.supplyCaps[PT_cUSD_29JAN2026        ] = 10_000;
+        cluster.supplyCaps[PT_stcUSD_29JAN2026      ] = 10_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC                     ] = 270_000_000;
@@ -171,8 +171,8 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[PT_srUSDe_02APR2026      ] = type(uint256).max;
         cluster.borrowCaps[PT_jrUSDe_02APR2026      ] = type(uint256).max;
         cluster.borrowCaps[PT_alUSD_11DEC2025       ] = 0;
-        cluster.borrowCaps[PT_cUSD_29JAN2026        ] = type(uint256).max;
-        cluster.borrowCaps[PT_stcUSD_29JAN2026      ] = type(uint256).max;
+        cluster.borrowCaps[PT_cUSD_29JAN2026        ] = 0;
+        cluster.borrowCaps[PT_stcUSD_29JAN2026      ] = 0;
 
         // define IRM classes here and assign them to the assets
         {
@@ -240,8 +240,8 @@ contract Cluster is ManageCluster {
         /* 23 PT_srUSDe_02APR2026       */ [uint16(0.87e4), 0.87e4, 0.87e4, 0.00e4, 0.00e4, 0.925e4, 0.92e4, 0.00e4, 0.84e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 24 PT_jrUSDe_02APR2026       */ [uint16(0.65e4), 0.65e4, 0.65e4, 0.00e4, 0.00e4, 0.650e4, 0.65e4, 0.00e4, 0.65e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 25 PT_alUSD_11DEC2025        */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 26 PT_cUSD_29JAN2026         */ [uint16(0.85e4), 0.85e4, 0.85e4, 0.00e4, 0.00e4, 0.850e4, 0.85e4, 0.00e4, 0.82e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 27 PT_stcUSD_29JAN2026       */ [uint16(0.85e4), 0.85e4, 0.85e4, 0.00e4, 0.00e4, 0.850e4, 0.85e4, 0.00e4, 0.82e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
+        /* 26 PT_cUSD_29JAN2026         */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 27 PT_stcUSD_29JAN2026       */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.000e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
