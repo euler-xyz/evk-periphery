@@ -87,9 +87,8 @@ contract UtilsLens is Utils {
             return result;
         }
 
-        (bool success, bytes memory data) = result.oracle.staticcall(
-            abi.encodeCall(IPriceOracle.getQuote, (result.amountIn, asset, result.unitOfAccount))
-        );
+        (bool success, bytes memory data) = result.oracle
+            .staticcall(abi.encodeCall(IPriceOracle.getQuote, (result.amountIn, asset, result.unitOfAccount)));
 
         if (success && data.length >= 32) {
             result.amountOutMid = abi.decode(data, (uint256));
@@ -98,9 +97,8 @@ contract UtilsLens is Utils {
             result.queryFailureReason = data;
         }
 
-        (success, data) = result.oracle.staticcall(
-            abi.encodeCall(IPriceOracle.getQuotes, (result.amountIn, asset, result.unitOfAccount))
-        );
+        (success, data) = result.oracle
+            .staticcall(abi.encodeCall(IPriceOracle.getQuotes, (result.amountIn, asset, result.unitOfAccount)));
 
         if (success && data.length >= 64) {
             (result.amountOutBid, result.amountOutAsk) = abi.decode(data, (uint256, uint256));
@@ -178,8 +176,15 @@ contract UtilsLens is Utils {
         uint256[] memory balances = new uint256[](tokens.length);
 
         for (uint256 i = 0; i < tokens.length; ++i) {
-            if (tokens[i] != address(0)) balances[i] = IEVault(tokens[i]).balanceOf(account);
-            else balances[i] = account.balance;
+            if (tokens[i] == address(0)) {
+                balances[i] = account.balance;
+            } else {
+                try IEVault(tokens[i]).balanceOf(account) returns (uint256 balance) {
+                    balances[i] = balance;
+                } catch {
+                    balances[i] = 0;
+                }
+            }
         }
 
         return balances;
@@ -193,7 +198,11 @@ contract UtilsLens is Utils {
         uint256[] memory allowances = new uint256[](tokens.length);
 
         for (uint256 i = 0; i < tokens.length; ++i) {
-            allowances[i] = IEVault(tokens[i]).allowance(account, spender);
+            try IEVault(tokens[i]).allowance(account, spender) returns (uint256 allowance) {
+                allowances[i] = allowance;
+            } catch {
+                allowances[i] = 0;
+            }
         }
 
         return allowances;
