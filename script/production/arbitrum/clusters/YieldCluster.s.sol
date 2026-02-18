@@ -128,7 +128,10 @@ contract Cluster is ManageCluster {
             // Base=0% APY,  Kink(90%)=3.25% APY  Max=25.00% APY
             uint256[4] memory irmUSD_YB  = [uint256(0), uint256(262193782),  uint256(14104031216), uint256(3865470566)];
 
-            cluster.kinkIRMParams[USDC  ] = irmUSD;
+            // Base=0% APY,  Kink(90%)=7.00% APY  Max=25.00% APY
+            uint256[4] memory irmUSD_USDC = [uint256(0), uint256(554658784),  uint256(11471846206), uint256(3865470566)];
+
+            cluster.kinkIRMParams[USDC  ] = irmUSD_USDC;
             cluster.kinkIRMParams[USDT0 ] = irmUSD;
             cluster.kinkIRMParams[USDS  ] = irmUSD;
             cluster.kinkIRMParams[sUSDS ] = irmUSD_YB;

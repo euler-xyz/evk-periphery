@@ -78,9 +78,12 @@ contract Cluster is ManageCluster {
             // Base=0% APY  Kink(90%)=8.00% APY  Max=25.00% APY
             uint256[4] memory irmUSD = [uint256(0), uint256(630918865),  uint256(10785505476), uint256(3865470566)];
 
+            // Base=0% APY  Kink(90%)=6.00% APY  Max=25.00% APY
+            uint256[4] memory irmUSD_thBILL = [uint256(0), uint256(477682641),  uint256(12164631494), uint256(3865470566)];
+
             cluster.kinkIRMParams[USDC]   = irmUSD;
             cluster.kinkIRMParams[USDT0]  = irmUSD;
-            cluster.kinkIRMParams[thBILL] = irmUSD;
+            cluster.kinkIRMParams[thBILL] = irmUSD_thBILL;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -93,11 +96,11 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
             //                          0               1       2       3         4
             //                          USDC            USDT    thBILL  PT_thBILL PT_thBILL 
-            /* 0  USDC              */ [uint16(0.00e4), 0.95e4, 0.91e4, 0.00e4, 0.00e4],
-            /* 1  USDT              */ [uint16(0.95e4), 0.00e4, 0.91e4, 0.00e4, 0.00e4],
-            /* 2  thBILL            */ [uint16(0.91e4), 0.91e4, 0.00e4, 0.00e4, 0.00e4],
+            /* 0  USDC              */ [uint16(0.00e4), 0.95e4, 0.92e4, 0.00e4, 0.00e4],
+            /* 1  USDT              */ [uint16(0.95e4), 0.00e4, 0.92e4, 0.00e4, 0.00e4],
+            /* 2  thBILL            */ [uint16(0.92e4), 0.92e4, 0.00e4, 0.00e4, 0.00e4],
             /* 3  PT_thBILL_27NOV   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-            /* 4  PT_thBILL_19FEB   */ [uint16(0.91e4), 0.91e4, 0.95e4, 0.00e4, 0.00e4]
+            /* 4  PT_thBILL_19FEB   */ [uint16(0.92e4), 0.92e4, 0.95e4, 0.00e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
