@@ -217,6 +217,34 @@ contract HookTargetTermsOfUseTest is EVaultTestBase {
         assertEq(eTST.balanceOf(user2), 1e18);
     }
 
+    function test_deposit_succeeds_whenSigned_notRegisteredInEVC() public {
+        // user signs TOS directly (not through EVC), so no owner is registered in EVC
+        vm.prank(user1);
+        termsOfUseSigner.signTermsOfUse(TOS_MESSAGE, tosHash);
+
+        // getAccountOwner(user1) returns address(0), fallback uses user1 directly
+        assertEq(evc.getAccountOwner(user1), address(0));
+
+        vm.prank(user1);
+        eTST.deposit(1e18, user1);
+
+        assertEq(eTST.balanceOf(user1), 1e18);
+    }
+
+    function test_deposit_succeeds_whenBypassed_notRegisteredInEVC() public {
+        // bypass user2 without EVC registration
+        vm.prank(hookOwner);
+        hookTarget.addBypass(user2);
+
+        // getAccountOwner(user2) returns address(0), fallback uses user2 directly
+        assertEq(evc.getAccountOwner(user2), address(0));
+
+        vm.prank(user2);
+        eTST.deposit(1e18, user2);
+
+        assertEq(eTST.balanceOf(user2), 1e18);
+    }
+
     // -- owner functions through EVC --
 
     function test_setTermsOfUseHash_throughEVC() public {

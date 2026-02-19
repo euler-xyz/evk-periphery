@@ -106,8 +106,12 @@ contract HookTargetTermsOfUse is BaseHookTarget, EVCUtil, Ownable {
     }
 
     /// @notice Checks whether the sender's EVC owner has signed the terms of use or is on the bypass list.
+    /// @dev Falls back to the sender address directly if no EVC owner is registered.
     function _checkTermsOfUse() internal view {
-        address senderOwner = evc.getAccountOwner(_msgSender());
+        address sender = _msgSender();
+        address senderOwner = evc.getAccountOwner(sender);
+
+        if (senderOwner == address(0)) senderOwner = sender;
 
         if (bypassList.contains(senderOwner)) return;
 
