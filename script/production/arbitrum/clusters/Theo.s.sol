@@ -9,6 +9,7 @@ import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
 contract Cluster is ManageCluster {
     address internal constant PT_tbBILL_27NOV2025 = 0x5a791652f3b140d357df072d355a98ab754877D1;
     address internal constant PT_tbBILL_19FEB2026 = 0x9b3924f9652cabf3Db48B7B4C92E474c571B3Ab4;
+    address internal constant PT_tbBILL_18JUN2026 = 0xE46271ecb1d5c7c5134868760F10c18B03021eF1;
 
     function defineCluster() internal override {
         // define the path to the cluster addresses file here
@@ -17,7 +18,7 @@ contract Cluster is ManageCluster {
         // do not change the order of the assets in the .assets array. if done, it must be reflected in other the other arrays the ltvs matrix.
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [USDC, USDT0, thBILL, PT_tbBILL_27NOV2025, PT_tbBILL_19FEB2026];
+        cluster.assets = [USDC, USDT0, thBILL, PT_tbBILL_27NOV2025, PT_tbBILL_19FEB2026, PT_tbBILL_18JUN2026];
     }
 
     function configureCluster() internal override {
@@ -58,6 +59,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[thBILL] = "0x7Dd37Cdb2e44405da3C07d7dD91180F4542AeBc7";
         cluster.oracleProviders[PT_tbBILL_27NOV2025] = "0x1A726be873806c7E6dE55f899ED786ee6915d838";
         cluster.oracleProviders[PT_tbBILL_19FEB2026] = "0xf8Edd8F5b9e7615FBa154E08eddba8fAb4f37f0C";
+        cluster.oracleProviders[PT_tbBILL_18JUN2026] = "0x122f2D4397C62A9de1C318D3d087a72De59Cede4";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC] = 100_000_000;
@@ -65,6 +67,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[thBILL] = 20_000_000;
         cluster.supplyCaps[PT_tbBILL_27NOV2025] = 100_000;
         cluster.supplyCaps[PT_tbBILL_19FEB2026] = 30_000_000;
+        cluster.supplyCaps[PT_tbBILL_18JUN2026] = 16_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC] = 90_000_000;
@@ -72,6 +75,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[thBILL] = 18_000_000;
         cluster.borrowCaps[PT_tbBILL_27NOV2025] = 0;
         cluster.borrowCaps[PT_tbBILL_19FEB2026] = type(uint256).max;
+        cluster.borrowCaps[PT_tbBILL_18JUN2026] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
         {
@@ -94,13 +98,14 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //                          0               1       2       3         4
-            //                          USDC            USDT    thBILL  PT_thBILL PT_thBILL 
-            /* 0  USDC              */ [uint16(0.00e4), 0.95e4, 0.92e4, 0.00e4, 0.00e4],
-            /* 1  USDT              */ [uint16(0.95e4), 0.00e4, 0.92e4, 0.00e4, 0.00e4],
-            /* 2  thBILL            */ [uint16(0.92e4), 0.92e4, 0.00e4, 0.00e4, 0.00e4],
-            /* 3  PT_thBILL_27NOV   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-            /* 4  PT_thBILL_19FEB   */ [uint16(0.92e4), 0.92e4, 0.95e4, 0.00e4, 0.00e4]
+            //                          0               1       2       3       4       5
+            //                          USDC            USDT    thBILL  PT_thBILL PT_thBILL PT_thBILL 
+            /* 0  USDC              */ [uint16(0.00e4), 0.95e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4],
+            /* 1  USDT              */ [uint16(0.95e4), 0.00e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4],
+            /* 2  thBILL            */ [uint16(0.92e4), 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+            /* 3  PT_thBILL_27NOV   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+            /* 4  PT_thBILL_19FEB   */ [uint16(0.92e4), 0.92e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4],
+            /* 5  PT_thBILL_18JUN   */ [uint16(0.92e4), 0.92e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
