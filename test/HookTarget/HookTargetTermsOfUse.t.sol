@@ -2,9 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
+import {EVaultTestBase, IERC20} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {HookTargetTermsOfUse} from "../../src/HookTarget/HookTargetTermsOfUse.sol";
 import {TermsOfUseSigner} from "../../src/TermsOfUseSigner/TermsOfUseSigner.sol";
+import {MockController} from "../Vault/lib/MockController.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import "evk/EVault/shared/Constants.sol";
 import "forge-std/Vm.sol";
@@ -256,5 +257,24 @@ contract HookTargetTermsOfUseTest is EVaultTestBase {
         );
 
         assertEq(hookTarget.termsOfUseHash(), newHash);
+    }
+
+    function test_fallback_bypassedInControlCollateralContext() public {
+        MockController mockController = new MockController(address(evc));
+
+        vm.prank(user1);
+        evc.enableCollateral(user1, address(hookTarget));
+
+        vm.prank(user1);
+        evc.enableController(user1, address(mockController));
+
+        // user1 does not sign TOS; fallback call should still succeed under controlCollateral context
+        vm.prank(user2);
+        mockController.liquidate(user1, address(hookTarget), 1, 0);
+
+        // calling directly reverts
+        vm.prank(user2);
+        vm.expectRevert(HookTargetTermsOfUse.TermsOfUseNotSigned.selector);
+        IERC20(address(hookTarget)).transfer(user2, 1);
     }
 }

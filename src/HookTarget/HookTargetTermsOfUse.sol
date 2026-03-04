@@ -101,8 +101,12 @@ contract HookTargetTermsOfUse is BaseHookTarget, EVCUtil, Ownable {
     }
 
     /// @notice Fallback function to revert if the address has not accepted the terms of use.
+    /// @dev Bypasses the checks within `controlCollateral` context. 
+    /// Currently the only implementation is collateral `transfer` during liquidation, but controllers can call any function.
     fallback() external {
-        _checkTermsOfUse();
+        if (!evc.isControlCollateralInProgress()) {
+            _checkTermsOfUse();
+        }
     }
 
     /// @notice Checks whether the sender's EVC owner has signed the terms of use or is on the bypass list.
