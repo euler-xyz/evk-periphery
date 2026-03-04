@@ -246,6 +246,16 @@ contract HookTargetTermsOfUseTest is EVaultTestBase {
         assertEq(eTST.balanceOf(user2), 1e18);
     }
 
+    // -- checkVaultStatus bypass --
+
+    function test_checkVaultStatusHook_bypassed_whenNotSigned() public {
+        eTST.setHookConfig(address(hookTarget), OP_VAULT_STATUS_CHECK);
+
+        // touch schedules a vault status check; OP_VAULT_STATUS_CHECK hook should bypass TOS checks
+        vm.prank(user1);
+        eTST.touch();
+    }
+
     // -- owner functions through EVC --
 
     function test_setTermsOfUseHash_throughEVC() public {
