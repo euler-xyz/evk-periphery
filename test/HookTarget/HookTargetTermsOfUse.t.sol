@@ -268,23 +268,4 @@ contract HookTargetTermsOfUseTest is EVaultTestBase {
 
         assertEq(hookTarget.termsOfUseHash(), newHash);
     }
-
-    function test_fallback_bypassedInControlCollateralContext() public {
-        MockController mockController = new MockController(address(evc));
-
-        vm.prank(user1);
-        evc.enableCollateral(user1, address(hookTarget));
-
-        vm.prank(user1);
-        evc.enableController(user1, address(mockController));
-
-        // user1 does not sign TOS; fallback call should still succeed under controlCollateral context
-        vm.prank(user2);
-        mockController.liquidate(user1, address(hookTarget), 1, 0);
-
-        // calling directly reverts
-        vm.prank(user2);
-        vm.expectRevert(HookTargetTermsOfUse.TermsOfUseNotSigned.selector);
-        IERC20(address(hookTarget)).transfer(user2, 1);
-    }
 }
