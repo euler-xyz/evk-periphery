@@ -66,7 +66,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDT0] = 100_000_000;
         cluster.supplyCaps[thBILL] = 20_000_000;
         cluster.supplyCaps[PT_tbBILL_27NOV2025] = 100_000;
-        cluster.supplyCaps[PT_tbBILL_19FEB2026] = 30_000_000;
+        cluster.supplyCaps[PT_tbBILL_19FEB2026] = 10_000;
         cluster.supplyCaps[PT_tbBILL_18JUN2026] = 16_000_000;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
@@ -74,7 +74,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDT0] = 90_000_000;
         cluster.borrowCaps[thBILL] = 18_000_000;
         cluster.borrowCaps[PT_tbBILL_27NOV2025] = 0;
-        cluster.borrowCaps[PT_tbBILL_19FEB2026] = type(uint256).max;
+        cluster.borrowCaps[PT_tbBILL_19FEB2026] = 0;
         cluster.borrowCaps[PT_tbBILL_18JUN2026] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
@@ -104,7 +104,7 @@ contract Cluster is ManageCluster {
             /* 1  USDT              */ [uint16(0.95e4), 0.00e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4],
             /* 2  thBILL            */ [uint16(0.92e4), 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
             /* 3  PT_thBILL_27NOV   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-            /* 4  PT_thBILL_19FEB   */ [uint16(0.92e4), 0.92e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4],
+            /* 4  PT_thBILL_19FEB   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
             /* 5  PT_thBILL_18JUN   */ [uint16(0.92e4), 0.92e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4]
         ];
 
