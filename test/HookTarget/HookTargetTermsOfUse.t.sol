@@ -2,9 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
+import {EVaultTestBase, IERC20} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {HookTargetTermsOfUse} from "../../src/HookTarget/HookTargetTermsOfUse.sol";
 import {TermsOfUseSigner} from "../../src/TermsOfUseSigner/TermsOfUseSigner.sol";
+import {MockController} from "../Vault/lib/MockController.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import "evk/EVault/shared/Constants.sol";
 import "forge-std/Vm.sol";
@@ -243,6 +244,16 @@ contract HookTargetTermsOfUseTest is EVaultTestBase {
         eTST.deposit(1e18, user2);
 
         assertEq(eTST.balanceOf(user2), 1e18);
+    }
+
+    // -- checkVaultStatus bypass --
+
+    function test_checkVaultStatusHook_bypassed_whenNotSigned() public {
+        eTST.setHookConfig(address(hookTarget), OP_VAULT_STATUS_CHECK);
+
+        // touch schedules a vault status check; OP_VAULT_STATUS_CHECK hook should bypass TOS checks
+        vm.prank(user1);
+        eTST.touch();
     }
 
     // -- owner functions through EVC --

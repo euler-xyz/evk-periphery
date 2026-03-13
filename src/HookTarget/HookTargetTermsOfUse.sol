@@ -14,6 +14,13 @@ import {TermsOfUseSigner} from "../TermsOfUseSigner/TermsOfUseSigner.sol";
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Hook target contract that allows interaction only when user signed terms of use. Bypassed accounts are
 /// exempt from the terms of use check.
+///
+/// Governors should consider carefully which vault functions should be hooked:
+/// - `transfer` should not be hooked because they would interfere with the liquidations, where the controller
+/// executes `transfer` on the collateral vault on behalf of the violator, if violator refrained from signing new TOU.
+/// - `liquidate` also should probably be left unhooked. Even if liquidators sign TOU when onboarding,
+/// if the TOU hash is updated the liquidations could be impaired temporarily, until new TOUs are signed
+/// - functions like `repay`, `repayWithShares`, `touch`, `flashloan`, `convertFees` might need special attention
 contract HookTargetTermsOfUse is BaseHookTarget, EVCUtil, Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -99,6 +106,11 @@ contract HookTargetTermsOfUse is BaseHookTarget, EVCUtil, Ownable {
     function bypassListValues() external view returns (address[] memory) {
         return bypassList.values();
     }
+
+    // Hooked functions
+
+    /// @notice Explicitly bypass TOU checks for vault status checks.
+    function checkVaultStatus() external pure {}
 
     /// @notice Fallback function to revert if the address has not accepted the terms of use.
     fallback() external {
