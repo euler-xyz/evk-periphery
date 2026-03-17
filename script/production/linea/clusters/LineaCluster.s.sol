@@ -68,15 +68,15 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[WETH   ] = 20_000;
         cluster.supplyCaps[wstETH ] = 10_000;
         cluster.supplyCaps[weETH  ] = 7_500;
-        cluster.supplyCaps[ezETH  ] = 5_000;
-        cluster.supplyCaps[wrsETH ] = 5_000;
+        cluster.supplyCaps[ezETH  ] = 30;
+        cluster.supplyCaps[wrsETH ] = 30;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[WETH   ] = type(uint256).max;
         cluster.borrowCaps[wstETH ] = 5_000;
         cluster.borrowCaps[weETH  ] = 3_700;
-        cluster.borrowCaps[ezETH  ] = 2_500;
-        cluster.borrowCaps[wrsETH ] = 2_500;
+        cluster.borrowCaps[ezETH  ] = 0;
+        cluster.borrowCaps[wrsETH ] = 0;
 
         // define IRM classes here and assign them to the assets
         {
@@ -94,7 +94,7 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 30 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.01e4;
@@ -107,10 +107,10 @@ contract Cluster is ManageCluster {
         /* 1  wstETH  */ [uint16(0.95e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 2  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 3  weETH   */ [uint16(0.00e4), 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 4  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4],
-        /* 5  ezETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 6  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.93e4],
-        /* 7  wrsETH  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.95e4, 0.00e4]
+        /* 4  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 5  ezETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 6  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 7  wrsETH  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 

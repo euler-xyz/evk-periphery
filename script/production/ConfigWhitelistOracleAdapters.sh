@@ -1,9 +1,40 @@
 #!/bin/bash
 
-# Check if the file path is provided
+show_help() {
+    echo "Usage: $0 <csv_file_path> [options]"
+    echo ""
+    echo "Add or revoke oracle adapters in the Oracle Adapter Registry based on a CSV file."
+    echo ""
+    echo "CSV Format: Provider,AdapterName,Adapter,Base,Quote,Whitelist"
+    echo "  - Whitelist: 'Yes' to add, 'No' to revoke"
+    echo ""
+    echo "Options:"
+    echo "  --rpc-url <URL|CHAIN_ID>   RPC endpoint or chain ID"
+    echo "  --account <NAME>           Use named Foundry account"
+    echo "  --ledger                   Use Ledger hardware wallet"
+    echo "  --batch-via-safe           Execute via Safe multisig"
+    echo "  --safe-address <ADDR>      Safe address or alias (DAO, labs, etc.)"
+    echo "  --safe-nonce <N>           Override Safe nonce"
+    echo "  --dry-run                  Simulate without executing"
+    echo "  --verbose                  Show skipped adapters"
+    echo "  -h, --help                 Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  # Direct execution"
+    echo "  $0 adapters.csv --rpc-url mainnet --account DEPLOYER"
+    echo ""
+    echo "  # Via Safe multisig"
+    echo "  $0 adapters.csv --rpc-url mainnet --batch-via-safe --safe-address DAO"
+}
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    show_help
+    exit 0
+fi
+
 if [ -z "$1" ]; then
-  echo "Usage: $0 <csv_file_path>"
-  exit 1
+    show_help
+    exit 1
 fi
 
 csv_file="$1"
@@ -18,7 +49,7 @@ evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json")
 adapter_registry=$(jq -r '.oracleAdapterRegistry' "$addresses_dir_path/PeripheryAddresses.json")
 external_vault_registry=$(jq -r '.externalVaultRegistry' "$addresses_dir_path/PeripheryAddresses.json")
 
-if ! script/utils/checkEnvironment.sh; then
+if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
 fi
@@ -138,6 +169,11 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 done < <(tr -d '\r' < "$csv_file")
 
 items="${items%,}]"
+
+if [[ "$items" == "[]" ]]; then
+    echo "No adapters to add or revoke. Exiting..."
+    exit 0
+fi
 
 if [[ "$broadcast" == "" ]]; then
     echo "Dry run. Exiting..."

@@ -416,7 +416,7 @@ contract ClusterDump is ScriptUtils {
 
         if (len <= decimals) {
             whole = "0";
-            fraction = _substring(string.concat("0", result), 0, decimals);
+            fraction = result; // Already padded to correct length
         } else {
             whole = _substring(result, 0, len - decimals);
             fraction = _substring(result, len - decimals, len);

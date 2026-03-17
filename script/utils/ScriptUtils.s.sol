@@ -92,6 +92,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address governorAccessControlEmergencyFactory;
         address capRiskStewardFactory;
         address eulerEarnPublicAllocator;
+        address securitizeFactory;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -138,6 +139,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "capRiskStewardFactory", Addresses.capRiskStewardFactory);
         result =
             vm.serializeAddress("peripheryAddresses", "eulerEarnPublicAllocator", Addresses.eulerEarnPublicAllocator);
+        result = vm.serializeAddress("peripheryAddresses", "securitizeFactory", Addresses.securitizeFactory);
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -167,7 +169,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner"),
             governorAccessControlEmergencyFactory: getAddressFromJson(json, ".governorAccessControlEmergencyFactory"),
             capRiskStewardFactory: getAddressFromJson(json, ".capRiskStewardFactory"),
-            eulerEarnPublicAllocator: getAddressFromJson(json, ".eulerEarnPublicAllocator")
+            eulerEarnPublicAllocator: getAddressFromJson(json, ".eulerEarnPublicAllocator"),
+            securitizeFactory: getAddressFromJson(json, ".securitizeFactory")
         });
     }
 }
@@ -329,6 +332,11 @@ abstract contract EulerSwapAddressesLib is ScriptExtended {
         address eulerSwapV1Implementation;
         address eulerSwapV1Factory;
         address eulerSwapV1Periphery;
+        address eulerSwapV2ProtocolFeeConfig;
+        address eulerSwapV2Implementation;
+        address eulerSwapV2Factory;
+        address eulerSwapV2Periphery;
+        address eulerSwapV2Registry;
     }
 
     function serializeEulerSwapAddresses(EulerSwapAddresses memory Addresses) internal returns (string memory result) {
@@ -336,13 +344,26 @@ abstract contract EulerSwapAddressesLib is ScriptExtended {
             vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Implementation", Addresses.eulerSwapV1Implementation);
         result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Factory", Addresses.eulerSwapV1Factory);
         result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV1Periphery", Addresses.eulerSwapV1Periphery);
+        result = vm.serializeAddress(
+            "eulerSwapAddresses", "eulerSwapV2ProtocolFeeConfig", Addresses.eulerSwapV2ProtocolFeeConfig
+        );
+        result =
+            vm.serializeAddress("eulerSwapAddresses", "eulerSwapV2Implementation", Addresses.eulerSwapV2Implementation);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV2Factory", Addresses.eulerSwapV2Factory);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV2Periphery", Addresses.eulerSwapV2Periphery);
+        result = vm.serializeAddress("eulerSwapAddresses", "eulerSwapV2Registry", Addresses.eulerSwapV2Registry);
     }
 
     function deserializeEulerSwapAddresses(string memory json) internal pure returns (EulerSwapAddresses memory) {
         return EulerSwapAddresses({
             eulerSwapV1Implementation: getAddressFromJson(json, ".eulerSwapV1Implementation"),
             eulerSwapV1Factory: getAddressFromJson(json, ".eulerSwapV1Factory"),
-            eulerSwapV1Periphery: getAddressFromJson(json, ".eulerSwapV1Periphery")
+            eulerSwapV1Periphery: getAddressFromJson(json, ".eulerSwapV1Periphery"),
+            eulerSwapV2ProtocolFeeConfig: getAddressFromJson(json, ".eulerSwapV2ProtocolFeeConfig"),
+            eulerSwapV2Implementation: getAddressFromJson(json, ".eulerSwapV2Implementation"),
+            eulerSwapV2Factory: getAddressFromJson(json, ".eulerSwapV2Factory"),
+            eulerSwapV2Periphery: getAddressFromJson(json, ".eulerSwapV2Periphery"),
+            eulerSwapV2Registry: getAddressFromJson(json, ".eulerSwapV2Registry")
         });
     }
 }
@@ -593,6 +614,8 @@ abstract contract ScriptUtils is
             return 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB;
         } else if (block.chainid == 5000) {
             return 0xdEAddEaDdeadDEadDEADDEAddEADDEAddead1111;
+        } else if (block.chainid == 747474) {
+            return 0xEE7D8BCFb72bC1880D0Cf19822eB0A2e6577aB62;
         } else if (block.chainid == 80094) {
             return 0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590;
         } else {
@@ -1049,7 +1072,7 @@ abstract contract BatchBuilder is ScriptUtils {
         if (batchItems.length == 0) return;
 
         SafeTransaction transaction = new SafeTransaction();
-        if (isEmergency()) transaction.setSimulationOff();
+        if (isSkipSafeSimulation() || isEmergency()) transaction.setSimulationOff();
 
         address safe = getSafe();
         address payable timelock = payable(getTimelock());
