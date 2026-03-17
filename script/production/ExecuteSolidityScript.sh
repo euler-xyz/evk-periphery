@@ -1,8 +1,38 @@
 #!/bin/bash
 
+show_help() {
+    echo "Usage: $0 <solidity_script_path> [options]"
+    echo ""
+    echo "Execute a Solidity script using Forge with deployment tracking."
+    echo ""
+    echo "Arguments:"
+    echo "  solidity_script_path       Path to the .s.sol script (relative to script/)"
+    echo ""
+    echo "Options:"
+    echo "  --rpc-url <URL|CHAIN_ID>   RPC endpoint, chain ID, or network name (can be comma-separated)"
+    echo "  --account <NAME>           Use named Foundry account"
+    echo "  --ledger                   Use Ledger hardware wallet"
+    echo "  --dry-run                  Simulate without broadcasting"
+    echo "  --verify                   Verify contracts after deployment"
+    echo "  --verifier <TYPE>          Verifier type (etherscan, blockscout, sourcify, custom)"
+    echo "  --batch-via-safe           Execute via Safe multisig"
+    echo "  --safe-address <ADDR>      Safe address for batch execution"
+    echo "  --timelock-address <ADDR>  Timelock controller address"
+    echo "  -h, --help                 Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0 production/CustomScripts.s.sol:GetVaultInfoFull --rpc-url mainnet"
+    echo "  $0 production/Cluster.s.sol --rpc-url 1,8453 --dry-run"
+}
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    show_help
+    exit 0
+fi
+
 if [ -z "$1" ]; then
-  echo "Usage: $0 <solidity_script_path>"
-  exit 1
+    show_help
+    exit 1
 fi
 
 scriptPath="${1#./}"
@@ -40,7 +70,11 @@ deployment_name=${deployment_name:-default}
 
 for rpc_url in "${rpc_urls_array[@]}"; do
     source .env
-    eval "$(./script/utils/determineArgs.sh --rpc-url "$rpc_url" "${remaining_args[@]}")"
+    if [ -n "$rpc_url" ]; then
+        eval "$(./script/utils/determineArgs.sh --rpc-url "$rpc_url" "${remaining_args[@]}")"
+    else
+        eval "$(./script/utils/determineArgs.sh "${remaining_args[@]}")"
+    fi
     eval 'set -- $SCRIPT_ARGS'
 
     if ! script/utils/checkEnvironment.sh "$@"; then
@@ -63,10 +97,13 @@ for rpc_url in "${rpc_urls_array[@]}"; do
 
         mkdir -p "$deployment_dir/broadcast" "$deployment_dir/output"
 
-        counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
-        cp "$broadcast_dir/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
+        if [ -e "$broadcast_dir/run-latest.json" ]; then
+            counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/broadcast/${jsonName}.json")
+            cp "$broadcast_dir/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
+        fi
 
         for json_file in script/*.json; do
+            [ -e "$json_file" ] || continue
             jsonFileName=$(basename "$json_file")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
 
@@ -74,6 +111,7 @@ for rpc_url in "${rpc_urls_array[@]}"; do
         done
 
         for txt_file in script/*.txt; do
+            [ -e "$txt_file" ] || continue
             txtFileName=$(basename "$txt_file")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$txtFileName")
 
@@ -81,6 +119,7 @@ for rpc_url in "${rpc_urls_array[@]}"; do
         done
 
         for csv_file in script/*.csv; do
+            [ -e "$csv_file" ] || continue
             csvFileName=$(basename "$csv_file")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$csvFileName")
 
@@ -88,6 +127,7 @@ for rpc_url in "${rpc_urls_array[@]}"; do
         done
     else
         for json_file in script/*.json; do
+            [ -e "$json_file" ] || continue
             rm "$json_file"
         done
     fi

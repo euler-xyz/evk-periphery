@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ "$#" -le 2 ]; then
-    echo "Usage: $0 <safe-files-directory> <safe-files-prefix> <cluster-json>"
+if [ "$#" -lt 2 ]; then
+    echo "Usage: $0 <safe-files-directory> <cluster-json>"
     exit 1
 fi
 
@@ -98,7 +98,7 @@ if compgen -G "$safeFilesDir/SafeTransaction*.json" > /dev/null; then
         fi
     done
 else
-    echo "No Safe transaction files found matching pattern ${safeFilesDir}/${safeFilesPrefix}*.json"
+    echo "No Safe transaction files found matching pattern ${safeFilesDir}/SafeTransaction*.json"
 fi
 
 CLUSTER_ADDRESSES_PATH=$clusterJson TENDERLY_RPC_URL=$TENDERLY_RPC_URL forge script script/utils/SimulateSafeTxTenderly.s.sol --rpc-url $TENDERLY_RPC_URL --ffi

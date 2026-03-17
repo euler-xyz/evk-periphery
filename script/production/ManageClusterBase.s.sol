@@ -720,9 +720,10 @@ abstract contract ManageClusterBase is BatchBuilder {
 
         cluster.vaultUpgradable = new bool[](cluster.assets.length);
         for (uint256 i = 0; i < cluster.assets.length; ++i) {
-            cluster.vaultUpgradable[i] = cluster.vaults.length == 0 || cluster.vaults[i] == address(0)
-                ? true
-                : GenericFactory(coreAddresses.eVaultFactory).getProxyConfig(cluster.vaults[i]).upgradeable;
+            cluster.vaultUpgradable[i] =
+                cluster.vaults.length == 0 || i >= cluster.vaults.length || cluster.vaults[i] == address(0)
+                    ? true
+                    : GenericFactory(coreAddresses.eVaultFactory).getProxyConfig(cluster.vaults[i]).upgradeable;
         }
 
         for (uint256 i = 0; i < cluster.irmsArr.length; ++i) {
@@ -947,13 +948,16 @@ abstract contract ManageClusterBase is BatchBuilder {
             uint256 intervals;
             uint256 fromBlock;
             {
+                uint256 toBlock = getToBlock();
+                if (toBlock == 0) toBlock = block.number;
+
                 uint256 timeDiff = block.timestamp;
                 vm.createSelectFork(getDeploymentRpcUrl(), block.number - 1e4);
                 timeDiff -= block.timestamp;
                 selectFork(block.chainid);
 
                 intervals = TimelockController(timelock).getMinDelay() / timeDiff + 5;
-                fromBlock = block.number - intervals * 1e4;
+                fromBlock = toBlock - intervals * 1e4;
             }
 
             while (intervals > 0) {

@@ -488,10 +488,10 @@ contract LayerZeroSendEUL is ScriptUtils {
             "",
             ""
         );
-        fee = IOFT(bridgeAddresses.seusdOFTAdapter).quoteSend(sendParam, false);
+        fee = IOFT(bridgeAddresses.eulOFTAdapter).quoteSend(sendParam, false);
         fee.nativeFee = fee.nativeFee * ((1e4 + nativeFeeMultiplierBps) / 1e4);
 
-        return (bridgeAddresses.seusdOFTAdapter, fee.nativeFee, sendParam, fee, srcAddress);
+        return (bridgeAddresses.eulOFTAdapter, fee.nativeFee, sendParam, fee, srcAddress);
     }
 
     function getSendCalldata(

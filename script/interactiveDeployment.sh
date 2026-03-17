@@ -1,23 +1,49 @@
 #!/bin/bash
 
 source .env
-eval "$(./script/utils/determineArgs.sh "$@")"
+
+# Parse custom flags before determineArgs
+# --choice=N           : Skip menu, run option N directly
+# --deployment-name=X  : Set deployment name without prompt
+# --non-interactive    : Use defaults for all prompts (for batch deployments)
+choice=""
+deployment_name="default"
+non_interactive=false
+
+args_for_determine=()
+for arg in "$@"; do
+    case "$arg" in
+        --choice=*) choice="${arg#*=}" ;;
+        --deployment-name=*) deployment_name="${arg#*=}" ;;
+        --non-interactive) non_interactive=true ;;
+        *) args_for_determine+=("$arg") ;;
+    esac
+done
+
+eval "$(./script/utils/determineArgs.sh "${args_for_determine[@]}")"
 eval 'set -- $SCRIPT_ARGS'
 
 echo "Welcome to the deployment script!"
 echo "This script will guide you through the deployment process."
 
-read -p "Provide the deployment name used to save results (default: default): " deployment_name
-deployment_name=${deployment_name:-default}
+if [ -z "$choice" ]; then
+    read -p "Provide the deployment name used to save results (default: default): " input_deployment_name
+    deployment_name=${input_deployment_name:-$deployment_name}
+fi
 
 if [ -n "$DEPLOYER_KEY" ]; then
     set -- "$@" --private-key "$DEPLOYER_KEY"
 fi
 
 if [[ "$@" == *"--account"* && -z "$DEPLOYER_KEY" ]]; then
-    read -s -p "Enter keystore password: " password
+    # Use KEYSTORE_PASSWORD if set (e.g., from interactiveDeploymentLoop.sh), otherwise prompt
+    if [ -n "$KEYSTORE_PASSWORD" ]; then
+        password="$KEYSTORE_PASSWORD"
+    else
+        read -s -p "Enter keystore password: " password
+        echo ""
+    fi
     set -- "$@" --password "$password"
-    echo ""
 fi
 
 broadcast="--broadcast"
@@ -38,38 +64,48 @@ if ! script/utils/checkEnvironment.sh "$@"; then
 fi
 
 eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26 --out out-euler-earn"
-eulerSwapCompilerOptions="--optimize --optimizer-runs 1000000 --use 0.8.27 --out out-euler-swap"
+eulerSwapCompilerOptions="--optimize --optimizer-runs 2500 --use 0.8.27 --out out-euler-swap"
+securitizeFactoryCompilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24 --out out-securitize-factory"
 
 while true; do
-    echo ""
-    echo "Select an option to deploy/configure:"
-    echo "0. ERC20 tokens"
-    echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
-    echo "2. Periphery factories and registries"
-    echo "3. Oracle adapter"
-    echo "4. IRM"
-    echo "5. EVault implementation (modules and implementation contract)"
-    echo "6. EVault factory"
-    echo "7. EVault"
-    echo "8. Lenses"
-    echo "9. Perspectives"
-    echo "10. Swap"
-    echo "11. Fee Flow"
-    echo "12. Governors"
-    echo "13. Terms of Use Signer"
-    echo "14. Bridging contracts"
-    echo "15. Edge factory"
-    echo "---------------------------------"
-    echo "20. EulerEarn implementation (modules and implementation contract)"
-    echo "21. EulerEarn factory"
-    echo "---------------------------------"
-    echo "50. Core and Periphery Deployment and Configuration"
-    echo "51. Core Ownership Transfer"
-    echo "52. Periphery Ownership Transfer"
-    echo "53. Access Control Configuration"
-    read -p "Enter your choice: " choice
+    # If --choice was provided, use it and exit after one iteration
+    if [ -n "$choice" ]; then
+        echo ""
+        echo "Running option $choice (non-interactive mode)"
+        menu_choice="$choice"
+        choice=""  # Clear so we exit after this iteration
+        run_once=true
+    else
+        run_once=false
+        echo ""
+        echo "Select an option to deploy/configure:"
+        echo "0. ERC20 tokens"
+        echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
+        echo "2. Periphery factories and registries"
+        echo "3. Oracle adapter"
+        echo "4. IRM"
+        echo "5. EVault implementation (modules and implementation contract)"
+        echo "6. EVault factory"
+        echo "7. EVault"
+        echo "8. Lenses"
+        echo "9. Perspectives"
+        echo "10. Swap"
+        echo "11. Fee Flow"
+        echo "12. Governors"
+        echo "13. Terms of Use Signer"
+        echo "14. Bridging contracts"
+        echo "15. Edge factory"
+        echo "---------------------------------"
+        echo "20. EulerEarn factory and public allocator"
+        echo "---------------------------------"
+        echo "50. Core and Periphery Deployment and Configuration"
+        echo "51. Core Ownership Transfer"
+        echo "52. Periphery Ownership Transfer"
+        echo "53. Access Control Configuration"
+        read -p "Enter your choice: " menu_choice
+    fi
 
-    case $choice in
+    case $menu_choice in
         0)
             echo "Deploying ERC20 token..."
             echo "Select the type of ERC20 token to deploy:"
@@ -561,7 +597,7 @@ while true; do
             echo "Select the type of IRM to deploy:"
             echo "0. Kink"
             echo "1. Adaptive Curve"
-            read -p "Enter your choice (0-0): " irm_choice
+            read -p "Enter your choice (0-1): " irm_choice
 
             baseName=04_IRM
 
@@ -774,6 +810,12 @@ while true; do
                     read -p "Enter the EVault Factory address: " eVaultFactory
                     read -p "Enter the Oracle Adapter Registry address: " oracle_adapter_registry
                     read -p "Enter the Kink IRM Factory address: " kink_irm_factory
+                    read -p "Enter the Adaptive Curve IRM Factory address (or press Enter for address(0)): " adaptive_curve_irm_factory
+                    adaptive_curve_irm_factory=${adaptive_curve_irm_factory:-0x0000000000000000000000000000000000000000}
+                    read -p "Enter the Kinky IRM Factory address (or press Enter for address(0)): " kinky_irm_factory
+                    kinky_irm_factory=${kinky_irm_factory:-0x0000000000000000000000000000000000000000}
+                    read -p "Enter the Fixed Cyclical Binary IRM Factory address (or press Enter for address(0)): " fixed_cyclical_binary_irm_factory
+                    fixed_cyclical_binary_irm_factory=${fixed_cyclical_binary_irm_factory:-0x0000000000000000000000000000000000000000}
 
                     jq -n \
                         --arg eVaultFactory "$eVaultFactory" \
@@ -1216,7 +1258,7 @@ while true; do
             jq -n \
                 --arg evc "$evc" \
                 --arg permit2 "$permit2" \
-                --arg evc "$perspective" \
+                --arg perspective "$perspective" \
                 '{
                     evc: $evc,
                     permit2: $permit2,
@@ -1243,16 +1285,22 @@ while true; do
                 multisig_security_partner_B=$(jq -r '.securityPartnerB' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
                 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+                securitizeFactory=$(jq -r '.securitizeFactory' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulOFTAdapter=$(jq -r '.eulOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 eusdOFTAdapter=$(jq -r '.eusdOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 seusdOFTAdapter=$(jq -r '.seusdOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
-                feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 eulerEarnFactory=${eulerEarnFactory:-$addressZero}
-                eulerSwapV1Factory=$(jq -r '.eulerSwapV1Factory' "$addresses_dir_path/EulerSwapAddresses.json" 2>/dev/null)
+                eulerSwapV2Factory=$(jq -r '.eulerSwapV2Factory' "$addresses_dir_path/EulerSwapAddresses.json" 2>/dev/null)
             fi
 
             if [ -z "$multisig_dao" ] || [ "$multisig_dao" == "$addressZero" ] || [ "$multisig_dao" == "null" ]; then
+                if [ "$non_interactive" = true ]; then
+                    echo "Error: Multisig addresses not found and --non-interactive mode is enabled."
+                    echo "Please ensure MultisigAddresses.json exists in $addresses_dir_path"
+                    exit 1
+                fi
                 read -p "Enter the DAO multisig address: " multisig_dao
                 read -p "Enter the Labs multisig address: " multisig_labs
                 read -p "Enter the Security Council multisig address: " multisig_security_council
@@ -1261,42 +1309,64 @@ while true; do
             fi
 
             if [ -z "$evc" ] || [ "$evc" == "$addressZero" ] || [ "$evc" == "null" ]; then
-                read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3 or look up https://docs.oku.trade/home/extra-information/deployed-contracts): " permit2
+                if [ "$non_interactive" = false ]; then
+                    read -p "Enter the Permit2 address (default: 0x000000000022D473030F116dDEE9F6B43aC78BA3 or look up https://docs.oku.trade/home/extra-information/deployed-contracts): " permit2
+                fi
             fi
             
             if [ -z "$swapper" ] || [ "$swapper" == "$addressZero" ] || [ "$swapper" == "null" ]; then
-                read -p "Enter the Uniswap V2 Router 02 address (default: address(0) or look up https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
-                read -p "Enter the Uniswap V3 Router address (default: address(0) or look up https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
+                if [ "$non_interactive" = false ]; then
+                    read -p "Enter the Uniswap V2 Router 02 address (default: address(0) or look up https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments): " uniswap_router_v2
+                    read -p "Enter the Uniswap V3 Router address (default: address(0) or look up https://docs.uniswap.org/contracts/v3/reference/deployments or https://docs.oku.trade/home/extra-information/deployed-contracts): " uniswap_router_v3
+                fi
             fi
             
             if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ] || [ "$feeFlowController" == "null" ]; then
-                read -p "Enter the init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
+                if [ "$non_interactive" = false ]; then
+                    read -p "Enter the init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
+                fi
             fi
 
             if [ -z "$eulOFTAdapter" ] || [ "$eulOFTAdapter" == "$addressZero" ] || [ "$eulOFTAdapter" == "null" ]; then
-                read -p "Should deploy and configure EUL OFT Adapter? (y/n) (default: n): " deploy_eul_oft
+                if [ "$non_interactive" = false ]; then
+                    read -p "Should deploy and configure EUL OFT Adapter? (y/n) (default: n): " deploy_eul_oft
+                fi
             fi
 
             if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ] || [ "$eulerEarnFactory" == "null" ]; then
-                read -p "Should deploy Euler Earn? (y/n) (default: n): " deploy_euler_earn
+                if [ "$non_interactive" = false ]; then
+                    read -p "Should deploy Euler Earn? (y/n) (default: n): " deploy_euler_earn
+                fi
             fi
 
-            if [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ] || [ "$eulerSwapV1Factory" == "null" ]; then
-                read -p "Should deploy EulerSwap V1? (y/n) (default: n): " deploy_euler_swap_v1
-                
-                if [ "$deploy_euler_swap_v1" = "y" ]; then
-                    read -p "Enter the Uniswap V4 Pool Manager address (default: address(0) or look up https://docs.uniswap.org/contracts/v4/deployments): " uniswap_pool_manager
-                    read -p "Enter the EulerSwap fee owner (default: DAO multisig): " euler_swap_fee_owner
-                    read -p "Enter the EulerSwap fee recipient setter (default: DAO multisig): " euler_swap_fee_recipient_setter
+            if [ -z "$eulerSwapV2Factory" ] || [ "$eulerSwapV2Factory" == "$addressZero" ] || [ "$eulerSwapV2Factory" == "null" ]; then
+                if [ "$non_interactive" = false ]; then
+                    read -p "Should deploy EulerSwap V2? (y/n) (default: n): " deploy_euler_swap
+                    
+                    if [ "$deploy_euler_swap" = "y" ]; then
+                        read -p "Enter the Uniswap V4 Pool Manager address (default: address(0) or look up https://docs.uniswap.org/contracts/v4/deployments): " uniswap_pool_manager
+                        read -p "Enter the EulerSwap protocol fee config admin address (default: DAO multisig): " euler_swap_protocol_fee_config_admin
+                        read -p "Enter the EulerSwap registry curator (default: Labs multisig): " euler_swap_registry_curator
+                    fi
                 fi
             fi
 
             if [ -z "$eusdOFTAdapter" ] || [ "$eusdOFTAdapter" == "$addressZero" ] || [ "$eusdOFTAdapter" == "null" ]; then
-                read -p "Should deploy and configure eUSD contracts system? (y/n) (default: n): " deploy_eusd
+                if [ "$non_interactive" = false ]; then
+                    read -p "Should deploy and configure eUSD contracts system? (y/n) (default: n): " deploy_eusd
+                fi
             fi
 
             if [ -z "$seusdOFTAdapter" ] || [ "$seusdOFTAdapter" == "$addressZero" ] || [ "$seusdOFTAdapter" == "null" ]; then
-                read -p "Should deploy and configure seUSD contracts system? (y/n) (default: n): " deploy_seusd
+                if [ "$non_interactive" = false ]; then
+                    read -p "Should deploy and configure seUSD contracts system? (y/n) (default: n): " deploy_seusd
+                fi
+            fi
+
+            if [ -z "$securitizeFactory" ] || [ "$securitizeFactory" == "$addressZero" ] || [ "$securitizeFactory" == "null" ]; then
+                if [ "$non_interactive" = false ]; then
+                    read -p "Should deploy Securitize Vault Factory? (y/n) (default: n): " deploy_securitize_factory
+                fi
             fi
 
             multisig_dao=${multisig_dao:-$addressZero}
@@ -1310,19 +1380,24 @@ while true; do
             init_price=${init_price:-1000000000000000000}
             deploy_eul_oft=${deploy_eul_oft:-n}
             deploy_euler_earn=${deploy_euler_earn:-n}
-            deploy_euler_swap_v1=${deploy_euler_swap_v1:-n}
+            deploy_euler_swap=${deploy_euler_swap:-n}
             deploy_eusd=${deploy_eusd:-n}
             deploy_seusd=${deploy_seusd:-n}
+            deploy_securitize_factory=${deploy_securitize_factory:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
-            euler_swap_fee_owner=${euler_swap_fee_owner:-$multisig_dao}
-            euler_swap_fee_recipient_setter=${euler_swap_fee_recipient_setter:-$multisig_dao}
+            euler_swap_protocol_fee_config_admin=${euler_swap_protocol_fee_config_admin:-$multisig_dao}
+            euler_swap_registry_curator=${euler_swap_registry_curator:-$multisig_labs}
 
             if { [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ] || [ "$eulerEarnFactory" == "null" ]; } && [ "$deploy_euler_earn" = "y" ]; then
                 forge compile lib/euler-earn/src $eulerEarnCompilerOptions --force
             fi
 
-            if { [ -z "$eulerSwapV1Factory" ] || [ "$eulerSwapV1Factory" == "$addressZero" ] || [ "$eulerSwapV1Factory" == "null" ]; } && [ "$deploy_euler_swap_v1" = "y" ]; then
+            if { [ -z "$eulerSwapV2Factory" ] || [ "$eulerSwapV2Factory" == "$addressZero" ] || [ "$eulerSwapV2Factory" == "null" ]; } && [ "$deploy_euler_swap" = "y" ]; then
                 forge compile lib/euler-swap/src $eulerSwapCompilerOptions --force
+            fi
+
+            if { [ -z "$securitizeFactory" ] || [ "$securitizeFactory" == "$addressZero" ] || [ "$securitizeFactory" == "null" ]; } && [ "$deploy_securitize_factory" = "y" ]; then
+                forge compile src/VaultFactory/ERC4626EVCCollateralSecuritizeFactory.sol $securitizeFactoryCompilerOptions --force
             fi
 
             if [[ "$@" != *"--ffi"* ]]; then
@@ -1341,12 +1416,13 @@ while true; do
                 --arg initPrice "$init_price" \
                 --argjson deployEULOFT "$(jq -n --argjson val \"$deploy_eul_oft\" 'if $val == "y" then true else false end')" \
                 --argjson deployEulerEarn "$(jq -n --argjson val \"$deploy_euler_earn\" 'if $val == "y" then true else false end')" \
-                --argjson deployEulerSwapV1 "$(jq -n --argjson val \"$deploy_euler_swap_v1\" 'if $val == "y" then true else false end')" \
+                --argjson deployEulerSwap "$(jq -n --argjson val \"$deploy_euler_swap\" 'if $val == "y" then true else false end')" \
                 --argjson deployEUSD "$(jq -n --argjson val \"$deploy_eusd\" 'if $val == "y" then true else false end')" \
                 --argjson deploySEUSD "$(jq -n --argjson val \"$deploy_seusd\" 'if $val == "y" then true else false end')" \
+                --argjson deploySecuritizeFactory "$(jq -n --argjson val \"$deploy_securitize_factory\" 'if $val == "y" then true else false end')" \
                 --arg uniswapPoolManager "$uniswap_pool_manager" \
-                --arg eulerSwapFeeOwner "$euler_swap_fee_owner" \
-                --arg eulerSwapFeeRecipientSetter "$euler_swap_fee_recipient_setter" \
+                --arg eulerSwapProtocolFeeConfigAdmin "$euler_swap_protocol_fee_config_admin" \
+                --arg eulerSwapRegistryCurator "$euler_swap_registry_curator" \
                 '{
                     multisigDAO: $multisigDAO,
                     multisigLabs: $multisigLabs,
@@ -1359,12 +1435,13 @@ while true; do
                     feeFlowInitPrice: $initPrice,
                     deployEULOFT: $deployEULOFT,
                     deployEulerEarn: $deployEulerEarn,
-                    deployEulerSwapV1: $deployEulerSwapV1,
+                    deployEulerSwap: $deployEulerSwap,
                     deployEUSD: $deployEUSD,
                     deploySEUSD: $deploySEUSD,
+                    deploySecuritizeFactory: $deploySecuritizeFactory,
                     uniswapPoolManager: $uniswapPoolManager,
-                    eulerSwapFeeOwner: $eulerSwapFeeOwner,
-                    eulerSwapFeeRecipientSetter: $eulerSwapFeeRecipientSetter
+                    eulerSwapProtocolFeeConfigAdmin: $eulerSwapProtocolFeeConfigAdmin,
+                    eulerSwapRegistryCurator: $eulerSwapRegistryCurator
                 }' --indent 4 > script/${jsonName}_input.json
             ;;
         51)
@@ -1439,7 +1516,7 @@ while true; do
                     ;;
             esac
 
-            cast send $access_control_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $broadcast $@
+            cast send $access_control_contract_address $signature $bytes32_role_identifier $account_address --rpc-url $DEPLOYMENT_RPC_URL --legacy $@
             ;;
         *)
             echo "Invalid choice. Exiting."
@@ -1470,6 +1547,7 @@ while true; do
         cp "$broadcast_dir/run-latest.json" "$deployment_dir/broadcast/${jsonName}_${counter}.json"
 
         for json_file in script/*_input.json; do
+            [ -e "$json_file" ] || continue
             jsonFileName=$(basename "${json_file/_input/}")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/input/$jsonFileName")
 
@@ -1477,6 +1555,7 @@ while true; do
         done
 
         for json_file in script/*_output.json; do
+            [ -e "$json_file" ] || continue
             jsonFileName=$(basename "${json_file/_output/}")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
 
@@ -1484,6 +1563,7 @@ while true; do
         done
 
         for json_file in script/*.json; do
+            [ -e "$json_file" ] || continue
             jsonFileName=$(basename "${json_file}")
             counter=$(script/utils/getFileNameCounter.sh "$deployment_dir/output/$jsonFileName")
 
@@ -1491,7 +1571,13 @@ while true; do
         done
     else
         for json_file in script/*.json; do
+            [ -e "$json_file" ] || continue
             rm "$json_file"
         done
+    fi
+
+    # Exit after one iteration if --choice was provided
+    if [ "$run_once" = true ]; then
+        break
     fi
 done

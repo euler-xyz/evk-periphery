@@ -57,6 +57,8 @@ library OracleVerifier {
             OracleVerifier.verifyOracleCall(oracleLens, oracle, asset, unitOfAccount, verbose);
 
             for (uint256 i = 0; i < collaterals.length; ++i) {
+                if (IEVault(vault).LTVLiquidation(collaterals[i]) == 0) continue;
+
                 require(
                     IEVault(collaterals[i]).asset() == IOracle(oracle).resolvedVaults(collaterals[i]),
                     "collateral asset is not equal to unwrapped asset"
