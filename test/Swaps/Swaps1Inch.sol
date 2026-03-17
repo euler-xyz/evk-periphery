@@ -10,6 +10,9 @@ import {ISwapper} from "../../src/Swaps/ISwapper.sol";
 import {Swapper} from "../../src/Swaps/Swapper.sol";
 import {SwapVerifier} from "../../src/Swaps/SwapVerifier.sol";
 
+import {Permit2ECDSASigner} from "evk-test/mocks/Permit2ECDSASigner.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+
 import "./Payloads.sol";
 
 import "forge-std/Test.sol";
@@ -25,6 +28,7 @@ contract Swaps1Inch is EVaultTestBase {
     address constant uniswapRouterV2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address constant uniswapRouterV3 = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address constant uniswapRouter02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address constant permit2Address = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
     address constant GRT = 0xc944E90C64B2c07662A292be6244BDf05Cda44a7;
     address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -53,7 +57,7 @@ contract Swaps1Inch is EVaultTestBase {
         user2 = makeAddr("user2");
 
         swapper = new Swapper(uniswapRouterV2, uniswapRouterV3);
-        swapVerifier = new SwapVerifier();
+        swapVerifier = new SwapVerifier(address(evc), permit2Address);
 
         if (bytes(FORK_RPC_URL).length != 0) {
             mainnetFork = vm.createSelectFork(FORK_RPC_URL);
@@ -172,6 +176,122 @@ contract Swaps1Inch is EVaultTestBase {
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
     }
 
+    function test_swapperOneInchV5_basicSwapGRTUSDC_verifierDeposit() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1000e18, address(swapper), user))
+        });
+
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(
+                Swapper.swap,
+                ISwapper.SwapParams({
+                    handler: swapper.HANDLER_GENERIC(),
+                    mode: MODE_EXACT_IN,
+                    account: address(0), // ignored
+                    tokenIn: GRT,
+                    tokenOut: USDC,
+                    amountOut: 0, // ignored
+                    vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
+                    receiver: address(0), // ignored
+                    data: abi.encode(oneInchAggregatorV5, GRT_USDC_injectReceiver(address(swapVerifier)))
+                })
+            )
+        });
+
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyAmountMinAndDeposit, (address(eUSDC), user, 1, type(uint256).max))
+        });
+
+        evc.batch(items);
+
+        // vaults
+        assertEq(eGRT.totalSupply(), 100_000e18 - 1000e18);
+        assertEq(eGRT.totalAssets(), 100_000e18 - 1000e18);
+        assertEq(eUSDC.totalSupply(), 125.018572e6);
+        assertEq(eUSDC.totalAssets(), 125.018572e6);
+
+        // account
+        assertEq(eGRT.balanceOf(user), 100_000e18 - 1000e18);
+        assertEq(eGRT.maxWithdraw(user), 100_000e18 - 1000e18);
+        assertEq(eUSDC.balanceOf(user), 125.018572e6);
+        assertEq(eUSDC.maxWithdraw(user), 125.018572e6);
+
+        // swapper
+        assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
+        assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
+    }
+
+    function test_swapperOneInchV5_basicSwapGRTUSDC_verifierTransfer() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1000e18, address(swapper), user))
+        });
+
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(
+                Swapper.swap,
+                ISwapper.SwapParams({
+                    handler: swapper.HANDLER_GENERIC(),
+                    mode: MODE_EXACT_IN,
+                    account: address(0), // ignored
+                    tokenIn: GRT,
+                    tokenOut: USDC,
+                    amountOut: 0, // ignored
+                    vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
+                    receiver: address(0), // ignored
+                    data: abi.encode(oneInchAggregatorV5, GRT_USDC_injectReceiver(address(swapVerifier)))
+                })
+            )
+        });
+
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyAmountMinAndTransfer, (USDC, user, 1, type(uint256).max))
+        });
+
+        evc.batch(items);
+
+        // vaults - only GRT vault affected, no USDC vault deposits
+        assertEq(eGRT.totalSupply(), 100_000e18 - 1000e18);
+        assertEq(eGRT.totalAssets(), 100_000e18 - 1000e18);
+
+        // account - USDC transferred directly to user, not deposited in vault
+        assertEq(eGRT.balanceOf(user), 100_000e18 - 1000e18);
+        assertEq(eGRT.maxWithdraw(user), 100_000e18 - 1000e18);
+        assertEq(IERC20(USDC).balanceOf(user), 125.018572e6);
+
+        // swapper and verifier
+        assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
+        assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
+        assertEq(IERC20(USDC).balanceOf(address(swapVerifier)), 0);
+    }
+
     function test_swapperOneInchV5_basicSwapGRTUSDC_exactOutMode() external {
         setupFork(GRT_USDC_BLOCK, false);
 
@@ -210,6 +330,67 @@ contract Swaps1Inch is EVaultTestBase {
             targetContract: address(swapVerifier),
             value: 0,
             data: abi.encodeCall(swapVerifier.verifyAmountMinAndSkim, (address(eUSDC), user, 1, type(uint256).max))
+        });
+
+        evc.batch(items);
+
+        // Results are the same as in exact input mode. There is no unused input to be returned.
+
+        // vaults
+        assertEq(eGRT.totalSupply(), 100_000e18 - 1000e18);
+        assertEq(eGRT.totalAssets(), 100_000e18 - 1000e18);
+        assertEq(eUSDC.totalSupply(), 125.018572e6);
+        assertEq(eUSDC.totalAssets(), 125.018572e6);
+
+        // account
+        assertEq(eGRT.balanceOf(user), 100_000e18 - 1000e18);
+        assertEq(eGRT.maxWithdraw(user), 100_000e18 - 1000e18);
+        assertEq(eUSDC.balanceOf(user), 125.018572e6);
+        assertEq(eUSDC.maxWithdraw(user), 125.018572e6);
+
+        // swapper
+        assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
+        assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
+    }
+
+    function test_swapperOneInchV5_basicSwapGRTUSDC_exactOutMode_verifierDeposit() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1000e18, address(swapper), user))
+        });
+
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(
+                Swapper.swap,
+                ISwapper.SwapParams({
+                    handler: swapper.HANDLER_GENERIC(),
+                    mode: MODE_EXACT_OUT,
+                    account: address(0), // ignored
+                    tokenIn: GRT,
+                    tokenOut: USDC,
+                    amountOut: 0, // ignored
+                    vaultIn: address(eGRT),
+                    accountIn: user,
+                    receiver: address(0), // ignored
+                    data: abi.encode(oneInchAggregatorV5, GRT_USDC_injectReceiver(address(swapVerifier)))
+                })
+            )
+        });
+
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyAmountMinAndDeposit, (address(eUSDC), user, 1, type(uint256).max))
         });
 
         evc.batch(items);
@@ -307,6 +488,156 @@ contract Swaps1Inch is EVaultTestBase {
         // swapper
         assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
         assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
+    }
+
+    function test_swapperOneInchV5_exectOutGRTUSDC_firstOverswapped_verifierDeposit() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        bytes[] memory multicallItems = new bytes[](3);
+        multicallItems[0] = abi.encodeCall(
+            Swapper.swap,
+            ISwapper.SwapParams({
+                handler: swapper.HANDLER_GENERIC(),
+                mode: MODE_EXACT_IN,
+                account: address(0), // ignored
+                tokenIn: GRT,
+                tokenOut: USDC,
+                amountOut: 0, // ignored
+                vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
+                receiver: address(0), // ignored
+                data: abi.encode(oneInchAggregatorV5, GRT_USDC_injectReceiver(address(swapper)))
+            })
+        );
+        multicallItems[1] = abi.encodeCall(
+            Swapper.swap,
+            ISwapper.SwapParams({
+                handler: swapper.HANDLER_UNISWAP_V2(),
+                mode: MODE_EXACT_OUT,
+                account: address(0),
+                tokenIn: GRT,
+                tokenOut: USDC,
+                amountOut: 120e6,
+                vaultIn: address(eGRT),
+                accountIn: user,
+                receiver: address(swapper),
+                data: GRT_USDC_V2_PATH
+            })
+        );
+        multicallItems[2] = abi.encodeCall(Swapper.sweep, (USDC, 0, address(swapVerifier)));
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1000e18, address(swapper), user))
+        });
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(Swapper.multicall, multicallItems)
+        });
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyAmountMinAndDeposit, (address(eUSDC), user, 120e6, type(uint256).max))
+        });
+
+        evc.batch(items);
+
+        // vaults
+        assertEq(eGRT.totalSupply(), 100_000e18 - 1000e18);
+        assertEq(eGRT.totalAssets(), 100_000e18 - 1000e18);
+        assertEq(eUSDC.totalSupply(), 125.018572e6);
+        assertEq(eUSDC.totalAssets(), 125.018572e6);
+
+        // account
+        assertEq(eGRT.balanceOf(user), 100_000e18 - 1000e18);
+        assertEq(eGRT.maxWithdraw(user), 100_000e18 - 1000e18);
+        assertEq(eUSDC.balanceOf(user), 125.018572e6);
+        assertEq(eUSDC.maxWithdraw(user), 125.018572e6);
+
+        // swapper
+        assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
+        assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
+    }
+
+    function test_swapperOneInchV5_exectOutGRTUSDC_firstOverswapped_verifierTransfer() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        bytes[] memory multicallItems = new bytes[](3);
+        multicallItems[0] = abi.encodeCall(
+            Swapper.swap,
+            ISwapper.SwapParams({
+                handler: swapper.HANDLER_GENERIC(),
+                mode: MODE_EXACT_IN,
+                account: address(0), // ignored
+                tokenIn: GRT,
+                tokenOut: USDC,
+                amountOut: 0, // ignored
+                vaultIn: address(0), // ignored
+                accountIn: address(0), // ignored
+                receiver: address(0), // ignored
+                data: abi.encode(oneInchAggregatorV5, GRT_USDC_injectReceiver(address(swapper)))
+            })
+        );
+        multicallItems[1] = abi.encodeCall(
+            Swapper.swap,
+            ISwapper.SwapParams({
+                handler: swapper.HANDLER_UNISWAP_V2(),
+                mode: MODE_EXACT_OUT,
+                account: address(0),
+                tokenIn: GRT,
+                tokenOut: USDC,
+                amountOut: 120e6,
+                vaultIn: address(eGRT),
+                accountIn: user,
+                receiver: address(swapper),
+                data: GRT_USDC_V2_PATH
+            })
+        );
+        multicallItems[2] = abi.encodeCall(Swapper.sweep, (USDC, 0, address(swapVerifier)));
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1000e18, address(swapper), user))
+        });
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(Swapper.multicall, multicallItems)
+        });
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyAmountMinAndTransfer, (USDC, user, 120e6, type(uint256).max))
+        });
+
+        evc.batch(items);
+
+        // vaults - only GRT vault affected, no USDC vault deposits
+        assertEq(eGRT.totalSupply(), 100_000e18 - 1000e18);
+        assertEq(eGRT.totalAssets(), 100_000e18 - 1000e18);
+
+        // account - USDC transferred directly to user
+        assertEq(eGRT.balanceOf(user), 100_000e18 - 1000e18);
+        assertEq(eGRT.maxWithdraw(user), 100_000e18 - 1000e18);
+        assertEq(IERC20(USDC).balanceOf(user), 125.018572e6);
+
+        // swapper and verifier
+        assertEq(IERC20(GRT).balanceOf(address(swapper)), 0);
+        assertEq(IERC20(USDC).balanceOf(address(swapper)), 0);
+        assertEq(IERC20(USDC).balanceOf(address(swapVerifier)), 0);
     }
 
     function test_swapperOneInchV5_exectOutGRTUSDC_twoSteps() external {
@@ -686,6 +1017,94 @@ contract Swaps1Inch is EVaultTestBase {
         evc.batch(items);
     }
 
+    function test_swapperOneInchV5_exectInGRTUSDC_insufficientOutput_verifierDeposit() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1000e18, address(swapper), user))
+        });
+
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(
+                Swapper.swap,
+                ISwapper.SwapParams({
+                    handler: swapper.HANDLER_GENERIC(),
+                    mode: MODE_EXACT_IN,
+                    account: address(0), // ignored
+                    tokenIn: GRT,
+                    tokenOut: USDC,
+                    amountOut: 0, // ignored
+                    vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
+                    receiver: address(0), // ignored
+                    data: abi.encode(oneInchAggregatorV5, GRT_USDC_injectReceiver(address(swapVerifier)))
+                })
+            )
+        });
+
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyAmountMinAndDeposit, (address(eUSDC), user, 130e6, type(uint256).max))
+        });
+
+        vm.expectRevert(SwapVerifier.SwapVerifier_depositMin.selector);
+        evc.batch(items);
+    }
+
+    function test_swapperOneInchV5_exectInGRTUSDC_insufficientOutput_verifierTransfer() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1000e18, address(swapper), user))
+        });
+
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(
+                Swapper.swap,
+                ISwapper.SwapParams({
+                    handler: swapper.HANDLER_GENERIC(),
+                    mode: MODE_EXACT_IN,
+                    account: address(0), // ignored
+                    tokenIn: GRT,
+                    tokenOut: USDC,
+                    amountOut: 0, // ignored
+                    vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
+                    receiver: address(0), // ignored
+                    data: abi.encode(oneInchAggregatorV5, GRT_USDC_injectReceiver(address(swapVerifier)))
+                })
+            )
+        });
+
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyAmountMinAndTransfer, (USDC, user, 130e6, type(uint256).max))
+        });
+
+        vm.expectRevert(SwapVerifier.SwapVerifier_transferMin.selector);
+        evc.batch(items);
+    }
+
     function test_swapperOneInchV5_exectInGRTUSDC_receiverMismatch() external {
         setupFork(GRT_USDC_BLOCK, false);
 
@@ -730,6 +1149,94 @@ contract Swaps1Inch is EVaultTestBase {
         evc.batch(items);
     }
 
+    function test_swapperOneInchV5_exectInGRTUSDC_receiverMismatch_verifyDeposit() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1000e18, address(swapper), user))
+        });
+
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(
+                Swapper.swap,
+                ISwapper.SwapParams({
+                    handler: swapper.HANDLER_GENERIC(),
+                    mode: MODE_EXACT_IN,
+                    account: address(0), // ignored
+                    tokenIn: GRT,
+                    tokenOut: USDC,
+                    amountOut: 0, // ignored
+                    vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
+                    receiver: address(0), // ignored
+                    data: abi.encode(oneInchAggregatorV5, GRT_USDC_injectReceiver(address(user)))
+                })
+            )
+        });
+
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyAmountMinAndDeposit, (address(eUSDC), user, 130e6, type(uint256).max))
+        });
+
+        vm.expectRevert(SwapVerifier.SwapVerifier_depositMin.selector);
+        evc.batch(items);
+    }
+
+    function test_swapperOneInchV5_exectInGRTUSDC_receiverMismatch_verifyTransfer() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1000e18, address(swapper), user))
+        });
+
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(
+                Swapper.swap,
+                ISwapper.SwapParams({
+                    handler: swapper.HANDLER_GENERIC(),
+                    mode: MODE_EXACT_IN,
+                    account: address(0), // ignored
+                    tokenIn: GRT,
+                    tokenOut: USDC,
+                    amountOut: 0, // ignored
+                    vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
+                    receiver: address(0), // ignored
+                    data: abi.encode(oneInchAggregatorV5, GRT_USDC_injectReceiver(address(user)))
+                })
+            )
+        });
+
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyAmountMinAndTransfer, (USDC, user, 130e6, type(uint256).max))
+        });
+
+        vm.expectRevert(SwapVerifier.SwapVerifier_transferMin.selector);
+        evc.batch(items);
+    }
+
     function test_swapperOneInchV5_exectInGRTUSDC_pastDeadline() external {
         setupFork(GRT_USDC_BLOCK, false);
 
@@ -768,6 +1275,96 @@ contract Swaps1Inch is EVaultTestBase {
             targetContract: address(swapVerifier),
             value: 0,
             data: abi.encodeCall(swapVerifier.verifyAmountMinAndSkim, (address(eUSDC), user, 120e6, block.timestamp - 1))
+        });
+
+        vm.expectRevert(SwapVerifier.SwapVerifier_pastDeadline.selector);
+        evc.batch(items);
+    }
+
+    function test_swapperOneInchV5_exectInGRTUSDC_pastDeadline_verifierDeposit() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1000e18, address(swapper), user))
+        });
+
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(
+                Swapper.swap,
+                ISwapper.SwapParams({
+                    handler: swapper.HANDLER_GENERIC(),
+                    mode: MODE_EXACT_IN,
+                    account: address(0), // ignored
+                    tokenIn: GRT,
+                    tokenOut: USDC,
+                    amountOut: 0, // ignored
+                    vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
+                    receiver: address(0), // ignored
+                    data: abi.encode(oneInchAggregatorV5, GRT_USDC_injectReceiver(address(swapVerifier)))
+                })
+            )
+        });
+
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(swapVerifier.verifyAmountMinAndDeposit, (address(eUSDC), user, 120e6, block.timestamp - 1))
+        });
+
+        vm.expectRevert(SwapVerifier.SwapVerifier_pastDeadline.selector);
+        evc.batch(items);
+    }
+
+    function test_swapperOneInchV5_exectInGRTUSDC_pastDeadline_verifierTransfer() external {
+        setupFork(GRT_USDC_BLOCK, false);
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](3);
+
+        items[0] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(eGRT),
+            value: 0,
+            data: abi.encodeCall(IERC4626.withdraw, (1000e18, address(swapper), user))
+        });
+
+        items[1] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapper),
+            value: 0,
+            data: abi.encodeCall(
+                Swapper.swap,
+                ISwapper.SwapParams({
+                    handler: swapper.HANDLER_GENERIC(),
+                    mode: MODE_EXACT_IN,
+                    account: address(0), // ignored
+                    tokenIn: GRT,
+                    tokenOut: USDC,
+                    amountOut: 0, // ignored
+                    vaultIn: address(0), // ignored
+                    accountIn: address(0), // ignored
+                    receiver: address(0), // ignored
+                    data: abi.encode(oneInchAggregatorV5, GRT_USDC_injectReceiver(address(swapVerifier)))
+                })
+            )
+        });
+
+        items[2] = IEVC.BatchItem({
+            onBehalfOfAccount: user,
+            targetContract: address(swapVerifier),
+            value: 0,
+            data: abi.encodeCall(
+                swapVerifier.verifyAmountMinAndTransfer, (USDC, user, 120e6, block.timestamp - 1)
+            )
         });
 
         vm.expectRevert(SwapVerifier.SwapVerifier_pastDeadline.selector);
@@ -1452,5 +2049,75 @@ contract Swaps1Inch is EVaultTestBase {
         swapper.repayAndDeposit(address(assetTST), address(eTST), type(uint256).max, user2);
         assertEq(eTST.debtOf(user2), 0);
         assertEq(eTST.balanceOf(user2), 2e18);
+    }
+
+    function test_transferFromSender_allowance() external {
+        assetTST.mint(user, 1e18);
+        assertEq(assetTST.balanceOf(address(swapper)), 0);
+
+        startHoax(user);
+        vm.expectRevert(); // no approvals
+        swapVerifier.transferFromSender(address(assetTST), 1e18, address(swapper));
+
+        assetTST.approve(address(swapVerifier), 2e18);
+
+        startHoax(user2);
+        vm.expectRevert(); // other users can't pull
+        swapVerifier.transferFromSender(address(assetTST), 1e18, address(swapper));
+
+        startHoax(user);
+        swapVerifier.transferFromSender(address(assetTST), 1e18, address(swapper));
+
+        assertEq(assetTST.balanceOf(address(swapper)), 1e18);
+    }
+
+    function test_transferFromSender_permit2() external {
+        assertEq(assetTST.balanceOf(address(swapper)), 0);
+
+        Permit2ECDSASigner permit2Signer = new Permit2ECDSASigner(address(permit2));
+
+        uint256 userPK = 0x123400;
+        address signer = vm.addr(userPK);
+
+        assetTST.mint(signer, 1e18);
+
+        startHoax(signer);
+        vm.expectRevert(); // no approvals
+        swapVerifier.transferFromSender(address(assetTST), 1e18, address(swapper));
+
+        // approve permit2 contract to spend the tokens
+        assetTST.approve(permit2, type(uint160).max);
+
+        // build permit2 object
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer.PermitSingle({
+            details: IAllowanceTransfer.PermitDetails({
+                token: address(assetTST),
+                amount: type(uint160).max,
+                expiration: type(uint48).max,
+                nonce: 0
+            }),
+            spender: address(swapVerifier),
+            sigDeadline: type(uint256).max
+        });
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](2);
+        items[0].onBehalfOfAccount = signer;
+        items[0].targetContract = permit2;
+        items[0].value = 0;
+        items[0].data = abi.encodeWithSignature(
+            "permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)",
+            signer,
+            permitSingle,
+            permit2Signer.signPermitSingle(userPK, permitSingle)
+        );
+
+        items[1].onBehalfOfAccount = signer;
+        items[1].targetContract = address(swapVerifier);
+        items[1].value = 0;
+        items[1].data = abi.encodeCall(swapVerifier.transferFromSender, (address(assetTST), 1e18, address(swapper)));
+
+        evc.batch(items);
+
+        assertEq(assetTST.balanceOf(address(swapper)), 1e18);
     }
 }

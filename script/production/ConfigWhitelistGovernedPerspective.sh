@@ -1,9 +1,44 @@
 #!/bin/bash
 
-# Check if the file path is provided
+show_help() {
+    echo "Usage: $0 <csv_file_path> <--evk|--earn> [options]"
+    echo ""
+    echo "Verify or unverify vaults in a Governed Perspective based on a CSV file."
+    echo ""
+    echo "CSV Format: Vault,Label,Whitelist"
+    echo "  - Whitelist: 'Yes' to verify, 'No' to unverify"
+    echo ""
+    echo "Required:"
+    echo "  --evk                      Use EVK Governed Perspective"
+    echo "  --earn                     Use Euler Earn Governed Perspective"
+    echo ""
+    echo "Options:"
+    echo "  --rpc-url <URL|CHAIN_ID>   RPC endpoint or chain ID"
+    echo "  --account <NAME>           Use named Foundry account"
+    echo "  --ledger                   Use Ledger hardware wallet"
+    echo "  --batch-via-safe           Execute via Safe multisig"
+    echo "  --safe-address <ADDR>      Safe address or alias (DAO, labs, etc.)"
+    echo "  --safe-nonce <N>           Override Safe nonce"
+    echo "  --dry-run                  Simulate without executing"
+    echo "  --verbose                  Show skipped vaults"
+    echo "  -h, --help                 Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  # Verify EVK vaults directly"
+    echo "  $0 vaults.csv --evk --rpc-url mainnet --account DEPLOYER"
+    echo ""
+    echo "  # Verify Euler Earn vaults via Safe"
+    echo "  $0 vaults.csv --earn --rpc-url mainnet --batch-via-safe --safe-address DAO"
+}
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    show_help
+    exit 0
+fi
+
 if [ -z "$1" ]; then
-  echo "Usage: $0 <csv_file_path>"
-  exit 1
+    show_help
+    exit 1
 fi
 
 csv_file="$1"
@@ -31,7 +66,7 @@ fi
 set -- "${@/--evk/}"
 set -- "${@/--earn/}"
 
-if ! script/utils/checkEnvironment.sh; then
+if ! script/utils/checkEnvironment.sh "$@"; then
     echo "Environment check failed. Exiting."
     exit 1
 fi
@@ -135,6 +170,11 @@ while IFS=, read -r -a columns || [ -n "$columns" ]; do
 done < <(tr -d '\r' < "$csv_file")
 
 items="${items%,}]"
+
+if [[ "$items" == "[]" ]]; then
+    echo "No vaults to verify or unverify. Exiting..."
+    exit 0
+fi
 
 if [[ "$broadcast" == "" ]]; then
     echo "Dry run. Exiting..."

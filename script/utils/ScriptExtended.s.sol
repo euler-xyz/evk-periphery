@@ -119,6 +119,8 @@ abstract contract ScriptExtended is Script {
                 timelockAddress = "accessControlEmergencyGovernorAdminTimelockController";
             } else if (_strEq(timelockAddress, "wildcard") || _strEq(timelockAddress, "Wildcard")) {
                 timelockAddress = "accessControlEmergencyGovernorWildcardTimelockController";
+            } else if (_strEq(timelockAddress, "eusd") || _strEq(timelockAddress, "eUSD")) {
+                timelockAddress = "eUSDAdminTimelockController";
             }
 
             timelock =
@@ -187,6 +189,10 @@ abstract contract ScriptExtended is Script {
 
     function isSafeOwnerSimulate() internal view returns (bool) {
         return _strEq(vm.envOr("safe_owner_simulate", string("")), "--safe-owner-simulate");
+    }
+
+    function isSkipSafeSimulation() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_safe_simulation", string("")), "--skip-safe-simulation");
     }
 
     function isSkipPendingSimulation() internal view returns (bool) {

@@ -57,16 +57,20 @@ contract OwnershipTransferPeriphery is BatchBuilder {
             console.log("- GovernedPerspective owner is already set to the desired address. Skipping...");
         }
 
-        owner = Ownable(peripheryAddresses.eulerEarnGovernedPerspective).owner();
-        if (owner != multisigAddresses.labs) {
-            if (owner == getDeployer()) {
-                console.log("+ Transferring ownership of EulerEarnGovernedPerspective to %s", multisigAddresses.labs);
-                transferOwnership(peripheryAddresses.eulerEarnGovernedPerspective, multisigAddresses.labs);
+        if (peripheryAddresses.eulerEarnGovernedPerspective != address(0)) {
+            owner = Ownable(peripheryAddresses.eulerEarnGovernedPerspective).owner();
+            if (owner != multisigAddresses.labs) {
+                if (owner == getDeployer()) {
+                    console.log("+ Transferring ownership of EulerEarnGovernedPerspective to %s", multisigAddresses.labs);
+                    transferOwnership(peripheryAddresses.eulerEarnGovernedPerspective, multisigAddresses.labs);
+                } else {
+                    console.log("! EulerEarnGovernedPerspective owner is not the caller of this script. Skipping...");
+                }
             } else {
-                console.log("! EulerEarnGovernedPerspective owner is not the caller of this script. Skipping...");
+                console.log("- EulerEarnGovernedPerspective owner is already set to the desired address. Skipping...");
             }
         } else {
-            console.log("- EulerEarnGovernedPerspective owner is already set to the desired address. Skipping...");
+            console.log("! EulerEarnGovernedPerspective is not deployed yet. Skipping...");
         }
 
         executeBatch();

@@ -92,6 +92,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address governorAccessControlEmergencyFactory;
         address capRiskStewardFactory;
         address eulerEarnPublicAllocator;
+        address securitizeFactory;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -138,6 +139,7 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "capRiskStewardFactory", Addresses.capRiskStewardFactory);
         result =
             vm.serializeAddress("peripheryAddresses", "eulerEarnPublicAllocator", Addresses.eulerEarnPublicAllocator);
+        result = vm.serializeAddress("peripheryAddresses", "securitizeFactory", Addresses.securitizeFactory);
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -167,7 +169,8 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner"),
             governorAccessControlEmergencyFactory: getAddressFromJson(json, ".governorAccessControlEmergencyFactory"),
             capRiskStewardFactory: getAddressFromJson(json, ".capRiskStewardFactory"),
-            eulerEarnPublicAllocator: getAddressFromJson(json, ".eulerEarnPublicAllocator")
+            eulerEarnPublicAllocator: getAddressFromJson(json, ".eulerEarnPublicAllocator"),
+            securitizeFactory: getAddressFromJson(json, ".securitizeFactory")
         });
     }
 }
@@ -611,6 +614,8 @@ abstract contract ScriptUtils is
             return 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB;
         } else if (block.chainid == 59144) {
             return 0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f;
+        } else if (block.chainid == 747474) {
+            return 0xEE7D8BCFb72bC1880D0Cf19822eB0A2e6577aB62;
         } else if (block.chainid == 80094) {
             return 0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590;
         } else {
@@ -1067,7 +1072,7 @@ abstract contract BatchBuilder is ScriptUtils {
         if (batchItems.length == 0) return;
 
         SafeTransaction transaction = new SafeTransaction();
-        if (isEmergency()) transaction.setSimulationOff();
+        if (isSkipSafeSimulation() || isEmergency()) transaction.setSimulationOff();
 
         address safe = getSafe();
         address payable timelock = payable(getTimelock());
