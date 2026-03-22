@@ -90,7 +90,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[WETH  ] = 11_300;
         cluster.supplyCaps[wstETH] = 950;
         cluster.supplyCaps[cbETH ] = 450;
-        cluster.supplyCaps[weETH ] = 3_750;
+        cluster.supplyCaps[weETH ] = 1_880;
         cluster.supplyCaps[ezETH ] = 30;
         cluster.supplyCaps[RETH  ] = 30;
         cluster.supplyCaps[wsuperOETHb] = 30;
@@ -98,7 +98,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[USDT0  ] = 100_000;
         cluster.supplyCaps[EURC  ] = 85_000;
         cluster.supplyCaps[cbBTC ] = 125;
-        cluster.supplyCaps[LBTC  ] = 50;
+        cluster.supplyCaps[LBTC  ] = 25;
         cluster.supplyCaps[AERO  ] = 500_000;
         cluster.supplyCaps[USDS  ] = 100_000;
         cluster.supplyCaps[SUSDS ] = 100_000;
@@ -107,7 +107,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[WETH  ] = 9_530;
         cluster.borrowCaps[wstETH] = 400;
         cluster.borrowCaps[cbETH ] = 400;
-        cluster.borrowCaps[weETH ] = 938;
+        cluster.borrowCaps[weETH ] = 469;
         cluster.borrowCaps[ezETH ] = 0;
         cluster.borrowCaps[RETH  ] = 0;
         cluster.borrowCaps[wsuperOETHb] = 0;
@@ -115,7 +115,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDT0  ] = 0;
         cluster.borrowCaps[EURC  ] = 0;
         cluster.borrowCaps[cbBTC ] = 110;
-        cluster.borrowCaps[LBTC  ] = 15;
+        cluster.borrowCaps[LBTC  ] = 8;
         cluster.borrowCaps[AERO  ] = 400_000;
         cluster.borrowCaps[USDS  ] = 0;
         cluster.borrowCaps[SUSDS ] = 0;

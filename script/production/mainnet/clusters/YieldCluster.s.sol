@@ -121,13 +121,13 @@ contract Cluster is ManageCluster {
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[USDC                     ] = 300_000_000;
         cluster.supplyCaps[USDT                     ] = 100_000_000;
-        cluster.supplyCaps[rlUSD                    ] = 200_000_000;
+        cluster.supplyCaps[rlUSD                    ] = 100_000_000;
         cluster.supplyCaps[wM                       ] = 100_000;
         cluster.supplyCaps[USD0PlusPlus             ] = 100_000;
-        cluster.supplyCaps[USDe                     ] = 20_000_000;
+        cluster.supplyCaps[USDe                     ] = 10_000_000;
         cluster.supplyCaps[eUSDe                    ] = 60_000_000;
         cluster.supplyCaps[sUSDe                    ] = 100_000;
-        cluster.supplyCaps[frxUSD                   ] = 10_000_000;
+        cluster.supplyCaps[frxUSD                   ] = 5_000_000;
         cluster.supplyCaps[sfrxUSD                  ] = 100_000;
         cluster.supplyCaps[USD1                     ] = 100_000;
         cluster.supplyCaps[mUSD                     ] = 100_000;
@@ -153,13 +153,13 @@ contract Cluster is ManageCluster {
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC                     ] = 270_000_000;
         cluster.borrowCaps[USDT                     ] = 75_000_000;
-        cluster.borrowCaps[rlUSD                    ] = 180_000_000;
+        cluster.borrowCaps[rlUSD                    ] = 90_000_000;
         cluster.borrowCaps[wM                       ] = 0;
         cluster.borrowCaps[USD0PlusPlus             ] = 0;
-        cluster.borrowCaps[USDe                     ] = 18_000_000;
+        cluster.borrowCaps[USDe                     ] = 9_000_000;
         cluster.borrowCaps[eUSDe                    ] = 51_000_000;
         cluster.borrowCaps[sUSDe                    ] = 0;
-        cluster.borrowCaps[frxUSD                   ] = 9_000_000;
+        cluster.borrowCaps[frxUSD                   ] = 4_500_000;
         cluster.borrowCaps[sfrxUSD                  ] = 0;
         cluster.borrowCaps[USD1                     ] = 0;
         cluster.borrowCaps[mUSD                     ] = 0;
@@ -267,7 +267,7 @@ contract Cluster is ManageCluster {
 
     function postOperations() internal view override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
         }
     }
 }

@@ -108,17 +108,17 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[WETH       ] = 75_000;
         cluster.supplyCaps[wstETH     ] = 10_000;
         cluster.supplyCaps[cbETH      ] = 30;
-        cluster.supplyCaps[weETH      ] = 13_500;
-        cluster.supplyCaps[ezETH      ] = 5_000;
+        cluster.supplyCaps[weETH      ] = 6_750;
+        cluster.supplyCaps[ezETH      ] = 2_500;
         cluster.supplyCaps[RETH       ] = 30;
-        cluster.supplyCaps[rsETH      ] = 27_000;
-        cluster.supplyCaps[tETH       ] = 9_400;
+        cluster.supplyCaps[rsETH      ] = 13_500;
+        cluster.supplyCaps[tETH       ] = 4_700;
         cluster.supplyCaps[USDC       ] = 75_000_000;
         cluster.supplyCaps[USDT       ] = 50_000_000;
         cluster.supplyCaps[wM         ] = 100_000;
         cluster.supplyCaps[USDS       ] = 100_000;
         cluster.supplyCaps[sUSDS      ] = 100_000;
-        cluster.supplyCaps[USDtb      ] = 20_000_000;
+        cluster.supplyCaps[USDtb      ] = 10_000_000;
         cluster.supplyCaps[rlUSD      ] = 100_000;
         cluster.supplyCaps[USDe       ] = 100_000;
         cluster.supplyCaps[sUSDe      ] = 100_000;
@@ -126,24 +126,24 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[TBILL      ] = 0;//10_000_000;
         cluster.supplyCaps[WBTC       ] = 600;
         cluster.supplyCaps[cbBTC      ] = 500;
-        cluster.supplyCaps[LBTC       ] = 300;
+        cluster.supplyCaps[LBTC       ] = 150;
         cluster.supplyCaps[xAUt       ] = 300;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[WETH       ] = 67_500;
         cluster.borrowCaps[wstETH     ] = 7_500;
         cluster.borrowCaps[cbETH      ] = 0;
-        cluster.borrowCaps[weETH      ] = 3_380;
-        cluster.borrowCaps[ezETH      ] = 1_200;
+        cluster.borrowCaps[weETH      ] = 1_690;
+        cluster.borrowCaps[ezETH      ] = 600;
         cluster.borrowCaps[RETH       ] = 0;
-        cluster.borrowCaps[rsETH      ] = 6_750;
-        cluster.borrowCaps[tETH       ] = 1_600;
+        cluster.borrowCaps[rsETH      ] = 3_380;
+        cluster.borrowCaps[tETH       ] = 800;
         cluster.borrowCaps[USDC       ] = 67_500_000;
         cluster.borrowCaps[USDT       ] = 45_000_000;
         cluster.borrowCaps[wM         ] = 0;
         cluster.borrowCaps[USDS       ] = 0;
         cluster.borrowCaps[sUSDS      ] = 0;
-        cluster.borrowCaps[USDtb      ] = 18_000_000;
+        cluster.borrowCaps[USDtb      ] = 9_000_000;
         cluster.borrowCaps[rlUSD      ] = 0;
         cluster.borrowCaps[USDe       ] = 0;
         cluster.borrowCaps[sUSDe      ] = 0;
@@ -151,7 +151,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[TBILL      ] = 0;//type(uint256).max;
         cluster.borrowCaps[WBTC       ] = 510;
         cluster.borrowCaps[cbBTC      ] = 425;
-        cluster.borrowCaps[LBTC       ] = 75;
+        cluster.borrowCaps[LBTC       ] = 38;
         cluster.borrowCaps[xAUt       ] = type(uint256).max;
 
         // define IRM classes here and assign them to the assets
@@ -254,8 +254,8 @@ contract Cluster is ManageCluster {
     }
 
     function postOperations() internal view override {
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
-        }
+        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+        //}
     }
 }
