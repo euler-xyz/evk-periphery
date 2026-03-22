@@ -948,13 +948,16 @@ abstract contract ManageClusterBase is BatchBuilder {
             uint256 intervals;
             uint256 fromBlock;
             {
+                uint256 toBlock = getToBlock();
+                if (toBlock == 0) toBlock = block.number;
+
                 uint256 timeDiff = block.timestamp;
                 vm.createSelectFork(getDeploymentRpcUrl(), block.number - 1e4);
                 timeDiff -= block.timestamp;
                 selectFork(block.chainid);
 
                 intervals = TimelockController(timelock).getMinDelay() / timeDiff + 5;
-                fromBlock = block.number - intervals * 1e4;
+                fromBlock = toBlock - intervals * 1e4;
             }
 
             while (intervals > 0) {

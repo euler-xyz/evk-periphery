@@ -85,7 +85,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[PT_sUSDai_20NOV2025] = "0x83bAB8b13cb87Ab7f80Fece53F340F0714CeFeeF";
         
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
-        cluster.supplyCaps[USDC  ] = 100_000_000;
+        cluster.supplyCaps[USDC  ] = 0;
         cluster.supplyCaps[USDT0 ] = 100_000_000;
         cluster.supplyCaps[USDS  ] = 50_000_000;
         cluster.supplyCaps[sUSDS ] = 100_000;
@@ -103,7 +103,7 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_sUSDai_20NOV2025] = 0;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[USDC  ] = 90_000_000;
+        cluster.borrowCaps[USDC  ] = 0;
         cluster.borrowCaps[USDT0 ] = 90_000_000;
         cluster.borrowCaps[USDS  ] = 45_000_000;
         cluster.borrowCaps[sUSDS ] = 0;
@@ -146,6 +146,10 @@ contract Cluster is ManageCluster {
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
+
+        cluster.borrowLTVsOverride[13][0] = 0;
+        cluster.borrowLTVsOverride[13][1] = 0;
+        cluster.borrowLTVsOverride[13][2] = 0;
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [

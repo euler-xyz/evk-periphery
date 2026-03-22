@@ -33,10 +33,21 @@ contract SanityCheckOracle is Script {
 
 library OracleVerifier {
     function verifyOracleConfig(address oracleLens, address vault, bool verbose) internal view {
+        _verifyOracleConfig(oracleLens, vault, IEVault(vault).LTVList(), verbose);
+    }
+
+    function verifyOracleConfig(address oracleLens, address vault, address[] storage collaterals, bool verbose) internal view {
+        address[] memory collateralsMemory = new address[](collaterals.length);
+        for (uint256 i = 0; i < collaterals.length; ++i) {
+            collateralsMemory[i] = collaterals[i];
+        }
+        _verifyOracleConfig(oracleLens, vault, collateralsMemory, verbose);
+    }
+
+    function _verifyOracleConfig(address oracleLens, address vault, address[] memory collaterals, bool verbose) internal view {
         address asset = IEVault(vault).asset();
         address unitOfAccount = IEVault(vault).unitOfAccount();
         address oracle = IEVault(vault).oracle();
-        address[] memory collaterals = IEVault(vault).LTVList();
 
         if (verbose) console.log("Checking oracle config for %s (%s)", IEVault(vault).symbol(), vault);
         if (collaterals.length == 0) {
