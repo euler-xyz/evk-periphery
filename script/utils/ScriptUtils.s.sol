@@ -788,7 +788,7 @@ abstract contract ScriptUtils is
         uint256 result = (
             amountNoDecimals >= 100
                 ? (amountNoDecimals / 10 ** (scale - 2)) << 6
-                : (amountNoDecimals * 10 ** scale) << 6
+                : (amountNoDecimals * 10 ** (2 - scale)) << 6
         ) | (scale + decimals);
 
         if (revertOnFailure && decodeAmountCap(uint16(result)) != amountNoDecimals * 10 ** decimals) {
