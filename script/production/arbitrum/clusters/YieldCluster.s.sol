@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ManageCluster} from "./ManageCluster.s.sol";
 import {OracleVerifier} from "../../../utils/SanityCheckOracle.s.sol";
+import "evk/EVault/shared/Constants.sol";
 
 contract Cluster is ManageCluster {
     function defineCluster() internal override {
@@ -77,8 +78,8 @@ contract Cluster is ManageCluster {
             // Base=0% APY  Kink(90%)=8.00% APY  Max=25.00% APY
             uint256[4] memory irmUSD     = [uint256(0), uint256(630918865),  uint256(10785505476), uint256(3865470566)];
 
-            // Base=0% APY,  Kink(90%)=7.00% APY  Max=25.00% APY
-            uint256[4] memory irmUSD_USDC = [uint256(0), uint256(554658784),  uint256(11471846206), uint256(3865470566)];
+            // Base=0% APY  Kink(0%)=0% APY  Max=0% APY
+            uint256[4] memory irmUSD_USDC = [uint256(0), uint256(0),  uint256(0), uint256(type(uint32).max)];
 
             cluster.kinkIRMParams[USDC  ] = irmUSD_USDC;
             cluster.kinkIRMParams[USDT0 ] = irmUSD;
@@ -94,6 +95,8 @@ contract Cluster is ManageCluster {
         cluster.borrowLTVsOverride[3][0] = 0;
         cluster.borrowLTVsOverride[3][1] = 0;
         cluster.borrowLTVsOverride[3][2] = 0;
+
+        cluster.hookedOpsOverride[USDC] = OP_DEPOSIT | OP_MINT | OP_SKIM | OP_WITHDRAW | OP_REDEEM | OP_BORROW;
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
