@@ -72,11 +72,11 @@ contract Cluster is ManageCluster {
         {
             // Base=0.00% APY,  Kink(90.00%)=2.70% APY  Max=15.00% APY
             uint256[4] memory irmWETH = [uint256(0), uint256(218407859),  uint256(8346118211), uint256(3865470566)];
-            // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
-            uint256[4] memory irmUSDC = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=50.00% APY
+            uint256[4] memory irmAUSD = [uint256(0), uint256(438921808),  uint256(25965362874), uint256(3865470566)];
 
             cluster.kinkIRMParams[WETH] = irmWETH;
-            cluster.kinkIRMParams[AUSD] = irmUSDC;
+            cluster.kinkIRMParams[AUSD] = irmAUSD;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
