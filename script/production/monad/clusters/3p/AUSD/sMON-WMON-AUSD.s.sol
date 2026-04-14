@@ -72,11 +72,11 @@ contract Cluster is ManageCluster {
         {
             // Base=0.00% APY,  Kink(90.00%)=10.00% APY  Max=50.00% APY
             uint256[4] memory irmWMON = [uint256(0), uint256(781343251),  uint256(22883569897), uint256(3865470566)];
-            // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
-            uint256[4] memory irmUSDC = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=50.00% APY
+            uint256[4] memory irmAUSD = [uint256(0), uint256(438921808),  uint256(25965362874), uint256(3865470566)];
 
             cluster.kinkIRMParams[WMON] = irmWMON;
-            cluster.kinkIRMParams[AUSD] = irmUSDC;
+            cluster.kinkIRMParams[AUSD] = irmAUSD;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -101,7 +101,7 @@ contract Cluster is ManageCluster {
 
     function postOperations() internal view override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
         }
     }
 }

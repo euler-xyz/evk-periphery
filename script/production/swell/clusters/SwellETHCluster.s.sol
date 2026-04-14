@@ -145,7 +145,7 @@ contract Cluster is ManageCluster {
         executeBatchPrank(Ownable(peripheryAddresses.governedPerspective).owner());
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
 
             PerspectiveVerifier.verifyPerspective(
                 peripheryAddresses.eulerUngovernedNzxPerspective,

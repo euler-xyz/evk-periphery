@@ -68,8 +68,8 @@ contract Cluster is ManageCluster {
         {
             // Base=1.00% APY,  Kink(80.00%)=5.00% APY  Max=20.00% APY
             uint256[4] memory irmXAUT0 = [uint256(315313405426480960), uint256(358205679),  uint256(4926046076), uint256(3435973836)];
-            // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
-            uint256[4] memory irmAUSD = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=50.00% APY
+            uint256[4] memory irmAUSD = [uint256(0), uint256(438921808),  uint256(25965362874), uint256(3865470566)];
 
             cluster.kinkIRMParams[XAUT0] = irmXAUT0;
             cluster.kinkIRMParams[AUSD] = irmAUSD;
@@ -101,7 +101,7 @@ contract Cluster is ManageCluster {
 
     function postOperations() internal view override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
         }
     }
 }
