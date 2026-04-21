@@ -44,19 +44,15 @@ contract OwnershipTransferCore is BatchBuilder {
             bytes32 defaultAdminRole =
                 AccessControl(governorAddresses.eVaultFactoryTimelockController).DEFAULT_ADMIN_ROLE();
 
-            if (
-                AccessControl(governorAddresses.eVaultFactoryTimelockController).hasRole(
-                    defaultAdminRole, getDeployer()
-                )
-            ) {
+            if (AccessControl(governorAddresses.eVaultFactoryTimelockController)
+                    .hasRole(defaultAdminRole, getDeployer())) {
                 console.log(
                     "+ Renouncing EVaultFactoryTimelockController default admin role from the caller of this script %s",
                     getDeployer()
                 );
                 startBroadcast();
-                AccessControl(governorAddresses.eVaultFactoryTimelockController).renounceRole(
-                    defaultAdminRole, getDeployer()
-                );
+                AccessControl(governorAddresses.eVaultFactoryTimelockController)
+                    .renounceRole(defaultAdminRole, getDeployer());
                 stopBroadcast();
             } else {
                 console.log(
@@ -68,20 +64,16 @@ contract OwnershipTransferCore is BatchBuilder {
         {
             bytes32 defaultAdminRole = AccessControl(governorAddresses.eVaultFactoryGovernor).DEFAULT_ADMIN_ROLE();
 
-            if (
-                !AccessControl(governorAddresses.eVaultFactoryGovernor).hasRole(
-                    defaultAdminRole, governorAddresses.eVaultFactoryTimelockController
-                )
-            ) {
+            if (!AccessControl(governorAddresses.eVaultFactoryGovernor)
+                    .hasRole(defaultAdminRole, governorAddresses.eVaultFactoryTimelockController)) {
                 if (AccessControl(governorAddresses.eVaultFactoryGovernor).hasRole(defaultAdminRole, getDeployer())) {
                     console.log(
                         "+ Granting FactoryGovernor default admin role to address %s",
                         governorAddresses.eVaultFactoryTimelockController
                     );
                     startBroadcast();
-                    AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(
-                        defaultAdminRole, governorAddresses.eVaultFactoryTimelockController
-                    );
+                    AccessControl(governorAddresses.eVaultFactoryGovernor)
+                        .grantRole(defaultAdminRole, governorAddresses.eVaultFactoryTimelockController);
                     stopBroadcast();
                 } else {
                     console.log("! FactoryGovernor default admin role is not the caller of this script. Skipping...");
@@ -198,9 +190,8 @@ contract OwnershipTransferCore is BatchBuilder {
                     getDeployer()
                 );
                 startBroadcast();
-                AccessControl(governorAddresses.eUSDAdminTimelockController).renounceRole(
-                    defaultAdminRole, getDeployer()
-                );
+                AccessControl(governorAddresses.eUSDAdminTimelockController)
+                    .renounceRole(defaultAdminRole, getDeployer());
                 stopBroadcast();
             } else {
                 console.log(

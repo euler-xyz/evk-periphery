@@ -129,8 +129,9 @@ contract ClusterDump is ScriptUtils {
                     bool found = false;
                     for (uint256 k = 0; k < vaultInfo[j].collateralLTVInfo.length; ++k) {
                         if (vaultInfo[j].collateralLTVInfo[k].collateral != externalVaults[i]) continue;
-                        line =
-                            string.concat(line, ",", formatConfig(uint256(vaultInfo[j].collateralLTVInfo[k].borrowLTV)));
+                        line = string.concat(
+                            line, ",", formatConfig(uint256(vaultInfo[j].collateralLTVInfo[k].borrowLTV))
+                        );
                         found = true;
                         break;
                     }
@@ -264,8 +265,8 @@ contract ClusterDump is ScriptUtils {
         cash[0] = type(uint32).max;
         borrows[2] = type(uint32).max;
         for (uint256 i = 0; i < vaultInfo.length; ++i) {
-            InterestRateModelDetailedInfo memory detailedIRMInfo =
-                IRMLens(lensAddresses.irmLens).getInterestRateModelInfo(IEVault(vaultInfo[i].vault).interestRateModel());
+            InterestRateModelDetailedInfo memory detailedIRMInfo = IRMLens(lensAddresses.irmLens)
+                .getInterestRateModelInfo(IEVault(vaultInfo[i].vault).interestRateModel());
 
             if (detailedIRMInfo.interestRateModelType == InterestRateModelType.KINK) {
                 uint256 kink = IRMLinearKink(detailedIRMInfo.interestRateModel).kink();

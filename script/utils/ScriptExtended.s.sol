@@ -347,11 +347,7 @@ abstract contract ScriptExtended is Script {
         return string.concat(getAddressesDirPath(), vm.toString(chainId), "/", jsonFile);
     }
 
-    function getConfigAddressesFilePath(string memory jsonFile, uint256 chainId)
-        internal
-        view
-        returns (string memory)
-    {
+    function getConfigAddressesFilePath(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
         return string.concat(getAddressesDirPath(), "../config/addresses/", vm.toString(chainId), "/", jsonFile);
     }
 
@@ -435,11 +431,7 @@ abstract contract ScriptExtended is Script {
         return keccak256(bytes(a)) == keccak256(bytes(b));
     }
 
-    function _substring(string memory str, uint256 startIndex, uint256 endIndex)
-        internal
-        pure
-        returns (string memory)
-    {
+    function _substring(string memory str, uint256 startIndex, uint256 endIndex) internal pure returns (string memory) {
         bytes memory strBytes = bytes(str);
         endIndex == type(uint256).max ? endIndex = strBytes.length : endIndex;
 

@@ -720,10 +720,10 @@ abstract contract ManageClusterBase is BatchBuilder {
 
         cluster.vaultUpgradable = new bool[](cluster.assets.length);
         for (uint256 i = 0; i < cluster.assets.length; ++i) {
-            cluster.vaultUpgradable[i] =
-                cluster.vaults.length == 0 || i >= cluster.vaults.length || cluster.vaults[i] == address(0)
-                    ? true
-                    : GenericFactory(coreAddresses.eVaultFactory).getProxyConfig(cluster.vaults[i]).upgradeable;
+            cluster.vaultUpgradable[i] = cluster.vaults.length == 0 || i >= cluster.vaults.length
+                || cluster.vaults[i] == address(0)
+                ? true
+                : GenericFactory(coreAddresses.eVaultFactory).getProxyConfig(cluster.vaults[i]).upgradeable;
         }
 
         for (uint256 i = 0; i < cluster.irmsArr.length; ++i) {
@@ -932,7 +932,8 @@ abstract contract ManageClusterBase is BatchBuilder {
                     transactions[i].to,
                     transactions[i].value,
                     transactions[i].data
-                ) {} catch {
+                ) {}
+                catch {
                     console.log("Error simulating pending safe transaction");
                 }
             }

@@ -23,7 +23,9 @@ library PerspectiveVerifier {
         uint256 ignoredErrors,
         bool verbose
     ) internal {
-        if (verbose) console.log("Checking %s perspective for %s (%s)", perspective, IEVault(vault).symbol(), vault);
+        if (verbose) {
+            console.log("Checking %s perspective for %s (%s)", perspective, IEVault(vault).symbol(), vault);
+        }
 
         (bool success, bytes memory result) =
             perspective.call(abi.encodeCall(BasePerspective.perspectiveVerify, (vault, false)));
@@ -66,7 +68,9 @@ library PerspectiveVerifier {
         if (codes & E__NAME != 0) errors = string.concat(errors, "E__NAME\n");
         if (codes & E__SYMBOL != 0) errors = string.concat(errors, "E__SYMBOL\n");
         if (codes & E__LIQUIDATION_DISCOUNT != 0) errors = string.concat(errors, "E__LIQUIDATION_DISCOUNT\n");
-        if (codes & E__LIQUIDATION_COOL_OFF_TIME != 0) errors = string.concat(errors, "E__LIQUIDATION_COOL_OFF_TIME\n");
+        if (codes & E__LIQUIDATION_COOL_OFF_TIME != 0) {
+            errors = string.concat(errors, "E__LIQUIDATION_COOL_OFF_TIME\n");
+        }
         if (codes & E__LTV_COLLATERAL_CONFIG_LENGTH != 0) {
             errors = string.concat(errors, "E__LTV_COLLATERAL_CONFIG_LENGTH\n");
         }

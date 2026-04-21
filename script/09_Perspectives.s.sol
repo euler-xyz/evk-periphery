@@ -70,9 +70,8 @@ contract EVKPerspectives is ScriptUtils {
     ) public returns (address[] memory perspectives) {
         address evc;
         {
-            (bool success, bytes memory data) = GenericFactory(eVaultFactory).implementation().staticcall(
-                abi.encodePacked(EVCUtil.EVC.selector, uint256(0), uint256(0))
-            );
+            (bool success, bytes memory data) = GenericFactory(eVaultFactory).implementation()
+                .staticcall(abi.encodePacked(EVCUtil.EVC.selector, uint256(0), uint256(0)));
             assert(success && data.length == 32);
 
             evc = abi.decode(data, (address));
@@ -263,9 +262,8 @@ contract EVKPerspectiveEulerUngoverned0xDeployer is ScriptUtils {
         address escrowedCollateralPerspective
     ) public returns (address eulerUngoverned0xPerspective) {
         {
-            (bool success, bytes memory data) = GenericFactory(eVaultFactory).implementation().staticcall(
-                abi.encodePacked(EVCUtil.EVC.selector, uint256(0), uint256(0))
-            );
+            (bool success, bytes memory data) = GenericFactory(eVaultFactory).implementation()
+                .staticcall(abi.encodePacked(EVCUtil.EVC.selector, uint256(0), uint256(0)));
             assert(success && data.length == 32);
 
             address evc = abi.decode(data, (address));
@@ -365,9 +363,8 @@ contract EVKPerspectiveEulerUngovernedNzxDeployer is ScriptUtils {
         address escrowedCollateralPerspective
     ) public returns (address eulerUngovernedNzxPerspective) {
         {
-            (bool success, bytes memory data) = GenericFactory(eVaultFactory).implementation().staticcall(
-                abi.encodePacked(EVCUtil.EVC.selector, uint256(0), uint256(0))
-            );
+            (bool success, bytes memory data) = GenericFactory(eVaultFactory).implementation()
+                .staticcall(abi.encodePacked(EVCUtil.EVC.selector, uint256(0), uint256(0)));
             assert(success && data.length == 32);
 
             address evc = abi.decode(data, (address));
