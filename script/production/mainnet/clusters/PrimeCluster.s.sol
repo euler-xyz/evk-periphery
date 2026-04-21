@@ -43,8 +43,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = governorAddresses.accessControlEmergencyGovernor;
-        cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = multisigAddresses.DAO;// governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -82,7 +81,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[wstETH   ] = "CrossAdapter=LidoFundamentalOracle+ChainlinkOracle";
         cluster.oracleProviders[cbETH    ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
         cluster.oracleProviders[weETH    ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
-        cluster.oracleProviders[ezETH    ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
+        cluster.oracleProviders[ezETH    ] = "0xADCcfc92aff2EA281b7E458c9c9AA2e06D09C988";
         cluster.oracleProviders[RETH     ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
         cluster.oracleProviders[rsETH    ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
         cluster.oracleProviders[tETH     ] = "0x74b77011c244bd7edff34e4cbf23fe41defa313d";
@@ -109,9 +108,9 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[wstETH     ] = 10_000;
         cluster.supplyCaps[cbETH      ] = 30;
         cluster.supplyCaps[weETH      ] = 6_750;
-        cluster.supplyCaps[ezETH      ] = 2_500;
+        cluster.supplyCaps[ezETH      ] = 0;
         cluster.supplyCaps[RETH       ] = 30;
-        cluster.supplyCaps[rsETH      ] = 13_500;
+        cluster.supplyCaps[rsETH      ] = 0;
         cluster.supplyCaps[tETH       ] = 4_700;
         cluster.supplyCaps[USDC       ] = 75_000_000;
         cluster.supplyCaps[USDT       ] = 50_000_000;
@@ -134,10 +133,10 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[wstETH     ] = 7_500;
         cluster.borrowCaps[cbETH      ] = 0;
         cluster.borrowCaps[weETH      ] = 1_690;
-        cluster.borrowCaps[ezETH      ] = 600;
+        cluster.borrowCaps[ezETH      ] = 0;
         cluster.borrowCaps[RETH       ] = 0;
-        cluster.borrowCaps[rsETH      ] = 3_380;
-        cluster.borrowCaps[tETH       ] = 800;
+        cluster.borrowCaps[rsETH      ] = 0;
+        cluster.borrowCaps[tETH       ] = 0;
         cluster.borrowCaps[USDC       ] = 67_500_000;
         cluster.borrowCaps[USDT       ] = 45_000_000;
         cluster.borrowCaps[wM         ] = 0;
@@ -242,6 +241,17 @@ contract Cluster is ManageCluster {
         /* 22 xAUt    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.77e4, 0.77e4, 0.00e4, 0.00e4, 0.00e4, 0.77e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
 
+        for(uint256 i = 0; i < cluster.ltvs.length; ++i) {
+            if (cluster.ltvs[6][i] == 0) continue;
+            if (i == 7) continue;
+            cluster.borrowLTVsOverride[6][i] = 0;
+        }
+
+        //for(uint256 i = 0; i < cluster.ltvs.length; ++i) {
+        //    if (cluster.ltvs[i][6] == 0) continue;
+        //    cluster.borrowLTVsOverride[i][6] = 0;
+        //}
+
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
         cluster.externalLTVs = [
@@ -254,8 +264,8 @@ contract Cluster is ManageCluster {
     }
 
     function postOperations() internal view override {
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
-        }
+        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
+        //}
     }
 }

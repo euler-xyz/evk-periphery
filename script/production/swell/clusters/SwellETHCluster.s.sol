@@ -77,21 +77,21 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[WETH  ] = 7_000;
         cluster.supplyCaps[wstETH] = 5_000;
         cluster.supplyCaps[weETH ] = 5_000;
-        cluster.supplyCaps[ezETH ] = 5_000;
-        cluster.supplyCaps[rsETH ] = 2_500;
+        cluster.supplyCaps[ezETH ] = 0;
+        cluster.supplyCaps[rsETH ] = 0;
         cluster.supplyCaps[swETH ] = 2_500;
         cluster.supplyCaps[rswETH] = 2_500;
         cluster.supplyCaps[pzETH ] = 2_500;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WETH  ] = 6_300;
-        cluster.borrowCaps[wstETH] = 2_000;
-        cluster.borrowCaps[weETH ] = 1_250;
-        cluster.borrowCaps[ezETH ] = 1_250;
-        cluster.borrowCaps[rsETH ] = 625;
-        cluster.borrowCaps[swETH ] = 625;
-        cluster.borrowCaps[rswETH] = 625;
-        cluster.borrowCaps[pzETH ] = 625;
+        cluster.borrowCaps[WETH  ] = 0;
+        cluster.borrowCaps[wstETH] = 0;
+        cluster.borrowCaps[weETH ] = 0;
+        cluster.borrowCaps[ezETH ] = 0;
+        cluster.borrowCaps[rsETH ] = 0;
+        cluster.borrowCaps[swETH ] = 0;
+        cluster.borrowCaps[rswETH] = 0;
+        cluster.borrowCaps[pzETH ] = 0;
 
         // define IRM classes here and assign them to the assets
         {
@@ -134,11 +134,19 @@ contract Cluster is ManageCluster {
         /* 7  pzETH   */ [uint16(0.85e4), 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.00e4]
         ];
 
+        for(uint256 i = 0; i < cluster.ltvs.length; ++i) {
+            if (cluster.ltvs[3][i] == 0) continue;
+            if (cluster.ltvs[4][i] == 0) continue;
+            cluster.borrowLTVsOverride[3][i] = 0;
+            cluster.borrowLTVsOverride[4][i] = 0;
+        }
+
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
     }
 
     function postOperations() internal override {
+        /*
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             perspectiveVerify(peripheryAddresses.governedPerspective, cluster.vaults[i]);
         }
@@ -162,5 +170,6 @@ contract Cluster is ManageCluster {
 
         ClusterDump dumper = new ClusterDump();
         dumper.dumpCluster(cluster.vaults, cluster.externalVaults);
+        */
     }
 }

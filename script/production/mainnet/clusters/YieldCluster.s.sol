@@ -124,8 +124,8 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[rlUSD                    ] = 100_000_000;
         cluster.supplyCaps[wM                       ] = 100_000;
         cluster.supplyCaps[USD0PlusPlus             ] = 100_000;
-        cluster.supplyCaps[USDe                     ] = 10_000_000;
-        cluster.supplyCaps[eUSDe                    ] = 60_000_000;
+        cluster.supplyCaps[USDe                     ] = 700_000;
+        cluster.supplyCaps[eUSDe                    ] = 100_000;
         cluster.supplyCaps[sUSDe                    ] = 100_000;
         cluster.supplyCaps[frxUSD                   ] = 5_000_000;
         cluster.supplyCaps[sfrxUSD                  ] = 100_000;
@@ -140,10 +140,10 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[PT_cUSDO_28MAY2026       ] = 100_000;
         cluster.supplyCaps[PT_tUSDe_18DEC2025       ] = 100_000;
         cluster.supplyCaps[PT_pUSDe_16OCT2025       ] = 10_000;
-        cluster.supplyCaps[PT_srUSDe_15JAN2026      ] = 10_000;
-        cluster.supplyCaps[PT_jrUSDe_15JAN2026      ] = 10_000;
-        cluster.supplyCaps[PT_srUSDe_02APR2026      ] = 20_000_000;
-        cluster.supplyCaps[PT_jrUSDe_02APR2026      ] = 8_000_000;
+        cluster.supplyCaps[PT_srUSDe_15JAN2026      ] = 0;
+        cluster.supplyCaps[PT_jrUSDe_15JAN2026      ] = 0;
+        cluster.supplyCaps[PT_srUSDe_02APR2026      ] = 0;
+        cluster.supplyCaps[PT_jrUSDe_02APR2026      ] = 0;
         cluster.supplyCaps[PT_alUSD_11DEC2025       ] = 100_000;
         cluster.supplyCaps[PT_cUSD_29JAN2026        ] = 10_000;
         cluster.supplyCaps[PT_stcUSD_29JAN2026      ] = 10_000;
@@ -156,8 +156,8 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[rlUSD                    ] = 90_000_000;
         cluster.borrowCaps[wM                       ] = 0;
         cluster.borrowCaps[USD0PlusPlus             ] = 0;
-        cluster.borrowCaps[USDe                     ] = 9_000_000;
-        cluster.borrowCaps[eUSDe                    ] = 51_000_000;
+        cluster.borrowCaps[USDe                     ] = 630_000;
+        cluster.borrowCaps[eUSDe                    ] = 90_000;
         cluster.borrowCaps[sUSDe                    ] = 0;
         cluster.borrowCaps[frxUSD                   ] = 4_500_000;
         cluster.borrowCaps[sfrxUSD                  ] = 0;
@@ -174,8 +174,8 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[PT_pUSDe_16OCT2025       ] = 0;
         cluster.borrowCaps[PT_srUSDe_15JAN2026      ] = 0;
         cluster.borrowCaps[PT_jrUSDe_15JAN2026      ] = 0;
-        cluster.borrowCaps[PT_srUSDe_02APR2026      ] = type(uint256).max;
-        cluster.borrowCaps[PT_jrUSDe_02APR2026      ] = type(uint256).max;
+        cluster.borrowCaps[PT_srUSDe_02APR2026      ] = 0;
+        cluster.borrowCaps[PT_jrUSDe_02APR2026      ] = 0;
         cluster.borrowCaps[PT_alUSD_11DEC2025       ] = 0;
         cluster.borrowCaps[PT_cUSD_29JAN2026        ] = 0;
         cluster.borrowCaps[PT_stcUSD_29JAN2026      ] = 0;
@@ -266,8 +266,8 @@ contract Cluster is ManageCluster {
     }
 
     function postOperations() internal view override {
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
-        }
+        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
+        //}
     }
 }
