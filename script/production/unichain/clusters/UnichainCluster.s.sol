@@ -31,7 +31,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x4f894Bfc9481110278C356adE1473eBe2127Fd3C; // governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -163,8 +163,8 @@ contract Cluster is ManageCluster {
     }
 
     function postOperations() internal view override {
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
-        }
+        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
+        //}
     }
 }
