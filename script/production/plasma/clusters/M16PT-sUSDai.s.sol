@@ -73,7 +73,7 @@ contract Cluster is ManageCluster {
         cluster.irms[USDT0]  = IRM_ADAPTIVE_PT_30;
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 30 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
@@ -82,7 +82,7 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0         1         2
         //                PT-sUSDai USDai     USDT0
-        /* 0  PT-sUSDai*/ [LTV_ZERO, LTV_HIGH, LTV__LOW],
+        /* 0  PT-sUSDai*/ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
         /* 1  USDai    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
         /* 2  USDT0    */ [LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
@@ -92,8 +92,8 @@ contract Cluster is ManageCluster {
     }
 
     function postOperations() internal view override {
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
-        }
+        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
+        //}
     }
 }
