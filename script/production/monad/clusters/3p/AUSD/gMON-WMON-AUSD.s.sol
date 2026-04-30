@@ -80,7 +80,7 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 0 days;
+        cluster.rampDuration = 30 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.01e4;
@@ -89,9 +89,9 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0                1        2    
         //                gMON             WMON     AUSD
-        /* 0  gMON     */ [uint16(0.00e4), 0.92e4, 0.78e4],
-        /* 1  WMON     */ [uint16(0.00e4), 0.00e4, 0.78e4],
-        /* 2  AUSD     */ [uint16(0.00e4), 0.78e4, 0.00e4]
+        /* 0  gMON     */ [uint16(0.00e4), 0.00e4, 0.00e4],
+        /* 1  WMON     */ [uint16(0.00e4), 0.00e4, 0.00e4],
+        /* 2  AUSD     */ [uint16(0.00e4), 0.00e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
@@ -100,8 +100,8 @@ contract Cluster is ManageCluster {
     }
 
     function postOperations() internal view override {
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
-        }
+        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
+        //}
     }
 }
