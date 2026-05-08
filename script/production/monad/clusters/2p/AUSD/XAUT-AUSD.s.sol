@@ -22,7 +22,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x060DB084bF41872861f175d83f3cb1B5566dfEA3; //governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -85,8 +85,8 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1    
         //                XAUT0            AUSD
-        /* 0  XAUT0   */ [uint16(0.00e4), 0.76e4],
-        /* 1  AUSD    */ [uint16(0.76e4), 0.00e4]
+        /* 0  XAUT0   */ [uint16(0.00e4), 0.00e4],
+        /* 1  AUSD    */ [uint16(0.00e4), 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
