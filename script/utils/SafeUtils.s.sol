@@ -254,6 +254,8 @@ contract SafeUtil is ScriptExtended {
             return "https://safe-cgw-corn.safe.onchainden.com/";
         } else if (block.chainid == 239) {
             return "https://gateway.safe.tac.build/";
+        } else if (block.chainid == 2818) {
+            return "https://safe.morphl2.io/";
         } else if (block.chainid == 60808) {
             return "https://gateway.safe.gobob.xyz/";
         } else if (block.chainid == 80094) {
