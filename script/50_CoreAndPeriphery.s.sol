@@ -127,12 +127,15 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     uint32 internal constant OFT_MAX_MESSAGE_SIZE = 10000;
     string[6] internal OFT_ACCEPTED_DVNS = ["LayerZero Labs", "Google", "Canary", "Polyhedra", "Nethermind", "Horizen"];
 
-    mapping(string => uint128) internal OFT_ENFORCED_GAS_LIMIT_SEND;
-    mapping(string => uint128) internal OFT_ENFORCED_GAS_LIMIT_CALL;
-    mapping(string => uint8) internal OFT_REQUIRED_DVNS_COUNT;
-    mapping(string => uint256[]) internal OFT_HUB_CHAIN_IDS;
-    mapping(string => uint256[]) internal OFT_CONFIG_IGNORE_CHAIN_IDS;
-    mapping(string => uint256[]) internal OFT_CONFIG_ONE_DIRECTION_CHAIN_IDS;
+    struct OFTTokenConfig {
+        uint128 enforcedGasLimitSend;
+        uint128 enforcedGasLimitCall;
+        uint8 requiredDVNsCount;
+        uint256[] configIgnoreChainIds;
+        uint256[] configOneDirectionChainIds;
+    }
+
+    mapping(string => OFTTokenConfig) internal OFT_CONFIG;
 
     int256 internal constant YEAR = 365 days;
     int256 internal constant IRM_TARGET_UTILIZATION = 0.9e18;
@@ -146,24 +149,30 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     AdaptiveCurveIRMParams[] internal DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS;
 
     constructor() {
-        OFT_ENFORCED_GAS_LIMIT_SEND["EUL"] = 100000;
-        OFT_ENFORCED_GAS_LIMIT_CALL["EUL"] = 100000;
-        OFT_REQUIRED_DVNS_COUNT["EUL"] = 4;
-        OFT_HUB_CHAIN_IDS["EUL"] = [HUB_CHAIN_ID];
-        OFT_CONFIG_IGNORE_CHAIN_IDS["EUL"] = [2818, 999];
-        OFT_CONFIG_ONE_DIRECTION_CHAIN_IDS["EUL"] = [130, 143, 146, 239, 1923, 9745, 43114, 59144, 60808, 80094];
+        {
+            OFTTokenConfig storage cfg = OFT_CONFIG["EUL"];
+            cfg.enforcedGasLimitSend = 100000;
+            cfg.enforcedGasLimitCall = 100000;
+            cfg.requiredDVNsCount = 4;
+            cfg.configIgnoreChainIds = [uint256(2818), 999];
+            cfg.configOneDirectionChainIds = [uint256(130), 143, 146, 239, 1923, 9745, 43114, 59144, 60808, 80094];
+        }
 
-        OFT_ENFORCED_GAS_LIMIT_SEND["eUSD"] = 150000;
-        OFT_ENFORCED_GAS_LIMIT_CALL["eUSD"] = 100000;
-        OFT_REQUIRED_DVNS_COUNT["eUSD"] = 4;
-        OFT_HUB_CHAIN_IDS["eUSD"] = [HUB_CHAIN_ID];
-        OFT_CONFIG_IGNORE_CHAIN_IDS["eUSD"] = [2818, 999];
+        {
+            OFTTokenConfig storage cfg = OFT_CONFIG["eUSD"];
+            cfg.enforcedGasLimitSend = 150000;
+            cfg.enforcedGasLimitCall = 100000;
+            cfg.requiredDVNsCount = 4;
+            cfg.configIgnoreChainIds = [uint256(2818), 999];
+        }
 
-        OFT_ENFORCED_GAS_LIMIT_SEND["seUSD"] = 100000;
-        OFT_ENFORCED_GAS_LIMIT_CALL["seUSD"] = 100000;
-        OFT_REQUIRED_DVNS_COUNT["seUSD"] = 4;
-        OFT_HUB_CHAIN_IDS["seUSD"] = [HUB_CHAIN_ID];
-        OFT_CONFIG_IGNORE_CHAIN_IDS["seUSD"] = [2818, 999];
+        {
+            OFTTokenConfig storage cfg = OFT_CONFIG["seUSD"];
+            cfg.enforcedGasLimitSend = 100000;
+            cfg.enforcedGasLimitCall = 100000;
+            cfg.requiredDVNsCount = 4;
+            cfg.configIgnoreChainIds = [uint256(2818), 999];
+        }
 
         for (uint256 i = 0; i < IRM_INITIAL_RATES_AT_TARGET.length; ++i) {
             DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.push(
@@ -1057,23 +1066,22 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     }
 
     function getEnforcedOptions(address token, uint32 eid) internal view returns (EnforcedOptionParam[] memory) {
-        string memory tokenKey = getTokenKey(token);
+        OFTTokenConfig storage cfg = OFT_CONFIG[getTokenKey(token)];
         require(
-            OFT_ENFORCED_GAS_LIMIT_SEND[tokenKey] != 0 && OFT_ENFORCED_GAS_LIMIT_CALL[tokenKey] != 0,
-            "getEnforcedOptions: Token not supported"
+            cfg.enforcedGasLimitSend != 0 && cfg.enforcedGasLimitCall != 0, "getEnforcedOptions: Token not supported"
         );
 
         EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](2);
         enforcedOptions[0] = EnforcedOptionParam({
             eid: eid,
             msgType: OFT_MSG_TYPE_SEND,
-            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(OFT_ENFORCED_GAS_LIMIT_SEND[tokenKey], 0)
+            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(cfg.enforcedGasLimitSend, 0)
         });
         enforcedOptions[1] = EnforcedOptionParam({
             eid: eid,
             msgType: OFT_MSG_TYPE_SEND_AND_CALL,
-            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(OFT_ENFORCED_GAS_LIMIT_SEND[tokenKey], 0)
-                .addExecutorLzComposeOption(0, OFT_ENFORCED_GAS_LIMIT_CALL[tokenKey], 0)
+            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(cfg.enforcedGasLimitSend, 0)
+                .addExecutorLzComposeOption(0, cfg.enforcedGasLimitCall, 0)
         });
         return enforcedOptions;
     }
@@ -1127,7 +1135,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             if (chainIdOther == 0 || block.chainid == chainIdOther) continue;
 
             // Hub-and-spoke topology: when the local chain is not a hub, only configure pairings with hub peers.
-            if (!containsOFTHubChainId(token, block.chainid) && !containsOFTHubChainId(token, chainIdOther)) continue;
+            if (!isHubChainId(block.chainid) && !isHubChainId(chainIdOther)) continue;
 
             address adapterOther = getOFTAdapter(token, chainIdOther);
 
@@ -1174,21 +1182,33 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 !containsOFTConfigIgnoreChainId(token, chainIdOther)
                     && addBridgeConfigCache(tokenKey, block.chainid, chainIdOther)
             ) {
+                bool delegateIsDeployer = delegate == getDeployer();
+                if (!delegateIsDeployer && delegate != getSafe(false)) {
+                    removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
+                    console.log(
+                        "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter configuration on chain %s for chain %s must be set manually. Skipping...",
+                        tokenKey,
+                        block.chainid,
+                        chainIdOther
+                    );
+                    continue;
+                }
+
                 LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(chainIdOther);
 
                 {
                     // Hub may only receive from a one-direction peer, so block the hub's send to it.
-                    address sendLib = containsOFTHubChainId(token, block.chainid)
+                    address sendLib = isHubChainId(block.chainid)
                         && containsOFTConfigOneDirectionChainId(token, chainIdOther)
                         ? info.blockedMessageLib
                         : info.sendUln302;
                     // A one-direction chain may only send to the hub, so block its receive from the hub.
-                    address receiveLib = containsOFTConfigOneDirectionChainId(token, block.chainid)
-                        && containsOFTHubChainId(token, chainIdOther)
+                    address receiveLib = isHubChainId(chainIdOther)
+                        && containsOFTConfigOneDirectionChainId(token, block.chainid)
                         ? info.blockedMessageLib
                         : info.receiveUln302;
 
-                    if (delegate == getDeployer()) {
+                    if (delegateIsDeployer) {
                         vm.startBroadcast();
                         console.log(
                             "    Setting %s OFT Adapter send library on chain %s for chain %s",
@@ -1206,7 +1226,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                         );
                         IMessageLibManager(info.endpointV2).setReceiveLibrary(adapter, infoOther.eid, receiveLib, 0);
                         vm.stopBroadcast();
-                    } else if (delegate == getSafe(false)) {
+                    } else {
                         console.log(
                             "    + Adding multisend item to set %s OFT Adapter send library on chain %s for chain %s",
                             tokenKey,
@@ -1230,14 +1250,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                                 IMessageLibManager.setReceiveLibrary, (adapter, infoOther.eid, receiveLib, 0)
                             )
                         );
-                    } else {
-                        removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
-                        console.log(
-                            "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter send/receive libraries on chain %s for chain %s must be set manually.",
-                            tokenKey,
-                            block.chainid,
-                            chainIdOther
-                        );
                     }
                 }
 
@@ -1256,12 +1268,12 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                                 adapterOther, block.chainid, chainIdOther, getAcceptedDVNs(), true
                             )
                             : lzUtil.getUlnConfig(
-                                adapter, chainIdOther, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT[tokenKey], true
+                                adapter, chainIdOther, getAcceptedDVNs(), OFT_CONFIG[tokenKey].requiredDVNsCount, true
                             )
                     )
                 });
 
-                if (delegate == getDeployer()) {
+                if (delegateIsDeployer) {
                     vm.startBroadcast();
                     console.log(
                         "    + Setting %s OFT Adapter send config on chain %s for chain %s",
@@ -1271,7 +1283,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     );
                     IMessageLibManager(info.endpointV2).setConfig(adapter, info.sendUln302, params);
                     vm.stopBroadcast();
-                } else if (delegate == getSafe(false)) {
+                } else {
                     console.log(
                         "    + Adding multisend item to set %s OFT Adapter send config on chain %s for chain %s",
                         tokenKey,
@@ -1281,14 +1293,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     addMultisendItem(
                         info.endpointV2,
                         abi.encodeCall(IMessageLibManager.setConfig, (adapter, info.sendUln302, params))
-                    );
-                } else {
-                    removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
-                    console.log(
-                        "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter send config on chain %s for chain %s must be set manually.",
-                        tokenKey,
-                        block.chainid,
-                        chainIdOther
                     );
                 }
 
@@ -1302,12 +1306,12 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                                 adapterOther, block.chainid, chainIdOther, getAcceptedDVNs(), false
                             )
                             : lzUtil.getUlnConfig(
-                                adapter, chainIdOther, getAcceptedDVNs(), OFT_REQUIRED_DVNS_COUNT[tokenKey], false
+                                adapter, chainIdOther, getAcceptedDVNs(), OFT_CONFIG[tokenKey].requiredDVNsCount, false
                             )
                     )
                 });
 
-                if (delegate == getDeployer()) {
+                if (delegateIsDeployer) {
                     vm.startBroadcast();
                     console.log(
                         "    + Setting %s OFT Adapter receive config on chain %s for chain %s",
@@ -1317,7 +1321,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     );
                     IMessageLibManager(info.endpointV2).setConfig(adapter, info.receiveUln302, params);
                     vm.stopBroadcast();
-                } else if (delegate == getSafe(false)) {
+                } else {
                     console.log(
                         "    + Adding multisend item to set %s OFT Adapter receive config on chain %s for chain %s",
                         tokenKey,
@@ -1328,17 +1332,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                         info.endpointV2,
                         abi.encodeCall(IMessageLibManager.setConfig, (adapter, info.receiveUln302, params))
                     );
-                } else {
-                    removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
-                    console.log(
-                        "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter receive config on chain %s for chain %s must be set manually.",
-                        tokenKey,
-                        block.chainid,
-                        chainIdOther
-                    );
                 }
 
-                if (delegate == getDeployer()) {
+                if (delegateIsDeployer) {
                     vm.startBroadcast();
                     console.log(
                         "    + Setting %s OFT Adapter peer on chain %s for chain %s",
@@ -1348,7 +1344,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     );
                     IOAppCore(adapter).setPeer(infoOther.eid, bytes32(uint256(uint160(adapterOther))));
                     vm.stopBroadcast();
-                } else if (delegate == getSafe(false)) {
+                } else {
                     console.log(
                         "    + Adding multisend item to set %s OFT Adapter peer on chain %s for chain %s",
                         tokenKey,
@@ -1359,17 +1355,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                         adapter,
                         abi.encodeCall(IOAppCore.setPeer, (infoOther.eid, bytes32(uint256(uint160(adapterOther)))))
                     );
-                } else {
-                    removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
-                    console.log(
-                        "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter peer on chain %s for chain %s must be set manually.",
-                        tokenKey,
-                        block.chainid,
-                        chainIdOther
-                    );
                 }
 
-                if (delegate == getDeployer()) {
+                if (delegateIsDeployer) {
                     vm.startBroadcast();
                     console.log(
                         "    + Setting %s OFT Adapter enforced options on chain %s for chain %s",
@@ -1379,7 +1367,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     );
                     IOAppOptionsType3(adapter).setEnforcedOptions(getEnforcedOptions(token, infoOther.eid));
                     vm.stopBroadcast();
-                } else if (delegate == getSafe(false)) {
+                } else {
                     console.log(
                         "    + Adding multisend item to set %s OFT Adapter enforced options on chain %s for chain %s",
                         tokenKey,
@@ -1389,14 +1377,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     addMultisendItem(
                         adapter,
                         abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (getEnforcedOptions(token, infoOther.eid)))
-                    );
-                } else {
-                    removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
-                    console.log(
-                        "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter enforced options on chain %s for chain %s must be set manually.",
-                        tokenKey,
-                        block.chainid,
-                        chainIdOther
                     );
                 }
             } else if (!containsOFTConfigIgnoreChainId(token, chainIdOther)) {
@@ -1438,38 +1418,23 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         return acceptedDVNs;
     }
 
-    function containsOFTHubChainId(address token, uint256 chainId) internal view returns (bool) {
-        string memory tokenKey = getTokenKey(token);
-        require(OFT_HUB_CHAIN_IDS[tokenKey].length != 0, "containsOFTHubChainId: Token not supported");
-
-        for (uint256 i = 0; i < OFT_HUB_CHAIN_IDS[tokenKey].length; ++i) {
-            if (OFT_HUB_CHAIN_IDS[tokenKey][i] == chainId) {
-                return true;
-            }
-        }
-        return false;
+    function isHubChainId(uint256 chainId) internal pure returns (bool) {
+        return chainId == HUB_CHAIN_ID;
     }
 
     function containsOFTConfigIgnoreChainId(address token, uint256 chainId) internal view returns (bool) {
-        string memory tokenKey = getTokenKey(token);
-
-        for (uint256 i = 0; i < OFT_CONFIG_IGNORE_CHAIN_IDS[tokenKey].length; ++i) {
-            if (OFT_CONFIG_IGNORE_CHAIN_IDS[tokenKey][i] == chainId) {
-                return true;
-            }
+        uint256[] storage list = OFT_CONFIG[getTokenKey(token)].configIgnoreChainIds;
+        for (uint256 i = 0; i < list.length; ++i) {
+            if (list[i] == chainId) return true;
         }
         return false;
     }
 
     function containsOFTConfigOneDirectionChainId(address token, uint256 chainId) internal view returns (bool) {
-        require(!containsOFTHubChainId(token, chainId), "containsOFTConfigOneDirectionChainId: Chain is a hub chain");
-
-        string memory tokenKey = getTokenKey(token);
-
-        for (uint256 i = 0; i < OFT_CONFIG_ONE_DIRECTION_CHAIN_IDS[tokenKey].length; ++i) {
-            if (OFT_CONFIG_ONE_DIRECTION_CHAIN_IDS[tokenKey][i] == chainId) {
-                return true;
-            }
+        if (isHubChainId(chainId)) return false;
+        uint256[] storage list = OFT_CONFIG[getTokenKey(token)].configOneDirectionChainIds;
+        for (uint256 i = 0; i < list.length; ++i) {
+            if (list[i] == chainId) return true;
         }
         return false;
     }

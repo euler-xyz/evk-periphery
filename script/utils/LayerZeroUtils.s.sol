@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {stdJson} from "forge-std/StdJson.sol";
-import {ScriptUtils, ScriptExtended, Vm, console} from "../utils/ScriptUtils.s.sol";
+import {ScriptUtils, ScriptExtended, console} from "../utils/ScriptUtils.s.sol";
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 import {Arrays} from "openzeppelin-contracts/utils/Arrays.sol";
 import {IOFT, SendParam, OFTReceipt} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
@@ -43,7 +43,6 @@ contract LayerZeroUtil is ScriptExtended {
     mapping(uint256 => address[]) private _dvnAddrsCache;
     mapping(uint256 => bool) private _cached;
     mapping(bytes32 => uint256) private _chainIdByKeyHash;
-    mapping(uint256 => bool) private _pendingSafeApplied;
 
     constructor(uint256 chainId_) {
         _chainId = chainId_;
@@ -99,10 +98,6 @@ contract LayerZeroUtil is ScriptExtended {
 
         require(selectFork(chainIdOther), string.concat("Failed to select fork for chain ", vm.toString(chainIdOther)));
 
-        // TEMPORARY: apply any pending Safe multisend bundles for this chain before reading config,
-        // so the hub mirrors the state that WILL exist after the non-hub Safe executes.
-        _applyPendingSafeBundles(chainIdOther);
-
         UlnConfig memory ulnConfig = abi.decode(
             IMessageLibManager(infoOther.endpointV2)
                 .getConfig(
@@ -139,7 +134,30 @@ contract LayerZeroUtil is ScriptExtended {
         view
         returns (string[] memory dvnNames, address[] memory dvnAddresses)
     {
-        (dvnNames, dvnAddresses) = _filterCachedDvns(chainKey, dvns, false);
+        uint256 chainId = _chainIdByKeyHash[keccak256(bytes(chainKey))];
+        require(chainId != 0, string.concat("chain not cached; call getDeploymentInfo first for ", chainKey));
+
+        string[] storage allNames = _dvnNamesCache[chainId];
+        address[] storage allAddrs = _dvnAddrsCache[chainId];
+
+        dvnNames = new string[](dvns.length);
+        dvnAddresses = new address[](dvns.length);
+        uint256 index;
+
+        for (uint256 i = 0; i < dvns.length; ++i) {
+            for (uint256 j = 0; j < allNames.length; ++j) {
+                if (_strEq(allNames[j], dvns[i])) {
+                    dvnNames[index] = dvns[i];
+                    dvnAddresses[index++] = allAddrs[j];
+                    break;
+                }
+            }
+        }
+
+        assembly {
+            mstore(dvnNames, index)
+            mstore(dvnAddresses, index)
+        }
     }
 
     function getSortedDVNAddresses(string[] memory dvns, string memory chainKey, uint256 requiredCnt)
@@ -147,65 +165,11 @@ contract LayerZeroUtil is ScriptExtended {
         view
         returns (address[] memory acceptedDvns)
     {
-        (, acceptedDvns) = _filterCachedDvns(chainKey, dvns, true);
+        acceptedDvns = _resolveDvnAddresses(chainKey, dvns);
         require(acceptedDvns.length >= requiredCnt, string.concat("Failed to find enough accepted DVNs for ", chainKey));
+        Arrays.sort(acceptedDvns);
         assembly {
             mstore(acceptedDvns, requiredCnt)
-        }
-    }
-
-    // TEMPORARY: reads SafeTransaction/SafeBatchBuilder JSONs from
-    // ./script/deployments/default/{chainId}/output/ and replays their inner items as the Safe
-    // on the current fork. Used so `getCompatibleUlnConfig` can mirror the post-execution state
-    // of non-hub Safe bundles that haven't been executed on-chain yet.
-    function _applyPendingSafeBundles(uint256 chainId) private {
-        if (_pendingSafeApplied[chainId]) return;
-        _pendingSafeApplied[chainId] = true;
-
-        Vm.DirEntry[] memory entries;
-        {
-            string memory dir = string.concat(
-                vm.projectRoot(), "/script/deployments/default/", vm.toString(chainId), "/output"
-            );
-            if (!vm.exists(dir)) return;
-
-            entries = vm.readDir(dir, 1);
-        }
-
-        for (uint256 i = 0; i < entries.length; ++i) {
-            if (entries[i].isDir) continue;
-
-            string memory json = vm.readFile(entries[i].path);
-            if (
-                !vm.keyExists(json, ".meta.createdFromSafeAddress")
-                    || !vm.keyExists(json, ".transactions[0].to")
-            ) continue;
-
-            address safe = vm.parseJsonAddress(json, ".meta.createdFromSafeAddress");
-            console.log("    Pre-simulating Safe bundle %s on chain %s", entries[i].path, chainId);
-
-            uint256 j;
-            while (vm.keyExists(json, string.concat(".transactions[", vm.toString(j), "].to"))) {
-                string memory base = string.concat(".transactions[", vm.toString(j), "]");
-                address to = vm.parseJsonAddress(json, string.concat(base, ".to"));
-                uint256 value = vm.parseUint(vm.parseJsonString(json, string.concat(base, ".value")));
-                bytes memory data = vm.parseJsonBytes(json, string.concat(base, ".data"));
-
-                vm.prank(safe);
-                (bool ok, bytes memory ret) = to.call{value: value}(data);
-                require(
-                    ok,
-                    string.concat(
-                        "pre-simulation item ",
-                        vm.toString(j),
-                        " failed on chain ",
-                        vm.toString(chainId),
-                        ": ",
-                        string(ret)
-                    )
-                );
-                ++j;
-            }
         }
     }
 
@@ -227,10 +191,11 @@ contract LayerZeroUtil is ScriptExtended {
 
         require(
             info.endpointV2 == address(0)
-                || (info.executor != address(0)
-                    && info.sendUln302 != address(0)
-                    && info.receiveUln302 != address(0)),
-            string.concat("getDeploymentInfo: executor, sendUln302, receiveUln302, or blockedMessageLib is not set ", vm.toString(chainId))
+                || (info.executor != address(0) && info.sendUln302 != address(0) && info.receiveUln302 != address(0)),
+            string.concat(
+                "getDeploymentInfo: executor, sendUln302, receiveUln302, or blockedMessageLib is not set ",
+                vm.toString(chainId)
+            )
         );
         require(
             info.eid >= 30000 && info.eid < 40000,
@@ -253,9 +218,12 @@ contract LayerZeroUtil is ScriptExtended {
             vm.toString(chainId),
             " '",
             "((to_entries | map(select(.value.chainDetails.nativeChainId == $id)))[0]) as $e",
-            " | ($e.value.deployments // []",
+            " | (($e.value.deployments // [])",
             " | map(select(.endpointV2 and (.eid|tonumber) >= 30000 and (.eid|tonumber) < 40000))",
-            " | .[0]) as $d",
+            " | if length == 1 then .[0]",
+            " else error(\"expected exactly 1 valid deployment for chain \\(",
+            "$id), got \\(length)\")",
+            " end) as $d",
             " | ($e.value.dvns // {} | to_entries",
             " | map(select(.value.version == 2",
             " and ((.value.lzReadCompatible // false) == false)",
@@ -289,10 +257,10 @@ contract LayerZeroUtil is ScriptExtended {
         return string(result);
     }
 
-    function _filterCachedDvns(string memory chainKey, string[] memory requested, bool sort)
+    function _resolveDvnAddresses(string memory chainKey, string[] memory requested)
         private
         view
-        returns (string[] memory dvnNames, address[] memory dvnAddresses)
+        returns (address[] memory dvnAddresses)
     {
         uint256 chainId = _chainIdByKeyHash[keccak256(bytes(chainKey))];
         require(chainId != 0, string.concat("chain not cached; call getDeploymentInfo first for ", chainKey));
@@ -300,14 +268,12 @@ contract LayerZeroUtil is ScriptExtended {
         string[] storage allNames = _dvnNamesCache[chainId];
         address[] storage allAddrs = _dvnAddrsCache[chainId];
 
-        dvnNames = new string[](requested.length);
         dvnAddresses = new address[](requested.length);
         uint256 index;
 
         for (uint256 i = 0; i < requested.length; ++i) {
             for (uint256 j = 0; j < allNames.length; ++j) {
                 if (_strEq(allNames[j], requested[i])) {
-                    dvnNames[index] = requested[i];
                     dvnAddresses[index++] = allAddrs[j];
                     break;
                 }
@@ -315,13 +281,7 @@ contract LayerZeroUtil is ScriptExtended {
         }
 
         assembly {
-            mstore(dvnNames, index)
             mstore(dvnAddresses, index)
-        }
-
-        // notice: only sorts the addresses
-        if (sort) {
-            Arrays.sort(dvnAddresses);
         }
     }
 }
