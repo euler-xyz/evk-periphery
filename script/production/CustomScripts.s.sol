@@ -12,6 +12,7 @@ import {FactoryGovernor} from "../../src/Governor/FactoryGovernor.sol";
 import {CapRiskSteward} from "../../src/Governor/CapRiskSteward.sol";
 import {GovernorAccessControlEmergency} from "../../src/Governor/GovernorAccessControlEmergency.sol";
 import {LayerZeroSendEUL} from "../utils/LayerZeroUtils.s.sol";
+import {IOAppCore} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
 import {
     LensAccountDeployer,
     LensOracleDeployer,
@@ -24,6 +25,24 @@ import {ERC20Synth} from "../../src/ERC20/deployed/ERC20Synth.sol";
 import {VaultLens, VaultInfoFull} from "../../src/Lens/VaultLens.sol";
 import {UtilsLens, VaultInfoERC4626} from "../../src/Lens/UtilsLens.sol";
 import {AccountLens, AccountInfo, AccountMultipleVaultsInfo} from "../../src/Lens/AccountLens.sol";
+import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
+import {LayerZeroUtil} from "../utils/LayerZeroUtils.s.sol";
+import {IOAppCore} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
+import {
+    IOAppOptionsType3,
+    EnforcedOptionParam
+} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppOptionsType3.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {
+    IMessageLibManager,
+    SetConfigParam
+} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
+import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
+
+interface IEndpointV2 {
+    function eid() external view returns (uint32);
+    function delegates(address oapp) external view returns (address);
+}
 
 contract GetVaultInfoERC4626 is ScriptUtils {
     function run(address vault) public view returns (VaultInfoERC4626 memory) {
@@ -235,13 +254,19 @@ contract MergeSafeBatchBuilderFiles is ScriptUtils, SafeMultisendBuilder {
             vm.projectRoot(), "/", getPath(), "/SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), "_"
         );
 
-        for (uint256 i = 0; vm.exists(string.concat(basePath, vm.toString(i), ".json")); i++) {
+        for (uint256 i = 0; vm.exists(string.concat(basePath, vm.toString(i), ".json")); ++i) {
             string memory json = vm.readFile(string.concat(basePath, vm.toString(i), ".json"));
-            address target = vm.parseJsonAddress(json, ".transactions[0].to");
-            uint256 value = vm.parseJsonUint(json, ".transactions[0].value");
-            bytes memory data = vm.parseJsonBytes(json, ".transactions[0].data");
 
-            addMultisendItem(target, value, data);
+            uint256 j;
+            while (vm.keyExists(json, string.concat(".transactions[", vm.toString(j), "].to"))) {
+                string memory base = string.concat(".transactions[", vm.toString(j), "]");
+                address target = vm.parseJsonAddress(json, string.concat(base, ".to"));
+                uint256 value = vm.parseUint(vm.parseJsonString(json, string.concat(base, ".value")));
+                bytes memory data = vm.parseJsonBytes(json, string.concat(base, ".data"));
+
+                addMultisendItem(target, value, data);
+                ++j;
+            }
         }
 
         executeMultisend(safe, safeNonce++);
