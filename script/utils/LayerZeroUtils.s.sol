@@ -31,17 +31,21 @@ contract LayerZeroUtil is ScriptExtended {
         address executor;
         address sendUln302;
         address receiveUln302;
+        address blockedMessageLib;
     }
 
     uint32 internal constant ULN_CONFIG_TYPE = 2;
-    uint256 internal constant DVN_VERSION = 2;
-    uint256 internal constant MAX_DEPLOYMENTS = 10;
 
     uint256 private _chainId;
-    string private _metadata;
+
+    mapping(uint256 => DeploymentInfo) private _depCache;
+    mapping(uint256 => string[]) private _dvnNamesCache;
+    mapping(uint256 => address[]) private _dvnAddrsCache;
+    mapping(uint256 => bool) private _cached;
+    mapping(bytes32 => uint256) private _chainIdByKeyHash;
+    mapping(uint256 => bool) private _pendingSafeApplied;
 
     constructor(uint256 chainId_) {
-        _metadata = getRawMetadata();
         _chainId = chainId_;
     }
 
@@ -49,77 +53,9 @@ contract LayerZeroUtil is ScriptExtended {
         return "https://metadata.layerzero-api.com/v1/metadata";
     }
 
-    function getRawMetadata() public returns (string memory) {
-        if (_chainId != 0) return _metadata;
-
-        string[] memory inputs = new string[](3);
-        inputs[0] = "curl";
-        inputs[1] = "-s";
-        inputs[2] = getMatadataAPIURL();
-        bytes memory result = vm.ffi(inputs);
-
-        require(result.length != 0, "getRawMetadata: failed to get metadata");
-
-        return string(result);
-    }
-
     function getDeploymentInfo(uint256 chainId) public returns (DeploymentInfo memory) {
-        return getDeploymentInfo(getRawMetadata(), chainId);
-    }
-
-    function getDeploymentInfo(string memory metadata, uint256 chainId)
-        public
-        view
-        returns (DeploymentInfo memory result)
-    {
-        string[] memory keys = vm.parseJsonKeys(metadata, ".");
-
-        for (uint256 i = 0; i < keys.length; ++i) {
-            string memory key = string.concat(".", keys[i]);
-            string memory deploymentsKey = string.concat(key, ".deployments");
-
-            if (
-                metadata.readUintOr(string.concat(key, ".chainDetails.nativeChainId"), 0) != chainId
-                    || !vm.keyExists(metadata, deploymentsKey)
-            ) continue;
-
-            for (uint256 j = 0; j < MAX_DEPLOYMENTS; ++j) {
-                if (!vm.keyExists(metadata, _indexedKey(deploymentsKey, j, ".endpointV2"))) {
-                    continue;
-                }
-
-                result = DeploymentInfo({
-                    chainId: chainId,
-                    eid: uint32(vm.parseUint(metadata.readStringOr(_indexedKey(deploymentsKey, j, ".eid"), "0"))),
-                    chainKey: metadata.readStringOr(_indexedKey(deploymentsKey, j, ".chainKey"), ""),
-                    endpointV2: metadata.readAddressOr(_indexedKey(deploymentsKey, j, ".endpointV2.address"), address(0)),
-                    executor: metadata.readAddressOr(_indexedKey(deploymentsKey, j, ".executor.address"), address(0)),
-                    sendUln302: metadata.readAddressOr(_indexedKey(deploymentsKey, j, ".sendUln302.address"), address(0)),
-                    receiveUln302: metadata.readAddressOr(
-                        _indexedKey(deploymentsKey, j, ".receiveUln302.address"), address(0)
-                    )
-                });
-
-                break;
-            }
-
-            if (
-                result.endpointV2 != address(0) && result.executor != address(0) && result.sendUln302 != address(0)
-                    && result.receiveUln302 != address(0)
-            ) {
-                break;
-            }
-        }
-
-        require(
-            result.endpointV2 == address(0)
-                || (result.executor != address(0) && result.sendUln302 != address(0) && result.receiveUln302 != address(0)),
-            string.concat("getDeploymentInfo: executor, sendUln302, or receiveUln302 is not set ", vm.toString(chainId))
-        );
-        require(
-            result.eid >= 30000 && result.eid < 40000,
-            string.concat("getDeploymentInfo: eid must indicate mainnet ", vm.toString(chainId))
-        );
+        _ensureCached(chainId);
+        return _depCache[chainId];
     }
 
     function getUlnConfig(
@@ -132,14 +68,16 @@ contract LayerZeroUtil is ScriptExtended {
         LayerZeroUtil.DeploymentInfo memory info = getDeploymentInfo(_chainId);
         return UlnConfig({
             confirmations: abi.decode(
-                IMessageLibManager(info.endpointV2).getConfig(
-                    oftAdapter,
-                    isSend ? info.sendUln302 : info.receiveUln302,
-                    getDeploymentInfo(chainIdOther).eid,
-                    ULN_CONFIG_TYPE
-                ),
+                IMessageLibManager(info.endpointV2)
+                    .getConfig(
+                        oftAdapter,
+                        isSend ? info.sendUln302 : info.receiveUln302,
+                        getDeploymentInfo(chainIdOther).eid,
+                        ULN_CONFIG_TYPE
+                    ),
                 (UlnConfig)
-            ).confirmations,
+            )
+            .confirmations,
             requiredDVNCount: requiredDVNCnt,
             optionalDVNCount: 0,
             optionalDVNThreshold: 0,
@@ -161,10 +99,15 @@ contract LayerZeroUtil is ScriptExtended {
 
         require(selectFork(chainIdOther), string.concat("Failed to select fork for chain ", vm.toString(chainIdOther)));
 
+        // TEMPORARY: apply any pending Safe multisend bundles for this chain before reading config,
+        // so the hub mirrors the state that WILL exist after the non-hub Safe executes.
+        _applyPendingSafeBundles(chainIdOther);
+
         UlnConfig memory ulnConfig = abi.decode(
-            IMessageLibManager(infoOther.endpointV2).getConfig(
-                oftAdapterOther, isSend ? infoOther.receiveUln302 : infoOther.sendUln302, info.eid, ULN_CONFIG_TYPE
-            ),
+            IMessageLibManager(infoOther.endpointV2)
+                .getConfig(
+                    oftAdapterOther, isSend ? infoOther.receiveUln302 : infoOther.sendUln302, info.eid, ULN_CONFIG_TYPE
+                ),
             (UlnConfig)
         );
 
@@ -191,61 +134,181 @@ contract LayerZeroUtil is ScriptExtended {
         });
     }
 
-    function getDVNs(string[] memory dvns, string memory chainKey) public returns (string[] memory, address[] memory) {
-        return getDVNs(getRawMetadata(), dvns, chainKey, false);
-    }
-
-    function getDVNs(string memory metadata, string[] memory dvns, string memory chainKey)
+    function getDVNs(string[] memory dvns, string memory chainKey)
         public
         view
         returns (string[] memory dvnNames, address[] memory dvnAddresses)
     {
-        return getDVNs(metadata, dvns, chainKey, false);
+        (dvnNames, dvnAddresses) = _filterCachedDvns(chainKey, dvns, false);
     }
 
     function getSortedDVNAddresses(string[] memory dvns, string memory chainKey, uint256 requiredCnt)
         public
+        view
         returns (address[] memory acceptedDvns)
     {
-        return getSortedDVNAddresses(getRawMetadata(), dvns, chainKey, requiredCnt);
-    }
-
-    function getSortedDVNAddresses(
-        string memory metadata,
-        string[] memory dvns,
-        string memory chainKey,
-        uint256 requiredCnt
-    ) public view returns (address[] memory acceptedDvns) {
-        (, acceptedDvns) = getDVNs(metadata, dvns, chainKey, true);
+        (, acceptedDvns) = _filterCachedDvns(chainKey, dvns, true);
         require(acceptedDvns.length >= requiredCnt, string.concat("Failed to find enough accepted DVNs for ", chainKey));
         assembly {
             mstore(acceptedDvns, requiredCnt)
         }
     }
 
-    function getDVNs(string memory metadata, string[] memory dvns, string memory chainKey, bool sort)
+    // TEMPORARY: reads SafeTransaction/SafeBatchBuilder JSONs from
+    // ./script/deployments/default/{chainId}/output/ and replays their inner items as the Safe
+    // on the current fork. Used so `getCompatibleUlnConfig` can mirror the post-execution state
+    // of non-hub Safe bundles that haven't been executed on-chain yet.
+    function _applyPendingSafeBundles(uint256 chainId) private {
+        if (_pendingSafeApplied[chainId]) return;
+        _pendingSafeApplied[chainId] = true;
+
+        Vm.DirEntry[] memory entries;
+        {
+            string memory dir = string.concat(
+                vm.projectRoot(), "/script/deployments/default/", vm.toString(chainId), "/output"
+            );
+            if (!vm.exists(dir)) return;
+
+            entries = vm.readDir(dir, 1);
+        }
+
+        for (uint256 i = 0; i < entries.length; ++i) {
+            if (entries[i].isDir) continue;
+
+            string memory json = vm.readFile(entries[i].path);
+            if (
+                !vm.keyExists(json, ".meta.createdFromSafeAddress")
+                    || !vm.keyExists(json, ".transactions[0].to")
+            ) continue;
+
+            address safe = vm.parseJsonAddress(json, ".meta.createdFromSafeAddress");
+            console.log("    Pre-simulating Safe bundle %s on chain %s", entries[i].path, chainId);
+
+            uint256 j;
+            while (vm.keyExists(json, string.concat(".transactions[", vm.toString(j), "].to"))) {
+                string memory base = string.concat(".transactions[", vm.toString(j), "]");
+                address to = vm.parseJsonAddress(json, string.concat(base, ".to"));
+                uint256 value = vm.parseUint(vm.parseJsonString(json, string.concat(base, ".value")));
+                bytes memory data = vm.parseJsonBytes(json, string.concat(base, ".data"));
+
+                vm.prank(safe);
+                (bool ok, bytes memory ret) = to.call{value: value}(data);
+                require(
+                    ok,
+                    string.concat(
+                        "pre-simulation item ",
+                        vm.toString(j),
+                        " failed on chain ",
+                        vm.toString(chainId),
+                        ": ",
+                        string(ret)
+                    )
+                );
+                ++j;
+            }
+        }
+    }
+
+    function _ensureCached(uint256 chainId) private {
+        if (_cached[chainId]) return;
+
+        string memory json = _fetchChainBundle(chainId);
+
+        DeploymentInfo memory info = DeploymentInfo({
+            chainId: chainId,
+            eid: uint32(json.readUint(".eid")),
+            chainKey: json.readString(".chainKey"),
+            endpointV2: json.readAddress(".endpointV2"),
+            executor: json.readAddress(".executor"),
+            sendUln302: json.readAddress(".sendUln302"),
+            receiveUln302: json.readAddress(".receiveUln302"),
+            blockedMessageLib: json.readAddress(".blockedMessageLib")
+        });
+
+        require(
+            info.endpointV2 == address(0)
+                || (info.executor != address(0)
+                    && info.sendUln302 != address(0)
+                    && info.receiveUln302 != address(0)),
+            string.concat("getDeploymentInfo: executor, sendUln302, receiveUln302, or blockedMessageLib is not set ", vm.toString(chainId))
+        );
+        require(
+            info.eid >= 30000 && info.eid < 40000,
+            string.concat("getDeploymentInfo: eid must indicate mainnet ", vm.toString(chainId))
+        );
+
+        _depCache[chainId] = info;
+        _dvnNamesCache[chainId] = vm.parseJsonStringArray(json, ".dvnNames");
+        _dvnAddrsCache[chainId] = vm.parseJsonAddressArray(json, ".dvnAddrs");
+        _chainIdByKeyHash[keccak256(bytes(info.chainKey))] = chainId;
+        _cached[chainId] = true;
+    }
+
+    function _fetchChainBundle(uint256 chainId) private returns (string memory) {
+        string memory zeroAddr = "\"0x0000000000000000000000000000000000000000\"";
+        string memory cmd = string.concat(
+            "set -o pipefail; curl -fsSL ",
+            getMatadataAPIURL(),
+            " | jq -c --argjson id ",
+            vm.toString(chainId),
+            " '",
+            "((to_entries | map(select(.value.chainDetails.nativeChainId == $id)))[0]) as $e",
+            " | ($e.value.deployments // []",
+            " | map(select(.endpointV2 and (.eid|tonumber) >= 30000 and (.eid|tonumber) < 40000))",
+            " | .[0]) as $d",
+            " | ($e.value.dvns // {} | to_entries",
+            " | map(select(.value.version == 2",
+            " and ((.value.lzReadCompatible // false) == false)",
+            " and ((.value.deprecated // false) == false)))) as $dvns",
+            " | {chainKey: ($e.key // \"\"),",
+            " eid: ($d.eid // 0 | tonumber),",
+            " endpointV2: ($d.endpointV2.address // ",
+            zeroAddr,
+            "),",
+            " executor: ($d.executor.address // ",
+            zeroAddr,
+            "),",
+            " sendUln302: ($d.sendUln302.address // ",
+            zeroAddr,
+            "),",
+            " receiveUln302: ($d.receiveUln302.address // ",
+            zeroAddr,
+            "),",
+            " blockedMessageLib: ($d.blockedMessageLib.address // ",
+            zeroAddr,
+            "),",
+            " dvnNames: ($dvns | map(.value.canonicalName)),",
+            " dvnAddrs: ($dvns | map(.key))}'"
+        );
+        string[] memory inputs = new string[](3);
+        inputs[0] = "bash";
+        inputs[1] = "-c";
+        inputs[2] = cmd;
+        bytes memory result = vm.ffi(inputs);
+        require(result.length > 0, string.concat("layerzero metadata ffi failed for chain ", vm.toString(chainId)));
+        return string(result);
+    }
+
+    function _filterCachedDvns(string memory chainKey, string[] memory requested, bool sort)
         private
         view
         returns (string[] memory dvnNames, address[] memory dvnAddresses)
     {
-        string memory key = string.concat(".", chainKey, ".dvns");
-        require(vm.keyExists(metadata, key), "getDVNAddresses: dvns not found for a given chainKey");
+        uint256 chainId = _chainIdByKeyHash[keccak256(bytes(chainKey))];
+        require(chainId != 0, string.concat("chain not cached; call getDeploymentInfo first for ", chainKey));
 
-        string[] memory keys = vm.parseJsonKeys(metadata, key);
-        dvnNames = new string[](dvns.length);
-        dvnAddresses = new address[](dvns.length);
+        string[] storage allNames = _dvnNamesCache[chainId];
+        address[] storage allAddrs = _dvnAddrsCache[chainId];
+
+        dvnNames = new string[](requested.length);
+        dvnAddresses = new address[](requested.length);
         uint256 index;
 
-        for (uint256 i = 0; i < dvns.length; ++i) {
-            for (uint256 j = 0; j < keys.length; ++j) {
-                if (
-                    _strEq(metadata.readStringOr(string.concat(key, ".", keys[j], ".canonicalName"), ""), dvns[i])
-                        && metadata.readUintOr(string.concat(key, ".", keys[j], ".version"), 0) == DVN_VERSION
-                        && !metadata.readBoolOr(string.concat(key, ".", keys[j], ".lzReadCompatible"), false)
-                        && !metadata.readBoolOr(string.concat(key, ".", keys[j], ".deprecated"), false)
-                ) {
-                    dvnNames[index] = dvns[i];
-                    dvnAddresses[index++] = _toAddress(keys[j]);
+        for (uint256 i = 0; i < requested.length; ++i) {
+            for (uint256 j = 0; j < allNames.length; ++j) {
+                if (_strEq(allNames[j], requested[i])) {
+                    dvnNames[index] = requested[i];
+                    dvnAddresses[index++] = allAddrs[j];
                     break;
                 }
             }
@@ -305,9 +368,8 @@ contract LayerZeroReadConfigEUL is ScriptUtils {
 
                 {
                     ExecutorConfig memory executorConfig = abi.decode(
-                        IMessageLibManager(info.endpointV2).getConfig(
-                            bridgeAddresses.eulOFTAdapter, sendLib, infoOther.eid, 1
-                        ),
+                        IMessageLibManager(info.endpointV2)
+                            .getConfig(bridgeAddresses.eulOFTAdapter, sendLib, infoOther.eid, 1),
                         (ExecutorConfig)
                     );
                     console.log("    send library config for chain id %s (eid %s):", chainIdOther, infoOther.eid);
@@ -317,9 +379,8 @@ contract LayerZeroReadConfigEUL is ScriptUtils {
 
                 {
                     UlnConfig memory sendUlnConfig = abi.decode(
-                        IMessageLibManager(info.endpointV2).getConfig(
-                            bridgeAddresses.eulOFTAdapter, sendLib, infoOther.eid, 2
-                        ),
+                        IMessageLibManager(info.endpointV2)
+                            .getConfig(bridgeAddresses.eulOFTAdapter, sendLib, infoOther.eid, 2),
                         (UlnConfig)
                     );
                     console.log("        confirmations: %s", sendUlnConfig.confirmations);
@@ -336,9 +397,8 @@ contract LayerZeroReadConfigEUL is ScriptUtils {
 
                 {
                     UlnConfig memory receiveUlnConfig = abi.decode(
-                        IMessageLibManager(info.endpointV2).getConfig(
-                            bridgeAddresses.eulOFTAdapter, receiveLib, infoOther.eid, 2
-                        ),
+                        IMessageLibManager(info.endpointV2)
+                            .getConfig(bridgeAddresses.eulOFTAdapter, receiveLib, infoOther.eid, 2),
                         (UlnConfig)
                     );
                     console.log("    receive library config for chain id %s (eid %s):", chainIdOther, infoOther.eid);
@@ -451,7 +511,7 @@ contract LayerZeroSendEUL is ScriptUtils {
         public
         returns (MessagingReceipt memory, OFTReceipt memory)
     {
-        ERC20 eul = ERC20(tokenAddresses.seUSD);
+        ERC20 eul = ERC20(tokenAddresses.EUL);
         (
             address eulOFTAdapter,
             uint256 value,
