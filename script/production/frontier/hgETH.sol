@@ -26,6 +26,8 @@ contract Cluster is ManageCluster {
     function configureCluster() internal override {
         super.configureCluster();
 
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = multisigAddresses.DAO;
+
         // define unit of account here
         cluster.unitOfAccount = WETH;
 
@@ -44,7 +46,8 @@ contract Cluster is ManageCluster {
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
-            cluster.irms[WETH ] = IRM_ADAPTIVE_ETH;
+            // Base=0% APY, Kink(90%)=3.0% APY  Max=10.00% APY
+            cluster.kinkIRMParams[WETH] = [uint256(0), uint256(242320082),  uint256(4851208511), uint256(3865470566)];
             cluster.irms[hgETH] = IRM_ADAPTIVE_ETH;
         }
 
@@ -53,7 +56,7 @@ contract Cluster is ManageCluster {
             //                          0         1
             //                          WETH      hgETH      PT_hgETH_26JUN2026
             /* 0  WETH   */            [LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 1  hgETH  */            [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 1  hgETH  */            [LTV__LOW, LTV_ZERO, LTV_ZERO],
             /* 2  PT_hgETH_26JUN2026*/ [LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
 
