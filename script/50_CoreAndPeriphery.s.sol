@@ -6,7 +6,7 @@ import {BatchBuilder, Vm, console} from "./utils/ScriptUtils.s.sol";
 import {SafeMultisendBuilder, SafeTransaction} from "./utils/SafeUtils.s.sol";
 import {LayerZeroUtil} from "./utils/LayerZeroUtils.s.sol";
 import {ERC20BurnableMintableDeployer, RewardTokenDeployer, ERC20SynthDeployer, ERC20Synth} from "./00_ERC20.s.sol";
-import {Integrations} from "./01_Integrations.s.sol";
+import {Integrations, ProtocolConfig} from "./01_Integrations.s.sol";
 import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
 import {AdaptiveCurveIRMDeployer} from "./04_IRM.s.sol";
 import {EVaultImplementation} from "./05_EVaultImplementation.s.sol";
@@ -251,6 +251,12 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 coreAddresses.balanceTracker,
                 coreAddresses.permit2
             ) = deployer.deploy(input.permit2);
+
+            console.log("+ Setting ProtocolConfig interest fee range to 0% - 100%");
+            startBroadcast();
+            ProtocolConfig(coreAddresses.protocolConfig).setInterestFeeRange(0, 1e4);
+            ProtocolConfig(coreAddresses.protocolConfig).setProtocolFeeShare(0);
+            stopBroadcast();
         } else {
             console.log("- At least one of the Integrations contracts already deployed. Skipping...");
         }
