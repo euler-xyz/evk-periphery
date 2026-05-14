@@ -76,7 +76,7 @@ contract Cluster is ManageCluster {
         cluster.oracleProviders[wstETH   ] = "CrossAdapter=LidoFundamentalOracle+ChainlinkOracle";
         cluster.oracleProviders[weETH    ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
         cluster.oracleProviders[ezETH    ] = "CrossAdapter=RateProviderOracle+ChainlinkOracle";
-        cluster.oracleProviders[rsETH    ] = "0xADCcfc92aff2EA281b7E458c9c9AA2e06D09C988";
+        cluster.oracleProviders[rsETH    ] = "0xc4406E4a14D2c0378952649BF56716A39CE64c6B";
         cluster.oracleProviders[tETH     ] = "0x74b77011c244bd7edff34e4cbf23fe41defa313d";
         cluster.oracleProviders[USDC     ] = "ChainlinkOracle";
         cluster.oracleProviders[USDT     ] = "ChainlinkOracle";
