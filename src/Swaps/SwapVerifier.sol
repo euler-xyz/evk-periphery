@@ -15,6 +15,7 @@ import {SafeERC20, IERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeER
 contract SwapVerifier is TransferFromSender {
     error SwapVerifier_skimMin();
     error SwapVerifier_depositMin();
+    error SwapVerifier_transferMin();
     error SwapVerifier_debtMax();
     error SwapVerifier_pastDeadline();
 
@@ -60,6 +61,22 @@ contract SwapVerifier is TransferFromSender {
 
         SafeERC20.forceApprove(asset, vault, balance);
         IERC4626(vault).deposit(balance, receiver);
+    }
+
+    /// @notice Verify that enough of a given asset is present for transfer, then transfer the asset to the receiver.
+    /// @param asset The address of the ERC20 token to transfer
+    /// @param receiver The address to transfer the asset to
+    /// @param amountMin The minimum amount of the asset that must be available before transfer
+    /// @param deadline A timestamp after which the transfer will revert
+    /// @dev This function checks for slippage and sends all of the contract's balance of the asset to the receiver if the minimum is met
+    function verifyAmountMinAndTransfer(address asset, address receiver, uint256 amountMin, uint256 deadline) external {
+        if (deadline < block.timestamp) revert SwapVerifier_pastDeadline();
+
+        uint256 balance = IERC20(asset).balanceOf(address(this));
+
+        if (balance < amountMin) revert SwapVerifier_transferMin();
+
+        SafeERC20.safeTransfer(IERC20(asset), receiver, balance);
     }
 
     /// @notice Verify results of a swap and repay operation, when debt is repaid down to a requested target

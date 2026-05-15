@@ -25,6 +25,8 @@ contract Cluster is ManageCluster {
     function configureCluster() internal override {
         super.configureCluster();
 
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x4f894Bfc9481110278C356adE1473eBe2127Fd3C; // alphagrowth
+
         // define unit of account here
         cluster.unitOfAccount = USD;
 
@@ -48,13 +50,15 @@ contract Cluster is ManageCluster {
             cluster.irms[yoUSD] = IRM_ADAPTIVE_USD_YB;
         }
 
+        cluster.rampDuration = 30 days;
+
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //                 0         1         2
             //                 USDC      yoUSD     PT_yoUSD_26MAR2026
             /* 0  USDC     */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 1  yoUSD    */ [LTV__LOW, LTV_ZERO, LTV_ZERO],
-            /* 2  PT_yoUSD */ [LTV__LOW, LTV_HIGH, LTV_ZERO]
+            /* 2  PT_yoUSD */ [LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
     }
 }

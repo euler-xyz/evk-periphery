@@ -785,11 +785,10 @@ abstract contract ScriptUtils is
 
         uint256 decimals = ERC20(asset).decimals();
         uint256 scale = amountNoDecimals == 0 ? 0 : Math.log10(amountNoDecimals);
-        uint256 result = (
-            amountNoDecimals >= 100
-                ? (amountNoDecimals / 10 ** (scale - 2)) << 6
-                : (amountNoDecimals * 10 ** scale) << 6
-        ) | (scale + decimals);
+        uint256 result =
+            (amountNoDecimals >= 100
+                        ? (amountNoDecimals / 10 ** (scale - 2)) << 6
+                        : (amountNoDecimals * 10 ** (2 - scale)) << 6) | (scale + decimals);
 
         if (revertOnFailure && decodeAmountCap(uint16(result)) != amountNoDecimals * 10 ** decimals) {
             console.log(
@@ -944,10 +943,7 @@ abstract contract BatchBuilder is ScriptUtils {
 
         items.push(
             IEVC.BatchItem({
-                targetContract: targetContract,
-                onBehalfOfAccount: onBehalfOfAccount,
-                value: value,
-                data: data
+                targetContract: targetContract, onBehalfOfAccount: onBehalfOfAccount, value: value, data: data
             })
         );
 
@@ -1031,9 +1027,8 @@ abstract contract BatchBuilder is ScriptUtils {
             uint256 batchValue = getBatchValue();
             bytes memory batchCalldata = getBatchCalldata();
             bytes32 timelockPredecessor = getTimelockPredecessor();
-            bytes32 id = TimelockController(timelock).hashOperation(
-                coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0)
-            );
+            bytes32 id = TimelockController(timelock)
+                .hashOperation(coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0));
             bytes memory data = abi.encodeCall(
                 TimelockController.schedule,
                 (coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0), delay)
@@ -1085,9 +1080,8 @@ abstract contract BatchBuilder is ScriptUtils {
             uint256 batchValue = getBatchValue();
             bytes memory batchCalldata = getBatchCalldata();
             bytes32 timelockPredecessor = getTimelockPredecessor();
-            bytes32 id = TimelockController(timelock).hashOperation(
-                coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0)
-            );
+            bytes32 id = TimelockController(timelock)
+                .hashOperation(coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0));
             bytes memory data = abi.encodeCall(
                 TimelockController.schedule,
                 (coreAddresses.evc, batchValue, batchCalldata, timelockPredecessor, bytes32(0), delay)

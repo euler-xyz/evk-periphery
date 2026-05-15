@@ -61,7 +61,9 @@ contract OwnershipTransferPeriphery is BatchBuilder {
             owner = Ownable(peripheryAddresses.eulerEarnGovernedPerspective).owner();
             if (owner != multisigAddresses.labs) {
                 if (owner == getDeployer()) {
-                    console.log("+ Transferring ownership of EulerEarnGovernedPerspective to %s", multisigAddresses.labs);
+                    console.log(
+                        "+ Transferring ownership of EulerEarnGovernedPerspective to %s", multisigAddresses.labs
+                    );
                     transferOwnership(peripheryAddresses.eulerEarnGovernedPerspective, multisigAddresses.labs);
                 } else {
                     console.log("! EulerEarnGovernedPerspective owner is not the caller of this script. Skipping...");

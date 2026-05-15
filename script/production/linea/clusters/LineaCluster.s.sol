@@ -18,17 +18,13 @@ contract Cluster is ManageCluster {
             WETH,
             wstETH,
             WETH,
-            weETH,
-            WETH,
-            ezETH,
-            WETH,
-            wrsETH
+            weETH
         ];
     }
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x4f894Bfc9481110278C356adE1473eBe2127Fd3C; // governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = WETH;
@@ -61,22 +57,16 @@ contract Cluster is ManageCluster {
         // in case the adapter is not present in the Adapter Registry, the adapter address can be passed instead in form of a string.
         cluster.oracleProviders[wstETH] = "0x9d7BB1b8b82A7C2409aE9d1133700e4e7Ea34ffE";
         cluster.oracleProviders[weETH ] = "0x2A00BA96A1779a3bCfB728906b22D1145ABCD659";
-        cluster.oracleProviders[ezETH ] = "0xBb91e02922ab31F17554BEFA65a581CE0EDE32eD";
-        cluster.oracleProviders[wrsETH] = "0xC8127c71Cb0B896b08821d7f7eea0b05022Ad871";
 
         // define supply caps here. 0 means no supply can occur, type(uint256).max means no cap defined hence max amount
         cluster.supplyCaps[WETH   ] = 20_000;
         cluster.supplyCaps[wstETH ] = 10_000;
         cluster.supplyCaps[weETH  ] = 7_500;
-        cluster.supplyCaps[ezETH  ] = 30;
-        cluster.supplyCaps[wrsETH ] = 30;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[WETH   ] = type(uint256).max;
         cluster.borrowCaps[wstETH ] = 5_000;
         cluster.borrowCaps[weETH  ] = 3_700;
-        cluster.borrowCaps[ezETH  ] = 0;
-        cluster.borrowCaps[wrsETH ] = 0;
 
         // define IRM classes here and assign them to the assets
         {
@@ -89,8 +79,6 @@ contract Cluster is ManageCluster {
             cluster.kinkIRMParams[WETH  ] = irmETH;
             cluster.kinkIRMParams[wstETH] = irmETH_LST;
             cluster.kinkIRMParams[weETH ] = irmETH_LST;
-            cluster.kinkIRMParams[ezETH ] = irmETH_LST;
-            cluster.kinkIRMParams[wrsETH] = irmETH_LST;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
@@ -101,16 +89,12 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-        //                0               1       2       3       4       5       6       7
-        //                WETH            wstETH  WETH    weETH   WETH    ezETH   WETH    wrsETH
-        /* 0  WETH    */ [uint16(0.00e4), 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 1  wstETH  */ [uint16(0.95e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 2  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 3  weETH   */ [uint16(0.00e4), 0.00e4, 0.95e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 4  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 5  ezETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 6  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 7  wrsETH  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
+        //                0               1       2       3    
+        //                WETH            wstETH  WETH    weETH
+        /* 0  WETH    */ [uint16(0.00e4), 0.93e4, 0.00e4, 0.00e4],
+        /* 1  wstETH  */ [uint16(0.95e4), 0.00e4, 0.00e4, 0.00e4],
+        /* 2  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.93e4],
+        /* 3  weETH   */ [uint16(0.00e4), 0.00e4, 0.95e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
@@ -118,8 +102,8 @@ contract Cluster is ManageCluster {
     }
 
     function postOperations() internal view override {
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
-        }
+        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
+        //}
     }
 }

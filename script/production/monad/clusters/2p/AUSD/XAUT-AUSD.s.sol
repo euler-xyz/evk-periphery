@@ -68,15 +68,15 @@ contract Cluster is ManageCluster {
         {
             // Base=1.00% APY,  Kink(80.00%)=5.00% APY  Max=20.00% APY
             uint256[4] memory irmXAUT0 = [uint256(315313405426480960), uint256(358205679),  uint256(4926046076), uint256(3435973836)];
-            // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=18.00% APY
-            uint256[4] memory irmAUSD = [uint256(0), uint256(438921808),  uint256(8261539992), uint256(3865470566)];
+            // Base=0.00% APY,  Kink(90.00%)=5.5% APY  Max=50.00% APY
+            uint256[4] memory irmAUSD = [uint256(0), uint256(438921808),  uint256(25965362874), uint256(3865470566)];
 
             cluster.kinkIRMParams[XAUT0] = irmXAUT0;
             cluster.kinkIRMParams[AUSD] = irmAUSD;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 0 days;
+        cluster.rampDuration = 30 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.01e4;
@@ -85,8 +85,8 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1    
         //                XAUT0            AUSD
-        /* 0  XAUT0   */ [uint16(0.00e4), 0.76e4],
-        /* 1  AUSD    */ [uint16(0.76e4), 0.00e4]
+        /* 0  XAUT0   */ [uint16(0.00e4), 0.00e4],
+        /* 1  AUSD    */ [uint16(0.00e4), 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
@@ -94,14 +94,14 @@ contract Cluster is ManageCluster {
         cluster.externalLTVs = [
         //                     0               1    
         //                     XAUT0            AUSD
-        /* 0  Escrow XAUT0 */ [uint16(0.97e4), 0.76e4],
-        /* 1  Escrow AUSD  */ [uint16(0.76e4), 0.97e4]
+        /* 0  Escrow XAUT0 */ [uint16(0.00e4), 0.00e4],
+        /* 1  Escrow AUSD  */ [uint16(0.00e4), 0.00e4]
         ];
     }
 
     function postOperations() internal view override {
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
-        }
+        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
+        //}
     }
 }

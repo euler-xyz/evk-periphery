@@ -25,6 +25,8 @@ contract Cluster is ManageCluster {
     function configureCluster() internal override {
         super.configureCluster();
 
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x4f894Bfc9481110278C356adE1473eBe2127Fd3C; // alphagrowth
+
         // define unit of account here
         cluster.unitOfAccount = cbBTC;
 

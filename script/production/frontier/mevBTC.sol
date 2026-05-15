@@ -19,7 +19,7 @@ contract Cluster is ManageCluster {
         // if more than one vauls has to be deployed for the same asset, it can be added in the array as many times as
         // needed.
         // note however, that mappings may need reworking as they always use asset address as key.
-        cluster.assets = [WBTC, mevBTC, PT_mevBTC];
+        cluster.assets = [WBTC, mevBTC];
     }
 
     function configureCluster() internal override {
@@ -40,7 +40,6 @@ contract Cluster is ManageCluster {
         // of a string.
 
         cluster.oracleProviders[mevBTC] = "0x7cb33Db0f992dD388a9A3351004D89F4F5996fAA";
-        cluster.oracleProviders[PT_mevBTC] = "0x33Fcb37A54fBB3717B0D87CF3B9Fc6b57d7eF847";
 
         // define IRM classes here and assign them to the assets or refer to the adaptive IRM address directly
         {
@@ -51,15 +50,14 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
             //                0          1         2
             //                WBTC       mevBTC    PT_mevBTC
-            /* 0  WBTC     */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 1  mevBTC   */ [LTV__LOW, LTV_ZERO, LTV_ZERO],
-            /* 2  PT_mevBTC*/ [LTV__LOW, LTV_HIGH, LTV_ZERO]
+            /* 0  WBTC     */ [LTV_ZERO, LTV_ZERO],
+            /* 1  mevBTC   */ [LTV_ZERO, LTV_ZERO]
         ];
 
          cluster.externalLTVs = [
-        //                     0         1         2
-        //                     WBTC      mevBTC    PT_mevBTC
-        /* 0  Prime WBTC   */ [LTV_HIGH, LTV_ZERO, LTV_ZERO]
+        //                     0         1     
+        //                     WBTC      mevBTC
+        /* 0  Prime WBTC   */ [LTV_ZERO, LTV_ZERO]
         ];
 
     }

@@ -23,7 +23,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = multisigAddresses.labs;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -62,13 +62,13 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[wstUSR] = type(uint256).max;
         cluster.supplyCaps[USR] = type(uint256).max;
         cluster.supplyCaps[RLP] = type(uint256).max;
-        cluster.supplyCaps[USDT0] = type(uint256).max;
+        cluster.supplyCaps[USDT0] = 0;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[wstUSR] = type(uint256).max;
-        cluster.borrowCaps[USR] = type(uint256).max;
-        cluster.borrowCaps[RLP] = type(uint256).max;
-        cluster.borrowCaps[USDT0] = type(uint256).max;
+        cluster.borrowCaps[wstUSR] = 0;
+        cluster.borrowCaps[USR] = 0;
+        cluster.borrowCaps[RLP] = 0;
+        cluster.borrowCaps[USDT0] = 0;
 
         // define IRM classes here and assign them to the assets
         cluster.irms[USR]   = IRM_ADAPTIVE_USD;
@@ -100,7 +100,7 @@ contract Cluster is ManageCluster {
 
     function postOperations() internal view override {
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
         }
     }
 }

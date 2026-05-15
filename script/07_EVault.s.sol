@@ -23,8 +23,9 @@ contract EVaultDeployer is ScriptUtils {
         address oracle = vm.parseJsonAddress(json, ".oracle");
         address unitOfAccount = vm.parseJsonAddress(json, ".unitOfAccount");
 
-        (oracleRouter, eVault) =
-            execute(oracleRouterFactory, deployRouterForOracle, eVaultFactory, upgradable, asset, oracle, unitOfAccount);
+        (oracleRouter, eVault) = execute(
+            oracleRouterFactory, deployRouterForOracle, eVaultFactory, upgradable, asset, oracle, unitOfAccount
+        );
 
         string memory object;
         if (deployRouterForOracle) {
@@ -43,8 +44,9 @@ contract EVaultDeployer is ScriptUtils {
         address oracle,
         address unitOfAccount
     ) public broadcast returns (address oracleRouter, address eVault) {
-        (oracleRouter, eVault) =
-            execute(oracleRouterFactory, deployRouterForOracle, eVaultFactory, upgradable, asset, oracle, unitOfAccount);
+        (oracleRouter, eVault) = execute(
+            oracleRouterFactory, deployRouterForOracle, eVaultFactory, upgradable, asset, oracle, unitOfAccount
+        );
     }
 
     function deploy(address eVaultFactory, bool upgradable, address asset, address oracle, address unitOfAccount)
@@ -75,11 +77,12 @@ contract EVaultDeployer is ScriptUtils {
         }
 
         eVault = address(
-            GenericFactory(eVaultFactory).createProxy(
-                address(0),
-                upgradable,
-                abi.encodePacked(asset, deployRouterForOracle ? oracleRouter : oracle, unitOfAccount)
-            )
+            GenericFactory(eVaultFactory)
+                .createProxy(
+                    address(0),
+                    upgradable,
+                    abi.encodePacked(asset, deployRouterForOracle ? oracleRouter : oracle, unitOfAccount)
+                )
         );
     }
 }
@@ -117,9 +120,8 @@ contract EVaultSingletonEscrowDeployer is ScriptUtils {
 
         if (eVault == address(0)) {
             eVault = address(
-                GenericFactory(eVaultFactory).createProxy(
-                    address(0), true, abi.encodePacked(asset, address(0), address(0))
-                )
+                GenericFactory(eVaultFactory)
+                    .createProxy(address(0), true, abi.encodePacked(asset, address(0), address(0)))
             );
 
             address deployer = getDeployer();

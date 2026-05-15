@@ -252,16 +252,16 @@ abstract contract ScriptExtended is Script {
         return _strEq(vm.envOr("force_zero_oracle", string("")), "--force-zero-oracle");
     }
 
-    function getSkipOFTHubChainConfigEUL() internal view returns (bool) {
-        return _strEq(vm.envOr("skip_oft_hub_chain_config_eul", string("")), "--skip-oft-hub-chain-config-eul");
+    function getSkipOFTConfigEUL() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_config_eul", string("")), "--skip-oft-config-eul");
     }
 
-    function getSkipOFTHubChainConfigEUSD() internal view returns (bool) {
-        return _strEq(vm.envOr("skip_oft_hub_chain_config_eusd", string("")), "--skip-oft-hub-chain-config-eusd");
+    function getSkipOFTConfigEUSD() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_config_eusd", string("")), "--skip-oft-config-eusd");
     }
 
-    function getSkipOFTHubChainConfigSEUSD() internal view returns (bool) {
-        return _strEq(vm.envOr("skip_oft_hub_chain_config_seusd", string("")), "--skip-oft-hub-chain-config-seusd");
+    function getSkipOFTConfigSEUSD() internal view returns (bool) {
+        return _strEq(vm.envOr("skip_oft_config_seusd", string("")), "--skip-oft-config-seusd");
     }
 
     function getCheckPhasedOutVaults() internal view returns (bool) {
@@ -347,11 +347,7 @@ abstract contract ScriptExtended is Script {
         return string.concat(getAddressesDirPath(), vm.toString(chainId), "/", jsonFile);
     }
 
-    function getConfigAddressesFilePath(string memory jsonFile, uint256 chainId)
-        internal
-        view
-        returns (string memory)
-    {
+    function getConfigAddressesFilePath(string memory jsonFile, uint256 chainId) internal view returns (string memory) {
         return string.concat(getAddressesDirPath(), "../config/addresses/", vm.toString(chainId), "/", jsonFile);
     }
 
@@ -435,11 +431,7 @@ abstract contract ScriptExtended is Script {
         return keccak256(bytes(a)) == keccak256(bytes(b));
     }
 
-    function _substring(string memory str, uint256 startIndex, uint256 endIndex)
-        internal
-        pure
-        returns (string memory)
-    {
+    function _substring(string memory str, uint256 startIndex, uint256 endIndex) internal pure returns (string memory) {
         bytes memory strBytes = bytes(str);
         endIndex == type(uint256).max ? endIndex = strBytes.length : endIndex;
 

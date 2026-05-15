@@ -183,7 +183,7 @@ fi
 
 if [[ "$batch_via_safe" == "--batch-via-safe" ]]; then
     echo "Executing the batch via Safe..."
-    calldata=$(cast calldata "batch((address,address,uint256,bytes)[])" $items)
+    calldata=$(cast calldata "batch((address,address,uint256,bytes)[])" "$items")
     
     if [ -z "$safe_nonce" ]; then
         if [ "$(forge script script/utils/SafeUtils.s.sol:SafeUtil --sig "isTransactionServiceAPIAvailable()" --rpc-url "$DEPLOYMENT_RPC_URL" $@ | grep -oE 'true|false')" != "true" ]; then
@@ -217,5 +217,5 @@ else
         gasPrice=$(echo "if ($gasPrice > 2000000000) $gasPrice else 2000000000" | bc)
     fi
 
-    cast send $evc "batch((address,address,uint256,bytes)[])" $items --rpc-url $DEPLOYMENT_RPC_URL --legacy --gas-price $gasPrice $@
+    cast send $evc "batch((address,address,uint256,bytes)[])" "$items" --rpc-url $DEPLOYMENT_RPC_URL --legacy --gas-price $gasPrice $@
 fi

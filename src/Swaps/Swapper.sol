@@ -100,6 +100,15 @@ contract Swapper is GenericHandler, UniswapV2Handler, UniswapV3Handler {
     }
 
     /// @inheritdoc ISwapper
+    function transfer(address token, uint256 amountMin, address receiver) public virtual externalLock {
+        uint256 balance = IERC20(token).balanceOf(address(this));
+
+        if (balance >= amountMin) {
+            IERC20(token).transfer(receiver, balance);
+        }
+    }
+
+    /// @inheritdoc ISwapper
     function sweep(address token, uint256 amountMin, address to) public virtual externalLock {
         uint256 balance = IERC20(token).balanceOf(address(this));
         if (balance >= amountMin) {

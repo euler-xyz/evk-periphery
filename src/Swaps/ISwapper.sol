@@ -67,9 +67,16 @@ interface ISwapper {
     /// @param token Asset to deposit
     /// @param vault Vault to deposit the token to
     /// @param amountMin A minimum amount of tokens to deposit. If unavailable, the operation is a no-op
-    /// @param account Receiver of the repay
+    /// @param account Receiver of the deposit
     /// @dev Use amountMin to ignore dust
     function deposit(address token, address vault, uint256 amountMin, address account) external;
+
+    /// @notice Transfer all of the contract's token balance to receiver
+    /// @param token Asset to transfer
+    /// @param amountMin A minimum amount of tokens to transfer. If unavailable, the operation is a no-op
+    /// @param receiver Receiver of the transfer
+    /// @dev Use amountMin to ignore dust
+    function transfer(address token, uint256 amountMin, address receiver) external;
 
     /// @notice Transfer all tokens held by the contract
     /// @param token Token to transfer

@@ -56,6 +56,15 @@ contract SwapperOwnable is Swapper, EVCUtil, Ownable {
     }
 
     /// @inheritdoc ISwapper
+    function transfer(address token, uint256 amountMin, address receiver)
+        public
+        override
+        onlyOwnerOrSelf
+    {
+        super.transfer(token, amountMin, receiver);
+    }
+
+    /// @inheritdoc ISwapper
     function sweep(address token, uint256 amountMin, address to) public override onlyOwnerOrSelf {
         super.sweep(token, amountMin, to);
     }

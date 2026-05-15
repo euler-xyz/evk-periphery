@@ -140,8 +140,14 @@ contract AdaptiveCurveIRMDeployer is ScriptUtils {
         int256 curveSteepness,
         int256 adjustmentSpeed
     ) public returns (address irm) {
-        irm = EulerIRMAdaptiveCurveFactory(adaptiveCurveIRMFactory).deploy(
-            targetUtilization, initialRateAtTarget, minRateAtTarget, maxRateAtTarget, curveSteepness, adjustmentSpeed
-        );
+        irm = EulerIRMAdaptiveCurveFactory(adaptiveCurveIRMFactory)
+            .deploy(
+                targetUtilization,
+                initialRateAtTarget,
+                minRateAtTarget,
+                maxRateAtTarget,
+                curveSteepness,
+                adjustmentSpeed
+            );
     }
 }

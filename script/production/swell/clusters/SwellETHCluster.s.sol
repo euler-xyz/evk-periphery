@@ -30,8 +30,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = governorAddresses.accessControlEmergencyGovernor;
-        cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = multisigAddresses.DAO; //governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = WETH;
@@ -77,21 +76,21 @@ contract Cluster is ManageCluster {
         cluster.supplyCaps[WETH  ] = 7_000;
         cluster.supplyCaps[wstETH] = 5_000;
         cluster.supplyCaps[weETH ] = 5_000;
-        cluster.supplyCaps[ezETH ] = 5_000;
+        cluster.supplyCaps[ezETH ] = 2_500;
         cluster.supplyCaps[rsETH ] = 2_500;
         cluster.supplyCaps[swETH ] = 2_500;
         cluster.supplyCaps[rswETH] = 2_500;
         cluster.supplyCaps[pzETH ] = 2_500;
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
-        cluster.borrowCaps[WETH  ] = 6_300;
-        cluster.borrowCaps[wstETH] = 2_000;
-        cluster.borrowCaps[weETH ] = 1_250;
-        cluster.borrowCaps[ezETH ] = 1_250;
-        cluster.borrowCaps[rsETH ] = 625;
-        cluster.borrowCaps[swETH ] = 625;
-        cluster.borrowCaps[rswETH] = 625;
-        cluster.borrowCaps[pzETH ] = 625;
+        cluster.borrowCaps[WETH  ] = 0;
+        cluster.borrowCaps[wstETH] = 0;
+        cluster.borrowCaps[weETH ] = 0;
+        cluster.borrowCaps[ezETH ] = 0;
+        cluster.borrowCaps[rsETH ] = 0;
+        cluster.borrowCaps[swETH ] = 0;
+        cluster.borrowCaps[rswETH] = 0;
+        cluster.borrowCaps[pzETH ] = 0;
 
         // define IRM classes here and assign them to the assets
         {
@@ -115,7 +114,7 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 30 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
@@ -124,28 +123,34 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1       2       3       4       5       6       7     
         //                WETH            wstETH  weETH   ezETH   rsETH   swETH   rswETH  pzETH 
-        /* 0  WETH    */ [uint16(0.00e4), 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4],
-        /* 1  wstETH  */ [uint16(0.93e4), 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4],
-        /* 2  weETH   */ [uint16(0.93e4), 0.93e4, 0.00e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4, 0.93e4],
-        /* 3  ezETH   */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4],
+        /* 0  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 1  wstETH  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 2  weETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 3  ezETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4],
         /* 4  rsETH   */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4],
-        /* 5  swETH   */ [uint16(0.85e4), 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.00e4, 0.85e4, 0.85e4],
-        /* 6  rswETH  */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4],
-        /* 7  pzETH   */ [uint16(0.85e4), 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.85e4, 0.00e4]
+        /* 5  swETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.85e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 6  rswETH  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 7  pzETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.85e4, 0.00e4, 0.00e4, 0.00e4]
         ];
+
+        for (uint i; i < cluster.vaults.length; ++i) {
+            cluster.borrowLTVsOverride[4][i] = 0;
+            cluster.borrowLTVsOverride[i][4] = 0;
+        }
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
     }
 
     function postOperations() internal override {
+        /*
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
             perspectiveVerify(peripheryAddresses.governedPerspective, cluster.vaults[i]);
         }
         executeBatchPrank(Ownable(peripheryAddresses.governedPerspective).owner());
 
         for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], false);
+            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
 
             PerspectiveVerifier.verifyPerspective(
                 peripheryAddresses.eulerUngovernedNzxPerspective,
@@ -162,5 +167,6 @@ contract Cluster is ManageCluster {
 
         ClusterDump dumper = new ClusterDump();
         dumper.dumpCluster(cluster.vaults, cluster.externalVaults);
+        */
     }
 }

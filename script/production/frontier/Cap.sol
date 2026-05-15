@@ -25,6 +25,8 @@ contract Cluster is ManageCluster {
     function configureCluster() internal override {
         super.configureCluster();
 
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x4f894Bfc9481110278C356adE1473eBe2127Fd3C; // Alphagrowth
+
         // define unit of account here
         cluster.unitOfAccount = USD;
 
@@ -66,22 +68,22 @@ contract Cluster is ManageCluster {
 
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
-            //               0          1         2         3         4         5
-            //               USDC       USDT      cUSD      stcUSD     PT_stcUSD  PT_cUSD
-            /* 0  USDC    */ [LTV_ZERO, LTV_HIGH, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 1  USDT    */ [LTV_HIGH, LTV_ZERO, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 2  cUSD    */ [LTV__LOW, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 3  stcUSD   */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 4  PT_stcUSD*/ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO],
-            /* 5  PT_cUSD */ [LTV__LOW, LTV__LOW, LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO]
+            //                 0         1         2         3         4         5
+            //                 USDC      USDT      cUSD      stcUSD    PT_stcUSD PT_cUSD
+            /* 0  USDC    */  [LTV_ZERO, LTV_ZERO, LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 1  USDT    */  [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 2  cUSD    */  [LTV__LOW, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 3  stcUSD   */ [LTV__LOW, LTV_ZERO, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 4  PT_stcUSD*/ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 5  PT_cUSD */  [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         cluster.externalLTVs = [
         //                     0         1         2         3         4         5
         //                     USDC      USDT      cUSD      stcUSD     PT_stcUSD  PT_cUSD
-        /* 0  Prime USDC   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
-        /* 1  Prime USDT   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO]
+        /* 0  Prime USDC   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO],
+        /* 1  Prime USDT   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
     }
 }

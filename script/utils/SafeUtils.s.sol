@@ -8,6 +8,10 @@ import {console} from "forge-std/console.sol";
 
 // inspired by https://github.com/ind-igo/forge-safe
 
+interface ISafeVersion {
+    function VERSION() external view returns (string memory);
+}
+
 contract SafeUtil is ScriptExtended {
     using Surl for *;
 
@@ -254,6 +258,8 @@ contract SafeUtil is ScriptExtended {
             return "https://safe-cgw-corn.safe.onchainden.com/";
         } else if (block.chainid == 239) {
             return "https://gateway.safe.tac.build/";
+        } else if (block.chainid == 2818) {
+            return "https://safe.morphl2.io/";
         } else if (block.chainid == 60808) {
             return "https://gateway.safe.gobob.xyz/";
         } else if (block.chainid == 80094) {
@@ -566,7 +572,7 @@ contract SafeMultisendBuilder is SafeUtil {
         transaction.create(
             false,
             safe,
-            _getMultisendAddress(block.chainid, isCallOnly),
+            _getMultisendAddress(safe, isCallOnly),
             _getMultisendValue(),
             _getMultisendCalldata(),
             safeNonce++
@@ -598,18 +604,18 @@ contract SafeMultisendBuilder is SafeUtil {
         }
     }
 
-    function _getMultisendAddress(uint256 chainId, bool isCallOnly) internal pure returns (address) {
-        if (
-            chainId == 1 || chainId == 10 || chainId == 100 || chainId == 130 || chainId == 137 || chainId == 143
-                || chainId == 146 || chainId == 239 || chainId == 2390 || chainId == 2818 || chainId == 30
-                || chainId == 42161 || chainId == 43114 || chainId == 480 || chainId == 5000 || chainId == 56
-                || chainId == 57073 || chainId == 59144 || chainId == 60808 || chainId == 80094 || chainId == 8453
-                || chainId == 9745 || chainId == 999
-        ) {
-            if (isCallOnly) return 0x9641d764fc13c8B624c04430C7356C1C7C8102e2;
-            revert("getMultisendAddress: Unsupported multisend mode");
+    function _getMultisendAddress(address safe, bool isCallOnly) internal view returns (address) {
+        if (!isCallOnly) revert("getMultisendAddress: Unsupported multisend mode");
+
+        string memory version = ISafeVersion(safe).VERSION();
+        bytes32 versionHash = keccak256(bytes(version));
+
+        if (versionHash == keccak256("1.3.0")) {
+            return 0x40A2aCCbd92BCA938b02010E17A5b8929b49130D;
+        } else if (versionHash == keccak256("1.4.1")) {
+            return 0x9641d764fc13c8B624c04430C7356C1C7C8102e2;
         } else {
-            revert("getMultisendAddress: Unsupported chain");
+            revert(string.concat("getMultisendAddress: Unsupported Safe version: ", version));
         }
     }
 

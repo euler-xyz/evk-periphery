@@ -96,7 +96,7 @@ library Surl {
         internal
         returns (uint256 status, bytes memory data)
     {
-        string memory scriptStart = 'response=$(curl -s -w "\\n%{http_code}" ';
+        string memory scriptStart = 'response=$(curl -s --connect-timeout 10 --max-time 30 -w "\\n%{http_code}" ';
         string memory scriptEnd =
             '); status=$(tail -n1 <<< "$response"); data=$(sed "$ d" <<< "$response");data=$(echo "$data" | tr -d "\\n"); cast abi-encode "response(uint256,string)" "$status" "$data";';
 

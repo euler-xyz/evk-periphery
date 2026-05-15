@@ -52,17 +52,17 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
             //              0          1         2
             //              USDC       USDT      sUSP
-            /* 0  USDC   */ [LTV_ZERO, LTV_HIGH, LTV_ZERO],
-            /* 1  USDT   */ [LTV_HIGH, LTV_ZERO, LTV_ZERO],
-            /* 2  sUSP   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO]
+            /* 0  USDC   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 1  USDT   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+            /* 2  sUSP   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         cluster.externalLTVs = [
         //                     0         1         2
         //                     USDC      USDT      sUSP
-        /* 0  Prime USDC   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO],
-        /* 1  Prime USDT   */ [LTV_HIGH, LTV_HIGH, LTV_ZERO]
+        /* 0  Prime USDC   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+        /* 1  Prime USDT   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
     }
 }

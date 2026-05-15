@@ -208,9 +208,8 @@ contract LidoFundamentalAdapter is ScriptUtils {
         }
 
         if (addToAdapterRegistry) {
-            SnapshotRegistry(adapterRegistry).add(
-                adapter, LidoFundamentalOracle(adapter).WSTETH(), LidoFundamentalOracle(adapter).WETH()
-            );
+            SnapshotRegistry(adapterRegistry)
+                .add(adapter, LidoFundamentalOracle(adapter).WSTETH(), LidoFundamentalOracle(adapter).WETH());
         }
     }
 }
