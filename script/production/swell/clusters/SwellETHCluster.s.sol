@@ -114,7 +114,7 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 30 days;
+        cluster.rampDuration = 14 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
@@ -123,20 +123,15 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1       2       3       4       5       6       7     
         //                WETH            wstETH  weETH   ezETH   rsETH   swETH   rswETH  pzETH 
-        /* 0  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 1  wstETH  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 2  weETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 3  ezETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 4  rsETH   */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.90e4, 0.00e4, 0.90e4, 0.90e4, 0.90e4],
-        /* 5  swETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.85e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 6  rswETH  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 7  pzETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.85e4, 0.00e4, 0.00e4, 0.00e4]
+        /* 0  WETH    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 1  wstETH  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 2  weETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 3  ezETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 4  rsETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 5  swETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 6  rswETH  */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 7  pzETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
-
-        for (uint i; i < cluster.vaults.length; ++i) {
-            cluster.borrowLTVsOverride[4][i] = 0;
-            cluster.borrowLTVsOverride[i][4] = 0;
-        }
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
