@@ -226,7 +226,8 @@ enum InterestRateModelType {
     KINK,
     ADAPTIVE_CURVE,
     KINKY,
-    FIXED_CYCLICAL_BINARY
+    FIXED_CYCLICAL_BINARY,
+    FIXED_CYCLICAL_BINARY_MONTHLY
 }
 
 struct InterestRateModelDetailedInfo {
@@ -265,6 +266,12 @@ struct FixedCyclicalBinaryIRMInfo {
     uint256 primaryDuration;
     uint256 secondaryDuration;
     uint256 startTimestamp;
+}
+
+struct FixedCyclicalBinaryMonthlyIRMInfo {
+    uint256 primaryRate;
+    uint256 secondaryRate;
+    uint256 secondaryDays;
 }
 
 struct AccountRewardInfo {
