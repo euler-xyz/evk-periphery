@@ -159,7 +159,7 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 30 days;
+        cluster.rampDuration = 14 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
@@ -168,27 +168,21 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0               1       2       3       4       5       6       7       8       9       10      11      12      13
         //                WETH            wstETH  weETH   ezETH   rsETH   tETH    USDC    USDT    USDtb   TBILL   WBTC    cbBTC   LBTC    xAUt
-        /* 0  WETH    */ [uint16(0.00e4), 0.94e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.86e4, 0.86e4, 0.86e4, 0.00e4, 0.75e4, 0.80e4, 0.00e4, 0.00e4],
-        /* 1  wstETH  */ [uint16(0.96e4), 0.00e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.84e4, 0.84e4, 0.88e4, 0.00e4, 0.74e4, 0.79e4, 0.00e4, 0.00e4],
-        /* 2  weETH   */ [uint16(0.94e4), 0.94e4, 0.00e4, 0.00e4, 0.93e4, 0.00e4, 0.82e4, 0.82e4, 0.82e4, 0.00e4, 0.72e4, 0.77e4, 0.00e4, 0.00e4],
+        /* 0  WETH    */ [uint16(0.00e4), 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.86e4, 0.86e4, 0.86e4, 0.00e4, 0.75e4, 0.80e4, 0.00e4, 0.00e4],
+        /* 1  wstETH  */ [uint16(0.96e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.84e4, 0.84e4, 0.88e4, 0.00e4, 0.74e4, 0.79e4, 0.00e4, 0.00e4],
+        /* 2  weETH   */ [uint16(0.94e4), 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.82e4, 0.82e4, 0.82e4, 0.00e4, 0.72e4, 0.77e4, 0.00e4, 0.00e4],
         /* 3  ezETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 4  rsETH   */ [uint16(0.94e4), 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.78e4, 0.78e4, 0.78e4, 0.00e4, 0.69e4, 0.74e4, 0.00e4, 0.00e4],
-        /* 5  tETH    */ [uint16(0.94e4), 0.94e4, 0.00e4, 0.00e4, 0.90e4, 0.00e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.69e4, 0.74e4, 0.00e4, 0.00e4],
-        /* 6  USDC    */ [uint16(0.87e4), 0.83e4, 0.00e4, 0.00e4, 0.80e4, 0.00e4, 0.00e4, 0.96e4, 0.96e4, 0.00e4, 0.84e4, 0.82e4, 0.00e4, 0.00e4],
-        /* 7  USDT    */ [uint16(0.87e4), 0.83e4, 0.00e4, 0.00e4, 0.80e4, 0.00e4, 0.96e4, 0.00e4, 0.96e4, 0.00e4, 0.84e4, 0.82e4, 0.00e4, 0.00e4],
-        /* 8  USDtb   */ [uint16(0.87e4), 0.83e4, 0.00e4, 0.00e4, 0.80e4, 0.00e4, 0.96e4, 0.96e4, 0.00e4, 0.00e4, 0.84e4, 0.82e4, 0.00e4, 0.00e4],
+        /* 4  rsETH   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 5  tETH    */ [uint16(0.94e4), 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.69e4, 0.74e4, 0.00e4, 0.00e4],
+        /* 6  USDC    */ [uint16(0.87e4), 0.83e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.96e4, 0.96e4, 0.00e4, 0.84e4, 0.82e4, 0.00e4, 0.00e4],
+        /* 7  USDT    */ [uint16(0.87e4), 0.83e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.96e4, 0.00e4, 0.96e4, 0.00e4, 0.84e4, 0.82e4, 0.00e4, 0.00e4],
+        /* 8  USDtb   */ [uint16(0.87e4), 0.83e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.96e4, 0.96e4, 0.00e4, 0.00e4, 0.84e4, 0.82e4, 0.00e4, 0.00e4],
         /* 9  TBILL   */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 10 WBTC    */ [uint16(0.84e4), 0.82e4, 0.00e4, 0.00e4, 0.77e4, 0.00e4, 0.86e4, 0.86e4, 0.86e4, 0.00e4, 0.00e4, 0.92e4, 0.00e4, 0.00e4],
-        /* 11 cbBTC   */ [uint16(0.84e4), 0.82e4, 0.00e4, 0.00e4, 0.77e4, 0.00e4, 0.86e4, 0.86e4, 0.86e4, 0.00e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 10 WBTC    */ [uint16(0.84e4), 0.82e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.86e4, 0.86e4, 0.86e4, 0.00e4, 0.00e4, 0.92e4, 0.00e4, 0.00e4],
+        /* 11 cbBTC   */ [uint16(0.84e4), 0.82e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.86e4, 0.86e4, 0.86e4, 0.00e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4],
         /* 12 LBTC    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 13 xAUt    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.77e4, 0.77e4, 0.77e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4]
         ];
-
-        for(uint256 i = 0; i < cluster.ltvs.length; ++i) {
-            if (cluster.ltvs[4][i] == 0) continue;
-            if (i == 5) continue;
-            cluster.borrowLTVsOverride[4][i] = 0;
-        }
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
         // double check the order of collaterals against the order of externalVaults in the addresses file
