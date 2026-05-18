@@ -79,6 +79,7 @@ contract RewardTokenTest is Test {
 
     function test_setWhitelistStatus_downgrade(address account, uint8 status) external {
         vm.assume(status < 3);
+        vm.assume(account != owner && account != address(evc));
         vm.startPrank(owner);
 
         vm.expectRevert(abi.encodeWithSelector(ERC20WrapperLocked.InvalidWhitelistStatus.selector));
