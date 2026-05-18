@@ -271,6 +271,7 @@ struct FixedCyclicalBinaryIRMInfo {
 struct FixedCyclicalBinaryMonthlyIRMInfo {
     uint256 primaryRate;
     uint256 secondaryRate;
+    uint256 cycleStartDay;
     uint256 secondaryDays;
 }
 

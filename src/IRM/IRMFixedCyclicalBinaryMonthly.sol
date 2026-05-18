@@ -8,36 +8,50 @@ import {IIRMNamed} from "./interfaces/IIRMNamed.sol";
 /// @title IRMFixedCyclicalBinaryMonthly
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice Interest rate model that cycles between two fixed rates aligned to calendar months in UTC.
-/// @dev The primary rate applies for most of each calendar month. The last `secondaryDays` calendar days of every
-/// month return the secondary rate. Boundaries are computed deterministically from `block.timestamp` using
+/// @notice Interest rate model that cycles between two fixed rates with a monthly cadence aligned to UTC.
+/// @dev Each calendar month starts a new cycle on day-of-month `cycleStartDay`. The `secondaryDays`
+/// calendar days immediately BEFORE each cycle start return `secondaryRate` (the "repayment" window);
+/// every other day returns `primaryRate`. The secondary window can span month boundaries — e.g. with
+/// `cycleStartDay = 1` and `secondaryDays = 1`, the last day of every month returns `secondaryRate`.
+/// Day boundaries are calendar days in UTC, computed deterministically from `block.timestamp` using
 /// Howard Hinnant's `civil_from_days` algorithm (https://howardhinnant.github.io/date_algorithms.html);
 /// no oracle or external state is involved.
 contract IRMFixedCyclicalBinaryMonthly is IIRM, IIRMNamed {
-    /// @notice Interest rate applied outside the secondary window.
+    /// @notice Interest rate applied outside the secondary (repayment) window.
     uint256 public immutable primaryRate;
-    /// @notice Interest rate applied during the trailing `secondaryDays` of each calendar month.
+    /// @notice Interest rate applied during the secondary (repayment) window.
     uint256 public immutable secondaryRate;
-    /// @notice Number of trailing calendar days of every month that return `secondaryRate`.
+    /// @notice Day-of-month on which a new cycle starts. Must be in `[1, MAX_CYCLE_START_DAY]`.
+    uint256 public immutable cycleStartDay;
+    /// @notice Number of calendar days immediately before each cycle start that use `secondaryRate`.
     /// Must be in `[1, MAX_SECONDARY_DAYS]`.
     uint256 public immutable secondaryDays;
 
-    /// @notice Upper bound on `secondaryDays`. Set to 27 so that a 28-day February still has at least one
-    /// primary day (`day=1` in non-leap Feb: `1 + 27 = 28`, not strictly greater than `28`).
+    /// @notice Upper bound on `cycleStartDay`. Capped at 28 so the cycle start exists in every calendar
+    /// month, including February in non-leap years.
+    uint256 public constant MAX_CYCLE_START_DAY = 28;
+
+    /// @notice Upper bound on `secondaryDays`. Capped at 27 so that the shortest calendar month
+    /// (28-day February) still has at least one primary day per cycle.
     uint256 public constant MAX_SECONDARY_DAYS = 27;
 
+    /// @notice Thrown when `cycleStartDay` is outside the valid range `[1, MAX_CYCLE_START_DAY]`.
+    error BadCycleStartDay();
     /// @notice Thrown when `secondaryDays` is outside the valid range `[1, MAX_SECONDARY_DAYS]`.
     error BadSecondaryDays();
 
-    /// @param primaryRate_ Interest rate used outside the trailing secondary window.
-    /// @param secondaryRate_ Interest rate used during the trailing `secondaryDays_` of each month.
-    /// @param secondaryDays_ Number of trailing days of every calendar month that use `secondaryRate_`.
-    /// Must be in `[1, MAX_SECONDARY_DAYS]`.
-    constructor(uint256 primaryRate_, uint256 secondaryRate_, uint256 secondaryDays_) {
+    /// @param primaryRate_ Interest rate used outside the secondary window.
+    /// @param secondaryRate_ Interest rate used during the secondary window.
+    /// @param cycleStartDay_ Day-of-month on which each cycle starts. Must be in `[1, MAX_CYCLE_START_DAY]`.
+    /// @param secondaryDays_ Number of calendar days immediately before each cycle start that use
+    /// `secondaryRate_`. Must be in `[1, MAX_SECONDARY_DAYS]`.
+    constructor(uint256 primaryRate_, uint256 secondaryRate_, uint256 cycleStartDay_, uint256 secondaryDays_) {
+        if (cycleStartDay_ == 0 || cycleStartDay_ > MAX_CYCLE_START_DAY) revert BadCycleStartDay();
         if (secondaryDays_ == 0 || secondaryDays_ > MAX_SECONDARY_DAYS) revert BadSecondaryDays();
 
         primaryRate = primaryRate_;
         secondaryRate = secondaryRate_;
+        cycleStartDay = cycleStartDay_;
         secondaryDays = secondaryDays_;
     }
 
@@ -62,9 +76,15 @@ contract IRMFixedCyclicalBinaryMonthly is IIRM, IIRMNamed {
         // `year` here is the Gregorian calendar year (post-shift), not Hinnant's March-anchored `y`.
         // `_lastDayOfMonth` relies on this for its leap-year rule, so do not refactor to pass `y`.
         (uint256 year, uint256 month, uint256 day) = _timestampToDate(block.timestamp);
-        uint256 last = _lastDayOfMonth(year, month);
+        uint256 lastDay = _lastDayOfMonth(year, month);
 
-        return day + secondaryDays > last ? secondaryRate : primaryRate;
+        // Calendar days remaining until the next cycle start. If today is before `cycleStartDay` the
+        // next start is later in the current month; otherwise it falls on `cycleStartDay` of the next
+        // month and the secondary window can span the month boundary.
+        uint256 daysUntilNextCycleStart =
+            day < cycleStartDay ? cycleStartDay - day : (lastDay - day) + cycleStartDay;
+
+        return daysUntilNextCycleStart <= secondaryDays ? secondaryRate : primaryRate;
     }
 
     /// @dev Converts a Unix timestamp (seconds, UTC) to a Gregorian (year, month, day).

@@ -94,6 +94,7 @@ contract IRMLens is Utils {
                     FixedCyclicalBinaryMonthlyIRMInfo({
                         primaryRate: IRMFixedCyclicalBinaryMonthly(irm).primaryRate(),
                         secondaryRate: IRMFixedCyclicalBinaryMonthly(irm).secondaryRate(),
+                        cycleStartDay: IRMFixedCyclicalBinaryMonthly(irm).cycleStartDay(),
                         secondaryDays: IRMFixedCyclicalBinaryMonthly(irm).secondaryDays()
                     })
                 );

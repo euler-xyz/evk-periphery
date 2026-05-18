@@ -49,7 +49,9 @@ contract IRMFixedCyclicalBinaryMonthlyTest is Test {
     IRMFixedCyclicalBinaryMonthly irm;
 
     function setUp() public {
-        irm = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 1);
+        // cycleStartDay = 1, secondaryDays = 1 — equivalent to the legacy "last day of month = secondary"
+        // behavior, so the bulk of existing tests below remain valid.
+        irm = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 1, 1);
     }
 
     // ───── construction ─────
@@ -57,28 +59,42 @@ contract IRMFixedCyclicalBinaryMonthlyTest is Test {
     function test_Construction_StoresImmutables() public view {
         assertEq(irm.primaryRate(), PRIMARY_RATE);
         assertEq(irm.secondaryRate(), SECONDARY_RATE);
+        assertEq(irm.cycleStartDay(), 1);
         assertEq(irm.secondaryDays(), 1);
+    }
+
+    function test_Construction_RevertsOnZeroCycleStartDay() public {
+        vm.expectRevert(IRMFixedCyclicalBinaryMonthly.BadCycleStartDay.selector);
+        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 0, 1);
+    }
+
+    function test_Construction_RevertsOnCycleStartDayTooHigh() public {
+        vm.expectRevert(IRMFixedCyclicalBinaryMonthly.BadCycleStartDay.selector);
+        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 29, 1);
     }
 
     function test_Construction_RevertsOnZeroSecondaryDays() public {
         vm.expectRevert(IRMFixedCyclicalBinaryMonthly.BadSecondaryDays.selector);
-        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 0);
+        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 1, 0);
     }
 
     function test_Construction_RevertsOnSecondaryDaysTooHigh() public {
         vm.expectRevert(IRMFixedCyclicalBinaryMonthly.BadSecondaryDays.selector);
-        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 28);
+        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 1, 28);
     }
 
-    function test_Construction_AcceptsBoundarySecondaryDays() public {
-        // 1 and 27 should both succeed.
-        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 1);
-        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 27);
+    function test_Construction_AcceptsBoundaryParameters() public {
+        // cycleStartDay boundaries: 1 and 28.
+        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 1, 1);
+        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 28, 1);
+        // secondaryDays boundaries: 1 and 27.
+        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 1, 27);
+        new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 28, 27);
     }
 
     function test_Construction_AcceptsArbitrarilyHighRates() public {
         // No rate cap in this contract; the curator is trusted to set sensible rates.
-        new IRMFixedCyclicalBinaryMonthly(type(uint256).max, type(uint256).max, 1);
+        new IRMFixedCyclicalBinaryMonthly(type(uint256).max, type(uint256).max, 1, 1);
     }
 
     // ───── authorization ─────
@@ -442,24 +458,34 @@ contract IRMFixedCyclicalBinaryMonthlyTest is Test {
     // conversion. Mirrored bugs in shared constants could theoretically escape this check; the
     // `test_IndependentTimestampAnchors` test above (hard-coded externally-computed timestamps)
     // breaks that symmetry.
-    function test_Fuzz_RateClassificationMatchesDateMath(uint256 yearRaw, uint256 monthRaw, uint256 dayRaw, uint256 secDaysRaw) public {
+    function test_Fuzz_RateClassificationMatchesDateMath(
+        uint256 yearRaw,
+        uint256 monthRaw,
+        uint256 dayRaw,
+        uint256 cycleStartRaw,
+        uint256 secDaysRaw
+    ) public {
         uint256 year = bound(yearRaw, 1970, 4000);
         uint256 month = bound(monthRaw, 1, 12);
+        uint256 cycleStart = bound(cycleStartRaw, 1, 28);
         uint256 secDays = bound(secDaysRaw, 1, 27);
         uint256 lastDay = _refLastDayOfMonth(year, month);
         uint256 day = bound(dayRaw, 1, lastDay);
 
-        IRMFixedCyclicalBinaryMonthly fuzzIrm = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, secDays);
+        IRMFixedCyclicalBinaryMonthly fuzzIrm =
+            new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, cycleStart, secDays);
         vm.warp(_ts(year, month, day));
 
-        uint256 expected = (day + secDays > lastDay) ? SECONDARY_RATE : PRIMARY_RATE;
+        // Independent reproduction of the IRM's classification rule.
+        uint256 daysUntilNext = day < cycleStart ? cycleStart - day : (lastDay - day) + cycleStart;
+        uint256 expected = daysUntilNext <= secDays ? SECONDARY_RATE : PRIMARY_RATE;
         assertEq(_irOf(fuzzIrm), expected);
     }
 
     // ───── rate switching, secondaryDays > 1 ─────
 
     function test_SecondaryDaysThree_LastThreeDaysSecondary() public {
-        IRMFixedCyclicalBinaryMonthly irm3 = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 3);
+        IRMFixedCyclicalBinaryMonthly irm3 = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 1, 3);
 
         // January 2024 has 31 days → days 29, 30, 31 are secondary; 28 is primary.
         vm.warp(_ts(2024, 1, 28));
@@ -479,7 +505,7 @@ contract IRMFixedCyclicalBinaryMonthlyTest is Test {
     }
 
     function test_SecondaryDaysThree_FebruaryLeap() public {
-        IRMFixedCyclicalBinaryMonthly irm3 = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 3);
+        IRMFixedCyclicalBinaryMonthly irm3 = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 1, 3);
 
         // Feb 2024 has 29 days → days 27, 28, 29 are secondary; 26 is primary.
         vm.warp(_ts(2024, 2, 26));
@@ -497,7 +523,7 @@ contract IRMFixedCyclicalBinaryMonthlyTest is Test {
 
     function test_SecondaryDaysTwentySeven_FebruaryNonLeap_Day1Primary() public {
         // The extreme case: in a 28-day Feb with secondaryDays=27, only day 1 is primary.
-        IRMFixedCyclicalBinaryMonthly irm27 = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 27);
+        IRMFixedCyclicalBinaryMonthly irm27 = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 1, 27);
 
         vm.warp(_ts(2025, 2, 1));
         assertEq(_irOf(irm27), PRIMARY_RATE, "Feb 1 non-leap should be primary");
@@ -507,6 +533,112 @@ contract IRMFixedCyclicalBinaryMonthlyTest is Test {
 
         vm.warp(_ts(2025, 2, 28));
         assertEq(_irOf(irm27), SECONDARY_RATE);
+    }
+
+    // ───── cycleStartDay variations ─────
+
+    function test_CycleStartDay15_SecondaryDays3_SecondaryIsDays12To14() public {
+        // Cycle starts on the 15th of every month, repayment period = 3 days. Secondary = days 12, 13, 14.
+        IRMFixedCyclicalBinaryMonthly irmMid = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 15, 3);
+
+        vm.warp(_ts(2024, 6, 11));
+        assertEq(_irOf(irmMid), PRIMARY_RATE, "day 11 is outside the 3-day pre-cycle window");
+
+        vm.warp(_ts(2024, 6, 12));
+        assertEq(_irOf(irmMid), SECONDARY_RATE);
+
+        vm.warp(_ts(2024, 6, 13));
+        assertEq(_irOf(irmMid), SECONDARY_RATE);
+
+        vm.warp(_ts(2024, 6, 14));
+        assertEq(_irOf(irmMid), SECONDARY_RATE);
+
+        vm.warp(_ts(2024, 6, 15));
+        assertEq(_irOf(irmMid), PRIMARY_RATE, "day 15 is the cycle start (primary)");
+
+        vm.warp(_ts(2024, 6, 30));
+        assertEq(_irOf(irmMid), PRIMARY_RATE, "end of June is mid-cycle");
+
+        vm.warp(_ts(2024, 7, 1));
+        assertEq(_irOf(irmMid), PRIMARY_RATE, "July 1 is still mid-cycle for cycleStart=15");
+    }
+
+    function test_CycleStartDay5_SecondaryDays7_SpansMonthBoundary_31DayMonth() public {
+        // Cycle starts on the 5th, repayment 7 days. In a 31-day month, secondary = last 3 days of
+        // previous month (29, 30, 31) plus days 1-4 of the current month — 7 days total spanning the
+        // month boundary.
+        IRMFixedCyclicalBinaryMonthly irmBoundary = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 5, 7);
+
+        // March (31 days) into April. Secondary window ends just before April 5.
+        vm.warp(_ts(2024, 3, 28));
+        assertEq(_irOf(irmBoundary), PRIMARY_RATE, "Mar 28: 8 days until next cycle start");
+
+        vm.warp(_ts(2024, 3, 29));
+        assertEq(_irOf(irmBoundary), SECONDARY_RATE, "Mar 29: 7 days until cycle start (Apr 5)");
+
+        vm.warp(_ts(2024, 3, 30));
+        assertEq(_irOf(irmBoundary), SECONDARY_RATE);
+
+        vm.warp(_ts(2024, 3, 31));
+        assertEq(_irOf(irmBoundary), SECONDARY_RATE);
+
+        vm.warp(_ts(2024, 4, 1));
+        assertEq(_irOf(irmBoundary), SECONDARY_RATE, "Apr 1: still in secondary window");
+
+        vm.warp(_ts(2024, 4, 4));
+        assertEq(_irOf(irmBoundary), SECONDARY_RATE);
+
+        vm.warp(_ts(2024, 4, 5));
+        assertEq(_irOf(irmBoundary), PRIMARY_RATE, "Apr 5: cycle start");
+    }
+
+    function test_CycleStartDay5_SecondaryDays7_SpansMonthBoundary_FebNonLeap() public {
+        // Same config, but the previous month is February non-leap (28 days). Secondary = last 5 days
+        // of Feb (24..28) plus first 4 of Mar — but only the last 3 of Feb fall in the 7-day window.
+        // Window math: from Feb 28 to Mar 5 is 5 days; we need 7 days back, so window starts on Feb 26.
+        IRMFixedCyclicalBinaryMonthly irmBoundary = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 5, 7);
+
+        vm.warp(_ts(2025, 2, 25));
+        assertEq(_irOf(irmBoundary), PRIMARY_RATE, "Feb 25: 8 days until Mar 5");
+
+        vm.warp(_ts(2025, 2, 26));
+        assertEq(_irOf(irmBoundary), SECONDARY_RATE, "Feb 26: 7 days until Mar 5");
+
+        vm.warp(_ts(2025, 2, 28));
+        assertEq(_irOf(irmBoundary), SECONDARY_RATE);
+
+        vm.warp(_ts(2025, 3, 1));
+        assertEq(_irOf(irmBoundary), SECONDARY_RATE);
+
+        vm.warp(_ts(2025, 3, 4));
+        assertEq(_irOf(irmBoundary), SECONDARY_RATE);
+
+        vm.warp(_ts(2025, 3, 5));
+        assertEq(_irOf(irmBoundary), PRIMARY_RATE, "Mar 5: cycle start");
+    }
+
+    function test_CycleStartDay28_SecondaryDays1_OnlyDay27IsSecondary() public {
+        // Cycle starts on the 28th (max allowed). Secondary = day 27 only.
+        IRMFixedCyclicalBinaryMonthly irmLate = new IRMFixedCyclicalBinaryMonthly(PRIMARY_RATE, SECONDARY_RATE, 28, 1);
+
+        vm.warp(_ts(2024, 6, 26));
+        assertEq(_irOf(irmLate), PRIMARY_RATE);
+
+        vm.warp(_ts(2024, 6, 27));
+        assertEq(_irOf(irmLate), SECONDARY_RATE);
+
+        vm.warp(_ts(2024, 6, 28));
+        assertEq(_irOf(irmLate), PRIMARY_RATE, "day 28 is the cycle start (primary)");
+
+        vm.warp(_ts(2024, 6, 30));
+        assertEq(_irOf(irmLate), PRIMARY_RATE);
+
+        // Feb non-leap: day 27 still secondary, day 28 still cycle start primary.
+        vm.warp(_ts(2025, 2, 27));
+        assertEq(_irOf(irmLate), SECONDARY_RATE);
+
+        vm.warp(_ts(2025, 2, 28));
+        assertEq(_irOf(irmLate), PRIMARY_RATE);
     }
 
     // ───── name ─────
@@ -529,6 +661,7 @@ contract IRMFixedCyclicalBinaryMonthlyTest is Test {
 
         assertEq(params.primaryRate, PRIMARY_RATE);
         assertEq(params.secondaryRate, SECONDARY_RATE);
+        assertEq(params.cycleStartDay, 1);
         assertEq(params.secondaryDays, 1);
     }
 
