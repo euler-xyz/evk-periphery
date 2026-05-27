@@ -1008,7 +1008,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 && eulerSwapAddresses.eulerSwapV1Factory == address(0)
                 && eulerSwapAddresses.eulerSwapV1Periphery == address(0)
         ) {
-            console.log("+ EulerSwap V1 implementation deprecated. Skipping...");
+            console.log("- EulerSwap V1 implementation deprecated. Skipping...");
         } else {
             console.log("- EulerSwap V1 implementation, factory, and periphery already deployed. Skipping...");
         }
