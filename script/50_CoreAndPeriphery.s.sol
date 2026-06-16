@@ -154,8 +154,8 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             cfg.enforcedGasLimitSend = 100000;
             cfg.enforcedGasLimitCall = 100000;
             cfg.requiredDVNsCount = 4;
-            cfg.configIgnoreChainIds = [uint256(2818), 999];
-            cfg.configOneDirectionChainIds = [uint256(130), 143, 146, 239, 1923, 9745, 43114, 59144, 60808, 80094];
+            cfg.configIgnoreChainIds = [uint256(2818), 999, 1923];
+            cfg.configOneDirectionChainIds = [uint256(130), 143, 146, 239, 9745, 43114, 59144, 60808, 80094];
         }
 
         {
