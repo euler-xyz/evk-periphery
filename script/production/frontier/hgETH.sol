@@ -51,12 +51,14 @@ contract Cluster is ManageCluster {
             cluster.irms[hgETH] = IRM_ADAPTIVE_ETH;
         }
 
+        cluster.rampDuration = 14 days;
+
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
             //                          0         1
             //                          WETH      hgETH      PT_hgETH_26JUN2026
             /* 0  WETH   */            [LTV_ZERO, LTV_ZERO, LTV_ZERO],
-            /* 1  hgETH  */            [LTV__LOW, LTV_ZERO, LTV_ZERO],
+            /* 1  hgETH  */            [LTV_ZERO, LTV_ZERO, LTV_ZERO],
             /* 2  PT_hgETH_26JUN2026*/ [LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
 
