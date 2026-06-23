@@ -8,6 +8,8 @@ The `Swapper` contract is not trusted. From the protocol's perspective, it is a 
 
 The `SwapVerifier` contract is part of the trusted codebase. Its responsibility is to verify the results of the `Swapper` execution, i.e., that the sold and bought token balances meet the required limits. The checks are simple but are the cornerstone of the security of using the swap periphery. It is the user's responsibility to ensure that all executions of the `Swapper` contract are always followed by proper verification with `SwapVerifier`, presumably as the following item in an EVC batch.
 
+Because it is trusted, `SwapVerifier` (through the `MigrationHelper` base contract it inherits) is also the contract that may safely hold user authorizations — ERC20/Permit2 allowances, Aave credit delegations, and Morpho operator authorizations. Every such "from sender" primitive binds the token source / protocol-side on-behalf account to the EVC-authenticated `_msgSender()`, so a grant can only ever be exercised on the granting user's own position. These authorizations must always be granted to `SwapVerifier`, **never** to the `Swapper`: the `Swapper` is untrusted and lets anyone execute arbitrary calls, so a grant to it could be replayed by a front-runner to drain the victim. See [Position migration helpers](#position-migration-helpers) — and note in particular the caution there against leaving *standing* credit delegations or Morpho operator authorizations on the contract.
+
 ## `Swapper` contract
 
 ### General swapping algorithm
@@ -90,11 +92,35 @@ The swapper contract executes trades using external providers like 1Inch or Unis
 
 ## `SwapVerifier` contract
 
-This simple contract only provides 2 functions to verify results of the swaps and swaps-and-repays.
+This simple contract provides functions to verify results of the swaps and swaps-and-repays. It also inherits the from-sender primitives described under [Position migration helpers](#position-migration-helpers).
 
 `verifyAmountMinAndSkim` - Checks the amount of assets available to skim on a vault and reverts if it is less than the required minimum. After verification the function skims available assets for the specified account. The assets available are considered the result of the swap. The user must make sure to put all the tokens bought with the swapper in the vault, either by performing swaps directly into the vault, or by calling `sweep` on the swapper, before calling the verification function (see F2. in common flows below).
 
 `verifyDebtMax` - Checks that the debt of an account is not larger than given max amount. Swapper contract will automatically repay the debt when executing swap-and-repay mode, so no additional steps are required before or after verification.
+
+## Position migration helpers
+
+`SwapVerifier` inherits `MigrationHelper`, which adds a set of trusted "from sender" primitives used both as allowance sinks for ordinary swaps and for migrating leveraged positions in and out of Euler (e.g. from Aave V3 or Morpho Blue). They share a single security invariant: each one pins the token source / external-protocol on-behalf account to the EVC-authenticated `_msgSender()`.
+
+- `transferFromSender(token, amount, to)` - pulls `amount` of `token` from the sender to `to`, using the sender's standing ERC20 or Permit2 allowance granted to this contract.
+- `transferBalanceFromSender(token, maxAmount, to)` - pulls `min(balanceOf(sender), maxAmount)` to `to`. Reading the live balance drains a rebasing position (e.g. an Aave aToken that accrues interest between signing and execution) without leaving dust, while `maxAmount` bounds the pull so an unexpectedly large balance or oversized allowance cannot be over-pulled. Size the signed permit `value` to `maxAmount`.
+- `aaveBorrowForSender(pool, asset, amount, to)` - borrows `amount` of `asset` from Aave V3 on behalf of the sender (the sender must have granted variable-debt credit delegation to this contract) and forwards the amount actually received to `to`. Only the borrow balance delta is forwarded, so a non-canonical or no-op `pool` cannot pay out any pre-existing balance.
+- `morphoWithdrawCollateralForSender(morpho, marketParams, amount, to)` - withdraws Morpho Blue collateral on behalf of the sender (the sender must have authorized this contract as a Morpho operator) directly to `to`.
+- `morphoBorrowForSender(morpho, marketParams, amount, to)` - borrows from a Morpho Blue market on behalf of the sender directly to `to`.
+
+### Security model and usage
+
+A user grants this contract an allowance / credit delegation / operator authorization so a migration batch can act for them. Because the acting account is bound to `_msgSender()`, the grant can only ever be exercised on the granting user's own position: a front-runner who replays the user's permit/delegation/authorization signature is authenticated as themselves and can only touch their own balance/position. The arbitrary `to` recipient is therefore not a leak — a replayer borrows against their *own* credit and chooses where their *own* proceeds go.
+
+`_msgSender()` resolves to the EVC on-behalf-of account, so an address the user has authorized as an EVC operator can likewise run these on the user's behalf. This is a consequence of the user's own operator authorization, but it is a **sharper edge than it first appears, and the reason standing external-protocol grants should be avoided:**
+
+> ⚠️ **Do not leave standing (persistent) Aave credit delegations or Morpho operator authorizations on this contract.** An EVC operator authorization is normally scoped to Euler/EVC actions, but these helpers bridge it into the user's *external* Aave/Morpho position. Any EVC operator the user has authorized — for any unrelated reason — can call `aaveBorrowForSender` / `morphoBorrowForSender` / `morphoWithdrawCollateralForSender` with `onBehalfOfAccount` set to the user, borrow against the user's delegated credit (or withdraw their collateral, bounded only by the external protocol's own health checks), and direct the proceeds (`to`) to themselves. The `_msgSender()` binding protects against third parties and replayers; it does **not** protect a user against their own EVC operators once a standing external grant exists.
+>
+> The safe pattern is **transient grant-and-revoke within the migration batch**: include the Aave `approveDelegation` / Morpho `setAuthorization` (and its revocation) as batch items around the `*ForSender` leg, so no exploitable grant persists after the batch. Ordinary ERC20/Permit2 allowances for `transferFromSender` are far less dangerous — they only ever move the *granting* caller's own tokens to a `to` that same caller picks — but the same grant-and-revoke hygiene is recommended for unlimited approvals.
+
+For this binding to hold, the privileged legs (`*ForSender` borrows and withdrawals) must be placed as **top-level EVC batch items** targeting `SwapVerifier` with `onBehalfOfAccount` set to the user — **not** nested inside `Swapper.multicall`. If they were nested, `msg.sender` from the helper's perspective would be the `Swapper` rather than the EVC, and `_msgSender()` would no longer resolve to the user (the call would instead act on behalf of the `Swapper`, which holds no grant, and revert). The non-privileged legs (swaps, supplies/repays that need no authorization, vault deposits) still run inside `Swapper.multicall` as usual.
+
+`MigrationHelper` custodies no funds across calls, and (like `transferFromSender`'s `token`) its safety does not depend on the `pool`/`morpho` arguments being canonical addresses — the `_msgSender()` binding is what protects users.
 
 ## Common flows in EVK
 
