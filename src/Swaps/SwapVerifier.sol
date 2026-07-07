@@ -69,7 +69,8 @@ contract SwapVerifier is MigrationHelper {
     /// @param receiver The address to transfer the asset to
     /// @param amountMin The minimum amount of the asset that must be available before transfer
     /// @param deadline A timestamp after which the transfer will revert
-    /// @dev This function checks for slippage and sends all of the contract's balance of the asset to the receiver if the minimum is met
+    /// @dev This function checks for slippage and sends all of the contract's balance of the asset to the receiver if
+    /// the minimum is met
     function verifyAmountMinAndTransfer(address asset, address receiver, uint256 amountMin, uint256 deadline) external {
         if (deadline < block.timestamp) revert SwapVerifier_pastDeadline();
 

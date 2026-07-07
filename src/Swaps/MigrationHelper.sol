@@ -95,10 +95,7 @@ contract MigrationHelper is EVCUtil {
     ///      Size the signed permit `value` to `maxAmount` so the allowance always covers the capped transfer.
     /// @dev As with {transferFromSender}, the source is bound to `_msgSender()`, so a front-runner replaying
     ///      the user's permit can only ever drain their own balance.
-    function transferBalanceFromSender(address token, uint256 maxAmount, address to)
-        external
-        returns (uint256 amount)
-    {
+    function transferBalanceFromSender(address token, uint256 maxAmount, address to) external returns (uint256 amount) {
         amount = IERC20(token).balanceOf(_msgSender());
         if (amount > maxAmount) amount = maxAmount;
         // Short-circuit a zero pull: nothing to move, and some ERC20s revert on zero-value transfers.
