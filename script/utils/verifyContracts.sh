@@ -36,6 +36,14 @@ function verify_contract {
         verifier="etherscan"
     fi
 
+    # Monad mainnet (143) is not in foundry's chain registry, so the native
+    # `etherscan` verifier cannot resolve it ("Chain 143 not supported"). Fall back
+    # to the `custom` verifier, which is driven against the Etherscan V2 endpoint
+    # with the API key embedded in the URL (see the `custom` branch below).
+    if [[ "$chainId" == "143" && "$verifier" == "etherscan" ]]; then
+        verifier="custom"
+    fi
+
     if [[ $VERIFIER_URL == "" ]]; then
         verifier_api_key=${!verifier_api_key_var}
     else
@@ -53,7 +61,20 @@ function verify_contract {
     elif [[ $verifier == "sourcify" ]]; then
         verifierArgs="$verifierArgs --verifier=$verifier --retries 1"
     elif [[ $verifier == "custom" ]]; then
-        verifierArgs="$verifierArgs --verifier=$verifier"
+        # foundry's `custom` verifier ignores --verifier-api-key, so when a key is
+        # configured (Etherscan V2 chains such as Monad, which foundry doesn't know
+        # natively) embed it directly in the URL. Etherscan V2 honors the first apikey
+        # query param, so this works even if foundry appends an empty one. Use '&' or
+        # '?' depending on whether the URL already carries a query string (the
+        # Etherscan V2 chainid does). Key-less custom explorers (routescan/snowtrace)
+        # keep an empty key and are therefore unaffected.
+        local apiKeyQuery=""
+        if [[ -n $verifier_api_key ]]; then
+            local keySeparator="?"
+            [[ "$verifier_url" == *"?"* ]] && keySeparator="&"
+            apiKeyQuery="${keySeparator}apikey=${verifier_api_key}"
+        fi
+        verifierArgs="--verifier-url ${verifier_url}${apiKeyQuery} --verifier=$verifier"
 
         if [[ $constructorArgs == "--guess-constructor-args" ]]; then
             constructorArgs=""
@@ -110,7 +131,21 @@ function verify_broadcast {
                 forge clean && forge compile
             fi
 
-            constructorArgs="--guess-constructor-args"
+            if [[ "$chainId" == "143" ]]; then
+                # foundry's --guess-constructor-args cannot match on-chain bytecode on
+                # Monad, so derive the constructor args from the deployment initcode
+                # minus the locally compiled creation bytecode.
+                local artifactPath="out/${contractName}.sol/${contractName}.json"
+                if [ -f "$artifactPath" ]; then
+                    local localBytecode=$(jq -r '.bytecode.object' "$artifactPath")
+                    local localLen=${#localBytecode}
+                    constructorArgs="--constructor-args 0x${initCode:$localLen}"
+                else
+                    constructorArgs="--guess-constructor-args"
+                fi
+            else
+                constructorArgs="--guess-constructor-args"
+            fi
 
             if [[ $contractName == "ERC1967Proxy" ]]; then
                 constructorBytesSize=64
@@ -363,6 +398,9 @@ shift
 source .env
 eval "$(./script/utils/determineArgs.sh "$@")"
 eval 'set -- $SCRIPT_ARGS'
+
+# Resolved once here so verify_broadcast can branch on it (e.g. Monad/143 handling).
+chainId=$(cast chain-id --rpc-url "$DEPLOYMENT_RPC_URL" 2>/dev/null)
 
 if [ -d "$input" ]; then
     for fileName in "$input"/*.json; do
