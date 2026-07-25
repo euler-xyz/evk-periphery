@@ -1,12 +1,12 @@
 {
   "lib/ethereum-vault-connector": {
-    "rev": "a7d3c29ef7e4964736e47675e0588630d6afbfd7"
+    "rev": "b9d557a8ebcd3db1fbeef4aa60282aa4059a7bbf"
   },
   "lib/euler-earn": {
     "rev": "b2fd6e699ee20bcfe7459f375b3cee5d2fa53345"
   },
   "lib/euler-price-oracle": {
-    "rev": "f52cb43c3e16c2c775565b528e8e29a67e00c26e"
+    "rev": "abfbfc9fa3a7c74024df3a75be48282fce5e15ae"
   },
   "lib/euler-swap": {
     "rev": "81cf6dc988468fd56f690e6bc0e338a5be02d034"

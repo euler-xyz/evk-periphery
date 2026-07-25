@@ -4,10 +4,12 @@ pragma solidity ^0.8.0;
 
 import {Utils} from "./Utils.sol";
 import {IFactory} from "../BaseFactory/interfaces/IFactory.sol";
+import {IIRMNamed} from "../IRM/interfaces/IIRMNamed.sol";
 import {IRMLinearKink} from "evk/InterestRateModels/IRMLinearKink.sol";
 import {IRMAdaptiveCurve} from "../IRM/IRMAdaptiveCurve.sol";
 import {IRMLinearKinky} from "../IRM/IRMLinearKinky.sol";
 import {IRMFixedCyclicalBinary} from "../IRM/IRMFixedCyclicalBinary.sol";
+import {IRMFixedCyclicalBinaryMonthly} from "../IRM/IRMFixedCyclicalBinaryMonthly.sol";
 import "./LensTypes.sol";
 
 contract IRMLens is Utils {
@@ -81,6 +83,22 @@ contract IRMLens is Utils {
                     startTimestamp: IRMFixedCyclicalBinary(irm).startTimestamp()
                 })
             );
+        } else {
+            // Fallback: IRMs that self-identify via IIRMNamed do not need a dedicated factory to be typed.
+            (bool success, bytes memory data) = irm.staticcall(abi.encodeCall(IIRMNamed.name, ()));
+            string memory name = success && data.length >= 32 ? abi.decode(data, (string)) : "";
+
+            if (_strEq(name, "IRMFixedCyclicalBinaryMonthly")) {
+                result.interestRateModelType = InterestRateModelType.FIXED_CYCLICAL_BINARY_MONTHLY;
+                result.interestRateModelParams = abi.encode(
+                    FixedCyclicalBinaryMonthlyIRMInfo({
+                        primaryRate: IRMFixedCyclicalBinaryMonthly(irm).primaryRate(),
+                        secondaryRate: IRMFixedCyclicalBinaryMonthly(irm).secondaryRate(),
+                        cycleStartDay: IRMFixedCyclicalBinaryMonthly(irm).cycleStartDay(),
+                        secondaryDays: IRMFixedCyclicalBinaryMonthly(irm).secondaryDays()
+                    })
+                );
+            }
         }
 
         return result;

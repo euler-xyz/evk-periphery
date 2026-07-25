@@ -154,8 +154,8 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             cfg.enforcedGasLimitSend = 100000;
             cfg.enforcedGasLimitCall = 100000;
             cfg.requiredDVNsCount = 4;
-            cfg.configIgnoreChainIds = [uint256(2818), 999];
-            cfg.configOneDirectionChainIds = [uint256(130), 143, 146, 239, 1923, 9745, 43114, 59144, 60808, 80094];
+            cfg.configIgnoreChainIds = [uint256(2818), 999, 1923];
+            cfg.configOneDirectionChainIds = [uint256(130), 143, 146, 239, 9745, 43114, 59144, 60808, 80094];
         }
 
         {
@@ -1008,7 +1008,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 && eulerSwapAddresses.eulerSwapV1Factory == address(0)
                 && eulerSwapAddresses.eulerSwapV1Periphery == address(0)
         ) {
-            console.log("+ EulerSwap V1 implementation deprecated. Skipping...");
+            console.log("- EulerSwap V1 implementation deprecated. Skipping...");
         } else {
             console.log("- EulerSwap V1 implementation, factory, and periphery already deployed. Skipping...");
         }

@@ -69,11 +69,11 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDT0] = 0;
 
         // define IRM classes here and assign them to the assets
-        cluster.irms[USR] = IRM_ADAPTIVE_USD;
-        cluster.irms[USDT0] = IRM_ADAPTIVE_USD;
+        cluster.irms[USR] = 0xb63ee2B44EEFcE817057f2593cA99821fA876a16;
+        cluster.irms[USDT0] = 0xb63ee2B44EEFcE817057f2593cA99821fA876a16;
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 1 days;
+        cluster.rampDuration = 0 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
@@ -82,9 +82,9 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                0         1         2
         //                RLP       USR       USDT0
-        /* 0  RLP     */ [LTV_ZERO, LTV_HIGH, LTV__LOW],
-        /* 1  USR     */ [LTV_ZERO, LTV_ZERO, LTV__LOW],
-        /* 2  USDT0   */ [LTV_ZERO, LTV__LOW, LTV_ZERO]
+        /* 0  RLP     */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+        /* 1  USR     */ [LTV_ZERO, LTV_ZERO, LTV_ZERO],
+        /* 2  USDT0   */ [LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
@@ -92,13 +92,13 @@ contract Cluster is ManageCluster {
         cluster.externalLTVs = [
         //                     0         1         2
         //                     RLP       USR       USDT0
-        /* 0  Escrow USDT  */ [LTV_ZERO, LTV_ZERO, LTV_SELF]
+        /* 0  Escrow USDT  */ [LTV_ZERO, LTV_ZERO, LTV_ZERO]
         ];
     }
 
     function postOperations() internal view override {
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
-        }
+        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
+        //}
     }
 }

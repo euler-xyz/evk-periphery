@@ -3,16 +3,17 @@
 pragma solidity ^0.8.0;
 
 import {IEVault} from "evk/EVault/IEVault.sol";
-import {TransferFromSender} from "./TransferFromSender.sol";
+import {MigrationHelper} from "./MigrationHelper.sol";
 import {IEVault, IERC4626} from "evk/EVault/IEVault.sol";
 import {SafeERC20, IERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title SwapVerifier
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
-/// @notice Simple contract used to verify post swap conditions. Includes TransferFromSender helper for gas savings.
+/// @notice Simple contract used to verify post swap conditions. Inherits the MigrationHelper from-sender
+///         helpers (transferFromSender and position migration primitives) for gas savings.
 /// @dev This contract is the only trusted code in the EVK swap periphery
-contract SwapVerifier is TransferFromSender {
+contract SwapVerifier is MigrationHelper {
     error SwapVerifier_skimMin();
     error SwapVerifier_depositMin();
     error SwapVerifier_transferMin();
@@ -22,7 +23,7 @@ contract SwapVerifier is TransferFromSender {
     /// @notice Contract constructor
     /// @param evc Address of the EthereumVaultConnector contract
     /// @param permit2 Address of the Permit2 contract
-    constructor(address evc, address permit2) TransferFromSender(evc, permit2) {}
+    constructor(address evc, address permit2) MigrationHelper(evc, permit2) {}
 
     /// @notice Verify results of a regular swap, when bought tokens are sent to the vault and skim for the buyer
     /// @param vault The EVault to query
@@ -68,7 +69,8 @@ contract SwapVerifier is TransferFromSender {
     /// @param receiver The address to transfer the asset to
     /// @param amountMin The minimum amount of the asset that must be available before transfer
     /// @param deadline A timestamp after which the transfer will revert
-    /// @dev This function checks for slippage and sends all of the contract's balance of the asset to the receiver if the minimum is met
+    /// @dev This function checks for slippage and sends all of the contract's balance of the asset to the receiver if
+    /// the minimum is met
     function verifyAmountMinAndTransfer(address asset, address receiver, uint256 amountMin, uint256 deadline) external {
         if (deadline < block.timestamp) revert SwapVerifier_pastDeadline();
 

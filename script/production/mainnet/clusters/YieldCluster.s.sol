@@ -32,7 +32,7 @@ contract Cluster is ManageCluster {
     function configureCluster() internal override {
 
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = multisigAddresses.DAO; //governorAddresses.accessControlEmergencyGovernor;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = 0x060DB084bF41872861f175d83f3cb1B5566dfEA3; //multisigAddresses.DAO; //governorAddresses.accessControlEmergencyGovernor;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -95,7 +95,7 @@ contract Cluster is ManageCluster {
         cluster.borrowCaps[USDT                     ] = 75_000_000;
         cluster.borrowCaps[rlUSD                    ] = 90_000_000;
         cluster.borrowCaps[USDe                     ] = 630_000;
-        cluster.borrowCaps[eUSDe                    ] = 90_000;
+        cluster.borrowCaps[eUSDe                    ] = 0;
         cluster.borrowCaps[frxUSD                   ] = 0;
         cluster.borrowCaps[TBILL                    ] = 0;
         cluster.borrowCaps[PT_srUSDe_02APR2026      ] = 0;
@@ -117,12 +117,10 @@ contract Cluster is ManageCluster {
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 30 days;
+        cluster.rampDuration = 7 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
-
-        cluster.spreadLTVOverride[6][5] = 0.01e4; // eUSDe/USDe
     
         // define ltv values here. columns are liability vaults, rows are collateral vaults
         cluster.ltvs = [
@@ -132,7 +130,7 @@ contract Cluster is ManageCluster {
         /* 1  USDT                      */ [uint16(0.96e4), 0.00e4, 0.96e4, 0.96e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 2  rlUSD                     */ [uint16(0.96e4), 0.96e4, 0.00e4, 0.96e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 3  USDe                      */ [uint16(0.92e4), 0.92e4, 0.92e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
-        /* 4  eUSDe                     */ [uint16(0.90e4), 0.90e4, 0.90e4, 0.94e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
+        /* 4  eUSDe                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 5  frxUSD                    */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 6  TBILL                     */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],
         /* 7  PT_srUSDe_02APR2026       */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4, 0.00e4],

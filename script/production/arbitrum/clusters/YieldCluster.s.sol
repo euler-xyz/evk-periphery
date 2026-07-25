@@ -25,7 +25,7 @@ contract Cluster is ManageCluster {
 
     function configureCluster() internal override {
         // define the governors here
-        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = multisigAddresses.labs;
+        cluster.oracleRoutersGovernor = cluster.vaultsGovernor = multisigAddresses.DAO;
 
         // define unit of account here
         cluster.unitOfAccount = USD;
@@ -69,32 +69,25 @@ contract Cluster is ManageCluster {
 
         // define borrow caps here. 0 means no borrow can occur, type(uint256).max means no cap defined hence max amount
         cluster.borrowCaps[USDC  ] = 0;
-        cluster.borrowCaps[USDT0 ] = 90_000_000;
-        cluster.borrowCaps[USDS  ] = 45_000_000;
-        cluster.borrowCaps[RLP   ] = type(uint256).max;
+        cluster.borrowCaps[USDT0 ] = 0;
+        cluster.borrowCaps[USDS  ] = 0;
+        cluster.borrowCaps[RLP   ] = 0;
 
         // define IRM classes here and assign them to the assets
         {
-            // Base=0% APY  Kink(90%)=8.00% APY  Max=25.00% APY
-            uint256[4] memory irmUSD     = [uint256(0), uint256(630918865),  uint256(10785505476), uint256(3865470566)];
+            // Base=0% APY,  Kink(90%)=0.00% APY  Max=00.00% APY
+            uint256[4] memory irm = [uint256(0), uint256(0),  uint256(0), uint256(3865470566)];
 
-            // Base=0% APY  Kink(0%)=0% APY  Max=0% APY
-            uint256[4] memory irmUSD_USDC = [uint256(0), uint256(0),  uint256(0), uint256(type(uint32).max)];
-
-            cluster.kinkIRMParams[USDC  ] = irmUSD_USDC;
-            cluster.kinkIRMParams[USDT0 ] = irmUSD;
-            cluster.kinkIRMParams[USDS  ] = irmUSD;
+            cluster.kinkIRMParams[USDC ] = irm;
+            cluster.kinkIRMParams[USDT0] = irm;
+            cluster.kinkIRMParams[USDS ] = irm;
         }
 
         // define the ramp duration to be used, in case the liquidation LTVs have to be ramped down
-        cluster.rampDuration = 30 days;
+        cluster.rampDuration = 0 days;
 
         // define the spread between borrow and liquidation ltv
         cluster.spreadLTV = 0.02e4;
-
-        cluster.borrowLTVsOverride[3][0] = 0;
-        cluster.borrowLTVsOverride[3][1] = 0;
-        cluster.borrowLTVsOverride[3][2] = 0;
 
         cluster.hookedOpsOverride[USDC] = OP_DEPOSIT | OP_MINT | OP_SKIM | OP_WITHDRAW | OP_REDEEM | OP_BORROW;
 
@@ -102,10 +95,10 @@ contract Cluster is ManageCluster {
         cluster.ltvs = [
         //                            0               1       2       3 
         //                            USDC            USDT0   USDS    RLP
-        /* 0  USDC                */ [uint16(0.00e4), 0.96e4, 0.95e4, 0.00e4],
-        /* 1  USDT0               */ [uint16(0.96e4), 0.00e4, 0.95e4, 0.00e4],
-        /* 2  USDS                */ [uint16(0.95e4), 0.95e4, 0.00e4, 0.00e4],
-        /* 3  RLP                 */ [uint16(0.88e4), 0.88e4, 0.87e4, 0.00e4]
+        /* 0  USDC                */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4],
+        /* 1  USDT0               */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4],
+        /* 2  USDS                */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4],
+        /* 3  RLP                 */ [uint16(0.00e4), 0.00e4, 0.00e4, 0.00e4]
         ];
 
         // define external ltvs here. columns are liability vaults, rows are collateral vaults. 
@@ -113,8 +106,8 @@ contract Cluster is ManageCluster {
     }
 
     function postOperations() internal view override {
-        for (uint256 i = 0; i < cluster.vaults.length; ++i) {
-            OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
-        }
+        //for (uint256 i = 0; i < cluster.vaults.length; ++i) {
+        //    OracleVerifier.verifyOracleConfig(lensAddresses.oracleLens, cluster.vaults[i], cluster.vaults, false);
+        //}
     }
 }

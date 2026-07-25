@@ -29,11 +29,7 @@ contract SwapperOwnable is Swapper, EVCUtil, Ownable {
     }
 
     /// @inheritdoc ISwapper
-    function repay(address token, address vault, uint256 repayAmount, address account)
-        public
-        override
-        onlyOwnerOrSelf
-    {
+    function repay(address token, address vault, uint256 repayAmount, address account) public override onlyOwnerOrSelf {
         super.repay(token, vault, repayAmount, account);
     }
 
@@ -47,20 +43,12 @@ contract SwapperOwnable is Swapper, EVCUtil, Ownable {
     }
 
     /// @inheritdoc ISwapper
-    function deposit(address token, address vault, uint256 amountMin, address account)
-        public
-        override
-        onlyOwnerOrSelf
-    {
+    function deposit(address token, address vault, uint256 amountMin, address account) public override onlyOwnerOrSelf {
         super.deposit(token, vault, amountMin, account);
     }
 
     /// @inheritdoc ISwapper
-    function transfer(address token, uint256 amountMin, address receiver)
-        public
-        override
-        onlyOwnerOrSelf
-    {
+    function transfer(address token, uint256 amountMin, address receiver) public override onlyOwnerOrSelf {
         super.transfer(token, amountMin, receiver);
     }
 
