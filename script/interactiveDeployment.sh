@@ -9,6 +9,7 @@ source .env
 choice=""
 deployment_name="default"
 non_interactive=false
+deployment_failed=false
 
 args_for_determine=()
 for arg in "$@"; do
@@ -1570,6 +1571,11 @@ while true; do
             mv "$json_file" "$deployment_dir/output/${jsonFileName%.json}_$counter.json"
         done
     else
+        deployment_failed=true
+
+        echo ""
+        echo "✗ $scriptName failed"
+
         for json_file in script/*.json; do
             [ -e "$json_file" ] || continue
             rm "$json_file"
@@ -1581,3 +1587,8 @@ while true; do
         break
     fi
 done
+
+# Propagate failure so callers (e.g. interactiveDeploymentLoop.sh) don't report success
+if [ "$deployment_failed" = true ]; then
+    exit 1
+fi
