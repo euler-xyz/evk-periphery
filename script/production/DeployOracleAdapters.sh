@@ -103,9 +103,11 @@ baseName=03_OracleAdapters
 
 if [ -f "$csv_oracle_adapters_addresses_path" ]; then
     read -p "Shall we avoid deploying duplicates based on the provided $csv_oracle_adapters_addresses_path file? (y/n) (default: y): " avoid_duplicates
+    avoid_duplicates=$(echo "$avoid_duplicates" | tr "[:upper:]" "[:lower:]")
     avoid_duplicates=${avoid_duplicates:-y}
 
     read -p "Shall we add deployed adapters directly to the provided $csv_oracle_adapters_addresses_path file? (y/n) (default: n): " add_to_csv
+    add_to_csv=$(echo "$add_to_csv" | tr "[:upper:]" "[:lower:]")
     add_to_csv=${add_to_csv:-n}
 fi
 

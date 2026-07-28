@@ -248,6 +248,7 @@ while true; do
             baseName=03_OracleAdapters
 
             read -p "Should the adapter be added to the Adapter Registry? (y/n) (default: n): " add_to_adapter_registry
+            add_to_adapter_registry=$(echo "$add_to_adapter_registry" | tr "[:upper:]" "[:lower:]")
             add_to_adapter_registry=${add_to_adapter_registry:-n}
 
             adapter_registry=0x0000000000000000000000000000000000000000
@@ -726,6 +727,7 @@ while true; do
                     jsonName=07_EVault
 
                     read -p "Should deploy a new router for the oracle? (y/n) (default: y): " deploy_router_for_oracle
+                    deploy_router_for_oracle=$(echo "$deploy_router_for_oracle" | tr "[:upper:]" "[:lower:]")
                     deploy_router_for_oracle=${deploy_router_for_oracle:-y}
 
                     oracle_router_factory=0x0000000000000000000000000000000000000000
@@ -735,6 +737,7 @@ while true; do
                     
                     read -p "Enter the EVault Factory address: " evault_factory
                     read -p "Should the vault be upgradable? (y/n) (default: n): " upgradable
+                    upgradable=$(echo "$upgradable" | tr "[:upper:]" "[:lower:]")
                     upgradable=${upgradable:-n}
                     read -p "Enter the Asset address: " asset
                     read -p "Enter the Oracle address: " oracle
@@ -1331,18 +1334,21 @@ while true; do
             if [ -z "$eulOFTAdapter" ] || [ "$eulOFTAdapter" == "$addressZero" ] || [ "$eulOFTAdapter" == "null" ]; then
                 if [ "$non_interactive" = false ]; then
                     read -p "Should deploy and configure EUL OFT Adapter? (y/n) (default: n): " deploy_eul_oft
+                    deploy_eul_oft=$(echo "$deploy_eul_oft" | tr "[:upper:]" "[:lower:]")
                 fi
             fi
 
             if [ -z "$eulerEarnFactory" ] || [ "$eulerEarnFactory" == "$addressZero" ] || [ "$eulerEarnFactory" == "null" ]; then
                 if [ "$non_interactive" = false ]; then
                     read -p "Should deploy Euler Earn? (y/n) (default: n): " deploy_euler_earn
+                    deploy_euler_earn=$(echo "$deploy_euler_earn" | tr "[:upper:]" "[:lower:]")
                 fi
             fi
 
             if [ -z "$eulerSwapV2Factory" ] || [ "$eulerSwapV2Factory" == "$addressZero" ] || [ "$eulerSwapV2Factory" == "null" ]; then
                 if [ "$non_interactive" = false ]; then
                     read -p "Should deploy EulerSwap V2? (y/n) (default: n): " deploy_euler_swap
+                    deploy_euler_swap=$(echo "$deploy_euler_swap" | tr "[:upper:]" "[:lower:]")
                     
                     if [ "$deploy_euler_swap" = "y" ]; then
                         read -p "Enter the Uniswap V4 Pool Manager address (default: address(0) or look up https://docs.uniswap.org/contracts/v4/deployments): " uniswap_pool_manager
@@ -1355,18 +1361,21 @@ while true; do
             if [ -z "$eusdOFTAdapter" ] || [ "$eusdOFTAdapter" == "$addressZero" ] || [ "$eusdOFTAdapter" == "null" ]; then
                 if [ "$non_interactive" = false ]; then
                     read -p "Should deploy and configure eUSD contracts system? (y/n) (default: n): " deploy_eusd
+                    deploy_eusd=$(echo "$deploy_eusd" | tr "[:upper:]" "[:lower:]")
                 fi
             fi
 
             if [ -z "$seusdOFTAdapter" ] || [ "$seusdOFTAdapter" == "$addressZero" ] || [ "$seusdOFTAdapter" == "null" ]; then
                 if [ "$non_interactive" = false ]; then
                     read -p "Should deploy and configure seUSD contracts system? (y/n) (default: n): " deploy_seusd
+                    deploy_seusd=$(echo "$deploy_seusd" | tr "[:upper:]" "[:lower:]")
                 fi
             fi
 
             if [ -z "$securitizeFactory" ] || [ "$securitizeFactory" == "$addressZero" ] || [ "$securitizeFactory" == "null" ]; then
                 if [ "$non_interactive" = false ]; then
                     read -p "Should deploy Securitize Vault Factory? (y/n) (default: n): " deploy_securitize_factory
+                    deploy_securitize_factory=$(echo "$deploy_securitize_factory" | tr "[:upper:]" "[:lower:]")
                 fi
             fi
 

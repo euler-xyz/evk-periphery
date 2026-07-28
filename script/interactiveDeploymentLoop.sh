@@ -159,7 +159,8 @@ echo "=========================================="
 echo ""
 
 read -p "Proceed with deployments? (y/n): " confirm
-if [ "$confirm" != "y" ]; then
+confirm=$(echo "$confirm" | tr "[:upper:]" "[:lower:]")
+if [ "$confirm" != "y" ] && [ "$confirm" != "yes" ]; then
     echo "Aborted."
     exit 0
 fi
