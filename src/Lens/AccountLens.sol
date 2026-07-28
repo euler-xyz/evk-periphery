@@ -94,32 +94,44 @@ contract AccountLens is Utils {
 
         (bool success, bytes memory data) = vault.staticcall(abi.encodeCall(IEVault(vault).asset, ()));
 
-        if (!success || data.length < 32) {
+        if (success && data.length >= 32) {
+            result.asset = abi.decode(data, (address));
+        } else {
+            result.queryFailure = true;
+            result.queryFailureReason = data;
             return result;
         }
-
-        result.asset = abi.decode(data, (address));
 
         (success, data) = result.asset.staticcall(abi.encodeCall(IEVault(result.asset).balanceOf, (account)));
 
         if (success && data.length >= 32) {
             result.assetsAccount = abi.decode(data, (uint256));
+        } else {
+            if (!result.queryFailure) result.queryFailureReason = data;
+            result.queryFailure = true;
         }
 
         (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).balanceOf, (account)));
 
         if (success && data.length >= 32) {
             result.shares = abi.decode(data, (uint256));
+        } else {
+            if (!result.queryFailure) result.queryFailureReason = data;
+            result.queryFailure = true;
         }
 
         (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).convertToAssets, (result.shares)));
 
         if (success && data.length >= 32) {
             result.assets = abi.decode(data, (uint256));
+        } else {
+            if (!result.queryFailure) result.queryFailureReason = data;
+            result.queryFailure = true;
         }
 
         (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).debtOf, (account)));
 
+        // optional: vaults with no debt concept (i.e. plain ERC-4626) correctly report no borrows
         if (success && data.length >= 32) {
             result.borrowed = abi.decode(data, (uint256));
         }
@@ -128,10 +140,14 @@ contract AccountLens is Utils {
 
         if (success && data.length >= 32) {
             result.assetAllowanceVault = abi.decode(data, (uint256));
+        } else {
+            if (!result.queryFailure) result.queryFailureReason = data;
+            result.queryFailure = true;
         }
 
         (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).permit2Address, ()));
 
+        // optional: vaults with no permit2 integration correctly report no permit2 allowances
         address permit2;
         if (success && data.length >= 32) {
             permit2 = abi.decode(data, (address));
@@ -146,6 +162,7 @@ contract AccountLens is Utils {
 
         (success, data) = vault.staticcall(abi.encodeCall(IEVault(vault).balanceForwarderEnabled, (account)));
 
+        // optional: vaults with no balance forwarding correctly report it as disabled
         if (success && data.length >= 32) {
             result.balanceForwarderEnabled = abi.decode(data, (bool));
         }
@@ -155,20 +172,22 @@ contract AccountLens is Utils {
         address evc;
         if (success && data.length >= 32) {
             evc = abi.decode(data, (address));
+        } else {
+            if (!result.queryFailure) result.queryFailureReason = data;
+            result.queryFailure = true;
         }
 
-        result.isController = IEVC(evc).isControllerEnabled(account, vault);
-        result.isCollateral = IEVC(evc).isCollateralEnabled(account, vault);
+        if (evc != address(0)) {
+            result.isController = IEVC(evc).isControllerEnabled(account, vault);
+            result.isCollateral = IEVC(evc).isCollateralEnabled(account, vault);
+        }
+
         result.liquidityInfo = getAccountLiquidityInfo(account, vault);
 
         return result;
     }
 
-    function getAccountLiquidityInfo(address account, address vault)
-        public
-        view
-        returns (AccountLiquidityInfo memory)
-    {
+    function getAccountLiquidityInfo(address account, address vault) public view returns (AccountLiquidityInfo memory) {
         AccountLiquidityInfo memory result;
 
         result.account = account;
@@ -258,12 +277,10 @@ contract AccountLens is Utils {
 
         if (
             !result.queryFailure
-                || (
-                    bytes4(result.queryFailureReason) != Errors.E_TransientState.selector
-                        && bytes4(result.queryFailureReason) != Errors.E_NoLiability.selector
-                        && bytes4(result.queryFailureReason) != Errors.E_NotController.selector
-                        && bytes4(result.queryFailureReason) != Errors.E_NoPriceOracle.selector
-                )
+                || (bytes4(result.queryFailureReason) != Errors.E_TransientState.selector
+                    && bytes4(result.queryFailureReason) != Errors.E_NoLiability.selector
+                    && bytes4(result.queryFailureReason) != Errors.E_NotController.selector
+                    && bytes4(result.queryFailureReason) != Errors.E_NoPriceOracle.selector)
         ) return result;
 
         result.queryFailure = false;
