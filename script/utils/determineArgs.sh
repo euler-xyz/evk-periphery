@@ -21,8 +21,10 @@ if [ -z "$DEPLOYMENT_RPC_URL" ]; then
 fi
 
 echo "$EXPORT_ENV_VARS"
-echo "export SAFE_API_KEY=$SAFE_API_KEY"
-echo "export SCRIPT_ARGS='$SCRIPT_ARGS'"
+# shell-quoted: the caller consumes these lines with eval, where an unescaped space or apostrophe in the value would
+# truncate the assignment, discard the arguments outright, or run whatever follows it
+printf 'export SAFE_API_KEY=%q\n' "$SAFE_API_KEY"
+printf 'export SCRIPT_ARGS=%q\n' "$SCRIPT_ARGS"
 
 if [ "$DEPLOYMENT_RPC_URL" == "local" ]; then
     echo "export DEPLOYMENT_RPC_URL=http://127.0.0.1:8545"
@@ -33,7 +35,7 @@ if ! cast chain-id --rpc-url "$DEPLOYMENT_RPC_URL" &>/dev/null; then
     env_var="DEPLOYMENT_RPC_URL_${DEPLOYMENT_RPC_URL}"
 
     if [ -n "${!env_var}" ]; then
-        echo "export DEPLOYMENT_RPC_URL=${!env_var}"
+        printf 'export DEPLOYMENT_RPC_URL=%q\n' "${!env_var}"
         exit 0
     else
         if ! chains_data=$(curl -fsSL https://chainid.network/chains_mini.json); then
@@ -101,10 +103,10 @@ if ! cast chain-id --rpc-url "$DEPLOYMENT_RPC_URL" &>/dev/null; then
         env_var="DEPLOYMENT_RPC_URL_${chain_id}"
 
         if [ -n "${!env_var}" ]; then
-            echo "export DEPLOYMENT_RPC_URL=${!env_var}"
+            printf 'export DEPLOYMENT_RPC_URL=%q\n' "${!env_var}"
             exit 0
         fi
     fi
 fi
 
-echo "export DEPLOYMENT_RPC_URL=$DEPLOYMENT_RPC_URL"
+printf 'export DEPLOYMENT_RPC_URL=%q\n' "$DEPLOYMENT_RPC_URL"
