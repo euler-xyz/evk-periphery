@@ -63,21 +63,60 @@ contract PeripheryFactories is ScriptUtils {
         deployedContracts = execute(evc);
     }
 
+    function deployMissing(address evc, PeripheryContracts memory existingContracts)
+        public
+        broadcast
+        returns (PeripheryContracts memory deployedContracts)
+    {
+        deployedContracts = execute(evc, existingContracts);
+    }
+
     function execute(address evc) public returns (PeripheryContracts memory deployedContracts) {
-        deployedContracts.oracleRouterFactory = address(new EulerRouterFactory(evc));
-        deployedContracts.oracleAdapterRegistry = address(new SnapshotRegistry(evc, getDeployer()));
-        deployedContracts.externalVaultRegistry = address(new SnapshotRegistry(evc, getDeployer()));
-        deployedContracts.kinkIRMFactory = address(new EulerKinkIRMFactory());
-        deployedContracts.kinkyIRMFactory = address(new EulerKinkyIRMFactory());
-        deployedContracts.fixedCyclicalBinaryIRMFactory = address(new EulerFixedCyclicalBinaryIRMFactory());
-        deployedContracts.adaptiveCurveIRMFactory = address(new EulerIRMAdaptiveCurveFactory());
-        deployedContracts.irmRegistry = address(new SnapshotRegistry(evc, getDeployer()));
-        deployedContracts.governorAccessControlEmergencyFactory =
-            address(new GovernorAccessControlEmergencyFactory(evc));
-        deployedContracts.capRiskStewardFactory = address(
-            new CapRiskStewardFactory(
-                deployedContracts.governorAccessControlEmergencyFactory, deployedContracts.kinkIRMFactory
-            )
-        );
+        return execute(evc, deployedContracts);
+    }
+
+    /// @dev Deploys only the contracts left unset in `existingContracts`. Members are independent except for
+    /// capRiskStewardFactory, which is deployed last so it can reference the resolved governor and kink IRM factories.
+    function execute(address evc, PeripheryContracts memory existingContracts)
+        public
+        returns (PeripheryContracts memory deployedContracts)
+    {
+        deployedContracts = existingContracts;
+
+        if (deployedContracts.oracleRouterFactory == address(0)) {
+            deployedContracts.oracleRouterFactory = address(new EulerRouterFactory(evc));
+        }
+        if (deployedContracts.oracleAdapterRegistry == address(0)) {
+            deployedContracts.oracleAdapterRegistry = address(new SnapshotRegistry(evc, getDeployer()));
+        }
+        if (deployedContracts.externalVaultRegistry == address(0)) {
+            deployedContracts.externalVaultRegistry = address(new SnapshotRegistry(evc, getDeployer()));
+        }
+        if (deployedContracts.kinkIRMFactory == address(0)) {
+            deployedContracts.kinkIRMFactory = address(new EulerKinkIRMFactory());
+        }
+        if (deployedContracts.kinkyIRMFactory == address(0)) {
+            deployedContracts.kinkyIRMFactory = address(new EulerKinkyIRMFactory());
+        }
+        if (deployedContracts.fixedCyclicalBinaryIRMFactory == address(0)) {
+            deployedContracts.fixedCyclicalBinaryIRMFactory = address(new EulerFixedCyclicalBinaryIRMFactory());
+        }
+        if (deployedContracts.adaptiveCurveIRMFactory == address(0)) {
+            deployedContracts.adaptiveCurveIRMFactory = address(new EulerIRMAdaptiveCurveFactory());
+        }
+        if (deployedContracts.irmRegistry == address(0)) {
+            deployedContracts.irmRegistry = address(new SnapshotRegistry(evc, getDeployer()));
+        }
+        if (deployedContracts.governorAccessControlEmergencyFactory == address(0)) {
+            deployedContracts.governorAccessControlEmergencyFactory =
+                address(new GovernorAccessControlEmergencyFactory(evc));
+        }
+        if (deployedContracts.capRiskStewardFactory == address(0)) {
+            deployedContracts.capRiskStewardFactory = address(
+                new CapRiskStewardFactory(
+                    deployedContracts.governorAccessControlEmergencyFactory, deployedContracts.kinkIRMFactory
+                )
+            );
+        }
     }
 }

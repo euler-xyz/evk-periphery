@@ -238,11 +238,13 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         verifyMultisigAddresses(multisigAddresses);
 
         if (
-            coreAddresses.evc == address(0) && coreAddresses.protocolConfig == address(0)
-                && coreAddresses.sequenceRegistry == address(0) && coreAddresses.balanceTracker == address(0)
-                && coreAddresses.permit2 == address(0)
+            coreAddresses.evc == address(0) || coreAddresses.protocolConfig == address(0)
+                || coreAddresses.sequenceRegistry == address(0) || coreAddresses.balanceTracker == address(0)
+                || coreAddresses.permit2 == address(0)
         ) {
-            console.log("+ Deploying Integrations...");
+            bool protocolConfigMissing = coreAddresses.protocolConfig == address(0);
+
+            console.log("+ Deploying missing Integrations contracts...");
             Integrations deployer = new Integrations();
             (
                 coreAddresses.evc,
@@ -250,15 +252,24 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 coreAddresses.sequenceRegistry,
                 coreAddresses.balanceTracker,
                 coreAddresses.permit2
-            ) = deployer.deploy(input.permit2);
+            ) =
+                deployer.deployMissing(
+                    coreAddresses.permit2 == address(0) ? input.permit2 : coreAddresses.permit2,
+                    coreAddresses.evc,
+                    coreAddresses.protocolConfig,
+                    coreAddresses.sequenceRegistry,
+                    coreAddresses.balanceTracker
+                );
 
-            console.log("+ Setting ProtocolConfig interest fee range to 0% - 100%");
-            startBroadcast();
-            ProtocolConfig(coreAddresses.protocolConfig).setInterestFeeRange(0, 1e4);
-            ProtocolConfig(coreAddresses.protocolConfig).setProtocolFeeShare(0);
-            stopBroadcast();
+            if (protocolConfigMissing) {
+                console.log("+ Setting ProtocolConfig interest fee range to 0% - 100%");
+                startBroadcast();
+                ProtocolConfig(coreAddresses.protocolConfig).setInterestFeeRange(0, 1e4);
+                ProtocolConfig(coreAddresses.protocolConfig).setProtocolFeeShare(0);
+                stopBroadcast();
+            }
         } else {
-            console.log("- At least one of the Integrations contracts already deployed. Skipping...");
+            console.log("- All Integrations contracts already deployed. Skipping...");
         }
 
         if (coreAddresses.eVaultImplementation == address(0)) {
@@ -572,18 +583,32 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
         if (
             peripheryAddresses.oracleRouterFactory == address(0)
-                && peripheryAddresses.oracleAdapterRegistry == address(0)
-                && peripheryAddresses.externalVaultRegistry == address(0)
-                && peripheryAddresses.kinkIRMFactory == address(0) && peripheryAddresses.kinkyIRMFactory == address(0)
-                && peripheryAddresses.fixedCyclicalBinaryIRMFactory == address(0)
-                && peripheryAddresses.adaptiveCurveIRMFactory == address(0)
-                && peripheryAddresses.irmRegistry == address(0)
-                && peripheryAddresses.governorAccessControlEmergencyFactory == address(0)
-                && peripheryAddresses.capRiskStewardFactory == address(0)
+                || peripheryAddresses.oracleAdapterRegistry == address(0)
+                || peripheryAddresses.externalVaultRegistry == address(0)
+                || peripheryAddresses.kinkIRMFactory == address(0) || peripheryAddresses.kinkyIRMFactory == address(0)
+                || peripheryAddresses.fixedCyclicalBinaryIRMFactory == address(0)
+                || peripheryAddresses.adaptiveCurveIRMFactory == address(0)
+                || peripheryAddresses.irmRegistry == address(0)
+                || peripheryAddresses.governorAccessControlEmergencyFactory == address(0)
+                || peripheryAddresses.capRiskStewardFactory == address(0)
         ) {
-            console.log("+ Deploying Periphery factories...");
+            console.log("+ Deploying missing Periphery factories...");
             PeripheryFactories deployer = new PeripheryFactories();
-            PeripheryFactories.PeripheryContracts memory peripheryContracts = deployer.deploy(coreAddresses.evc);
+            PeripheryFactories.PeripheryContracts memory peripheryContracts = deployer.deployMissing(
+                coreAddresses.evc,
+                PeripheryFactories.PeripheryContracts({
+                    oracleRouterFactory: peripheryAddresses.oracleRouterFactory,
+                    oracleAdapterRegistry: peripheryAddresses.oracleAdapterRegistry,
+                    externalVaultRegistry: peripheryAddresses.externalVaultRegistry,
+                    kinkIRMFactory: peripheryAddresses.kinkIRMFactory,
+                    kinkyIRMFactory: peripheryAddresses.kinkyIRMFactory,
+                    fixedCyclicalBinaryIRMFactory: peripheryAddresses.fixedCyclicalBinaryIRMFactory,
+                    adaptiveCurveIRMFactory: peripheryAddresses.adaptiveCurveIRMFactory,
+                    irmRegistry: peripheryAddresses.irmRegistry,
+                    governorAccessControlEmergencyFactory: peripheryAddresses.governorAccessControlEmergencyFactory,
+                    capRiskStewardFactory: peripheryAddresses.capRiskStewardFactory
+                })
+            );
 
             peripheryAddresses.oracleRouterFactory = peripheryContracts.oracleRouterFactory;
             peripheryAddresses.oracleAdapterRegistry = peripheryContracts.oracleAdapterRegistry;
@@ -597,7 +622,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             peripheryContracts.governorAccessControlEmergencyFactory;
             peripheryAddresses.capRiskStewardFactory = peripheryContracts.capRiskStewardFactory;
         } else {
-            console.log("- At least one of the Periphery factories contracts already deployed. Skipping...");
+            console.log("- All Periphery factories already deployed. Skipping...");
         }
 
         if (peripheryAddresses.feeFlowController == address(0)) {
