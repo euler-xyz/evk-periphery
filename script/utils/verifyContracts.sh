@@ -85,10 +85,17 @@ function verify_contract {
 
     echo "Verifying $contractName: $contractAddress"
 
-    output=$(env VERIFIER_API_KEY=$verifier_api_key ETHERSCAN_API_KEY=$verifier_api_key \
-        forge verify-contract $contractAddress $contractName $constructorArgs --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId $verifierArgs --watch $@ 2>&1 | tee /dev/tty) #--show-standard-json-input > $contractAddress.json
+    # forge's status is recorded out of band: $? after the pipeline reports tee's status, not forge's, so every
+    # verification failure would otherwise be read as success. Not using pipefail because tee itself fails without a tty.
+    local statusFile
+    statusFile=$(mktemp)
 
-    result=$?
+    output=$({ env VERIFIER_API_KEY=$verifier_api_key ETHERSCAN_API_KEY=$verifier_api_key \
+        forge verify-contract $contractAddress $contractName $constructorArgs --rpc-url $DEPLOYMENT_RPC_URL --chain $chainId $verifierArgs --watch $@ 2>&1; echo $? > "$statusFile"; } | tee /dev/tty) #--show-standard-json-input > $contractAddress.json
+
+    result=$(cat "$statusFile" 2>/dev/null)
+    rm -f "$statusFile"
+    [[ -z $result ]] && result=1
 
     if [[ $verifier == "sourcify" ]] && echo "$output" | grep -q "is already partially verified"; then
         echo "Contract already partially verified, continuing..."
