@@ -306,11 +306,10 @@ contract VaultLens is Utils {
         }
 
         LTVInfo[] memory collateralLTVInfo = new LTVInfo[](numberOfRecognizedCollaterals);
-        uint256 recognizedIndex = 0;
 
         for (uint256 i = 0; i < collaterals.length; ++i) {
             if (ltvInfo[i].targetTimestamp != 0) {
-                collateralLTVInfo[recognizedIndex++] = ltvInfo[i];
+                collateralLTVInfo[i] = ltvInfo[i];
             }
         }
 

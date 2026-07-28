@@ -45,63 +45,24 @@ contract AccountLens is Utils {
         result.accountRewardInfo = new AccountRewardInfo[](counter);
 
         for (uint256 i = 0; i < controllersLength; ++i) {
-            result.vaultAccountInfo[i] = tryGetVaultAccountInfo(account, result.evcAccountInfo.enabledControllers[i]);
-            result.accountRewardInfo[i] = tryGetRewardAccountInfo(account, result.evcAccountInfo.enabledControllers[i]);
+            result.vaultAccountInfo[i] = getVaultAccountInfo(account, result.evcAccountInfo.enabledControllers[i]);
+            result.accountRewardInfo[i] = getRewardAccountInfo(account, result.evcAccountInfo.enabledControllers[i]);
         }
 
         counter = controllersLength;
         for (uint256 i = 0; i < collateralsLength; ++i) {
-            address collateral = result.evcAccountInfo.enabledCollaterals[i];
+            VaultAccountInfo memory vaultAccountInfo =
+                getVaultAccountInfo(account, result.evcAccountInfo.enabledCollaterals[i]);
 
-            // this used to come from getVaultAccountInfo, which asks the EVC the vault itself reports. Asking the EVC
-            // passed in matches the source the counting loop above uses, and still answers for a vault whose query
-            // failed: such a vault reports no controller, which would write past the end of the array
-            if (IEVC(evc).isControllerEnabled(account, collateral)) continue;
-
-            result.vaultAccountInfo[counter] = tryGetVaultAccountInfo(account, collateral);
-            result.accountRewardInfo[counter] = tryGetRewardAccountInfo(account, collateral);
-            ++counter;
+            if (!vaultAccountInfo.isController) {
+                result.vaultAccountInfo[counter] = vaultAccountInfo;
+                result.accountRewardInfo[counter] =
+                    getRewardAccountInfo(account, result.evcAccountInfo.enabledCollaterals[i]);
+                ++counter;
+            }
         }
 
         return result;
-    }
-
-    /// @dev Any address can be enabled as a collateral on the EVC, including one whose return data makes the queries in
-    /// getVaultAccountInfo revert. Isolating each vault behind an external call keeps one such collateral from taking
-    /// down the whole account query; the offending vault reports queryFailure and the rest still return their data.
-    function tryGetVaultAccountInfo(address account, address vault) public view returns (VaultAccountInfo memory) {
-        try this.getVaultAccountInfo(account, vault) returns (VaultAccountInfo memory info) {
-            return info;
-        } catch (bytes memory reason) {
-            VaultAccountInfo memory result;
-
-            result.timestamp = block.timestamp;
-            result.account = account;
-            result.vault = vault;
-            result.queryFailure = true;
-            result.queryFailureReason = reason;
-            result.liquidityInfo.account = account;
-            result.liquidityInfo.vault = vault;
-            result.liquidityInfo.queryFailure = true;
-            result.liquidityInfo.queryFailureReason = reason;
-
-            return result;
-        }
-    }
-
-    /// @dev See tryGetVaultAccountInfo.
-    function tryGetRewardAccountInfo(address account, address vault) public view returns (AccountRewardInfo memory) {
-        try this.getRewardAccountInfo(account, vault) returns (AccountRewardInfo memory info) {
-            return info;
-        } catch {
-            AccountRewardInfo memory result;
-
-            result.timestamp = block.timestamp;
-            result.account = account;
-            result.vault = vault;
-
-            return result;
-        }
     }
 
     function getEVCAccountInfo(address evc, address account) public view returns (EVCAccountInfo memory) {
@@ -138,6 +99,7 @@ contract AccountLens is Utils {
         } else {
             result.queryFailure = true;
             result.queryFailureReason = data;
+            return result;
         }
 
         (success, data) = result.asset.staticcall(abi.encodeCall(IEVault(result.asset).balanceOf, (account)));
@@ -191,7 +153,7 @@ contract AccountLens is Utils {
             permit2 = abi.decode(data, (address));
         }
 
-        if (permit2 != address(0) && result.asset != address(0)) {
+        if (permit2 != address(0)) {
             (result.assetAllowanceVaultPermit2, result.assetAllowanceExpirationVaultPermit2,) =
                 IAllowanceTransfer(permit2).allowance(account, result.asset, vault);
 
