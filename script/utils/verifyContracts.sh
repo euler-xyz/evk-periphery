@@ -267,7 +267,7 @@ function verify_broadcast {
                     continue
                 fi
 
-                ((index++))
+                index=$((index + 1))
 
                 verify_contract $contractAddress $contractName "$constructorArgs" "$@"
             done
@@ -314,11 +314,11 @@ function verify_broadcast {
 
                     if [ $? -eq 0 ]; then
                         createVerified=true
-                        ((eulerEarnIndex++))
+                        eulerEarnIndex=$((eulerEarnIndex + 1))
                         break
                     fi
 
-                    ((eulerEarnIndex++))
+                    eulerEarnIndex=$((eulerEarnIndex + 1))
                 done
 
                 # Restore foundry.toml src path
@@ -385,11 +385,11 @@ function verify_broadcast {
 
                     if [ $? -eq 0 ]; then
                         createVerified=true
-                        ((eulerSwapIndex++))
+                        eulerSwapIndex=$((eulerSwapIndex + 1))
                         break
                     fi
 
-                    ((eulerSwapIndex++))
+                    eulerSwapIndex=$((eulerSwapIndex + 1))
                 done
 
                 # Restore foundry.toml src path
