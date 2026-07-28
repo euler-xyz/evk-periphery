@@ -215,5 +215,11 @@ fi
 if [[ "$verify" == "--verify" && "$broadcast" == "--broadcast" ]]; then
     broadcastFileName=$(basename "${scriptPath%%:*}")
 
-    script/utils/verifyContracts.sh "broadcast/$broadcastFileName/$chainId/run-latest.json" --verifier $verifier
+    if ! script/utils/verifyContracts.sh "broadcast/$broadcastFileName/$chainId/run-latest.json" --verifier $verifier; then
+        echo "! Contract verification reported a failure. The deployment itself succeeded."
+    fi
 fi
+
+# The contracts are already broadcast at this point, so the exit status must reflect the deployment only. Letting
+# verification decide it makes callers discard the deployment records for contracts that are live on chain.
+exit 0
