@@ -30,11 +30,6 @@ contract IRMLens is Utils {
         fixedCyclicalBinaryIRMFactory = _fixedCyclicalBinaryIRMFactory;
     }
 
-    /// @dev External so it can be wrapped in try/catch; decoding a dynamic type cannot be pre-validated.
-    function decodeString(bytes memory data) external pure returns (string memory) {
-        return abi.decode(data, (string));
-    }
-
     function getInterestRateModelInfo(address irm) public view returns (InterestRateModelDetailedInfo memory) {
         InterestRateModelDetailedInfo memory result;
 
@@ -95,11 +90,7 @@ contract IRMLens is Utils {
 
             // string is a dynamic type, so the decode validates offsets and reverts on malformed data that the length
             // check above still admits. An IRM outside the known factories reaching this would break the vault query.
-            if (success && data.length >= 32) {
-                try this.decodeString(data) returns (string memory decoded) {
-                    name = decoded;
-                } catch {}
-            }
+            if (success && data.length >= 32) (, name) = _tryDecodeString(data);
 
             if (_strEq(name, "IRMFixedCyclicalBinaryMonthly")) {
                 result.interestRateModelType = InterestRateModelType.FIXED_CYCLICAL_BINARY_MONTHLY;

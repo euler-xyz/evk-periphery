@@ -65,6 +65,39 @@ contract UtilsLensTest is Test {
         assertEq(info.vaultName, "Vault Name", "vault metadata unaffected");
     }
 
+    /// @dev MKR-style bytes32 metadata is handled by the length == 32 branch, not the string decode
+    function test_getVaultInfoERC4626_assetWithBytes32Metadata() public {
+        _conformingVault();
+        vm.mockCall(ASSET, abi.encodeWithSignature("symbol()"), abi.encode(bytes32("MKR")));
+
+        VaultInfoERC4626 memory info = lens.getVaultInfoERC4626(VAULT);
+
+        assertEq(bytes(info.assetSymbol).length, 32, "bytes32 symbol passed through raw");
+    }
+
+    /// @dev a payload that is neither 32 bytes nor a valid string encoding: the decode would revert unguarded
+    function test_getVaultInfoERC4626_assetWithMalformedMetadata() public {
+        _conformingVault();
+        vm.mockCall(ASSET, abi.encodeWithSignature("symbol()"), abi.encode(uint256(type(uint128).max), uint256(5)));
+        vm.mockCall(ASSET, abi.encodeWithSignature("name()"), abi.encode(uint256(type(uint128).max), uint256(5)));
+
+        VaultInfoERC4626 memory info = lens.getVaultInfoERC4626(VAULT);
+
+        assertEq(info.assetSymbol, "", "undecodable symbol falls back to empty");
+        assertEq(info.assetName, "", "undecodable name falls back to empty");
+        assertEq(info.totalAssets, 2000, "the rest of the query is unaffected");
+    }
+
+    /// @dev decimals() returning a value wider than uint8: the decode would revert unguarded
+    function test_getVaultInfoERC4626_assetWithOutOfRangeDecimals() public {
+        _conformingVault();
+        vm.mockCall(ASSET, abi.encodeWithSignature("decimals()"), abi.encode(uint256(300)));
+
+        VaultInfoERC4626 memory info = lens.getVaultInfoERC4626(VAULT);
+
+        assertEq(info.assetDecimals, 18, "out-of-range decimals falls back to 18");
+    }
+
     function test_tokenBalances_perTokenIsolation() public {
         address good = address(0x6001);
         address bad = address(0x6002);
