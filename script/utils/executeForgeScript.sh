@@ -199,6 +199,64 @@ if [[ -n "$safe_address" ]] || [[ -n "$simulate_safe_address" ]] || [[ -n "$path
     fi
 fi
 
+# forge script runs the whole script in simulation before broadcasting anything, and saveAddresses() writes the address
+# books during that phase. A broadcast that then fails (out of gas money, RPC rejection, interrupt) would otherwise
+# leave euler-interfaces recording addresses for contracts that were never deployed, and those addresses are the
+# simulated CREATE addresses, so they can be wrong even after a later successful retry. Snapshot first, roll back on
+# failure.
+addressesDir=""
+bridgeCache=""
+snapshotDir=""
+addressesDirExisted=false
+bridgeCacheExisted=false
+
+if [[ -n "$ADDRESSES_DIR_PATH" && -n "$chainId" && "$broadcast" == "--broadcast" ]]; then
+    addressesDir="$ADDRESSES_DIR_PATH/$chainId"
+    bridgeCache="$ADDRESSES_DIR_PATH/../config/bridge/BridgeConfigCache.json"
+    snapshotDir=$(mktemp -d)
+
+    # snapshot whatever is actually there rather than a list of names, so a new address book added to saveAddresses()
+    # is covered without this having to be kept in step
+    mkdir -p "$snapshotDir/addresses"
+
+    if [ -d "$addressesDir" ]; then
+        addressesDirExisted=true
+        cp -R "$addressesDir/." "$snapshotDir/addresses/"
+    fi
+
+    if [ -f "$bridgeCache" ]; then
+        bridgeCacheExisted=true
+        cp "$bridgeCache" "$snapshotDir/BridgeConfigCache.json"
+    fi
+fi
+
+restore_address_books() {
+    [ -z "$snapshotDir" ] && return 0
+
+    # drop anything this run created that was not there beforehand
+    if [ -d "$addressesDir" ]; then
+        find "$addressesDir" -type f | while read -r f; do
+            rel=${f#"$addressesDir"/}
+            [ -f "$snapshotDir/addresses/$rel" ] || rm -f "$f"
+        done
+    fi
+
+    if [ "$addressesDirExisted" = true ]; then
+        mkdir -p "$addressesDir"
+        cp -R "$snapshotDir/addresses/." "$addressesDir/"
+    elif [ -d "$addressesDir" ]; then
+        rmdir "$addressesDir" 2>/dev/null
+    fi
+
+    if [ "$bridgeCacheExisted" = true ]; then
+        cp "$snapshotDir/BridgeConfigCache.json" "$bridgeCache"
+    elif [ -f "$bridgeCache" ]; then
+        rm -f "$bridgeCache"
+    fi
+
+    echo "! Deployment failed; the recorded addresses were rolled back to their previous state."
+}
+
 if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce batch_via_safe=$batch_via_safe \
     safe_owner_simulate=$safe_owner_simulate skip_safe_simulation=$skip_safe_simulation skip_pending_simulation=$skip_pending_simulation \
     simulate_safe_address=$simulate_safe_address simulate_timelock_address=$simulate_timelock_address \
@@ -213,8 +271,12 @@ if ! env broadcast=$broadcast safe_address=$safe_address safe_nonce=$safe_nonce 
     from_block=$from_block to_block=$to_block source_wallet=$source_wallet destination_wallet=$destination_wallet \
     source_account_id=$source_account_id destination_account_id=$destination_account_id \
     forge script script/$scriptPath --rpc-url "$DEPLOYMENT_RPC_URL" $broadcast --legacy --slow --with-gas-price $gasPrice $@; then
+    restore_address_books
+    [ -n "$snapshotDir" ] && rm -rf "$snapshotDir"
     exit 1
 fi
+
+[ -n "$snapshotDir" ] && rm -rf "$snapshotDir"
 
 if [[ "$verify" == "--verify" && "$broadcast" == "--broadcast" ]]; then
     broadcastFileName=$(basename "${scriptPath%%:*}")
