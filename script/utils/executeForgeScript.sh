@@ -3,6 +3,10 @@
 scriptPath=$1
 shift
 
+# The flag stripping below rebuilds the argument list through unquoted command substitution, and the forge invocation
+# expands $@ unquoted. Without this, any argument containing *, ? or [ is silently replaced by matching filenames.
+set -f
+
 source .env
 eval "$(./script/utils/determineArgs.sh "$@")"
 eval 'set -- $SCRIPT_ARGS'
