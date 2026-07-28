@@ -70,11 +70,10 @@ contract OracleLens is Utils {
                 (success, result) = oracleAddress.staticcall(abi.encodeCall(IPriceOracle.name, ()));
             }
 
-            if (success && result.length >= 32) {
-                name = abi.decode(result, (string));
-            } else {
-                return OracleDetailedInfo({oracle: oracleAddress, name: "", oracleInfo: ""});
-            }
+            bool decoded;
+            if (success && result.length >= 32) (decoded, name) = _tryDecodeString(result);
+
+            if (!decoded) return OracleDetailedInfo({oracle: oracleAddress, name: "", oracleInfo: ""});
         }
 
         if (
@@ -83,7 +82,8 @@ contract OracleLens is Utils {
         ) {
             (bool success, bytes memory result) =
                 IOracle(oracleAddress).feed().staticcall(abi.encodeCall(IOracle.description, ()));
-            string memory feedDescription = success && result.length >= 32 ? abi.decode(result, (string)) : "";
+            string memory feedDescription;
+            if (success && result.length >= 32) (, feedDescription) = _tryDecodeString(result);
 
             oracleInfo = abi.encode(
                 ChainlinkOracleInfo({
@@ -277,9 +277,12 @@ contract OracleLens is Utils {
         (bool success, bytes memory result) =
             oracleAddress.staticcall(abi.encodeCall(IOracle.getConfiguredOracle, (base, quote)));
 
-        if (!success || result.length < 32) return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
+        if (!success) return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
 
-        resolvedOracle = abi.decode(result, (address));
+        bool ok;
+        (ok, resolvedOracle) = _tryDecodeAddress(result);
+
+        if (!ok) return (currentlyResolvedAssets, address(0), resolvedOracleInfo);
 
         if (resolvedOracle != address(0)) {
             address[] memory bases = new address[](1);
@@ -292,9 +295,12 @@ contract OracleLens is Utils {
 
         (success, result) = oracleAddress.staticcall(abi.encodeCall(IOracle.resolvedVaults, (base)));
 
-        if (!success || result.length < 32) return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
+        if (!success) return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
 
-        address baseAsset = abi.decode(result, (address));
+        address baseAsset;
+        (ok, baseAsset) = _tryDecodeAddress(result);
+
+        if (!ok) return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
 
         if (baseAsset != address(0)) {
             resolvedAssets = new address[](currentlyResolvedAssets.length + 1);
@@ -307,9 +313,11 @@ contract OracleLens is Utils {
 
         (success, result) = oracleAddress.staticcall(abi.encodeCall(IOracle.fallbackOracle, ()));
 
-        if (!success || result.length < 32) return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
+        if (!success) return (currentlyResolvedAssets, resolvedOracle, resolvedOracleInfo);
 
-        resolvedOracle = abi.decode(result, (address));
+        (ok, resolvedOracle) = _tryDecodeAddress(result);
+
+        if (!ok) return (currentlyResolvedAssets, address(0), resolvedOracleInfo);
 
         if (resolvedOracle != address(0)) {
             address[] memory bases = new address[](1);
@@ -329,7 +337,7 @@ contract OracleLens is Utils {
         (bool success, bytes memory result) = oracle.staticcall(abi.encodeCall(IPriceOracle.name, ()));
 
         if (success && result.length >= 32) {
-            string memory name = abi.decode(result, (string));
+            (, string memory name) = _tryDecodeString(result);
             return _strEq(name, "PythOracle") && failureSelector == Errors.PriceOracle_InvalidAnswer.selector;
         }
 
@@ -342,7 +350,7 @@ contract OracleLens is Utils {
         (bool success, bytes memory result) = oracle.staticcall(abi.encodeCall(IPriceOracle.name, ()));
 
         if (success && result.length >= 32) {
-            string memory name = abi.decode(result, (string));
+            (, string memory name) = _tryDecodeString(result);
             return _strEq(name, "RedstoneCoreOracle") && failureSelector == Errors.PriceOracle_TooStale.selector;
         }
 
@@ -355,7 +363,7 @@ contract OracleLens is Utils {
         (bool success, bytes memory result) = oracle.staticcall(abi.encodeCall(IPriceOracle.name, ()));
 
         if (success && result.length >= 32) {
-            string memory name = abi.decode(result, (string));
+            (, string memory name) = _tryDecodeString(result);
             if (!_strEq(name, "CrossAdapter")) return false;
         } else {
             return false;

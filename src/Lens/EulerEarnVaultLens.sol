@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {IEulerEarn, IERC4626, MarketConfig, PendingUint136, PendingAddress} from "euler-earn/interfaces/IEulerEarn.sol";
+import {
+    IEulerEarn, IERC4626, MarketConfig, PendingUint136, PendingAddress
+} from "euler-earn/interfaces/IEulerEarn.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
 import {UtilsLens} from "./UtilsLens.sol";
 import {Utils} from "./Utils.sol";

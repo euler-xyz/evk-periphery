@@ -87,20 +87,65 @@ abstract contract Utils {
         return keccak256(bytes(a)) == keccak256(bytes(b));
     }
 
+    /// @dev External so it can be wrapped in try/catch. Decoding a dynamic type validates offsets and lengths and
+    /// reverts on malformed data, which cannot be checked up front the way a single word can.
+    function decodeString(bytes memory data) external pure returns (string memory) {
+        return abi.decode(data, (string));
+    }
+
+    /// @dev abi.decode(data, (address)) reverts when the high-order 96 bits are dirty. Decoding a word as uint256
+    /// never reverts, so the range can be checked instead.
+    function _tryDecodeAddress(bytes memory data) internal pure returns (bool ok, address value) {
+        if (data.length < 32) return (false, address(0));
+
+        uint256 word = abi.decode(data, (uint256));
+
+        if (word > type(uint160).max) return (false, address(0));
+
+        return (true, address(uint160(word)));
+    }
+
+    /// @dev abi.decode(data, (uint8)) reverts when the high-order bits are dirty.
+    function _tryDecodeUint8(bytes memory data) internal pure returns (bool ok, uint8 value) {
+        if (data.length < 32) return (false, 0);
+
+        uint256 word = abi.decode(data, (uint256));
+
+        if (word > type(uint8).max) return (false, 0);
+
+        return (true, uint8(word));
+    }
+
+    /// @dev See decodeString for why this cannot be done inline.
+    function _tryDecodeString(bytes memory data) internal view returns (bool ok, string memory value) {
+        try this.decodeString(data) returns (string memory decoded) {
+            return (true, decoded);
+        } catch {
+            return (false, "");
+        }
+    }
+
     /// @dev for tokens like MKR which return bytes32 on name() or symbol()
     function _getStringOrBytes32(address contractAddress, bytes4 selector) internal view returns (string memory) {
         (bool success, bytes memory result) = contractAddress.staticcall(abi.encodeWithSelector(selector));
 
-        return (success && result.length != 0)
-            ? result.length == 32 ? string(abi.encodePacked(result)) : abi.decode(result, (string))
-            : "";
+        if (!success || result.length == 0) return "";
+        if (result.length == 32) return string(abi.encodePacked(result));
+
+        (, string memory decoded) = _tryDecodeString(result);
+
+        return decoded;
     }
 
     function _getDecimals(address contractAddress) internal view returns (uint8) {
         (bool success, bytes memory data) =
             contractAddress.staticcall(abi.encodeCall(IEVault(contractAddress).decimals, ()));
 
-        return success && data.length >= 32 ? abi.decode(data, (uint8)) : 18;
+        if (!success) return 18;
+
+        (bool ok, uint8 decimals) = _tryDecodeUint8(data);
+
+        return ok ? decimals : 18;
     }
 
     function _computeAPYs(uint256 borrowSPY, uint256 cash, uint256 borrows, uint256 interestFee)
