@@ -36,7 +36,10 @@ if ! cast chain-id --rpc-url "$DEPLOYMENT_RPC_URL" &>/dev/null; then
         echo "export DEPLOYMENT_RPC_URL=${!env_var}"
         exit 0
     else
-        chains_data=$(curl -s https://chainid.network/chains_mini.json)
+        if ! chains_data=$(curl -fsSL https://chainid.network/chains_mini.json); then
+            echo "determineArgs: could not fetch the chain list; '$DEPLOYMENT_RPC_URL' cannot be resolved" >&2
+            chains_data="[]"
+        fi
 
         # Networks not in chainid.network - direct chain ID mapping
         case $(echo "$DEPLOYMENT_RPC_URL" | tr '[:upper:]' '[:lower:]') in
@@ -74,12 +77,22 @@ if ! cast chain-id --rpc-url "$DEPLOYMENT_RPC_URL" &>/dev/null; then
         
         if [ -z "$chain_id" ]; then
             if ! [[ "$network_name" =~ ^[0-9]+$ ]]; then
-                chain_id=$(echo "$chains_data" | jq -r '
-                    def words(str): str | ascii_downcase | split(" ");
-                    def matches(network; search): 
-                        (words(search) - words(network)) | length == 0;
-                    .[] | select(matches(.name; $search)) | .chainId
-                ' --arg search "$network_name" | head -n1)
+                # An exact name match wins. The subset match below accepts any name containing the search words, and
+                # takes whichever the upstream list happens to put first: that resolves "linea" to "Zytron Linea
+                # Mainnet", "berachain" to the "Berachain Bepolia" testnet and "morph" to "Morph Testnet".
+                chain_id=$(echo "$chains_data" | jq -r --arg search "$network_name" '
+                    [.[] | select((.name | ascii_downcase) == $search) | .chainId]
+                    | if length == 1 then .[0] else empty end
+                ')
+
+                if [ -z "$chain_id" ]; then
+                    chain_id=$(echo "$chains_data" | jq -r '
+                        def words(str): str | ascii_downcase | split(" ");
+                        def matches(network; search):
+                            (words(search) - words(network)) | length == 0;
+                        .[] | select(matches(.name; $search)) | .chainId
+                    ' --arg search "$network_name" | head -n1)
+                fi
             else
                 chain_id=$network_name
             fi
