@@ -19,9 +19,14 @@ abstract contract ScriptExtended is Script {
         string memory deploymentRpcUrl = getDeploymentRpcUrl();
         if (bytes(deploymentRpcUrl).length != 0) {
             forks[DEFAULT_FORK_CHAIN_ID] = vm.activeFork();
+            uint256 marketOpsForkBlockNumber = vm.envOr("MARKET_OPS_FORK_BLOCK_NUMBER", uint256(0));
 
             if (forks[DEFAULT_FORK_CHAIN_ID] == 0) {
-                forks[DEFAULT_FORK_CHAIN_ID] = vm.createSelectFork(deploymentRpcUrl);
+                forks[DEFAULT_FORK_CHAIN_ID] = marketOpsForkBlockNumber == 0
+                    ? vm.createSelectFork(deploymentRpcUrl)
+                    : vm.createSelectFork(deploymentRpcUrl, marketOpsForkBlockNumber);
+            } else if (marketOpsForkBlockNumber != 0) {
+                require(block.number == marketOpsForkBlockNumber, "ScriptExtended: fork block mismatch");
             }
 
             forks[block.chainid] = forks[DEFAULT_FORK_CHAIN_ID];
@@ -51,8 +56,10 @@ abstract contract ScriptExtended is Script {
         }
     }
 
-    function getDeployer() internal view returns (address) {
-        return deployerAddress;
+    function getDeployer() internal view virtual returns (address) {
+        return deployerAddress == address(0)
+            ? vm.envOr("MARKET_OPS_DEPLOYER", address(0))
+            : deployerAddress;
     }
 
     function getSafeSigner() internal view returns (address) {
@@ -337,6 +344,23 @@ abstract contract ScriptExtended is Script {
     function getScriptFilePath(string memory jsonFile) internal view returns (string memory) {
         string memory root = vm.projectRoot();
         return string.concat(root, "/script/", jsonFile);
+    }
+
+    function getScriptOutputDirPath() internal view returns (string memory) {
+        return resolveScriptOutputDirPath(vm.envOr("SCRIPT_OUTPUT_DIR", string("")));
+    }
+
+    function resolveScriptOutputDirPath(string memory path) internal view returns (string memory) {
+        if (bytes(path).length == 0) return string.concat(vm.projectRoot(), "/script");
+
+        require(vm.isDir(path), "getScriptOutputDirPath: SCRIPT_OUTPUT_DIR does not exist");
+        return bytes(path)[bytes(path).length - 1] == "/"
+            ? _substring(path, 0, bytes(path).length - 1)
+            : path;
+    }
+
+    function getScriptOutputFilePath(string memory fileName) internal view returns (string memory) {
+        return string.concat(getScriptOutputDirPath(), "/", fileName);
     }
 
     function getScriptFile(string memory jsonFile) internal view returns (string memory) {

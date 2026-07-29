@@ -19,6 +19,7 @@ import "../../src/Lens/LensTypes.sol";
 abstract contract ManageClusterBase is BatchBuilder {
     struct Cluster {
         string clusterAddressesPath;
+        bool clusterAddressesPathAbsolute;
         address oracleRoutersGovernor;
         address vaultsGovernor;
         address[] assets;
@@ -693,7 +694,7 @@ abstract contract ManageClusterBase is BatchBuilder {
         result = vm.serializeAddress("cluster", "externalVaults", cluster.externalVaults);
         result = vm.serializeAddress("cluster", "stubOracle", cluster.stubOracle);
 
-        vm.writeJson(result, string.concat(vm.projectRoot(), "/script/Cluster.json"));
+        vm.writeJson(result, getScriptOutputFilePath("Cluster.json"));
 
         if (isBroadcast()) {
             if (!_strEq(cluster.clusterAddressesPath, "")) vm.writeJson(result, cluster.clusterAddressesPath);
@@ -706,7 +707,9 @@ abstract contract ManageClusterBase is BatchBuilder {
 
     function loadCluster() private {
         if (!_strEq(cluster.clusterAddressesPath, "")) {
-            cluster.clusterAddressesPath = string.concat(vm.projectRoot(), cluster.clusterAddressesPath);
+            if (!cluster.clusterAddressesPathAbsolute) {
+                cluster.clusterAddressesPath = string.concat(vm.projectRoot(), cluster.clusterAddressesPath);
+            }
 
             if (vm.exists(cluster.clusterAddressesPath)) {
                 string memory json = vm.readFile(cluster.clusterAddressesPath);
