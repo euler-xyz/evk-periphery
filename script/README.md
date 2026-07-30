@@ -2,10 +2,18 @@
 
 ## Prerequisites
 
-Clone the `euler-interfaces` repository in the parent directory:
+Install [Foundry](https://book.getfoundry.sh/getting-started/installation), `git` and `jq`.
+
+Clone the `euler-interfaces` repository *next to* this one — the scripts resolve the address books through the hardcoded relative path `../euler-interfaces/addresses`, so the two checkouts must be siblings:
 
 ```sh
 cd .. && git clone https://github.com/euler-xyz/euler-interfaces.git && cd evk-periphery
+```
+
+Pull in the submodules and compile (the submodules are large, expect a ~1 GB checkout):
+
+```sh
+forge install && forge build
 ```
 
 Create the `.env` file from the example:
@@ -16,11 +24,11 @@ cp .env.example .env
 
 ### Environment Variables
 
-All environment variables can be overridden via command-line options.
+Where a variable and a command-line option address the same setting, **the variable wins** — `DEPLOYMENT_RPC_URL` overrides `--rpc-url`, `SAFE_ADDRESS` overrides `--safe-address`, `SAFE_NONCE` overrides `--safe-nonce` and `DEPLOYER_KEY` overrides `--account`/`--ledger`. Leave a variable empty in `.env` if you intend to pass it per invocation.
 
 | Variable | Description |
 |----------|-------------|
-| `DEPLOYMENT_RPC_URL` | Destination RPC endpoint (use `http://127.0.0.1:8545` for local anvil). If defined, takes precedence over `DEPLOYMENT_RPC_URL_<CHAIN_ID>` |
+| `DEPLOYMENT_RPC_URL` | Destination RPC endpoint (use `http://127.0.0.1:8545` for local anvil). If defined, pins every invocation to this one endpoint, taking precedence over both `--rpc-url` and `DEPLOYMENT_RPC_URL_<CHAIN_ID>`. Leave it empty unless that is what you want |
 | `DEPLOYMENT_RPC_URL_<CHAIN_ID>` | Chain-specific RPC URL (see RPC shorthand below) |
 | `FORK_RPC_URL` | Remote endpoint for local anvil fork state |
 | `DEPLOYER_KEY` | Private key for deployments (or use `--ledger` / `--account`) |
@@ -110,28 +118,35 @@ Get account information for a specific vault.
 ```
 
 #### MigratePosition
-Migrate positions between EVC accounts. Outputs step-by-step instructions for manual execution.
+Move an EVC account's collateral and debt to an account owned by another wallet, without unwinding the position. Broadcasts nothing — it simulates the migration and writes the two transactions to sign to `MigrationInstruction_<n>.txt` in the output directory.
+
+See [docs/position-migration.md](../docs/position-migration.md) for the full walkthrough, including what is *not* migrated.
 
 Single position:
 ```sh
 ./script/production/ExecuteSolidityScript.sh \
   ./script/production/CustomScripts.s.sol:MigratePosition \
+  --sig "run()" \
   --source-wallet <SOURCE_WALLET> \
   --destination-wallet <DESTINATION_WALLET> \
   --source-account-id <ID> \
   --destination-account-id <ID> \
-  --rpc-url <RPC_URL>
+  --rpc-url <RPC_URL> \
+  --dry-run
 ```
 
-Multiple positions:
+Multiple sub-accounts of the same wallet in one batch (`--source-account-id` / `--destination-account-id` are ignored in this form):
 ```sh
 ./script/production/ExecuteSolidityScript.sh \
   ./script/production/CustomScripts.s.sol:MigratePosition \
   --sig "run(uint8[],uint8[])" "[0,1,2]" "[0,1,2]" \
   --source-wallet <SOURCE_WALLET> \
   --destination-wallet <DESTINATION_WALLET> \
-  --rpc-url <RPC_URL>
+  --rpc-url <RPC_URL> \
+  --dry-run
 ```
+
+> `run` is overloaded, so `--sig` is mandatory — without it `forge` aborts with `Multiple functions with the same name 'run' found in the ABI`.
 
 #### MergeSafeBatchBuilderFiles
 Merge multiple `SafeBatchBuilder_<nonce>_<safe>_*.json` files into a single multisend transaction.
@@ -239,14 +254,14 @@ For rapid response to security incidents. Typically used with cluster scripts.
 
 ### Migration Options
 
-For `MigratePosition` script.
+For `MigratePosition` script. See [docs/position-migration.md](../docs/position-migration.md).
 
 | Option | Description |
 |--------|-------------|
-| `--source-wallet <ADDR>` | Source wallet address |
-| `--destination-wallet <ADDR>` | Destination wallet address |
-| `--source-account-id <ID>` | Source EVC sub-account ID (0-255) |
-| `--destination-account-id <ID>` | Destination EVC sub-account ID (0-255) |
+| `--source-wallet <ADDR>` | Source **owner wallet** address, not the sub-account address |
+| `--destination-wallet <ADDR>` | Destination **owner wallet** address, not the sub-account address |
+| `--source-account-id <ID>` | Source EVC sub-account ID (0-255). Ignored when `--sig "run(uint8[],uint8[])"` is used |
+| `--destination-account-id <ID>` | Destination EVC sub-account ID (0-255). Ignored when `--sig "run(uint8[],uint8[])"` is used |
 
 ### Other Options
 

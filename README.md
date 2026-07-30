@@ -114,6 +114,19 @@ Directory: [src/TermsOfUseSigner](src/TermsOfUseSigner)
 
 Contracts managing the signing and verification of terms of use.
 
+## Off-Chain Components
+
+### Deployment and Management Scripts
+
+Directory: [script](script)
+
+[Docs](./script/README.md)
+
+Foundry scripts for deploying and operating the Euler stack: full core and periphery deployment, cluster management, oracle adapter deployment and whitelisting, governance and emergency operations, and a set of one-off utility scripts in [`script/production/CustomScripts.s.sol`](script/production/CustomScripts.s.sol).
+
+* [Cluster deployment and emergency operations](./script/production/README.md)
+* [Migrating a position to another wallet](./docs/position-migration.md)
+
 ## Development
 
 Fork tests require `.env` file with `FORK_RPC_URL` variable set to a provider with archive node support, like Alchemy.

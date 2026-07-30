@@ -1,6 +1,10 @@
 #!/bin/bash
 
+# .env.example ships DEPLOYMENT_RPC_URL as an empty assignment, so sourcing it would wipe an endpoint the caller
+# already resolved and exported. Treat an empty value in .env as "not set" rather than as an override.
+inherited_deployment_rpc_url=$DEPLOYMENT_RPC_URL
 source .env
+DEPLOYMENT_RPC_URL=${DEPLOYMENT_RPC_URL:-$inherited_deployment_rpc_url}
 
 rpc_url=$(echo "$@" | grep -o '\--rpc-url [^ ]*' | cut -d ' ' -f 2)
 

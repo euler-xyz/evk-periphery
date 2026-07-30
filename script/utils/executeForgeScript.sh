@@ -7,7 +7,10 @@ shift
 # expands $@ unquoted. Without this, any argument containing *, ? or [ is silently replaced by matching filenames.
 set -f
 
+# see determineArgs.sh: an empty DEPLOYMENT_RPC_URL in .env must not clobber the one the caller already resolved
+inherited_deployment_rpc_url=$DEPLOYMENT_RPC_URL
 source .env
+DEPLOYMENT_RPC_URL=${DEPLOYMENT_RPC_URL:-$inherited_deployment_rpc_url}
 eval "$(./script/utils/determineArgs.sh "$@")"
 eval 'set -- $SCRIPT_ARGS'
 
