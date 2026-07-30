@@ -68,11 +68,12 @@ Open the source wallet's portfolio on [app.euler.finance](https://app.euler.fina
   --source-account-id <SOURCE_ID> \
   --destination-wallet <DESTINATION_WALLET> \
   --destination-account-id <DESTINATION_ID> \
-  --rpc-url <RPC_URL_OR_CHAIN_ID> \
+  --rpc-url <CHAIN_ID> \
   --dry-run
 ```
 
 * `--sig "run()"` is **required**. `run` is overloaded, and without an explicit signature `forge` aborts with `Multiple functions with the same name 'run' found in the ABI`.
+* `--rpc-url` takes the chain ID and resolves to the matching `DEPLOYMENT_RPC_URL_<CHAIN_ID>` from `.env`. Network names such as `mainnet` also work, but they are resolved by matching against a public chain list, which is ambiguous for some networks — pass the id.
 * `--source-wallet` / `--destination-wallet` are the **owner wallets**, not the sub-account addresses. The script derives the accounts from the wallet and the id.
 * `--dry-run` is what you want. The script only simulates and writes files; it has no transaction to broadcast.
 * The script prompts for a deployment name, which is only used to name the output directory.
@@ -111,7 +112,7 @@ The Usual Stability Loan market on Ethereum mainnet — `bUSD0` collateral, `USD
   --source-account-id 14 \
   --destination-wallet 0x1111111111111111111111111111111111111111 \
   --destination-account-id 0 \
-  --rpc-url mainnet \
+  --rpc-url 1 \
   --dry-run
 ```
 
