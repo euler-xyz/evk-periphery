@@ -20,15 +20,13 @@ Not migrated:
 * balance forwarder (rewards streaming) — if it was enabled on the source account, enable it on the destination account afterwards
 * positions on other chains — run the script once per chain
 
-## 1. Prerequisites
+## 1. Set up
 
-[Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge` and `cast`), `git`, `jq`, and an RPC endpoint for the chain the position is on.
+Install [Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge` and `cast`), plus `git` and `jq`:
 
 ```sh
 curl -L https://foundry.paradigm.xyz | bash && foundryup
 ```
-
-## 2. Clone and build
 
 `evk-periphery` reads its address books from `../euler-interfaces/addresses`, so the two checkouts **must be siblings**:
 
@@ -42,13 +40,11 @@ forge install && forge build
 
 The submodules are recursive and large — expect a checkout of roughly 1 GB and a first build of several minutes.
 
-## 3. Configure
+Then create the `.env` file and set the RPC endpoint for your chain, keyed by chain ID:
 
 ```sh
 cp .env.example .env
 ```
-
-Set the RPC endpoint for your chain in `.env`, keyed by chain ID:
 
 ```sh
 DEPLOYMENT_RPC_URL_1=https://your-ethereum-endpoint
@@ -56,32 +52,13 @@ DEPLOYMENT_RPC_URL_1=https://your-ethereum-endpoint
 
 Leave `DEPLOYMENT_RPC_URL` (the un-suffixed one) empty. If you set it, it pins every invocation to that single endpoint and `--rpc-url` is ignored.
 
-## 4. Identify the source account
+## 2. Find the source account
 
-An Euler position belongs to an *EVC account*: a wallet address plus a sub-account id from 0 to 255. The account address is the wallet address with its **last byte XOR-ed by the id**, so id `0` is the wallet itself.
+An Euler position belongs to an *EVC account*: a wallet address plus a sub-account id from 0 to 255, where id `0` is the wallet itself.
 
-If you know the account address the position sits on — from the UI, the block explorer or the API — recover the owner wallet and the id with:
+Open the source wallet's portfolio on [app.euler.finance](https://app.euler.finance) and note which sub-account holds the position — that number is the `--source-account-id` you pass below. The portfolio also shows which vaults are enabled as collateral, which is exactly what the migration will pick up.
 
-```sh
-RPC=https://your-ethereum-endpoint
-EVC=0x0C9a3dd6b8F28529d72d7f9cE918D493519EE383   # Ethereum mainnet; see euler-interfaces/addresses/<chainId>/CoreAddresses.json
-ACCOUNT=0x...                                     # the account holding the position
-
-OWNER=$(cast call $EVC "getAccountOwner(address)(address)" $ACCOUNT --rpc-url $RPC)
-ID=$(( 0x${ACCOUNT: -2} ^ 0x${OWNER: -2} ))
-echo "owner=$OWNER id=$ID"
-```
-
-Confirm what will be picked up:
-
-```sh
-cast call $EVC "getCollaterals(address)(address[])" $ACCOUNT --rpc-url $RPC
-cast call $EVC "getControllers(address)(address[])" $ACCOUNT --rpc-url $RPC
-```
-
-Anything not listed here will not be migrated.
-
-## 5. Run the script
+## 3. Run the script
 
 ```sh
 ./script/production/ExecuteSolidityScript.sh \
@@ -99,12 +76,9 @@ Anything not listed here will not be migrated.
 * `--source-wallet` / `--destination-wallet` are the **owner wallets**, not the sub-account addresses. The script derives the accounts from the wallet and the id.
 * `--dry-run` is what you want. The script only simulates and writes files; it has no transaction to broadcast.
 * The script prompts for a deployment name, which is only used to name the output directory.
+* If the destination wallet is a Safe, add `--batch-via-safe --safe-address <SAFE_ADDRESS>`. The second transaction is then written as a Safe Transaction Builder JSON instead of raw explorer input.
 
-To move several sub-accounts of the same wallet in one batch, pass the id lists instead. `--source-account-id` / `--destination-account-id` are ignored in this form:
-
-```sh
-  --sig "run(uint8[],uint8[])" "[0,1,2]" "[0,1,2]"
-```
+A successful run means the migration was simulated against current chain state and the destination account passed its health check. If the position is unhealthy or a vault forbids one of the operations, the script fails here rather than on chain.
 
 The instruction is printed to the console and written to:
 
@@ -114,44 +88,20 @@ script/deployments/<deployment_name>/<chainId>/dry-run/output/MigrationInstructi
 
 alongside `Batches_0.json`, which holds the same batch as ABI-encoded calldata under `data` — useful if you would rather submit the raw calldata than fill in the explorer's array field.
 
-A successful run means the migration was simulated against current chain state and the destination account passed its health check. If the position is unhealthy or the vault forbids one of the operations, the script fails here rather than on chain.
+## 4. Sign the two transactions
 
-## 6. Execute the two transactions
+Follow the instruction file. It walks through calling `setOperator` on the EVC from the **source** wallet, then `batch` from the **destination** wallet, with the exact input values filled in. Once the batch lands, the position shows up under the destination wallet in the app.
 
-The instruction file describes two transactions on the EVC.
+The file opens by telling you to trust the destination wallet. Three details it leaves out:
 
-**Step 1 — the source wallet authorises the destination wallet.** Call `setOperator(addressPrefix, operator, operatorBitField)` on the EVC from the source wallet, using the values from the file. `operatorBitField` is a bitmask of the sub-account ids being migrated: id 14 is `1 << 14` = `16384`.
+> **Between the two transactions the destination wallet has full control of the source sub-account** and can move the position anywhere. Keep the window short. If the second transaction is never sent, revoke immediately by re-sending `setOperator` with `operatorBitField` set to `0`.
 
-**Step 2 — the destination wallet pulls the position.** Call `batch(items)` on the EVC from the destination wallet, pasting the `items` array from the file. The batch transfers the collateral, pulls the debt, disables the source account's collateral and controller, and revokes the operator authorisation granted in step 1.
-
-> **Between step 1 and step 2 the destination wallet has full control of the source sub-account** and can move the position anywhere. Keep the window short, and be certain the destination wallet is yours. If step 2 is not executed, revoke immediately by re-sending `setOperator` with `operatorBitField` set to `0`.
-
-`setOperator` sets the operator's bitfield outright rather than adding to it. If the destination wallet already held operator rights over other sub-accounts of the same wallet, those are cleared.
-
-If step 2 reverts out of gas, resubmit it with a manually raised gas limit. The batch defers all health checks to the end of the transaction, and a tight wallet estimate can fall just short.
-
-If the destination wallet is a Safe, add `--batch-via-safe --safe-address <SAFE_ADDRESS>` to the command in step 5. Step 2 is then emitted as a Safe Transaction Builder JSON in the same output directory instead of raw explorer input. Step 1 is unaffected — it still has to be sent by the source wallet.
-
-## 7. Verify
-
-```sh
-cast call $EVC "getCollaterals(address)(address[])" $SOURCE_ACCOUNT --rpc-url $RPC       # []
-cast call $EVC "getControllers(address)(address[])" $SOURCE_ACCOUNT --rpc-url $RPC       # []
-cast call $EVC "getCollaterals(address)(address[])" $DESTINATION_ACCOUNT --rpc-url $RPC  # the collateral vaults
-cast call $EVC "getControllers(address)(address[])" $DESTINATION_ACCOUNT --rpc-url $RPC  # the borrow vault
-cast call $EVC "isAccountOperatorAuthorized(address,address)(bool)" $SOURCE_ACCOUNT $DESTINATION_WALLET --rpc-url $RPC  # false
-```
+* `setOperator` sets the operator's bitfield outright rather than adding to it. If the destination wallet already held operator rights over other sub-accounts of the same wallet, those are cleared.
+* If the batch reverts out of gas, resubmit it with a manually raised gas limit. It defers all health checks to the end of the transaction, and a tight wallet estimate can fall just short.
 
 ## Worked example
 
-The Usual Stability Loan market on Ethereum mainnet — `bUSD0` collateral, `USD0` borrowed:
-
-| | |
-|---|---|
-| collateral vault | `0xF037eeEBA7729c39114B9711c75FbccCa4A343C8` (`eUSD0++-3`, asset `bUSD0`) |
-| borrow vault | `0xd001f0a15D272542687b2677BA627f48A4333b5d` (`eUSD0-4`, asset `USD0`) |
-| owner wallet | `0x86b8dc38D6EAD92B200e1214bB5280e9db3E2cc9` |
-| sub-account id | `14`, i.e. account `0x86b8dc38d6ead92b200e1214bb5280e9db3e2cc7` |
+The Usual Stability Loan market on Ethereum mainnet — `bUSD0` collateral, `USD0` borrowed — held on sub-account `14` of `0x86b8dc38D6EAD92B200e1214bB5280e9db3E2cc9`:
 
 ```sh
 ./script/production/ExecuteSolidityScript.sh \
@@ -165,20 +115,6 @@ The Usual Stability Loan market on Ethereum mainnet — `bUSD0` collateral, `USD
   --dry-run
 ```
 
-produces:
-
-```
-Step 1: give control over your account to the destination wallet
-    setOperator/payableAmount: 0
-    addressPrefix: 0x86b8dc38d6ead92b200e1214bb5280e9db3e2c
-    operator: 0x1111111111111111111111111111111111111111
-    operatorBitField: 16384
-
-Step 2: pull the position from the source account to the destination account
-    batch/payableAmount: 0
-    items: [[...7 items...]]
-```
-
-The seven batch items are, in order: `enableCollateral` on the destination account, `transferFromMax` of the `eUSD0++-3` shares, `disableCollateral` on the source account, `enableController` on the destination account, `pullDebt(max)` from the source account, `disableController` on the source account, and `setAccountOperator(..., false)` to revoke step 1.
+produces a seven-item batch: `enableCollateral` on the destination account, `transferFromMax` of the `eUSD0++-3` shares, `disableCollateral` on the source account, `enableController` on the destination account, `pullDebt(max)` from the source account, `disableController` on the source account, and `setAccountOperator(..., false)` to revoke the operator grant.
 
 Note that this particular sub-account also holds `eUSDC-2` shares that were never enabled as collateral. They are not in `getCollaterals()`, so the migration leaves them on the source account — they have to be withdrawn or transferred separately.
