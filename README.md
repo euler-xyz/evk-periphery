@@ -94,6 +94,14 @@ Directory: [src/ERC20](src/ERC20)
 
 Custom ERC20 token implementations and extensions.
 
+### Collateral Vaults
+
+Directory: [src/Vault](src/Vault)
+
+* [Securitize ERC-4626 EVC collateral vault](./docs/securitize-vault.md)
+
+EVC-compatible, collateral-only ERC-4626 vault implementations and extensions.
+
 ### HookTarget
 
 Directory: [src/HookTarget](src/HookTarget)
