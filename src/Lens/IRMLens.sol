@@ -86,7 +86,11 @@ contract IRMLens is Utils {
         } else {
             // Fallback: IRMs that self-identify via IIRMNamed do not need a dedicated factory to be typed.
             (bool success, bytes memory data) = irm.staticcall(abi.encodeCall(IIRMNamed.name, ()));
-            string memory name = success && data.length >= 32 ? abi.decode(data, (string)) : "";
+            string memory name = "";
+
+            // string is a dynamic type, so the decode validates offsets and reverts on malformed data that the length
+            // check above still admits. An IRM outside the known factories reaching this would break the vault query.
+            if (success && data.length >= 32) (, name) = _tryDecodeString(data);
 
             if (_strEq(name, "IRMFixedCyclicalBinaryMonthly")) {
                 result.interestRateModelType = InterestRateModelType.FIXED_CYCLICAL_BINARY_MONTHLY;

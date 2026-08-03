@@ -130,8 +130,10 @@ contract UtilsLens is Utils {
                 amountIn = abi.decode(data, (uint256));
                 (success, data) = asset.staticcall(abi.encodeCall(IEVault(asset).asset, ()));
 
-                if (success && data.length >= 32) {
-                    asset = abi.decode(data, (address));
+                (bool ok, address underlying) = _tryDecodeAddress(data);
+
+                if (success && ok) {
+                    asset = underlying;
                     adapters = oracleLens.getValidAdapters(asset, unitOfAccount);
                 }
             }

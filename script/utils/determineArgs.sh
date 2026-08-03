@@ -1,6 +1,10 @@
 #!/bin/bash
 
+# .env.example ships DEPLOYMENT_RPC_URL as an empty assignment, so sourcing it would wipe an endpoint the caller
+# already resolved and exported. Treat an empty value in .env as "not set" rather than as an override.
+inherited_deployment_rpc_url=$DEPLOYMENT_RPC_URL
 source .env
+DEPLOYMENT_RPC_URL=${DEPLOYMENT_RPC_URL:-$inherited_deployment_rpc_url}
 
 rpc_url=$(echo "$@" | grep -o '\--rpc-url [^ ]*' | cut -d ' ' -f 2)
 
@@ -21,8 +25,10 @@ if [ -z "$DEPLOYMENT_RPC_URL" ]; then
 fi
 
 echo "$EXPORT_ENV_VARS"
-echo "export SAFE_API_KEY=$SAFE_API_KEY"
-echo "export SCRIPT_ARGS='$SCRIPT_ARGS'"
+# shell-quoted: the caller consumes these lines with eval, where an unescaped space or apostrophe in the value would
+# truncate the assignment, discard the arguments outright, or run whatever follows it
+printf 'export SAFE_API_KEY=%q\n' "$SAFE_API_KEY"
+printf 'export SCRIPT_ARGS=%q\n' "$SCRIPT_ARGS"
 
 if [ "$DEPLOYMENT_RPC_URL" == "local" ]; then
     echo "export DEPLOYMENT_RPC_URL=http://127.0.0.1:8545"
@@ -33,10 +39,13 @@ if ! cast chain-id --rpc-url "$DEPLOYMENT_RPC_URL" &>/dev/null; then
     env_var="DEPLOYMENT_RPC_URL_${DEPLOYMENT_RPC_URL}"
 
     if [ -n "${!env_var}" ]; then
-        echo "export DEPLOYMENT_RPC_URL=${!env_var}"
+        printf 'export DEPLOYMENT_RPC_URL=%q\n' "${!env_var}"
         exit 0
     else
-        chains_data=$(curl -s https://chainid.network/chains_mini.json)
+        if ! chains_data=$(curl -fsSL https://chainid.network/chains_mini.json); then
+            echo "determineArgs: could not fetch the chain list; '$DEPLOYMENT_RPC_URL' cannot be resolved" >&2
+            chains_data="[]"
+        fi
 
         # Networks not in chainid.network - direct chain ID mapping
         case $(echo "$DEPLOYMENT_RPC_URL" | tr '[:upper:]' '[:lower:]') in
@@ -74,12 +83,22 @@ if ! cast chain-id --rpc-url "$DEPLOYMENT_RPC_URL" &>/dev/null; then
         
         if [ -z "$chain_id" ]; then
             if ! [[ "$network_name" =~ ^[0-9]+$ ]]; then
-                chain_id=$(echo "$chains_data" | jq -r '
-                    def words(str): str | ascii_downcase | split(" ");
-                    def matches(network; search): 
-                        (words(search) - words(network)) | length == 0;
-                    .[] | select(matches(.name; $search)) | .chainId
-                ' --arg search "$network_name" | head -n1)
+                # An exact name match wins. The subset match below accepts any name containing the search words, and
+                # takes whichever the upstream list happens to put first: that resolves "linea" to "Zytron Linea
+                # Mainnet", "berachain" to the "Berachain Bepolia" testnet and "morph" to "Morph Testnet".
+                chain_id=$(echo "$chains_data" | jq -r --arg search "$network_name" '
+                    [.[] | select((.name | ascii_downcase) == $search) | .chainId]
+                    | if length == 1 then .[0] else empty end
+                ')
+
+                if [ -z "$chain_id" ]; then
+                    chain_id=$(echo "$chains_data" | jq -r '
+                        def words(str): str | ascii_downcase | split(" ");
+                        def matches(network; search):
+                            (words(search) - words(network)) | length == 0;
+                        .[] | select(matches(.name; $search)) | .chainId
+                    ' --arg search "$network_name" | head -n1)
+                fi
             else
                 chain_id=$network_name
             fi
@@ -88,10 +107,10 @@ if ! cast chain-id --rpc-url "$DEPLOYMENT_RPC_URL" &>/dev/null; then
         env_var="DEPLOYMENT_RPC_URL_${chain_id}"
 
         if [ -n "${!env_var}" ]; then
-            echo "export DEPLOYMENT_RPC_URL=${!env_var}"
+            printf 'export DEPLOYMENT_RPC_URL=%q\n' "${!env_var}"
             exit 0
         fi
     fi
 fi
 
-echo "export DEPLOYMENT_RPC_URL=$DEPLOYMENT_RPC_URL"
+printf 'export DEPLOYMENT_RPC_URL=%q\n' "$DEPLOYMENT_RPC_URL"

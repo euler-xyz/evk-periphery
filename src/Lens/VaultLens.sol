@@ -306,10 +306,11 @@ contract VaultLens is Utils {
         }
 
         LTVInfo[] memory collateralLTVInfo = new LTVInfo[](numberOfRecognizedCollaterals);
+        uint256 recognizedIndex = 0;
 
         for (uint256 i = 0; i < collaterals.length; ++i) {
             if (ltvInfo[i].targetTimestamp != 0) {
-                collateralLTVInfo[i] = ltvInfo[i];
+                collateralLTVInfo[recognizedIndex++] = ltvInfo[i];
             }
         }
 
@@ -337,9 +338,8 @@ contract VaultLens is Utils {
         result.interestRateInfo = new InterestRateInfo[](cash.length);
 
         for (uint256 i = 0; i < cash.length; ++i) {
-            (bool success, bytes memory data) = result.interestRateModel.staticcall(
-                abi.encodeCall(IIRM.computeInterestRateView, (vault, cash[i], borrows[i]))
-            );
+            (bool success, bytes memory data) = result.interestRateModel
+                .staticcall(abi.encodeCall(IIRM.computeInterestRateView, (vault, cash[i], borrows[i])));
 
             if (!success || data.length < 32) {
                 result.queryFailure = true;

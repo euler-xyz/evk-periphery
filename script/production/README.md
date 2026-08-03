@@ -176,13 +176,19 @@ Disable borrowing against a specific vault and set caps to zero:
 # Install/update Foundry
 foundryup
 
-# Clone repositories
-git clone https://github.com/euler-xyz/evk-periphery.git && cd evk-periphery
-cd .. && git clone https://github.com/euler-xyz/euler-interfaces.git && cd evk-periphery
+# Clone both repositories as siblings — the scripts read the address books from ../euler-interfaces
+git clone https://github.com/euler-xyz/evk-periphery.git
+git clone https://github.com/euler-xyz/euler-interfaces.git
+cd evk-periphery
 
 # Install dependencies and compile
 forge install
 forge clean && forge compile
+
+# Configure
+cp .env.example .env   # then set at least DEPLOYMENT_RPC_URL_<CHAIN_ID>
 ```
 
-> **Note**: Environment variables in `.env` take precedence over command line arguments.
+> **Note**: Environment variables in `.env` take precedence over command line arguments. Leave a variable empty if you intend to pass it per invocation.
+
+See [../README.md](../README.md) for the full environment variable and option reference.

@@ -28,6 +28,8 @@ struct EVCAccountInfo {
 }
 
 struct VaultAccountInfo {
+    bool queryFailure;
+    bytes queryFailureReason;
     uint256 timestamp;
     address account;
     address vault;

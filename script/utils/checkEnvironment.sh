@@ -1,6 +1,9 @@
 #!/bin/bash
 
+# see determineArgs.sh: an empty DEPLOYMENT_RPC_URL in .env must not clobber the one the caller already resolved
+inherited_deployment_rpc_url=$DEPLOYMENT_RPC_URL
 source .env
+DEPLOYMENT_RPC_URL=${DEPLOYMENT_RPC_URL:-$inherited_deployment_rpc_url}
 eval "$(./script/utils/determineArgs.sh "$@")"
 
 if ! command -v jq &> /dev/null; then

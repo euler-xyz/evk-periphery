@@ -42,16 +42,35 @@ contract Integrations is ScriptUtils {
         return (evc, protocolConfig, sequenceRegistry, balanceTracker, permit2);
     }
 
-    function execute(address permit2)
-        public
-        returns (address evc, address protocolConfig, address sequenceRegistry, address balanceTracker, address)
-    {
+    function deployMissing(
+        address permit2,
+        address evc,
+        address protocolConfig,
+        address sequenceRegistry,
+        address balanceTracker
+    ) public broadcast returns (address, address, address, address, address) {
+        return execute(permit2, evc, protocolConfig, sequenceRegistry, balanceTracker);
+    }
+
+    function execute(address permit2) public returns (address, address, address, address, address) {
+        return execute(permit2, address(0), address(0), address(0), address(0));
+    }
+
+    /// @dev Deploys only the contracts passed in as zero. balanceTracker is deployed against the resolved EVC, so an
+    /// existing EVC is reused rather than replaced.
+    function execute(
+        address permit2,
+        address evc,
+        address protocolConfig,
+        address sequenceRegistry,
+        address balanceTracker
+    ) public returns (address, address, address, address, address) {
         address deployer = getDeployer();
 
-        evc = address(new EthereumVaultConnector());
-        protocolConfig = address(new ProtocolConfig(deployer, deployer));
-        sequenceRegistry = address(new SequenceRegistry());
-        balanceTracker = address(new TrackingRewardStreams(evc, 14 days));
+        if (evc == address(0)) evc = address(new EthereumVaultConnector());
+        if (protocolConfig == address(0)) protocolConfig = address(new ProtocolConfig(deployer, deployer));
+        if (sequenceRegistry == address(0)) sequenceRegistry = address(new SequenceRegistry());
+        if (balanceTracker == address(0)) balanceTracker = address(new TrackingRewardStreams(evc, 14 days));
 
         if (permit2.code.length == 0) {
             if (isLocalForkDeployment()) {
