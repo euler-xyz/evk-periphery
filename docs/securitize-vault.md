@@ -9,8 +9,8 @@ The vault is infrastructure for an issuer-approved integration. It does not defi
 The deployed contract is the final layer of a reusable ERC-4626 stack:
 
 1. **`ERC4626EVC`** provides ERC-4626 accounting, EVC-aware authentication, Permit2 support and internal `totalAssets` tracking.
-2. **`ERC4626EVCCollateral`** adds collateral-only behavior and EVC vault/account status checks.
-3. **`ERC4626EVCCollateralCapped`** adds a governor-managed supply cap, snapshots and reentrancy protection.
+2. **`ERC4626EVCCollateral`** adds collateral-only behavior and EVC account status checks.
+3. **`ERC4626EVCCollateralCapped`** adds a governor-managed supply cap, EVC vault status checks, snapshots and reentrancy protection.
 4. **`ERC4626EVCCollateralFreezable`** adds a global pause and per-account-family freezes.
 5. **`ERC4626EVCCollateralSecuritize`** restricts deposits and share transfers, checks eligible recipients for liquidation and seizure, and tracks balances by EVC address prefix.
 6. **`ERC4626EVCCollateralSecuritizeFactory`** deploys vault instances and records them in the factory registry.
@@ -36,14 +36,16 @@ The table below summarizes the principal token-moving paths. “Underlying sourc
 
 | Operation | Wrapper shares move from / to | Underlying source / receiver | Principal checks and exceptions |
 | --- | --- | --- | --- |
-| `deposit(assets, receiver)` | minted to `receiver` | caller to vault | `receiver` must share the caller's EVC owner; vault not paused; receiver not frozen; supply cap and underlying token checks apply |
+| `deposit(assets, receiver)` | minted to `receiver` | caller to vault | `receiver` must share the caller's EVC owner; receiver not frozen; supply cap and underlying token checks apply |
 | `mint(shares, receiver)` | minted to `receiver` | caller to vault | same policy as `deposit` |
 | `transfer(to, amount)` | caller to `to` | none | same EVC owner, except a verified-controller liquidation; sender and receiver not frozen |
 | `transferFrom(from, to, amount)` | `from` to `to` | none | same EVC owner, except a verified-controller liquidation; allowance/authentication and freeze checks apply |
 | `withdraw(assets, receiver, owner)` | burned from `owner` | vault to `receiver` | standard ERC-4626 owner/allowance rules; receiver must not be an EVC subaccount without its own key; owner and receiver not frozen; underlying token checks apply |
 | `redeem(shares, receiver, owner)` | burned from `owner` | vault to `receiver` | same policy as `withdraw` |
 | liquidation share transfer | borrower to liquidator | none until redemption | EVC control-collateral context; controller verified by `controllerPerspective`; `isTransferCompliant` performs a point-in-time hypothetical vault-to-liquidator-owner precheck; borrower issuance provenance and the eventual redemption receiver are not preserved |
-| `seize(from, to, amount)` | `from` to `to` | none until redemption | governor only; recipient must pass the same vault-to-recipient compliance simulation |
+| `seize(from, to, amount)` | `from` to `to` | none until redemption | governor only; recipient not frozen; recipient must pass the same vault-to-recipient compliance simulation; the source account's freeze status is not checked |
+
+Every operation in the table additionally requires the vault not to be paused.
 
 ### Withdraw and redeem receivers
 
@@ -53,7 +55,7 @@ Integrators must not assume that the deposit/mint same-owner restriction also bi
 
 ### Liquidation and seizure compliance sender
 
-`isTransferCompliant(to, amount)` resolves the recipient's EVC owner and calls the underlying compliance service as follows:
+`isTransferCompliant(to, amount)` resolves the recipient's EVC owner — returning `false` if the recipient has no registered EVC owner, so a liquidator or seizure recipient must be registered in the EVC — and calls the underlying compliance service as follows:
 
 ```solidity
 preTransferCheck(address(this), toOwner, previewRedeem(amount));
@@ -96,13 +98,13 @@ The governor can pause value-moving operations. While checks are in progress, pa
 
 ### Account-family freeze
 
-The governor can freeze an address prefix, covering a root EVC account and its subaccounts. A frozen family's balance cannot change through normal vault operations. During EVC checks, frozen collateral reports a zero balance.
+The governor can freeze an address prefix, covering a root EVC account and its subaccounts. A frozen family's balance cannot change through normal vault operations; governor `seize` is the exception. During EVC checks, frozen collateral reports a zero balance.
 
 The vault freeze is a wrapper control. It is distinct from any investor lock, sanctions control or transfer restriction implemented by the underlying token.
 
 ### Governor seizure
 
-The governor can transfer shares from an account to an eligible recipient through `seize`. The operation does not transfer underlying assets immediately. The recipient may later redeem, subject to the underlying token's vault-to-recipient transfer checks.
+The governor can transfer shares from an account to an eligible recipient through `seize`. Seizure requires the vault not to be paused and the recipient's family not to be frozen, but does not check the source account's freeze status, so a frozen family's shares can still be seized (supporting a freeze-then-seize sequence). The operation does not transfer underlying assets immediately. The recipient may later redeem, subject to the underlying token's vault-to-recipient transfer checks.
 
 ### Controller perspective
 
