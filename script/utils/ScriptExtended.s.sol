@@ -119,8 +119,6 @@ abstract contract ScriptExtended is Script {
                 timelockAddress = "accessControlEmergencyGovernorAdminTimelockController";
             } else if (_strEq(timelockAddress, "wildcard") || _strEq(timelockAddress, "Wildcard")) {
                 timelockAddress = "accessControlEmergencyGovernorWildcardTimelockController";
-            } else if (_strEq(timelockAddress, "eusd") || _strEq(timelockAddress, "eUSD")) {
-                timelockAddress = "eUSDAdminTimelockController";
             }
 
             timelock =
@@ -254,14 +252,6 @@ abstract contract ScriptExtended is Script {
 
     function getSkipOFTConfigEUL() internal view returns (bool) {
         return _strEq(vm.envOr("skip_oft_config_eul", string("")), "--skip-oft-config-eul");
-    }
-
-    function getSkipOFTConfigEUSD() internal view returns (bool) {
-        return _strEq(vm.envOr("skip_oft_config_eusd", string("")), "--skip-oft-config-eusd");
-    }
-
-    function getSkipOFTConfigSEUSD() internal view returns (bool) {
-        return _strEq(vm.envOr("skip_oft_config_seusd", string("")), "--skip-oft-config-seusd");
     }
 
     function getCheckPhasedOutVaults() internal view returns (bool) {

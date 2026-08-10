@@ -75,7 +75,6 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address swapVerifier;
         address feeFlowController;
         address feeFlowControllerUtil;
-        address feeCollector;
         address evkFactoryPerspective;
         address escrowedCollateralPerspective;
         address eulerEarnFactoryPerspective;
@@ -98,7 +97,6 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         result = vm.serializeAddress("peripheryAddresses", "swapVerifier", Addresses.swapVerifier);
         result = vm.serializeAddress("peripheryAddresses", "feeFlowController", Addresses.feeFlowController);
         result = vm.serializeAddress("peripheryAddresses", "feeFlowControllerUtil", Addresses.feeFlowControllerUtil);
-        result = vm.serializeAddress("peripheryAddresses", "feeCollector", Addresses.feeCollector);
         result = vm.serializeAddress("peripheryAddresses", "evkFactoryPerspective", Addresses.evkFactoryPerspective);
         result = vm.serializeAddress(
             "peripheryAddresses", "escrowedCollateralPerspective", Addresses.escrowedCollateralPerspective
@@ -129,7 +127,6 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             swapVerifier: getAddressFromJson(json, ".swapVerifier"),
             feeFlowController: getAddressFromJson(json, ".feeFlowController"),
             feeFlowControllerUtil: getAddressFromJson(json, ".feeFlowControllerUtil"),
-            feeCollector: getAddressFromJson(json, ".feeCollector"),
             evkFactoryPerspective: getAddressFromJson(json, ".evkFactoryPerspective"),
             escrowedCollateralPerspective: getAddressFromJson(json, ".escrowedCollateralPerspective"),
             eulerEarnFactoryPerspective: getAddressFromJson(json, ".eulerEarnFactoryPerspective"),
@@ -181,7 +178,6 @@ abstract contract GovernorAddressesLib is ScriptExtended {
         address accessControlEmergencyGovernorAdminTimelockController;
         address accessControlEmergencyGovernorWildcardTimelockController;
         address capRiskSteward;
-        address eUSDAdminTimelockController;
     }
 
     function serializeGovernorAddresses(GovernorAddresses memory Addresses) internal returns (string memory result) {
@@ -203,9 +199,6 @@ abstract contract GovernorAddressesLib is ScriptExtended {
             Addresses.accessControlEmergencyGovernorWildcardTimelockController
         );
         result = vm.serializeAddress("governorAddresses", "capRiskSteward", Addresses.capRiskSteward);
-        result = vm.serializeAddress(
-            "governorAddresses", "eUSDAdminTimelockController", Addresses.eUSDAdminTimelockController
-        );
     }
 
     function deserializeGovernorAddresses(string memory json) internal pure returns (GovernorAddresses memory) {
@@ -219,8 +212,7 @@ abstract contract GovernorAddressesLib is ScriptExtended {
             accessControlEmergencyGovernorWildcardTimelockController: getAddressFromJson(
                 json, ".accessControlEmergencyGovernorWildcardTimelockController"
             ),
-            capRiskSteward: getAddressFromJson(json, ".capRiskSteward"),
-            eUSDAdminTimelockController: getAddressFromJson(json, ".eUSDAdminTimelockController")
+            capRiskSteward: getAddressFromJson(json, ".capRiskSteward")
         });
     }
 }
@@ -229,24 +221,15 @@ abstract contract TokenAddressesLib is ScriptExtended {
     struct TokenAddresses {
         address EUL;
         address rEUL;
-        address eUSD;
-        address seUSD;
     }
 
     function serializeTokenAddresses(TokenAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("tokenAddresses", "EUL", Addresses.EUL);
         result = vm.serializeAddress("tokenAddresses", "rEUL", Addresses.rEUL);
-        result = vm.serializeAddress("tokenAddresses", "eUSD", Addresses.eUSD);
-        result = vm.serializeAddress("tokenAddresses", "seUSD", Addresses.seUSD);
     }
 
     function deserializeTokenAddresses(string memory json) internal pure returns (TokenAddresses memory) {
-        return TokenAddresses({
-            EUL: getAddressFromJson(json, ".EUL"),
-            rEUL: getAddressFromJson(json, ".rEUL"),
-            eUSD: getAddressFromJson(json, ".eUSD"),
-            seUSD: getAddressFromJson(json, ".seUSD")
-        });
+        return TokenAddresses({EUL: getAddressFromJson(json, ".EUL"), rEUL: getAddressFromJson(json, ".rEUL")});
     }
 }
 
@@ -338,22 +321,14 @@ abstract contract EulerSwapAddressesLib is ScriptExtended {
 abstract contract BridgeAddressesLib is ScriptExtended {
     struct BridgeAddresses {
         address eulOFTAdapter;
-        address eusdOFTAdapter;
-        address seusdOFTAdapter;
     }
 
     function serializeBridgeAddresses(BridgeAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("bridgeAddresses", "eulOFTAdapter", Addresses.eulOFTAdapter);
-        result = vm.serializeAddress("bridgeAddresses", "eusdOFTAdapter", Addresses.eusdOFTAdapter);
-        result = vm.serializeAddress("bridgeAddresses", "seusdOFTAdapter", Addresses.seusdOFTAdapter);
     }
 
     function deserializeBridgeAddresses(string memory json) internal pure returns (BridgeAddresses memory) {
-        return BridgeAddresses({
-            eulOFTAdapter: getAddressFromJson(json, ".eulOFTAdapter"),
-            eusdOFTAdapter: getAddressFromJson(json, ".eusdOFTAdapter"),
-            seusdOFTAdapter: getAddressFromJson(json, ".seusdOFTAdapter")
-        });
+        return BridgeAddresses({eulOFTAdapter: getAddressFromJson(json, ".eulOFTAdapter")});
     }
 }
 
