@@ -82,7 +82,7 @@ while true; do
         echo "Select an option to deploy/configure:"
         echo "0. ERC20 tokens"
         echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
-        echo "2. Periphery factories and registries"
+        echo "2. Periphery factories"
         echo "3. Oracle adapter"
         echo "4. IRM"
         echo "5. EVault implementation (modules and implementation contract)"
@@ -101,7 +101,6 @@ while true; do
         echo "---------------------------------"
         echo "50. Core and Periphery Deployment and Configuration"
         echo "51. Core Ownership Transfer"
-        echo "52. Periphery Ownership Transfer"
         echo "53. Access Control Configuration"
         read -p "Enter your choice: " menu_choice
     fi
@@ -1458,13 +1457,6 @@ while true; do
             echo "Core Ownership Transfer..."
 
             baseName=51_OwnershipTransferCore
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
-            ;;
-        52)
-            echo "Periphery Ownership Transfer..."
-
-            baseName=52_OwnershipTransferPeriphery
             scriptName=${baseName}.s.sol
             jsonName=$baseName
             ;;

@@ -451,7 +451,7 @@ contract RedeployOracleUtilsAndVaultLenses is BatchBuilder {
     function run() public {
         {
             LensOracleDeployer deployer = new LensOracleDeployer();
-            lensAddresses.oracleLens = deployer.deploy(peripheryAddresses.oracleAdapterRegistry);
+            lensAddresses.oracleLens = deployer.deploy(address(0));
         }
         {
             LensUtilsDeployer deployer = new LensUtilsDeployer();
