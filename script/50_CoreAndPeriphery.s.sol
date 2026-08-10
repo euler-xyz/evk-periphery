@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {BatchBuilder, Vm, console} from "./utils/ScriptUtils.s.sol";
 import {SafeMultisendBuilder, SafeTransaction} from "./utils/SafeUtils.s.sol";
 import {LayerZeroUtil} from "./utils/LayerZeroUtils.s.sol";
-import {ERC20BurnableMintableDeployer, RewardTokenDeployer, ERC20SynthDeployer, ERC20Synth} from "./00_ERC20.s.sol";
+import {ERC20BurnableMintableDeployer, RewardTokenDeployer} from "./00_ERC20.s.sol";
 import {Integrations, ProtocolConfig} from "./01_Integrations.s.sol";
 import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
 import {EVaultImplementation} from "./05_EVaultImplementation.s.sol";
@@ -21,32 +21,21 @@ import {
 import {
     EVKFactoryPerspectiveDeployer,
     EVKPerspectiveEscrowedCollateralDeployer,
-    EulerEarnFactoryPerspectiveDeployer,
-    EdgePerspectivesDeployer
+    EulerEarnFactoryPerspectiveDeployer
 } from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
 import {EVaultFactoryGovernorDeployer, TimelockControllerDeployer} from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {OFTAdapterUpgradeableDeployer, MintBurnOFTAdapterDeployer} from "./14_OFT.s.sol";
-import {EdgeFactoryDeployer} from "./15_EdgeFactory.s.sol";
 import {EulerEarnFactoryDeployer} from "./20_EulerEarnFactory.s.sol";
 import {EulerSwapImplementationDeployer} from "./21_EulerSwapImplementation.s.sol";
 import {EulerSwapFactoryDeployer} from "./22_EulerSwapFactory.s.sol";
 import {EulerSwapPeripheryDeployer} from "./23_EulerSwapPeriphery.s.sol";
 import {EulerSwapRegistryDeployer} from "./24_EulerSwapRegistry.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
-import {
-    IGovernorAccessControlEmergencyFactory,
-    GovernorAccessControlEmergencyFactory
-} from "./../src/GovernorFactory/GovernorAccessControlEmergencyFactory.sol";
-import {CapRiskStewardFactory} from "./../src/GovernorFactory/CapRiskStewardFactory.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
-import {FeeCollectorUtil} from "./../src/Util/FeeCollectorUtil.sol";
-import {OFTFeeCollectorGulper} from "./../src/OFT/OFTFeeCollectorGulper.sol";
-import {OFTFeeCollector} from "./../src/OFT/OFTFeeCollector.sol";
-import {EulerSavingsRate} from "evk/Synths/EulerSavingsRate.sol";
 import {Base} from "evk/EVault/shared/Base.sol";
 import {ProtocolConfig} from "evk/ProtocolConfig/ProtocolConfig.sol";
 import {AccessControl} from "openzeppelin-contracts/access/AccessControl.sol";
@@ -84,8 +73,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         bool deployEULOFT;
         bool deployEulerEarn;
         bool deployEulerSwap;
-        bool deployEUSD;
-        bool deploySEUSD;
         bool deploySecuritizeFactory;
         address uniswapPoolManager;
         address eulerSwapProtocolFeeConfigAdmin;
@@ -96,9 +83,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     uint256 internal constant HUB_CHAIN_ID = 1;
     uint8 internal constant STANDARD_DECIMALS = 18;
     uint256 internal constant EVAULT_FACTORY_TIMELOCK_MIN_DELAY = 4 days;
-    uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
-    uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_WILDCARD_TIMELOCK_MIN_DELAY = 2 days;
-    uint256 internal constant EUSD_ADMIN_TIMELOCK_MIN_DELAY = 7 days;
     address[2] internal EVAULT_FACTORY_GOVERNOR_PAUSERS =
         [0xff217004BdD3A6A592162380dc0E6BbF143291eB, 0xcC6451385685721778E7Bd80B54F8c92b484F601];
 
@@ -132,22 +116,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             cfg.configIgnoreChainIds = [uint256(2818), 999, 1923];
             cfg.configOneDirectionChainIds = [uint256(130), 143, 146, 239, 9745, 43114, 59144, 60808, 80094];
         }
-
-        {
-            OFTTokenConfig storage cfg = OFT_CONFIG["eUSD"];
-            cfg.enforcedGasLimitSend = 150000;
-            cfg.enforcedGasLimitCall = 100000;
-            cfg.requiredDVNsCount = 4;
-            cfg.configIgnoreChainIds = [uint256(2818), 999];
-        }
-
-        {
-            OFTTokenConfig storage cfg = OFT_CONFIG["seUSD"];
-            cfg.enforcedGasLimitSend = 100000;
-            cfg.enforcedGasLimitCall = 100000;
-            cfg.requiredDVNsCount = 4;
-            cfg.configIgnoreChainIds = [uint256(2818), 999];
-        }
     }
 
     function run()
@@ -174,8 +142,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             deployEULOFT: vm.parseJsonBool(json, ".deployEULOFT"),
             deployEulerEarn: vm.parseJsonBool(json, ".deployEulerEarn"),
             deployEulerSwap: vm.parseJsonBool(json, ".deployEulerSwap"),
-            deployEUSD: vm.parseJsonBool(json, ".deployEUSD"),
-            deploySEUSD: vm.parseJsonBool(json, ".deploySEUSD"),
             deploySecuritizeFactory: vm.parseJsonBool(json, ".deploySecuritizeFactory"),
             uniswapPoolManager: vm.parseJsonAddress(json, ".uniswapPoolManager"),
             eulerSwapProtocolFeeConfigAdmin: vm.parseJsonAddress(json, ".eulerSwapProtocolFeeConfigAdmin"),
@@ -353,196 +319,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             configureOFTAdapter(tokenAddresses.EUL, bridgeAddresses.eulOFTAdapter);
         }
 
-        if (tokenAddresses.eUSD == address(0)) {
-            if (input.deployEUSD) {
-                console.log("+ Deploying eUSD...");
-                {
-                    ERC20SynthDeployer deployer = new ERC20SynthDeployer();
-                    tokenAddresses.eUSD = deployer.deploy(coreAddresses.evc, "Euler USD", "eUSD", STANDARD_DECIMALS);
-                }
-
-                startBroadcast();
-                console.log("    Granting eUSD revoke minter role to the desired address %s", multisigAddresses.labs);
-                bytes32 revokeMinterRole = ERC20BurnableMintable(tokenAddresses.eUSD).REVOKE_MINTER_ROLE();
-                AccessControl(tokenAddresses.eUSD).grantRole(revokeMinterRole, multisigAddresses.labs);
-                stopBroadcast();
-
-                console.log(" + Deploying eUSD timelock controller...");
-                {
-                    TimelockControllerDeployer deployer = new TimelockControllerDeployer();
-                    address[] memory proposers = new address[](1);
-                    address[] memory executors = new address[](1);
-                    proposers[0] = multisigAddresses.DAO;
-                    executors[0] = address(0);
-                    governorAddresses.eUSDAdminTimelockController =
-                        deployer.deploy(EUSD_ADMIN_TIMELOCK_MIN_DELAY, proposers, executors);
-                }
-
-                console.log("    Granting proposer role to address %s", multisigAddresses.DAO);
-                console.log("    Granting canceller role to address %s", multisigAddresses.DAO);
-                console.log("    Granting executor role to anyone");
-                console.log("    Granting canceller role to address %s", multisigAddresses.labs);
-
-                startBroadcast();
-                bytes32 cancellerRole =
-                    TimelockController(payable(governorAddresses.eUSDAdminTimelockController)).CANCELLER_ROLE();
-                AccessControl(governorAddresses.eUSDAdminTimelockController)
-                    .grantRole(cancellerRole, multisigAddresses.labs);
-
-                console.log(
-                    "    Granting eUSD allocator role to the desired address %s",
-                    governorAddresses.eUSDAdminTimelockController
-                );
-                bytes32 allocatorRole = ERC20Synth(tokenAddresses.eUSD).ALLOCATOR_ROLE();
-                AccessControl(tokenAddresses.eUSD)
-                    .grantRole(allocatorRole, governorAddresses.eUSDAdminTimelockController);
-                stopBroadcast();
-            } else {
-                console.log("! eUSD deployment deliberately skipped. Skipping...");
-            }
-        } else {
-            console.log("- eUSD already deployed. Skipping...");
-        }
-
-        if (bridgeAddresses.eusdOFTAdapter == address(0)) {
-            if (tokenAddresses.eUSD != address(0)) {
-                console.log("+ Deploying OFT Adapter for eUSD...");
-                bridgeAddresses.eusdOFTAdapter = deployOFTAdapter(tokenAddresses.eUSD, false);
-
-                bytes32 defaultAdminRole = ERC20BurnableMintable(tokenAddresses.eUSD).DEFAULT_ADMIN_ROLE();
-                if (ERC20BurnableMintable(tokenAddresses.eUSD).hasRole(defaultAdminRole, getDeployer())) {
-                    vm.startBroadcast();
-                    console.log(
-                        "    Setting eUSD minter capacity to for the OFT Adapter %s", bridgeAddresses.eusdOFTAdapter
-                    );
-                    ERC20Synth(tokenAddresses.eUSD).setCapacity(bridgeAddresses.eusdOFTAdapter, type(uint128).max);
-                    stopBroadcast();
-                } else if (ERC20BurnableMintable(tokenAddresses.eUSD).hasRole(defaultAdminRole, getSafe(false))) {
-                    console.log(
-                        "    Adding multisend item to set eUSD minter capacity to for the OFT Adapter %s",
-                        bridgeAddresses.eusdOFTAdapter
-                    );
-                    addMultisendItem(
-                        tokenAddresses.eUSD,
-                        abi.encodeCall(ERC20Synth.setCapacity, (bridgeAddresses.eusdOFTAdapter, type(uint128).max))
-                    );
-                } else {
-                    console.log(
-                        "    ! The deployer or designated safe no longer has the default admin role to set the eUSD minter capacity for the OFT Adapter. This must be done manually. Skipping..."
-                    );
-                }
-            } else {
-                console.log("! eUSD OFT Adapter deployment skipped. Skipping...");
-            }
-        } else {
-            console.log("- eUSD OFT Adapter already deployed. Skipping...");
-        }
-
-        if (
-            bridgeAddresses.eusdOFTAdapter != address(0)
-                && !containsOFTConfigIgnoreChainId(tokenAddresses.eUSD, block.chainid) && !getSkipOFTConfigEUSD()
-        ) {
-            console.log("+ Attempting to configure OFT Adapter on chain %s for EUSD", block.chainid);
-            configureOFTAdapter(tokenAddresses.eUSD, bridgeAddresses.eusdOFTAdapter);
-        }
-
-        if (tokenAddresses.seUSD == address(0)) {
-            if (input.deploySEUSD) {
-                console.log("+ Deploying seUSD...");
-                if (block.chainid == HUB_CHAIN_ID) {
-                    startBroadcast();
-                    tokenAddresses.seUSD = address(
-                        new EulerSavingsRate(coreAddresses.evc, tokenAddresses.eUSD, "Savings Rate eUSD", "seUSD")
-                    );
-                    stopBroadcast();
-                } else {
-                    ERC20BurnableMintableDeployer deployer = new ERC20BurnableMintableDeployer();
-                    tokenAddresses.seUSD = deployer.deploy("Savings Rate eUSD", "seUSD", STANDARD_DECIMALS);
-
-                    startBroadcast();
-                    console.log(
-                        "    Granting seUSD revoke minter role to the desired address %s", multisigAddresses.labs
-                    );
-                    bytes32 revokeMinterRole = ERC20BurnableMintable(tokenAddresses.seUSD).REVOKE_MINTER_ROLE();
-                    AccessControl(tokenAddresses.seUSD).grantRole(revokeMinterRole, multisigAddresses.labs);
-                    stopBroadcast();
-                }
-            } else {
-                console.log("! seUSD deployment deliberately skipped. Skipping...");
-            }
-        } else {
-            console.log("- seUSD already deployed. Skipping...");
-        }
-
-        if (bridgeAddresses.seusdOFTAdapter == address(0)) {
-            if (tokenAddresses.seUSD != address(0)) {
-                console.log("+ Deploying OFT Adapter for seUSD...");
-                bridgeAddresses.seusdOFTAdapter = deployOFTAdapter(tokenAddresses.seUSD, true);
-            } else {
-                console.log("! seUSD OFT Adapter deployment skipped. Skipping...");
-            }
-        } else {
-            console.log("- seUSD OFT Adapter already deployed. Skipping...");
-        }
-
-        if (
-            bridgeAddresses.seusdOFTAdapter != address(0)
-                && !containsOFTConfigIgnoreChainId(tokenAddresses.seUSD, block.chainid) && !getSkipOFTConfigSEUSD()
-        ) {
-            console.log("+ Attempting to configure OFT Adapter on chain %s for seUSD", block.chainid);
-            configureOFTAdapter(tokenAddresses.seUSD, bridgeAddresses.seusdOFTAdapter);
-        }
-
-        if (peripheryAddresses.feeCollector == address(0)) {
-            if (
-                tokenAddresses.eUSD != address(0) && bridgeAddresses.eusdOFTAdapter != address(0)
-                    && tokenAddresses.seUSD != address(0)
-            ) {
-                console.log("+ Deploying eUSD fee collecting system...");
-                if (block.chainid == HUB_CHAIN_ID) {
-                    startBroadcast();
-                    console.log("    Deploying OFTFeeCollectorGulper");
-                    peripheryAddresses.feeCollector =
-                        address(new OFTFeeCollectorGulper(coreAddresses.evc, getDeployer(), tokenAddresses.seUSD));
-                    stopBroadcast();
-                } else {
-                    startBroadcast();
-                    console.log("    Deploying OFTFeeCollector...");
-                    peripheryAddresses.feeCollector =
-                        address(new OFTFeeCollector(coreAddresses.evc, getDeployer(), tokenAddresses.eUSD));
-                    stopBroadcast();
-
-                    LayerZeroUtil lzUtil = new LayerZeroUtil(HUB_CHAIN_ID);
-                    LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(HUB_CHAIN_ID);
-                    address feeCollectorOther =
-                        deserializePeripheryAddresses(getAddressesJson("PeripheryAddresses.json", HUB_CHAIN_ID))
-                    .feeCollector;
-
-                    require(feeCollectorOther != address(0), "Hub chain feeCollector is not deployed yet");
-
-                    startBroadcast();
-                    console.log("    Configuring OFTFeeCollector");
-                    OFTFeeCollector(payable(peripheryAddresses.feeCollector))
-                        .configure(
-                            bridgeAddresses.eusdOFTAdapter, feeCollectorOther, infoOther.eid, abi.encode(true), ""
-                        );
-                    stopBroadcast();
-                }
-
-                startBroadcast();
-                console.log(
-                    "    Granting fee collector maintainer role to the desired address %s", multisigAddresses.labs
-                );
-                bytes32 maintainerRole = FeeCollectorUtil(peripheryAddresses.feeCollector).MAINTAINER_ROLE();
-                AccessControl(peripheryAddresses.feeCollector).grantRole(maintainerRole, multisigAddresses.labs);
-                stopBroadcast();
-            } else {
-                console.log("- eUSD fee collecting system not deployed. Skipping...");
-            }
-        } else {
-            console.log("- eUSD fee collecting system already deployed. Skipping...");
-        }
-
         if (
             peripheryAddresses.oracleRouterFactory == address(0) || peripheryAddresses.kinkIRMFactory == address(0)
                 || peripheryAddresses.kinkyIRMFactory == address(0)
@@ -579,14 +355,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (peripheryAddresses.feeFlowController == address(0)) {
-            address paymentToken = bridgeAddresses.eusdOFTAdapter != address(0)
-                ? tokenAddresses.eUSD
-                : bridgeAddresses.eulOFTAdapter != address(0) ? tokenAddresses.EUL : getWETHAddress();
+            address paymentToken = bridgeAddresses.eulOFTAdapter != address(0) ? tokenAddresses.EUL : getWETHAddress();
             address oftAdapter = block.chainid == HUB_CHAIN_ID
                 ? address(0)
-                : paymentToken == tokenAddresses.eUSD
-                    ? bridgeAddresses.eusdOFTAdapter
-                    : paymentToken == tokenAddresses.EUL ? bridgeAddresses.eulOFTAdapter : address(0);
+                : paymentToken == tokenAddresses.EUL ? bridgeAddresses.eulOFTAdapter : address(0);
 
             if (input.feeFlowInitPrice != 0 && paymentToken != address(0)) {
                 console.log("+ Deploying FeeFlowController...");
@@ -605,43 +377,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     dstEid: oftAdapter == address(0)
                         ? 0
                         : (new LayerZeroUtil(HUB_CHAIN_ID)).getDeploymentInfo(HUB_CHAIN_ID).eid,
-                    hookTarget: peripheryAddresses.feeCollector,
-                    hookTargetSelector: FeeCollectorUtil.collectFees.selector
+                    hookTarget: address(0),
+                    hookTargetSelector: bytes4(0)
                 });
                 peripheryAddresses.feeFlowController = deployer.deploy(feeFlowInput);
-
-                if (block.chainid != HUB_CHAIN_ID && peripheryAddresses.feeCollector != address(0)) {
-                    bytes32 defaultAdminRole =
-                        OFTFeeCollector(payable(peripheryAddresses.feeCollector)).DEFAULT_ADMIN_ROLE();
-                    bytes32 collectorRole = OFTFeeCollector(payable(peripheryAddresses.feeCollector)).COLLECTOR_ROLE();
-                    if (OFTFeeCollector(payable(peripheryAddresses.feeCollector))
-                            .hasRole(defaultAdminRole, getDeployer())) {
-                        vm.startBroadcast();
-                        console.log(
-                            "    Granting OFTFeeCollector collector role to the desired address %s",
-                            peripheryAddresses.feeFlowController
-                        );
-                        AccessControl(peripheryAddresses.feeCollector)
-                            .grantRole(collectorRole, peripheryAddresses.feeFlowController);
-                        stopBroadcast();
-                    } else if (OFTFeeCollector(payable(peripheryAddresses.feeCollector))
-                            .hasRole(defaultAdminRole, getSafe(false))) {
-                        console.log(
-                            "    Adding multisend item to grant OFTFeeCollector collector role to the desired address %s",
-                            peripheryAddresses.feeFlowController
-                        );
-                        addMultisendItem(
-                            peripheryAddresses.feeCollector,
-                            abi.encodeCall(
-                                AccessControl.grantRole, (collectorRole, peripheryAddresses.feeFlowController)
-                            )
-                        );
-                    } else {
-                        console.log(
-                            "    ! The deployer or designated safe no longer has the default admin role to grant the OFTFeeCollector collector role to the desired address. This must be done manually. Skipping..."
-                        );
-                    }
-                }
             } else {
                 console.log(
                     "! feeFlowInitPrice or paymentToken is not set for FeeFlowController deployment. Skipping..."
@@ -672,79 +411,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             }
         } else {
             console.log("- FeeFlowController already deployed. Skipping...");
-        }
-
-        if (
-            governorAddresses.accessControlEmergencyGovernorAdminTimelockController == address(0)
-                && governorAddresses.accessControlEmergencyGovernorWildcardTimelockController == address(0)
-                && governorAddresses.accessControlEmergencyGovernor == address(0)
-                && governorAddresses.capRiskSteward == address(0)
-        ) {
-            console.log("+ Deploying GovernorAccessControlEmergency contracts suite...");
-
-            IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams;
-            IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams;
-            address[] memory governorAccessControlEmergencyGuardians;
-
-            adminTimelockControllerParams.minDelay = ACCESS_CONTROL_EMERGENCY_GOVERNOR_ADMIN_TIMELOCK_MIN_DELAY;
-            adminTimelockControllerParams.proposers = new address[](1);
-            adminTimelockControllerParams.proposers[0] = multisigAddresses.DAO;
-            adminTimelockControllerParams.cancellers = new address[](2);
-            adminTimelockControllerParams.cancellers[0] = multisigAddresses.DAO;
-            adminTimelockControllerParams.cancellers[1] = multisigAddresses.labs;
-            adminTimelockControllerParams.executors = new address[](1);
-            adminTimelockControllerParams.executors[0] = address(0);
-
-            console.log("    Granting admin timelock controller proposer role to address %s", multisigAddresses.DAO);
-            console.log("    Granting admin timelock controller canceller role to address %s", multisigAddresses.DAO);
-            console.log("    Granting admin timelock controller canceller role to address %s", multisigAddresses.labs);
-            console.log("    Granting admin timelock controller executor role to anyone");
-
-            wildcardTimelockControllerParams.minDelay = ACCESS_CONTROL_EMERGENCY_GOVERNOR_WILDCARD_TIMELOCK_MIN_DELAY;
-            wildcardTimelockControllerParams.proposers = new address[](1);
-            wildcardTimelockControllerParams.proposers[0] = multisigAddresses.DAO;
-            wildcardTimelockControllerParams.cancellers = new address[](2);
-            wildcardTimelockControllerParams.cancellers[0] = multisigAddresses.DAO;
-            wildcardTimelockControllerParams.cancellers[1] = multisigAddresses.labs;
-            wildcardTimelockControllerParams.executors = new address[](1);
-            wildcardTimelockControllerParams.executors[0] = address(0);
-
-            console.log("    Granting wildcard timelock controller proposer role to address %s", multisigAddresses.DAO);
-            console.log("    Granting wildcard timelock controller canceller role to address %s", multisigAddresses.DAO);
-            console.log(
-                "    Granting wildcard timelock controller canceller role to address %s", multisigAddresses.labs
-            );
-            console.log("    Granting wildcard timelock controller executor role to anyone");
-
-            governorAccessControlEmergencyGuardians = new address[](1);
-            governorAccessControlEmergencyGuardians[0] = multisigAddresses.labs;
-
-            console.log(
-                "    Granting emergency access control governor guardian role to address %s", multisigAddresses.labs
-            );
-
-            startBroadcast();
-            (
-                governorAddresses.accessControlEmergencyGovernorAdminTimelockController,
-                governorAddresses.accessControlEmergencyGovernorWildcardTimelockController,
-                governorAddresses.accessControlEmergencyGovernor
-            ) =
-                GovernorAccessControlEmergencyFactory(peripheryAddresses.governorAccessControlEmergencyFactory)
-                    .deploy(
-                        adminTimelockControllerParams,
-                        wildcardTimelockControllerParams,
-                        governorAccessControlEmergencyGuardians
-                    );
-
-            //governorAddresses.capRiskSteward = CapRiskStewardFactory(peripheryAddresses.capRiskStewardFactory).deploy(
-            //    governorAddresses.accessControlEmergencyGovernor,
-            //    peripheryAddresses.kinkIRMFactory,
-            //    multisigAddresses.DAO
-            //);
-
-            stopBroadcast();
-        } else {
-            console.log("- GovernorAccessControlEmergency contracts suite already deployed. Skipping...");
         }
 
         if (peripheryAddresses.swapper == address(0) && peripheryAddresses.swapVerifier == address(0)) {
@@ -796,26 +462,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             }
         } else {
             console.log("- EulerEarnFactoryPerspective already deployed. Skipping...");
-        }
-
-        if (peripheryAddresses.edgeFactory == address(0)) {
-            console.log("+ Deploying EdgeFactory...");
-            EdgeFactoryDeployer deployer = new EdgeFactoryDeployer();
-            peripheryAddresses.edgeFactory = deployer.deploy(
-                coreAddresses.eVaultFactory,
-                peripheryAddresses.oracleRouterFactory,
-                peripheryAddresses.escrowedCollateralPerspective
-            );
-        } else {
-            console.log("- EdgeFactory already deployed. Skipping...");
-        }
-
-        if (peripheryAddresses.edgeFactoryPerspective == address(0)) {
-            console.log("+ Deploying EdgeFactoryPerspective...");
-            EdgePerspectivesDeployer deployer = new EdgePerspectivesDeployer();
-            peripheryAddresses.edgeFactoryPerspective = deployer.deploy(peripheryAddresses.edgeFactory)[0];
-        } else {
-            console.log("- EdgeFactoryPerspective already deployed. Skipping...");
         }
 
         if (peripheryAddresses.securitizeFactory == address(0)) {
@@ -1291,10 +937,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     function getTokenKey(address token) internal view returns (string memory) {
         if (token == tokenAddresses.EUL) {
             return "EUL";
-        } else if (token == tokenAddresses.eUSD) {
-            return "eUSD";
-        } else if (token == tokenAddresses.seUSD) {
-            return "seUSD";
         }
 
         revert("getTokenKey: Token not supported");
@@ -1306,10 +948,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
         if (token == tokenAddresses.EUL) {
             adapter = chainIdBridgeAddresses.eulOFTAdapter;
-        } else if (token == tokenAddresses.eUSD) {
-            adapter = chainIdBridgeAddresses.eusdOFTAdapter;
-        } else if (token == tokenAddresses.seUSD) {
-            adapter = chainIdBridgeAddresses.seusdOFTAdapter;
         }
     }
 
