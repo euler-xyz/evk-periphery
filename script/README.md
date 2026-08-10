@@ -309,12 +309,11 @@ Deploys and configures the complete Euler V2 stack. The script prompts for:
 # Select option 50, provide inputs when prompted
 ```
 
-### Ownership Transfer (Options 51/52)
+### Ownership Transfer (Option 51)
 
 After deployment, transfer ownership from deployer to multisigs:
 
 - **Option 51**: Core contracts (EVC, EVault Factory, Protocol Config, etc.)
-- **Option 52**: Periphery contracts (Registries, Perspectives, Governors, etc.)
 
 ## Oracle Adapters
 
@@ -322,22 +321,6 @@ After deployment, transfer ownership from deployer to multisigs:
 
 ```sh
 ./script/production/DeployOracleAdapters.sh <csv_input_file_path> [existing_adapters_csv] --rpc-url <RPC_URL>
-```
-
-### Whitelist Adapters
-
-```sh
-./script/production/ConfigWhitelistOracleAdapters.sh <OracleAdaptersAddresses.csv> --rpc-url <RPC_URL>
-```
-
-### Whitelist Vaults in Governed Perspective
-
-```sh
-# For EVK vaults
-./script/production/ConfigWhitelistGovernedPerspective.sh <vaults_list.csv> --evk --rpc-url <RPC_URL>
-
-# For Euler Earn vaults
-./script/production/ConfigWhitelistGovernedPerspective.sh <vaults_list.csv> --earn --rpc-url <RPC_URL>
 ```
 
 ## Contract Verification

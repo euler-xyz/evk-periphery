@@ -67,25 +67,18 @@ abstract contract CoreAddressesLib is ScriptExtended {
 abstract contract PeripheryAddressesLib is ScriptExtended {
     struct PeripheryAddresses {
         address oracleRouterFactory;
-        address oracleAdapterRegistry;
-        address externalVaultRegistry;
         address kinkIRMFactory;
         address kinkyIRMFactory;
         address fixedCyclicalBinaryIRMFactory;
         address adaptiveCurveIRMFactory;
-        address irmRegistry;
         address swapper;
         address swapVerifier;
         address feeFlowController;
         address feeFlowControllerUtil;
         address feeCollector;
         address evkFactoryPerspective;
-        address governedPerspective;
         address escrowedCollateralPerspective;
-        address eulerUngoverned0xPerspective;
-        address eulerUngovernedNzxPerspective;
         address eulerEarnFactoryPerspective;
-        address eulerEarnGovernedPerspective;
         address edgeFactory;
         address edgeFactoryPerspective;
         address termsOfUseSigner;
@@ -97,36 +90,23 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("peripheryAddresses", "oracleRouterFactory", Addresses.oracleRouterFactory);
-        result = vm.serializeAddress("peripheryAddresses", "oracleAdapterRegistry", Addresses.oracleAdapterRegistry);
-        result = vm.serializeAddress("peripheryAddresses", "externalVaultRegistry", Addresses.externalVaultRegistry);
         result = vm.serializeAddress("peripheryAddresses", "kinkIRMFactory", Addresses.kinkIRMFactory);
         result = vm.serializeAddress("peripheryAddresses", "kinkyIRMFactory", Addresses.kinkyIRMFactory);
         result = vm.serializeAddress(
             "peripheryAddresses", "fixedCyclicalBinaryIRMFactory", Addresses.fixedCyclicalBinaryIRMFactory
         );
         result = vm.serializeAddress("peripheryAddresses", "adaptiveCurveIRMFactory", Addresses.adaptiveCurveIRMFactory);
-        result = vm.serializeAddress("peripheryAddresses", "irmRegistry", Addresses.irmRegistry);
         result = vm.serializeAddress("peripheryAddresses", "swapper", Addresses.swapper);
         result = vm.serializeAddress("peripheryAddresses", "swapVerifier", Addresses.swapVerifier);
         result = vm.serializeAddress("peripheryAddresses", "feeFlowController", Addresses.feeFlowController);
         result = vm.serializeAddress("peripheryAddresses", "feeFlowControllerUtil", Addresses.feeFlowControllerUtil);
         result = vm.serializeAddress("peripheryAddresses", "feeCollector", Addresses.feeCollector);
         result = vm.serializeAddress("peripheryAddresses", "evkFactoryPerspective", Addresses.evkFactoryPerspective);
-        result = vm.serializeAddress("peripheryAddresses", "governedPerspective", Addresses.governedPerspective);
         result = vm.serializeAddress(
             "peripheryAddresses", "escrowedCollateralPerspective", Addresses.escrowedCollateralPerspective
         );
         result = vm.serializeAddress(
-            "peripheryAddresses", "eulerUngoverned0xPerspective", Addresses.eulerUngoverned0xPerspective
-        );
-        result = vm.serializeAddress(
-            "peripheryAddresses", "eulerUngovernedNzxPerspective", Addresses.eulerUngovernedNzxPerspective
-        );
-        result = vm.serializeAddress(
             "peripheryAddresses", "eulerEarnFactoryPerspective", Addresses.eulerEarnFactoryPerspective
-        );
-        result = vm.serializeAddress(
-            "peripheryAddresses", "eulerEarnGovernedPerspective", Addresses.eulerEarnGovernedPerspective
         );
         result = vm.serializeAddress("peripheryAddresses", "edgeFactory", Addresses.edgeFactory);
         result = vm.serializeAddress("peripheryAddresses", "edgeFactoryPerspective", Addresses.edgeFactoryPerspective);
@@ -145,25 +125,18 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
         return PeripheryAddresses({
             oracleRouterFactory: getAddressFromJson(json, ".oracleRouterFactory"),
-            oracleAdapterRegistry: getAddressFromJson(json, ".oracleAdapterRegistry"),
-            externalVaultRegistry: getAddressFromJson(json, ".externalVaultRegistry"),
             kinkIRMFactory: getAddressFromJson(json, ".kinkIRMFactory"),
             kinkyIRMFactory: getAddressFromJson(json, ".kinkyIRMFactory"),
             fixedCyclicalBinaryIRMFactory: getAddressFromJson(json, ".fixedCyclicalBinaryIRMFactory"),
             adaptiveCurveIRMFactory: getAddressFromJson(json, ".adaptiveCurveIRMFactory"),
-            irmRegistry: getAddressFromJson(json, ".irmRegistry"),
             swapper: getAddressFromJson(json, ".swapper"),
             swapVerifier: getAddressFromJson(json, ".swapVerifier"),
             feeFlowController: getAddressFromJson(json, ".feeFlowController"),
             feeFlowControllerUtil: getAddressFromJson(json, ".feeFlowControllerUtil"),
             feeCollector: getAddressFromJson(json, ".feeCollector"),
             evkFactoryPerspective: getAddressFromJson(json, ".evkFactoryPerspective"),
-            governedPerspective: getAddressFromJson(json, ".governedPerspective"),
             escrowedCollateralPerspective: getAddressFromJson(json, ".escrowedCollateralPerspective"),
-            eulerUngoverned0xPerspective: getAddressFromJson(json, ".eulerUngoverned0xPerspective"),
-            eulerUngovernedNzxPerspective: getAddressFromJson(json, ".eulerUngovernedNzxPerspective"),
             eulerEarnFactoryPerspective: getAddressFromJson(json, ".eulerEarnFactoryPerspective"),
-            eulerEarnGovernedPerspective: getAddressFromJson(json, ".eulerEarnGovernedPerspective"),
             edgeFactory: getAddressFromJson(json, ".edgeFactory"),
             edgeFactoryPerspective: getAddressFromJson(json, ".edgeFactoryPerspective"),
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner"),
@@ -717,18 +690,6 @@ abstract contract ScriptUtils is
 
     function isValidOracleRouter(address oracleRouter) internal view returns (bool) {
         return _strEq(EulerRouter(oracleRouter).name(), "EulerRouter");
-    }
-
-    function isValidExternalVault(address vault) internal view returns (bool) {
-        (bool success, bytes memory result) = vault.staticcall(abi.encodeCall(IEVault(vault).asset, ()));
-
-        if (!success || result.length < 32) return false;
-
-        address asset = abi.decode(result, (address));
-        address[] memory validVaults =
-            SnapshotRegistry(peripheryAddresses.externalVaultRegistry).getValidAddresses(vault, asset, block.timestamp);
-
-        return validVaults.length == 1 && validVaults[0] == vault;
     }
 
     function resolveOracleName(OracleDetailedInfo memory oracleInfo) internal pure returns (string memory) {

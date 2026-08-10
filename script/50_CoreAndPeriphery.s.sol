@@ -8,7 +8,6 @@ import {LayerZeroUtil} from "./utils/LayerZeroUtils.s.sol";
 import {ERC20BurnableMintableDeployer, RewardTokenDeployer, ERC20SynthDeployer, ERC20Synth} from "./00_ERC20.s.sol";
 import {Integrations, ProtocolConfig} from "./01_Integrations.s.sol";
 import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
-import {AdaptiveCurveIRMDeployer} from "./04_IRM.s.sol";
 import {EVaultImplementation} from "./05_EVaultImplementation.s.sol";
 import {EVaultFactory} from "./06_EVaultFactory.s.sol";
 import {
@@ -21,11 +20,8 @@ import {
 } from "./08_Lenses.s.sol";
 import {
     EVKFactoryPerspectiveDeployer,
-    PerspectiveGovernedDeployer,
     EVKPerspectiveEscrowedCollateralDeployer,
-    EVKPerspectiveEulerUngoverned0xDeployer,
-    EVKPerspectiveEulerUngovernedNzxDeployer,
-    EulerEarnPerspectivesDeployer,
+    EulerEarnFactoryPerspectiveDeployer,
     EdgePerspectivesDeployer
 } from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
@@ -47,7 +43,6 @@ import {
 import {CapRiskStewardFactory} from "./../src/GovernorFactory/CapRiskStewardFactory.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
-import {SnapshotRegistry} from "./../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {FeeCollectorUtil} from "./../src/Util/FeeCollectorUtil.sol";
 import {OFTFeeCollectorGulper} from "./../src/OFT/OFTFeeCollectorGulper.sol";
 import {OFTFeeCollector} from "./../src/OFT/OFTFeeCollector.sol";
@@ -97,15 +92,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         address eulerSwapRegistryCurator;
     }
 
-    struct AdaptiveCurveIRMParams {
-        int256 targetUtilization;
-        int256 initialRateAtTarget;
-        int256 minRateAtTarget;
-        int256 maxRateAtTarget;
-        int256 curveSteepness;
-        int256 adjustmentSpeed;
-    }
-
     address internal constant BURN_ADDRESS = address(0xdead);
     uint256 internal constant HUB_CHAIN_ID = 1;
     uint8 internal constant STANDARD_DECIMALS = 18;
@@ -137,17 +123,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
     mapping(string => OFTTokenConfig) internal OFT_CONFIG;
 
-    int256 internal constant YEAR = 365 days;
-    int256 internal constant IRM_TARGET_UTILIZATION = 0.9e18;
-    int256[5] internal IRM_INITIAL_RATES_AT_TARGET =
-        [0.01e18 / YEAR, 0.02e18 / YEAR, 0.04e18 / YEAR, 0.08e18 / YEAR, 0.16e18 / YEAR];
-    int256 internal constant IRM_MIN_RATE_AT_TARGET = 0.001e18 / YEAR;
-    int256 internal constant IRM_MAX_RATE_AT_TARGET = 2e18 / YEAR;
-    int256 internal constant IRM_CURVE_STEEPNESS = 4e18;
-    int256 internal constant IRM_ADJUSTMENT_SPEED = 100e18 / YEAR;
-
-    AdaptiveCurveIRMParams[] internal DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS;
-
     constructor() {
         {
             OFTTokenConfig storage cfg = OFT_CONFIG["EUL"];
@@ -172,19 +147,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             cfg.enforcedGasLimitCall = 100000;
             cfg.requiredDVNsCount = 4;
             cfg.configIgnoreChainIds = [uint256(2818), 999];
-        }
-
-        for (uint256 i = 0; i < IRM_INITIAL_RATES_AT_TARGET.length; ++i) {
-            DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.push(
-                AdaptiveCurveIRMParams({
-                    targetUtilization: IRM_TARGET_UTILIZATION,
-                    initialRateAtTarget: IRM_INITIAL_RATES_AT_TARGET[i],
-                    minRateAtTarget: IRM_MIN_RATE_AT_TARGET,
-                    maxRateAtTarget: IRM_MAX_RATE_AT_TARGET,
-                    curveSteepness: IRM_CURVE_STEEPNESS,
-                    adjustmentSpeed: IRM_ADJUSTMENT_SPEED
-                })
-            );
         }
     }
 
@@ -582,13 +544,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         }
 
         if (
-            peripheryAddresses.oracleRouterFactory == address(0)
-                || peripheryAddresses.oracleAdapterRegistry == address(0)
-                || peripheryAddresses.externalVaultRegistry == address(0)
-                || peripheryAddresses.kinkIRMFactory == address(0) || peripheryAddresses.kinkyIRMFactory == address(0)
+            peripheryAddresses.oracleRouterFactory == address(0) || peripheryAddresses.kinkIRMFactory == address(0)
+                || peripheryAddresses.kinkyIRMFactory == address(0)
                 || peripheryAddresses.fixedCyclicalBinaryIRMFactory == address(0)
                 || peripheryAddresses.adaptiveCurveIRMFactory == address(0)
-                || peripheryAddresses.irmRegistry == address(0)
                 || peripheryAddresses.governorAccessControlEmergencyFactory == address(0)
                 || peripheryAddresses.capRiskStewardFactory == address(0)
         ) {
@@ -598,26 +557,20 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 coreAddresses.evc,
                 PeripheryFactories.PeripheryContracts({
                     oracleRouterFactory: peripheryAddresses.oracleRouterFactory,
-                    oracleAdapterRegistry: peripheryAddresses.oracleAdapterRegistry,
-                    externalVaultRegistry: peripheryAddresses.externalVaultRegistry,
                     kinkIRMFactory: peripheryAddresses.kinkIRMFactory,
                     kinkyIRMFactory: peripheryAddresses.kinkyIRMFactory,
                     fixedCyclicalBinaryIRMFactory: peripheryAddresses.fixedCyclicalBinaryIRMFactory,
                     adaptiveCurveIRMFactory: peripheryAddresses.adaptiveCurveIRMFactory,
-                    irmRegistry: peripheryAddresses.irmRegistry,
                     governorAccessControlEmergencyFactory: peripheryAddresses.governorAccessControlEmergencyFactory,
                     capRiskStewardFactory: peripheryAddresses.capRiskStewardFactory
                 })
             );
 
             peripheryAddresses.oracleRouterFactory = peripheryContracts.oracleRouterFactory;
-            peripheryAddresses.oracleAdapterRegistry = peripheryContracts.oracleAdapterRegistry;
-            peripheryAddresses.externalVaultRegistry = peripheryContracts.externalVaultRegistry;
             peripheryAddresses.kinkIRMFactory = peripheryContracts.kinkIRMFactory;
             peripheryAddresses.kinkyIRMFactory = peripheryContracts.kinkyIRMFactory;
             peripheryAddresses.fixedCyclicalBinaryIRMFactory = peripheryContracts.fixedCyclicalBinaryIRMFactory;
             peripheryAddresses.adaptiveCurveIRMFactory = peripheryContracts.adaptiveCurveIRMFactory;
-            peripheryAddresses.irmRegistry = peripheryContracts.irmRegistry;
             peripheryAddresses.governorAccessControlEmergencyFactory =
             peripheryContracts.governorAccessControlEmergencyFactory;
             peripheryAddresses.capRiskStewardFactory = peripheryContracts.capRiskStewardFactory;
@@ -810,50 +763,12 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         } else {
             console.log("- EVKFactoryPerspective already deployed. Skipping...");
         }
-        if (peripheryAddresses.governedPerspective == address(0)) {
-            console.log("+ Deploying GovernedPerspective...");
-            PerspectiveGovernedDeployer deployer = new PerspectiveGovernedDeployer();
-            peripheryAddresses.governedPerspective = deployer.deploy(coreAddresses.evc);
-        } else {
-            console.log("- GovernedPerspective already deployed. Skipping...");
-        }
         if (peripheryAddresses.escrowedCollateralPerspective == address(0)) {
             console.log("+ Deploying EscrowedCollateralPerspective...");
             EVKPerspectiveEscrowedCollateralDeployer deployer = new EVKPerspectiveEscrowedCollateralDeployer();
             peripheryAddresses.escrowedCollateralPerspective = deployer.deploy(coreAddresses.eVaultFactory);
         } else {
             console.log("- EscrowedCollateralPerspective already deployed. Skipping...");
-        }
-        if (peripheryAddresses.eulerUngoverned0xPerspective == address(0)) {
-            console.log("+ Deploying EulerUngoverned0xPerspective...");
-            EVKPerspectiveEulerUngoverned0xDeployer deployer = new EVKPerspectiveEulerUngoverned0xDeployer();
-            peripheryAddresses.eulerUngoverned0xPerspective = deployer.deploy(
-                coreAddresses.eVaultFactory,
-                peripheryAddresses.oracleRouterFactory,
-                peripheryAddresses.oracleAdapterRegistry,
-                peripheryAddresses.externalVaultRegistry,
-                peripheryAddresses.kinkIRMFactory,
-                peripheryAddresses.irmRegistry,
-                peripheryAddresses.escrowedCollateralPerspective
-            );
-        } else {
-            console.log("- EulerUngoverned0xPerspective already deployed. Skipping...");
-        }
-        if (peripheryAddresses.eulerUngovernedNzxPerspective == address(0)) {
-            console.log("+ Deploying EulerUngovernedNzxPerspective...");
-            EVKPerspectiveEulerUngovernedNzxDeployer deployer = new EVKPerspectiveEulerUngovernedNzxDeployer();
-            peripheryAddresses.eulerUngovernedNzxPerspective = deployer.deploy(
-                coreAddresses.eVaultFactory,
-                peripheryAddresses.oracleRouterFactory,
-                peripheryAddresses.oracleAdapterRegistry,
-                peripheryAddresses.externalVaultRegistry,
-                peripheryAddresses.kinkIRMFactory,
-                peripheryAddresses.irmRegistry,
-                peripheryAddresses.governedPerspective,
-                peripheryAddresses.escrowedCollateralPerspective
-            );
-        } else {
-            console.log("- EulerUngovernedNzxPerspective already deployed. Skipping...");
         }
 
         if (coreAddresses.eulerEarnFactory == address(0) && peripheryAddresses.eulerEarnPublicAllocator == address(0)) {
@@ -871,21 +786,16 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             if (vm.isDir("out-euler-earn")) vm.removeDir("out-euler-earn", true);
         }
 
-        if (
-            peripheryAddresses.eulerEarnFactoryPerspective == address(0)
-                && peripheryAddresses.eulerEarnGovernedPerspective == address(0)
-        ) {
+        if (peripheryAddresses.eulerEarnFactoryPerspective == address(0)) {
             if (coreAddresses.eulerEarnFactory != address(0)) {
-                console.log("+ Deploying EulerEarnFactoryPerspective and Euler Earn GovernedPerspective...");
-                EulerEarnPerspectivesDeployer deployer = new EulerEarnPerspectivesDeployer();
-                address[] memory perspectives = deployer.deploy(coreAddresses.eulerEarnFactory);
-                peripheryAddresses.eulerEarnFactoryPerspective = perspectives[0];
-                peripheryAddresses.eulerEarnGovernedPerspective = perspectives[1];
+                console.log("+ Deploying EulerEarnFactoryPerspective...");
+                EulerEarnFactoryPerspectiveDeployer deployer = new EulerEarnFactoryPerspectiveDeployer();
+                peripheryAddresses.eulerEarnFactoryPerspective = deployer.deploy(coreAddresses.eulerEarnFactory);
             } else {
-                console.log("- EulerEarn perspectives not deployed. Skipping...");
+                console.log("- EulerEarnFactoryPerspective not deployed. Skipping...");
             }
         } else {
-            console.log("- At least one of the Euler Earn perspectives is already deployed. Skipping...");
+            console.log("- EulerEarnFactoryPerspective already deployed. Skipping...");
         }
 
         if (peripheryAddresses.edgeFactory == address(0)) {
@@ -951,7 +861,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (lensAddresses.oracleLens == address(0)) {
             console.log("+ Deploying LensOracle...");
             LensOracleDeployer deployer = new LensOracleDeployer();
-            lensAddresses.oracleLens = deployer.deploy(peripheryAddresses.oracleAdapterRegistry);
+            lensAddresses.oracleLens = deployer.deploy(address(0));
         } else {
             console.log("- LensOracle already deployed. Skipping...");
         }
@@ -988,44 +898,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             lensAddresses.eulerEarnVaultLens = deployer.deploy(lensAddresses.utilsLens);
         } else {
             console.log("- EulerEarnVaultLens already deployed. Skipping...");
-        }
-
-        if (peripheryAddresses.adaptiveCurveIRMFactory != address(0) && peripheryAddresses.irmRegistry != address(0)) {
-            if (
-                SnapshotRegistry(peripheryAddresses.irmRegistry)
-                    .getValidAddresses(address(0), address(0), block.timestamp)
-                    .length == 0
-            ) {
-                address owner = SnapshotRegistry(peripheryAddresses.irmRegistry).owner();
-                if (owner == getDeployer() || owner == getSafe(false)) {
-                    console.log("+ Deploying default Adaptive Curve IRMs and adding them to the IRM registry...");
-                    AdaptiveCurveIRMDeployer deployer = new AdaptiveCurveIRMDeployer();
-                    for (uint256 i = 0; i < DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS.length; ++i) {
-                        add(
-                            peripheryAddresses.irmRegistry,
-                            deployer.deploy(
-                                peripheryAddresses.adaptiveCurveIRMFactory,
-                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].targetUtilization,
-                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].initialRateAtTarget,
-                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].minRateAtTarget,
-                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].maxRateAtTarget,
-                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].curveSteepness,
-                                DEFAULT_ADAPTIVE_CURVE_IRMS_PARAMS[i].adjustmentSpeed
-                            ),
-                            address(0),
-                            address(0)
-                        );
-                    }
-                } else {
-                    console.log(
-                        "    ! The deployer or specified Safe no longer has the IRM registry owner role to add the default IRMs. Skipping..."
-                    );
-                }
-            } else {
-                console.log("- Adaptive Curve IRMs already deployed and added to the IRM registry. Skipping...");
-            }
-        } else {
-            console.log("- Adaptive Curve IRM factory or IRM registry not deployed. Skipping...");
         }
 
         if (

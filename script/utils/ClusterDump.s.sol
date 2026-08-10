@@ -25,7 +25,7 @@ contract ClusterDump is ScriptUtils {
         Lenses deployer = new Lenses();
         address[] memory lenses = deployer.execute(
             coreAddresses.eVaultFactory,
-            peripheryAddresses.oracleAdapterRegistry,
+            address(0),
             peripheryAddresses.kinkIRMFactory,
             peripheryAddresses.adaptiveCurveIRMFactory,
             peripheryAddresses.kinkyIRMFactory,
