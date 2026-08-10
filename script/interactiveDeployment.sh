@@ -1291,8 +1291,6 @@ while true; do
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 securitizeFactory=$(jq -r '.securitizeFactory' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulOFTAdapter=$(jq -r '.eulOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
-                eusdOFTAdapter=$(jq -r '.eusdOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
-                seusdOFTAdapter=$(jq -r '.seusdOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 eulerEarnFactory=${eulerEarnFactory:-$addressZero}
                 eulerSwapV2Factory=$(jq -r '.eulerSwapV2Factory' "$addresses_dir_path/EulerSwapAddresses.json" 2>/dev/null)
@@ -1357,20 +1355,6 @@ while true; do
                 fi
             fi
 
-            if [ -z "$eusdOFTAdapter" ] || [ "$eusdOFTAdapter" == "$addressZero" ] || [ "$eusdOFTAdapter" == "null" ]; then
-                if [ "$non_interactive" = false ]; then
-                    read -p "Should deploy and configure eUSD contracts system? (y/n) (default: n): " deploy_eusd
-                    deploy_eusd=$(echo "$deploy_eusd" | tr "[:upper:]" "[:lower:]")
-                fi
-            fi
-
-            if [ -z "$seusdOFTAdapter" ] || [ "$seusdOFTAdapter" == "$addressZero" ] || [ "$seusdOFTAdapter" == "null" ]; then
-                if [ "$non_interactive" = false ]; then
-                    read -p "Should deploy and configure seUSD contracts system? (y/n) (default: n): " deploy_seusd
-                    deploy_seusd=$(echo "$deploy_seusd" | tr "[:upper:]" "[:lower:]")
-                fi
-            fi
-
             if [ -z "$securitizeFactory" ] || [ "$securitizeFactory" == "$addressZero" ] || [ "$securitizeFactory" == "null" ]; then
                 if [ "$non_interactive" = false ]; then
                     read -p "Should deploy Securitize Vault Factory? (y/n) (default: n): " deploy_securitize_factory
@@ -1390,8 +1374,6 @@ while true; do
             deploy_eul_oft=${deploy_eul_oft:-n}
             deploy_euler_earn=${deploy_euler_earn:-n}
             deploy_euler_swap=${deploy_euler_swap:-n}
-            deploy_eusd=${deploy_eusd:-n}
-            deploy_seusd=${deploy_seusd:-n}
             deploy_securitize_factory=${deploy_securitize_factory:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
             euler_swap_protocol_fee_config_admin=${euler_swap_protocol_fee_config_admin:-$multisig_dao}
@@ -1426,8 +1408,6 @@ while true; do
                 --argjson deployEULOFT "$(jq -n --argjson val \"$deploy_eul_oft\" 'if $val == "y" then true else false end')" \
                 --argjson deployEulerEarn "$(jq -n --argjson val \"$deploy_euler_earn\" 'if $val == "y" then true else false end')" \
                 --argjson deployEulerSwap "$(jq -n --argjson val \"$deploy_euler_swap\" 'if $val == "y" then true else false end')" \
-                --argjson deployEUSD "$(jq -n --argjson val \"$deploy_eusd\" 'if $val == "y" then true else false end')" \
-                --argjson deploySEUSD "$(jq -n --argjson val \"$deploy_seusd\" 'if $val == "y" then true else false end')" \
                 --argjson deploySecuritizeFactory "$(jq -n --argjson val \"$deploy_securitize_factory\" 'if $val == "y" then true else false end')" \
                 --arg uniswapPoolManager "$uniswap_pool_manager" \
                 --arg eulerSwapProtocolFeeConfigAdmin "$euler_swap_protocol_fee_config_admin" \
@@ -1445,8 +1425,6 @@ while true; do
                     deployEULOFT: $deployEULOFT,
                     deployEulerEarn: $deployEulerEarn,
                     deployEulerSwap: $deployEulerSwap,
-                    deployEUSD: $deployEUSD,
-                    deploySEUSD: $deploySEUSD,
                     deploySecuritizeFactory: $deploySecuritizeFactory,
                     uniswapPoolManager: $uniswapPoolManager,
                     eulerSwapProtocolFeeConfigAdmin: $eulerSwapProtocolFeeConfigAdmin,

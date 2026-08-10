@@ -216,7 +216,7 @@ Redeploy lens contracts and update addresses.
 
 | Option | Description |
 |--------|-------------|
-| `--timelock-address <ADDR>` | Schedule transactions via timelock instead of immediate execution. Aliases: `admin`, `wildcard`, `eusd` |
+| `--timelock-address <ADDR>` | Schedule transactions via timelock instead of immediate execution. Aliases: `admin`, `wildcard` |
 | `--timelock-id <ID>` | Operation ID for executing a scheduled timelock transaction (from `CallScheduled` event) |
 | `--timelock-salt <SALT>` | Salt for timelock operation (default: zero) |
 
@@ -302,7 +302,6 @@ Deploys and configures the complete Euler V2 stack. The script prompts for:
 - Deploy EUL OFT Adapter (y/n)
 - Deploy Euler Earn (y/n)
 - Deploy EulerSwap V2 (y/n) — if yes, prompts for Uniswap V4 Pool Manager
-- Deploy eUSD/seUSD contracts (y/n)
 
 ```sh
 ./script/interactiveDeployment.sh --account ACC_NAME --rpc-url RPC_URL

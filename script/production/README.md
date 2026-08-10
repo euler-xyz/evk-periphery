@@ -96,7 +96,7 @@ After governance transferred to GovernorAccessControl + TimelockController + Saf
 | `--account <NAME>` / `--ledger` | Signing method |
 | `--batch-via-safe` | Route transactions through Safe multisig |
 | `--safe-address <ADDR>` | Safe address or alias (`DAO`, `labs`, etc.) |
-| `--timelock-address <ADDR>` | Schedule via timelock (`admin`, `wildcard`, `eusd`) |
+| `--timelock-address <ADDR>` | Schedule via timelock (`admin`, `wildcard`) |
 | `--risk-steward-address <ADDR>` | Bypass timelock for caps/IRM changes |
 
 ### Simulation Options
