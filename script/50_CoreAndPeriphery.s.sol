@@ -21,26 +21,19 @@ import {
 import {
     EVKFactoryPerspectiveDeployer,
     EVKPerspectiveEscrowedCollateralDeployer,
-    EulerEarnFactoryPerspectiveDeployer,
-    EdgePerspectivesDeployer
+    EulerEarnFactoryPerspectiveDeployer
 } from "./09_Perspectives.s.sol";
 import {Swap} from "./10_Swap.s.sol";
 import {FeeFlow} from "./11_FeeFlow.s.sol";
 import {EVaultFactoryGovernorDeployer, TimelockControllerDeployer} from "./12_Governor.s.sol";
 import {TermsOfUseSignerDeployer} from "./13_TermsOfUseSigner.s.sol";
 import {OFTAdapterUpgradeableDeployer, MintBurnOFTAdapterDeployer} from "./14_OFT.s.sol";
-import {EdgeFactoryDeployer} from "./15_EdgeFactory.s.sol";
 import {EulerEarnFactoryDeployer} from "./20_EulerEarnFactory.s.sol";
 import {EulerSwapImplementationDeployer} from "./21_EulerSwapImplementation.s.sol";
 import {EulerSwapFactoryDeployer} from "./22_EulerSwapFactory.s.sol";
 import {EulerSwapPeripheryDeployer} from "./23_EulerSwapPeriphery.s.sol";
 import {EulerSwapRegistryDeployer} from "./24_EulerSwapRegistry.s.sol";
 import {FactoryGovernor} from "./../src/Governor/FactoryGovernor.sol";
-import {
-    IGovernorAccessControlEmergencyFactory,
-    GovernorAccessControlEmergencyFactory
-} from "./../src/GovernorFactory/GovernorAccessControlEmergencyFactory.sol";
-import {CapRiskStewardFactory} from "./../src/GovernorFactory/CapRiskStewardFactory.sol";
 import {ERC20BurnableMintable} from "./../src/ERC20/deployed/ERC20BurnableMintable.sol";
 import {RewardToken} from "./../src/ERC20/deployed/RewardToken.sol";
 import {FeeCollectorUtil} from "./../src/Util/FeeCollectorUtil.sol";
@@ -96,8 +89,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     uint256 internal constant HUB_CHAIN_ID = 1;
     uint8 internal constant STANDARD_DECIMALS = 18;
     uint256 internal constant EVAULT_FACTORY_TIMELOCK_MIN_DELAY = 4 days;
-    uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_ADMIN_TIMELOCK_MIN_DELAY = 2 days;
-    uint256 internal constant ACCESS_CONTROL_EMERGENCY_GOVERNOR_WILDCARD_TIMELOCK_MIN_DELAY = 2 days;
     uint256 internal constant EUSD_ADMIN_TIMELOCK_MIN_DELAY = 7 days;
     address[2] internal EVAULT_FACTORY_GOVERNOR_PAUSERS =
         [0xff217004BdD3A6A592162380dc0E6BbF143291eB, 0xcC6451385685721778E7Bd80B54F8c92b484F601];
@@ -674,79 +665,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- FeeFlowController already deployed. Skipping...");
         }
 
-        if (
-            governorAddresses.accessControlEmergencyGovernorAdminTimelockController == address(0)
-                && governorAddresses.accessControlEmergencyGovernorWildcardTimelockController == address(0)
-                && governorAddresses.accessControlEmergencyGovernor == address(0)
-                && governorAddresses.capRiskSteward == address(0)
-        ) {
-            console.log("+ Deploying GovernorAccessControlEmergency contracts suite...");
-
-            IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams;
-            IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams;
-            address[] memory governorAccessControlEmergencyGuardians;
-
-            adminTimelockControllerParams.minDelay = ACCESS_CONTROL_EMERGENCY_GOVERNOR_ADMIN_TIMELOCK_MIN_DELAY;
-            adminTimelockControllerParams.proposers = new address[](1);
-            adminTimelockControllerParams.proposers[0] = multisigAddresses.DAO;
-            adminTimelockControllerParams.cancellers = new address[](2);
-            adminTimelockControllerParams.cancellers[0] = multisigAddresses.DAO;
-            adminTimelockControllerParams.cancellers[1] = multisigAddresses.labs;
-            adminTimelockControllerParams.executors = new address[](1);
-            adminTimelockControllerParams.executors[0] = address(0);
-
-            console.log("    Granting admin timelock controller proposer role to address %s", multisigAddresses.DAO);
-            console.log("    Granting admin timelock controller canceller role to address %s", multisigAddresses.DAO);
-            console.log("    Granting admin timelock controller canceller role to address %s", multisigAddresses.labs);
-            console.log("    Granting admin timelock controller executor role to anyone");
-
-            wildcardTimelockControllerParams.minDelay = ACCESS_CONTROL_EMERGENCY_GOVERNOR_WILDCARD_TIMELOCK_MIN_DELAY;
-            wildcardTimelockControllerParams.proposers = new address[](1);
-            wildcardTimelockControllerParams.proposers[0] = multisigAddresses.DAO;
-            wildcardTimelockControllerParams.cancellers = new address[](2);
-            wildcardTimelockControllerParams.cancellers[0] = multisigAddresses.DAO;
-            wildcardTimelockControllerParams.cancellers[1] = multisigAddresses.labs;
-            wildcardTimelockControllerParams.executors = new address[](1);
-            wildcardTimelockControllerParams.executors[0] = address(0);
-
-            console.log("    Granting wildcard timelock controller proposer role to address %s", multisigAddresses.DAO);
-            console.log("    Granting wildcard timelock controller canceller role to address %s", multisigAddresses.DAO);
-            console.log(
-                "    Granting wildcard timelock controller canceller role to address %s", multisigAddresses.labs
-            );
-            console.log("    Granting wildcard timelock controller executor role to anyone");
-
-            governorAccessControlEmergencyGuardians = new address[](1);
-            governorAccessControlEmergencyGuardians[0] = multisigAddresses.labs;
-
-            console.log(
-                "    Granting emergency access control governor guardian role to address %s", multisigAddresses.labs
-            );
-
-            startBroadcast();
-            (
-                governorAddresses.accessControlEmergencyGovernorAdminTimelockController,
-                governorAddresses.accessControlEmergencyGovernorWildcardTimelockController,
-                governorAddresses.accessControlEmergencyGovernor
-            ) =
-                GovernorAccessControlEmergencyFactory(peripheryAddresses.governorAccessControlEmergencyFactory)
-                    .deploy(
-                        adminTimelockControllerParams,
-                        wildcardTimelockControllerParams,
-                        governorAccessControlEmergencyGuardians
-                    );
-
-            //governorAddresses.capRiskSteward = CapRiskStewardFactory(peripheryAddresses.capRiskStewardFactory).deploy(
-            //    governorAddresses.accessControlEmergencyGovernor,
-            //    peripheryAddresses.kinkIRMFactory,
-            //    multisigAddresses.DAO
-            //);
-
-            stopBroadcast();
-        } else {
-            console.log("- GovernorAccessControlEmergency contracts suite already deployed. Skipping...");
-        }
-
         if (peripheryAddresses.swapper == address(0) && peripheryAddresses.swapVerifier == address(0)) {
             console.log("+ Deploying Swapper...");
             Swap deployer = new Swap();
@@ -796,26 +714,6 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             }
         } else {
             console.log("- EulerEarnFactoryPerspective already deployed. Skipping...");
-        }
-
-        if (peripheryAddresses.edgeFactory == address(0)) {
-            console.log("+ Deploying EdgeFactory...");
-            EdgeFactoryDeployer deployer = new EdgeFactoryDeployer();
-            peripheryAddresses.edgeFactory = deployer.deploy(
-                coreAddresses.eVaultFactory,
-                peripheryAddresses.oracleRouterFactory,
-                peripheryAddresses.escrowedCollateralPerspective
-            );
-        } else {
-            console.log("- EdgeFactory already deployed. Skipping...");
-        }
-
-        if (peripheryAddresses.edgeFactoryPerspective == address(0)) {
-            console.log("+ Deploying EdgeFactoryPerspective...");
-            EdgePerspectivesDeployer deployer = new EdgePerspectivesDeployer();
-            peripheryAddresses.edgeFactoryPerspective = deployer.deploy(peripheryAddresses.edgeFactory)[0];
-        } else {
-            console.log("- EdgeFactoryPerspective already deployed. Skipping...");
         }
 
         if (peripheryAddresses.securitizeFactory == address(0)) {
