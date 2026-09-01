@@ -11,9 +11,6 @@ on:
 permissions:
   contents: read
 
-env:
-  FOUNDRY_PROFILE: ci
-
 jobs:
   check:
     strategy:
