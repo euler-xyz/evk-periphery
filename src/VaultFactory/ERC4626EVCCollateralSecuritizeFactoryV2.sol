@@ -3,21 +3,21 @@
 pragma solidity ^0.8.0;
 
 import {BaseFactory} from "../BaseFactory/BaseFactory.sol";
-import {ERC4626EVCCollateralSecuritize} from "../Vault/deployed/ERC4626EVCCollateralSecuritize.sol";
-import {IERC4626EVCCollateralSecuritizeFactory} from "./interfaces/IERC4626EVCCollateralSecuritizeFactory.sol";
+import {ERC4626EVCCollateralSecuritizeV2} from "../Vault/deployed/ERC4626EVCCollateralSecuritizeV2.sol";
+import {IERC4626EVCCollateralSecuritizeFactoryV2} from "./interfaces/IERC4626EVCCollateralSecuritizeFactoryV2.sol";
 
-/// @title ERC4626EVCCollateralSecuritizeFactory
+/// @title ERC4626EVCCollateralSecuritizeFactoryV2
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A minimal factory for ERC4626EVKCompatibleCollateralSecuritize vaults.
-contract ERC4626EVCCollateralSecuritizeFactory is BaseFactory, IERC4626EVCCollateralSecuritizeFactory {
+contract ERC4626EVCCollateralSecuritizeFactoryV2 is BaseFactory, IERC4626EVCCollateralSecuritizeFactoryV2 {
     /// @notice The address of the EVC.
     address public immutable evc;
 
     /// @notice The address of the Permit2.
     address public immutable permit2;
 
-    /// @notice Constructs the factory for ERC4626EVCCollateralSecuritize vaults.
+    /// @notice Constructs the factory for ERC4626EVCCollateralSecuritizeV2 vaults.
     /// @param _evc The address of the EVC.
     /// @param _permit2 The address of the Permit2.
     constructor(address _evc, address _permit2) {
@@ -25,7 +25,7 @@ contract ERC4626EVCCollateralSecuritizeFactory is BaseFactory, IERC4626EVCCollat
         permit2 = _permit2;
     }
 
-    /// @notice Deploys a new ERC4626EVCCollateralSecuritize vault.
+    /// @notice Deploys a new ERC4626EVCCollateralSecuritizeV2 vault.
     /// @param controllerPerspective The address of the perspective contract whitelisting controllers able to liquidate
     /// the new vault.
     /// @param asset The address of the underlying asset for the new vault.
@@ -38,7 +38,7 @@ contract ERC4626EVCCollateralSecuritizeFactory is BaseFactory, IERC4626EVCCollat
         returns (address)
     {
         address vault = address(
-            new ERC4626EVCCollateralSecuritize(evc, permit2, msg.sender, controllerPerspective, asset, name, symbol)
+            new ERC4626EVCCollateralSecuritizeV2(evc, permit2, msg.sender, controllerPerspective, asset, name, symbol)
         );
 
         deploymentInfo[vault] = DeploymentInfo(msg.sender, uint96(block.timestamp));

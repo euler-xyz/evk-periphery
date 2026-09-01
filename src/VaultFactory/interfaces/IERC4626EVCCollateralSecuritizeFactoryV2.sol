@@ -4,11 +4,11 @@ pragma solidity >=0.8.0;
 
 import {IFactory} from "../../BaseFactory/interfaces/IFactory.sol";
 
-/// @title IERC4626EVCCollateralSecuritizeFactory
+/// @title IERC4626EVCCollateralSecuritizeFactoryV2
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice Factory interface for ERC4626EVCCollateralSecuritize vaults.
-interface IERC4626EVCCollateralSecuritizeFactory is IFactory {
+interface IERC4626EVCCollateralSecuritizeFactoryV2 is IFactory {
     /// @notice Deploys a new ERC4626EVCCollateralSecuritize.
     /// @param controllerPerspective The address of the perspective contract whitelisting controllers able to liquidate
     /// the new vault.
