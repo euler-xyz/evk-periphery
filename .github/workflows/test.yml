@@ -1,6 +1,12 @@
 name: test
 
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - development
+      - master
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -32,7 +38,18 @@ jobs:
           forge build --sizes
         id: build
 
+      # Fork tests require live RPC access (and secrets), so they are excluded
+      # from automatic push/PR runs to keep CI deterministic and secret-free.
+      # A manual `workflow_dispatch` run executes the full suite, so fork tests
+      # can be exercised on demand once RPC env vars are provided.
       - name: Run Forge tests
+        env:
+          FORK_TESTS: >-
+            test/{HookTarget/HookTargetMarketStatus.t.sol,HookTarget/HookTargetStakeDelegator.t.sol,Liquidator/SBLiquidator.t.sol,OFT/OFTFeeCollectorFork.t.sol,OFT/OFTFeeCollectorGulperFork.t.sol,Swaps/MigrationHelperFork.t.sol,Swaps/Swaps1Inch.sol}
         run: |
-          forge test -vvv
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            forge test -vvv
+          else
+            forge test -vvv --no-match-path "$FORK_TESTS"
+          fi
         id: test
