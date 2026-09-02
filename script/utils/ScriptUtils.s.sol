@@ -455,7 +455,10 @@ abstract contract ScriptUtils is
 
         address safe = getSafe(false);
         safeNonce = getSafeNonce();
-        if (safe != address(0) && safeNonce == 0) {
+        if (
+            safe != address(0) && safeNonce == 0
+                && !vm.envOr("MARKET_OPS_SAFE_NONCE_EXPLICIT", false)
+        ) {
             SafeUtil util = new SafeUtil();
             safeNonce = util.getNextNonce(safe);
         }
@@ -1055,7 +1058,7 @@ abstract contract BatchBuilder is ScriptUtils {
     }
 
     function dumpBatch(address from) internal {
-        string memory path = string.concat(vm.projectRoot(), "/script/Batches.json");
+        string memory path = getScriptOutputFilePath("Batches.json");
         string memory json = vm.exists(path) ? vm.readFile(path) : "{}";
         string memory key = string.concat("batch", vm.toString(batchCounter));
 
@@ -1070,7 +1073,7 @@ abstract contract BatchBuilder is ScriptUtils {
     function dumpTimelockCall(uint256 i) internal {
         require(i < timelockCalls.length, "dumpTimelockCall: incorrect index");
 
-        string memory path = string.concat(vm.projectRoot(), "/script/TimelockCalls.json");
+        string memory path = getScriptOutputFilePath("TimelockCalls.json");
         string memory json = vm.exists(path) ? vm.readFile(path) : "{}";
         string memory key = vm.toString(timelockCalls[i].id);
 
