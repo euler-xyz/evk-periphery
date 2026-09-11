@@ -62,12 +62,25 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
     }
 
     /// @notice Seizes a certain amount of shares from an address.
-    /// @dev Only allows share transfers to a compliant address.
+    /// @dev Only allows share transfers to a compliant address and checks the source account's status.
     /// @param from The address to send shares from.
     /// @param to The address to send shares to.
     /// @param amount The amount of shares to transfer.
     /// @return result True if the transfer succeeded, otherwise false.
-    function seize(address from, address to, uint256 amount)
+    function seize(address from, address to, uint256 amount) public virtual returns (bool result) {
+        return seize(from, to, amount, address(0));
+    }
+
+    /// @notice Seizes shares, optionally bypassing a specific controller's account status check.
+    /// @dev Only skips requesting a status check when the source has exactly one controller equal to
+    /// `ignoreController`. Existing deferred checks are not forgiven. Bypassing a legitimate lending controller can
+    /// leave the source account's debt undercollateralized. Recipient compliance checks always apply.
+    /// @param from The address to send shares from.
+    /// @param to The address to send shares to.
+    /// @param amount The amount of shares to transfer.
+    /// @param ignoreController The sole controller whose check may be skipped. Zero retains normal status checks.
+    /// @return result True if the transfer succeeded, otherwise false.
+    function seize(address from, address to, uint256 amount, address ignoreController)
         public
         virtual
         callThroughEVC
@@ -79,12 +92,16 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         returns (bool result)
     {
         if (!isTransferCompliant(to, amount)) revert NotAuthorized();
-        address spender = _msgSender();
-        uint256 previousAllowance = allowance(from, spender);
-        _approve(from, spender, amount, false);
-        result = ERC4626EVCCollateral.transferFrom(from, to, amount);
-        _approve(from, spender, previousAllowance, false);
+
+        _transfer(from, to, amount);
+
+        address[] memory controllers = evc.getControllers(from);
+        if (ignoreController == address(0) || controllers.length != 1 || controllers[0] != ignoreController) {
+            evc.requireAccountStatusCheck(from);
+        }
+
         emit GovSeized(from, to, amount);
+        return true;
     }
 
     /// @notice Transfers a certain amount of shares to a recipient.

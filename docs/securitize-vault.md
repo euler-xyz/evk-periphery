@@ -43,7 +43,8 @@ The table below summarizes the principal token-moving paths. “Underlying sourc
 | `withdraw(assets, receiver, owner)` | burned from `owner` | vault to `receiver` | standard ERC-4626 owner/allowance rules; receiver must not be an EVC subaccount without its own key; owner and receiver not frozen; underlying token checks apply |
 | `redeem(shares, receiver, owner)` | burned from `owner` | vault to `receiver` | same policy as `withdraw` |
 | liquidation share transfer | borrower to liquidator | none until redemption | EVC control-collateral context; controller verified by `controllerPerspective`; `isTransferCompliant` performs a point-in-time hypothetical vault-to-liquidator-owner precheck; borrower issuance provenance and the eventual redemption receiver are not preserved |
-| `seize(from, to, amount)` | `from` to `to` | none until redemption | governor only; recipient not frozen; recipient must pass the same vault-to-recipient compliance simulation; the source account's freeze status is not checked |
+| `seize(from, to, amount)` | `from` to `to` | none until redemption | governor only; recipient not frozen; recipient must pass the same vault-to-recipient compliance simulation; source account status check required; the source account's freeze status is not checked |
+| `seize(from, to, amount, ignoreController)` | `from` to `to` | none until redemption | same seizure policy, but skips requesting a source account status check when its sole enabled controller equals `ignoreController` |
 
 Every operation in the table additionally requires the vault not to be paused.
 
@@ -105,6 +106,12 @@ The vault freeze is a wrapper control. It is distinct from any investor lock, sa
 ### Governor seizure
 
 The governor can transfer shares from an account to an eligible recipient through `seize`. Seizure requires the vault not to be paused and the recipient's family not to be frozen, but does not check the source account's freeze status, so a frozen family's shares can still be seized (supporting a freeze-then-seize sequence). The operation does not transfer underlying assets immediately. The recipient may later redeem, subject to the underlying token's vault-to-recipient transfer checks.
+
+`seize(from, to, amount)` requests an EVC account status check for the source. The overload `seize(from, to, amount, ignoreController)` skips requesting that check only when the source has exactly one enabled controller and its address equals `ignoreController`. A different controller, no controller, or multiple controllers retain normal status checking. Passing the zero address also retains normal status checking. The controller is read from `from`, including when `from` is an EVC subaccount.
+
+The overload lets the governor target a controller that obstructs seizure without granting a bypass for a different controller. It does not forgive status checks queued by other operations in the same EVC batch. Both overloads preserve allowances and emit `GovSeized`.
+
+An address match does not establish that the controller is malicious. Ignoring a legitimate lending controller can remove collateral backing outstanding debt and cause losses for that lending vault's depositors. Recipient compliance and all other seizure restrictions remain enforced.
 
 ### Controller perspective
 

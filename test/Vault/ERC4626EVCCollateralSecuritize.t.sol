@@ -15,6 +15,7 @@ import {
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {EVCUtil} from "ethereum-vault-connector/utils/EVCUtil.sol";
+import {Errors} from "ethereum-vault-connector/Errors.sol";
 import {MockSecuritizeToken} from "./lib/MockSecuritizeToken.sol";
 import {MockController} from "./lib/MockController.sol";
 import "forge-std/Vm.sol";
@@ -65,6 +66,8 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
         vm.startPrank(admin);
         vm.expectRevert(ERC4626EVCCollateralFreezable.Paused.selector);
         vault.seize(depositor, to, 1);
+        vm.expectRevert(ERC4626EVCCollateralFreezable.Paused.selector);
+        vault.seize(depositor, to, 1, makeAddr("controller"));
     }
 
     function testCollateralSecuritizeVault_freeze() public {
@@ -106,6 +109,8 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
         vm.startPrank(admin);
         vm.expectRevert(ERC4626EVCCollateralFreezable.Frozen.selector);
         vault.seize(otherDepositor, depositor, 1);
+        vm.expectRevert(ERC4626EVCCollateralFreezable.Frozen.selector);
+        vault.seize(otherDepositor, depositor, 1, makeAddr("controller"));
     }
 
     function testCollateralSecuritizeVault_callThroughEVC() public {
@@ -124,9 +129,16 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
             abi.encodeCall(IComplianceServiceRegulated.preTransferCheck, (address(vault), liquidator, 0)),
             abi.encode(uint256(0), string(""))
         );
-        bytes memory call = abi.encodeCall(ERC4626EVCCollateralSecuritize.seize, (depositor, liquidator, 0));
+        bytes memory call = abi.encodeWithSignature("seize(address,address,uint256)", depositor, liquidator, 0);
         vm.expectCall(address(evc), 0, abi.encodeCall(IEVC.call, (address(vault), admin, 0, call)));
         (bool success,) = address(vault).call(call);
+        assertTrue(success);
+
+        call = abi.encodeWithSignature(
+            "seize(address,address,uint256,address)", depositor, liquidator, 0, makeAddr("controller")
+        );
+        vm.expectCall(address(evc), 0, abi.encodeCall(IEVC.call, (address(vault), admin, 0, call)));
+        (success,) = address(vault).call(call);
         assertTrue(success);
     }
 
@@ -135,7 +147,12 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
         reenter(abi.encodeCall(IERC20.transferFrom, (depositor, makeAddr("to"), 1)));
         reenter(abi.encodeCall(IERC4626.deposit, (1, depositor)));
         reenter(abi.encodeCall(IERC4626.mint, (1, depositor)));
-        reenter(abi.encodeCall(ERC4626EVCCollateralSecuritize.seize, (depositor, liquidator, 1)));
+        reenter(abi.encodeWithSignature("seize(address,address,uint256)", depositor, liquidator, 1));
+        reenter(
+            abi.encodeWithSignature(
+                "seize(address,address,uint256,address)", depositor, liquidator, 1, makeAddr("controller")
+            )
+        );
 
         reenter(abi.encodeWithSignature("balanceOfAddressPrefix(bytes19)", (_getAddressPrefix(depositor))));
         reenter(abi.encodeWithSignature("balanceOfAddressPrefix(address)", (depositor)));
@@ -238,6 +255,201 @@ contract ERC4626EVCCollateralSecuritizeTest is EVaultTestBase {
         vault.setControllerPerspective(newPerspective);
 
         assertEq(vault.controllerPerspective(), newPerspective);
+    }
+
+    function testCollateralSecuritizeVault_seize_ignoreController(uint8 accountId, uint256 amount, uint256 allowance)
+        public
+    {
+        amount = bound(amount, 1, 1e18);
+        address account = address(uint160(depositor) ^ accountId);
+        MockController controller = new MockController(address(evc));
+        _prepareSeize(account, address(controller));
+
+        vm.prank(depositor);
+        evc.call(address(vault), account, 0, abi.encodeCall(IERC20.approve, (admin, allowance)));
+        controller.setRevertOnCheck(true);
+        vm.prank(admin);
+        vault.freeze(_getAddressPrefix(account));
+
+        vm.expectEmit(true, true, false, true, address(vault));
+        emit ERC4626EVCCollateralSecuritize.GovSeized(account, liquidator, amount);
+        vm.prank(admin);
+        assertTrue(vault.seize(account, liquidator, amount, address(controller)));
+
+        assertEq(vault.balanceOf(account), 1e18 - amount);
+        assertEq(vault.balanceOf(liquidator), amount);
+        assertEq(vault.balanceOfAddressPrefix(_getAddressPrefix(account)), 1e18 - amount);
+        assertEq(vault.balanceOfAddressPrefix(liquidator), amount);
+        assertEq(vault.allowance(account, admin), allowance);
+        assertEq(vault.totalSupply(), 1e18);
+        assertEq(vault.totalAssets(), 1e18);
+        assertEq(securitizeToken.balanceOf(address(vault)), 1e18);
+        assertEq(evc.getControllers(account)[0], address(controller));
+    }
+
+    function testCollateralSecuritizeVault_seize_checksUnmatchedController() public {
+        MockController controller = new MockController(address(evc));
+        _prepareSeize(depositor, address(controller));
+        controller.setRevertOnCheck(true);
+
+        vm.startPrank(admin);
+        vm.expectRevert("revert on check");
+        vault.seize(depositor, liquidator, 1e18);
+        vm.expectRevert("revert on check");
+        vault.seize(depositor, liquidator, 1e18, address(0));
+        vm.expectRevert("revert on check");
+        vault.seize(depositor, liquidator, 1e18, makeAddr("otherController"));
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(depositor), 1e18);
+        assertEq(vault.balanceOf(liquidator), 0);
+    }
+
+    function testCollateralSecuritizeVault_seize_unmatchedHealthyController() public {
+        MockController controller = new MockController(address(evc));
+        _prepareSeize(depositor, address(controller));
+
+        vm.expectCall(
+            address(controller), abi.encodeWithSelector(MockController.checkAccountStatus.selector, depositor)
+        );
+        vm.prank(admin);
+        assertTrue(vault.seize(depositor, liquidator, 1e18, makeAddr("otherController")));
+
+        assertEq(vault.balanceOf(depositor), 0);
+        assertEq(vault.balanceOf(liquidator), 1e18);
+    }
+
+    function testCollateralSecuritizeVault_seize_noController() public {
+        _prepareSeize(depositor, address(0));
+
+        vm.startPrank(admin);
+        vm.expectCall(address(evc), abi.encodeCall(IEVC.requireAccountStatusCheck, (depositor)));
+        assertTrue(vault.seize(depositor, liquidator, 0.5e18, address(0)));
+        vm.expectCall(address(evc), abi.encodeCall(IEVC.requireAccountStatusCheck, (depositor)));
+        assertTrue(vault.seize(depositor, liquidator, 0.5e18, makeAddr("controller")));
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(depositor), 0);
+        assertEq(vault.balanceOf(liquidator), 1e18);
+    }
+
+    function testCollateralSecuritizeVault_seize_ignoreController_authorization() public {
+        MockController controller = new MockController(address(evc));
+        _prepareSeize(depositor, address(controller));
+        controller.setRevertOnCheck(true);
+
+        vm.prank(depositor);
+        vm.expectRevert(EVCUtil.NotAuthorized.selector);
+        vault.seize(depositor, liquidator, 1e18, address(controller));
+
+        bytes memory call = abi.encodeWithSignature(
+            "seize(address,address,uint256,address)", depositor, liquidator, 1e18, address(controller)
+        );
+        vm.startPrank(admin);
+        evc.setAccountOperator(admin, depositor, true);
+        vm.expectRevert(EVCUtil.NotAuthorized.selector);
+        evc.call(address(vault), address(uint160(admin) ^ 1), 0, call);
+        vm.stopPrank();
+
+        vm.prank(depositor);
+        vm.expectRevert(EVCUtil.NotAuthorized.selector);
+        evc.call(address(vault), admin, 0, call);
+
+        assertEq(vault.balanceOf(depositor), 1e18);
+        assertEq(vault.balanceOf(liquidator), 0);
+    }
+
+    function testCollateralSecuritizeVault_seize_ignoreController_noncompliantRecipient() public {
+        MockController controller = new MockController(address(evc));
+        _prepareSeize(depositor, address(controller));
+        controller.setRevertOnCheck(true);
+        vm.mockCall(
+            mockComplianceService,
+            abi.encodeWithSelector(IComplianceServiceRegulated.preTransferCheck.selector, address(vault), liquidator),
+            abi.encode(uint256(1), string(""))
+        );
+
+        vm.prank(admin);
+        vm.expectRevert(EVCUtil.NotAuthorized.selector);
+        vault.seize(depositor, liquidator, 1e18, address(controller));
+        assertEq(vault.balanceOf(depositor), 1e18);
+        assertEq(vault.balanceOf(liquidator), 0);
+    }
+
+    function testCollateralSecuritizeVault_seize_ignoreController_keepsDeferredChecks() public {
+        MockController controller = new MockController(address(evc));
+        _prepareSeize(depositor, address(controller));
+        controller.setRevertOnCheck(true);
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](2);
+        items[0] = IEVC.BatchItem({
+            targetContract: address(evc),
+            onBehalfOfAccount: address(0),
+            value: 0,
+            data: abi.encodeCall(IEVC.requireAccountStatusCheck, (depositor))
+        });
+        items[1] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: admin,
+            value: 0,
+            data: abi.encodeWithSignature(
+                "seize(address,address,uint256,address)", depositor, liquidator, 1e18, address(controller)
+            )
+        });
+
+        vm.prank(admin);
+        vm.expectRevert("revert on check");
+        evc.batch(items);
+        assertEq(vault.balanceOf(depositor), 1e18);
+        assertEq(vault.balanceOf(liquidator), 0);
+    }
+
+    function testCollateralSecuritizeVault_seize_ignoreController_multipleControllers() public {
+        MockController controller = new MockController(address(evc));
+        MockController otherController = new MockController(address(evc));
+        _prepareSeize(depositor, address(controller));
+        vm.prank(depositor);
+        evc.setAccountOperator(depositor, admin, true);
+
+        IEVC.BatchItem[] memory items = new IEVC.BatchItem[](2);
+        items[0] = IEVC.BatchItem({
+            targetContract: address(evc),
+            onBehalfOfAccount: address(0),
+            value: 0,
+            data: abi.encodeCall(IEVC.enableController, (depositor, address(otherController)))
+        });
+        items[1] = IEVC.BatchItem({
+            targetContract: address(vault),
+            onBehalfOfAccount: admin,
+            value: 0,
+            data: abi.encodeWithSignature(
+                "seize(address,address,uint256,address)", depositor, liquidator, 1e18, address(controller)
+            )
+        });
+
+        vm.expectCall(address(evc), abi.encodeCall(IEVC.requireAccountStatusCheck, (depositor)));
+        vm.prank(admin);
+        vm.expectRevert(Errors.EVC_ControllerViolation.selector);
+        evc.batch(items);
+        assertEq(vault.balanceOf(depositor), 1e18);
+        assertEq(vault.balanceOf(liquidator), 0);
+        assertEq(evc.getControllers(depositor).length, 1);
+    }
+
+    function _prepareSeize(address account, address controller) internal {
+        vm.startPrank(depositor);
+        vault.deposit(1e18, account);
+        evc.enableCollateral(account, address(vault));
+        if (controller != address(0)) evc.enableController(account, controller);
+        vm.stopPrank();
+
+        vm.prank(liquidator);
+        evc.call(address(0), liquidator, 0, "");
+        vm.mockCall(
+            mockComplianceService,
+            abi.encodeWithSelector(IComplianceServiceRegulated.preTransferCheck.selector, address(vault), liquidator),
+            abi.encode(uint256(0), string(""))
+        );
     }
 
     function _getAddressPrefix(address account) internal pure returns (bytes19) {
