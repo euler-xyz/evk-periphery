@@ -410,6 +410,97 @@ contract ERC4626EVCCollateralSecuritizeV2Test is EVaultTestBase {
         assertEq(vault.balanceOf(recipient), 0);
     }
 
+    function testCollateralSecuritizeVault_controllerBlocksSeize_tokenLevelSeizure() public {
+        address otherDepositor = makeAddr("otherDepositor");
+        address recipient = makeAddr("recipient");
+        address issuer = makeAddr("issuer");
+
+        securitizeToken.mint(otherDepositor, 1e18);
+        vm.startPrank(otherDepositor);
+        evc.call(address(0), otherDepositor, 0, "");
+        securitizeToken.approve(address(vault), type(uint256).max);
+        vault.deposit(1e18, otherDepositor);
+        vm.stopPrank();
+
+        MockController controller = new MockController(address(evc));
+        vm.startPrank(depositor);
+        vault.deposit(1e18, depositor);
+        evc.enableCollateral(depositor, address(vault));
+        evc.enableController(depositor, address(controller));
+        vm.stopPrank();
+        controller.setRevertOnCheck(true);
+
+        vm.prank(recipient);
+        evc.call(address(0), recipient, 0, "");
+        vm.mockCall(
+            mockComplianceService,
+            abi.encodeWithSelector(IComplianceServiceRegulated.preTransferCheck.selector),
+            abi.encode(uint256(0), string(""))
+        );
+
+        vm.startPrank(admin);
+        vm.expectRevert("revert on check");
+        vault.seize(depositor, recipient, 1e18);
+
+        vault.freeze(_getAddressPrefix(depositor));
+        vm.expectRevert("revert on check");
+        vault.seize(depositor, recipient, 1e18);
+        vm.stopPrank();
+
+        uint256 sharePrice = vault.convertToAssets(1e18);
+        uint256 frozenAssets = vault.convertToAssets(vault.balanceOfAddressPrefix(depositor));
+        vm.prank(address(vault));
+        securitizeToken.transfer(issuer, frozenAssets);
+
+        assertEq(securitizeToken.balanceOf(issuer), frozenAssets);
+        assertEq(vault.totalAssets(), 2e18);
+        assertEq(vault.convertToAssets(1e18), sharePrice);
+        assertEq(vault.balanceOf(depositor), 1e18);
+
+        vm.prank(depositor);
+        vm.expectRevert(ERC4626EVCCollateralFreezable.Frozen.selector);
+        vault.redeem(1e18, depositor, depositor);
+
+        vm.startPrank(otherDepositor);
+        uint256 assets = vault.redeem(vault.balanceOf(otherDepositor), otherDepositor, otherDepositor);
+        vm.stopPrank();
+
+        assertEq(assets, 1e18);
+        assertEq(securitizeToken.balanceOf(otherDepositor), 1e18);
+        assertEq(securitizeToken.balanceOf(address(vault)), 0);
+        assertEq(vault.totalAssets(), 1e18);
+        assertEq(vault.totalSupply(), vault.balanceOf(depositor));
+    }
+
+    function testCollateralSecuritizeVault_seizeFromFrozenAccountChecksZeroCollateral() public {
+        address recipient = makeAddr("recipient");
+        MockController controller = new MockController(address(evc));
+
+        vm.startPrank(depositor);
+        vault.deposit(1e18, depositor);
+        evc.enableCollateral(depositor, address(vault));
+        evc.enableController(depositor, address(controller));
+        vm.stopPrank();
+        controller.setCheckZeroBalanceCollateral(address(vault));
+
+        vm.prank(recipient);
+        evc.call(address(0), recipient, 0, "");
+        vm.mockCall(
+            mockComplianceService,
+            abi.encodeWithSelector(IComplianceServiceRegulated.preTransferCheck.selector),
+            abi.encode(uint256(0), string(""))
+        );
+
+        vm.startPrank(admin);
+        vm.expectRevert("non-zero collateral balance");
+        vault.seize(depositor, recipient, 0.5e18);
+
+        vault.freeze(_getAddressPrefix(depositor));
+        vm.expectRevert("zero collateral balance");
+        vault.seize(depositor, recipient, 0.5e18);
+        vm.stopPrank();
+    }
+
     /// @dev Sets up a collateral position for `depositor` with a perspective-verified mock controller and runs a
     /// successful liquidation that transfers `amountToSeize` of vault shares from `depositor` to `liquidator`.
     function _liquidateDepositorCollateral(uint256 amountToSeize) internal {

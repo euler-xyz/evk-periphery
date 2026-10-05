@@ -25,7 +25,7 @@ The EVC groups a root account and its subaccounts into one account family. The v
 - `withdraw` and `redeem` require the underlying-asset receiver to belong to the share owner's EVC account family;
 - ordinary `transfer` and `transferFrom` calls are limited to the same account family;
 - a cross-family share transfer is allowed only during an EVC `controlCollateral` operation, when the enabled controller is verified by `controllerPerspective` and the recipient passes `isTransferCompliant`;
-- `seize` is a governor-only cross-family transfer and also requires the recipient to pass `isTransferCompliant`.
+- `seize` is a governor-only cross-family transfer and also requires the recipient to pass `isTransferCompliant` and the source account to pass its EVC account status check.
 
 A root account must be registered in the EVC before `isCommonOwner` can recognize its account family.
 
@@ -44,7 +44,7 @@ The table below summarizes the principal token-moving paths. “Underlying sourc
 | `withdraw(assets, receiver, owner)` | burned from `owner` | vault to `receiver` | standard ERC-4626 owner/allowance rules; `receiver` must belong to `owner`'s EVC account family and must not be an EVC subaccount without its own key; owner and receiver not frozen; underlying token checks apply |
 | `redeem(shares, receiver, owner)` | burned from `owner` | vault to `receiver` | same policy as `withdraw` |
 | liquidation share transfer | borrower to liquidator | none until redemption | EVC control-collateral context; controller verified by `controllerPerspective`; `isTransferCompliant` performs a point-in-time hypothetical vault-to-liquidator-owner precheck; borrower issuance provenance and the eventual redemption receiver are not preserved |
-| `seize(from, to, amount)` | `from` to `to` | none until redemption | governor only; recipient not frozen; recipient must pass the same vault-to-recipient compliance simulation; the source account's freeze status is not checked |
+| `seize(from, to, amount)` | `from` to `to` | none until redemption | governor only; recipient not frozen; recipient must pass the same vault-to-recipient compliance simulation; the source account's freeze status is not checked; the source account status check applies and cannot be bypassed, so a controller that rejects it blocks the seizure |
 
 Every operation in the table additionally requires the vault not to be paused.
 
@@ -101,6 +101,13 @@ The vault freeze is a wrapper control. It is distinct from any investor lock, sa
 
 The governor can transfer shares from an account to an eligible recipient through `seize`. Seizure requires the vault not to be paused and the recipient's family not to be frozen, but does not check the source account's freeze status, so a frozen family's shares can still be seized (supporting a freeze-then-seize sequence). The operation does not transfer underlying assets immediately. The recipient may later redeem, subject to the underlying token's vault-to-recipient transfer checks.
 
+Seizure follows the protocol's collateral rules. Like any other share transfer, it requires an EVC account status check for the source account, and the vault provides no way to bypass it. The source account's enabled controller therefore decides whether a seizure can complete:
+
+- **Legitimate lending controller.** The controller rejects a seizure that would leave the account's debt undercollateralized. The governor can seize collateral in excess of what the debt requires; the remainder becomes seizable once the debt is repaid. Frozen shares count as zero collateral during the status check. While the family is frozen, a seizure of any amount from a source account with outstanding debt therefore fails unless that account's other collateral, after LTV, exceeds the debt on its own. Accounts in the family without debt are unaffected.
+- **Any other controller.** The EVC lets an account enable any contract as its controller, so an account owner can install one that rejects every status check and blocks seizure indefinitely. Such a controller is not accepted by `controllerPerspective` and cannot liquidate the vault's shares. In this case, the governor freezes the account family, which stops all further movement of its shares, and the issuer seizes the corresponding underlying tokens directly from the vault address through the DS Token's own seizure function. The vault tracks `totalAssets` internally rather than reading its token balance, so a token-level seizure does not change the share price, and other holders can still redeem in full. The seized amount must not exceed `convertToAssets` of the family's shares (`balanceOfAddressPrefix`), because any excess would come from other holders. The family's shares remain outstanding but are no longer backed by underlying in the vault, so the family must stay frozen: unfreezing it would let those shares redeem underlying that belongs to other holders.
+
+The vault deliberately offers no override of the source account status check. Against a legitimate lending controller, an override would only let the governor remove collateral backing outstanding debt and create bad debt in the lending market. Against any other controller, the token-level path above already completes the seizure. Token-level seizure must not be used against a family that owes debt to a legitimate lending controller: it would leave that debt without collateral, and because frozen shares cannot be liquidated and still report a nonzero balance, the lending vault could not socialize the resulting bad debt.
+
 ### Controller perspective
 
 The governor configures the perspective that identifies controllers permitted to execute cross-family collateral transfers during liquidation. Changing this perspective changes a critical authorization boundary and should be subject to the deployment's governance and review process.
@@ -125,7 +132,7 @@ Before deployment, verify at minimum:
 5. destination eligibility remains enforced for vault-originated transfers;
 6. stronger restrictions, including full-investor locks, are tested rather than inferred;
 7. `controllerPerspective` accepts only the intended production controllers;
-8. the initial supply cap, governor, pause and freeze procedures are defined;
+8. the initial supply cap, governor, pause, freeze and seizure procedures are defined, including a token-level seizure from the vault address for an account whose controller blocks `seize`;
 9. the market's liquidation path has sufficient eligible liquidator participation.
 
 Compliance-service configuration can change independently of the vault. Operators should repeat these checks when the asset, service implementation, wallet classification or transfer policy changes.
