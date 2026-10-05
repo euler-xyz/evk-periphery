@@ -73,7 +73,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         bool deployEULOFT;
         bool deployEulerEarn;
         bool deployEulerSwap;
-        bool deploySecuritizeFactory;
+        bool deploySecuritizeFactoryV2;
         address uniswapPoolManager;
         address eulerSwapProtocolFeeConfigAdmin;
         address eulerSwapRegistryCurator;
@@ -142,7 +142,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             deployEULOFT: vm.parseJsonBool(json, ".deployEULOFT"),
             deployEulerEarn: vm.parseJsonBool(json, ".deployEulerEarn"),
             deployEulerSwap: vm.parseJsonBool(json, ".deployEulerSwap"),
-            deploySecuritizeFactory: vm.parseJsonBool(json, ".deploySecuritizeFactory"),
+            deploySecuritizeFactoryV2: vm.parseJsonBool(json, ".deploySecuritizeFactoryV2"),
             uniswapPoolManager: vm.parseJsonAddress(json, ".uniswapPoolManager"),
             eulerSwapProtocolFeeConfigAdmin: vm.parseJsonAddress(json, ".eulerSwapProtocolFeeConfigAdmin"),
             eulerSwapRegistryCurator: vm.parseJsonAddress(json, ".eulerSwapRegistryCurator")
@@ -464,12 +464,12 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- EulerEarnFactoryPerspective already deployed. Skipping...");
         }
 
-        if (peripheryAddresses.securitizeFactory == address(0)) {
-            if (input.deploySecuritizeFactory) {
-                console.log("+ Deploying ERC4626EVCCollateralSecuritizeFactory...");
+        if (peripheryAddresses.securitizeFactoryV2 == address(0)) {
+            if (input.deploySecuritizeFactoryV2) {
+                console.log("+ Deploying ERC4626EVCCollateralSecuritizeFactoryV2...");
                 bytes memory bytecode = abi.encodePacked(
                     vm.getCode(
-                        "out-securitize-factory/ERC4626EVCCollateralSecuritizeFactory.sol/ERC4626EVCCollateralSecuritizeFactory.json"
+                        "out-securitize-factory/ERC4626EVCCollateralSecuritizeFactoryV2.sol/ERC4626EVCCollateralSecuritizeFactoryV2.json"
                     ),
                     abi.encode(coreAddresses.evc, coreAddresses.permit2)
                 );
@@ -479,13 +479,13 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     factory := create(0, add(bytecode, 0x20), mload(bytecode))
                 }
                 stopBroadcast();
-                peripheryAddresses.securitizeFactory = factory;
+                peripheryAddresses.securitizeFactoryV2 = factory;
             } else {
-                console.log("! ERC4626EVCCollateralSecuritizeFactory deployment deliberately skipped. Skipping...");
+                console.log("! ERC4626EVCCollateralSecuritizeFactoryV2 deployment deliberately skipped. Skipping...");
                 if (vm.isDir("out-securitize-factory")) vm.removeDir("out-securitize-factory", true);
             }
         } else {
-            console.log("- ERC4626EVCCollateralSecuritizeFactory already deployed. Skipping...");
+            console.log("- ERC4626EVCCollateralSecuritizeFactoryV2 already deployed. Skipping...");
             if (vm.isDir("out-securitize-factory")) vm.removeDir("out-securitize-factory", true);
         }
 

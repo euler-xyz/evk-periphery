@@ -1,6 +1,6 @@
 # Securitize ERC-4626 EVC Collateral Vault
 
-This document describes `ERC4626EVCCollateralSecuritize`, an EVC-compatible, collateral-only ERC-4626 vault for restricted assets that expose Securitize's DS Token compliance service. It covers the contract stack, account model, transfer rules, administrative controls, liquidation flow and integration assumptions.
+This document describes `ERC4626EVCCollateralSecuritizeV2`, an EVC-compatible, collateral-only ERC-4626 vault for restricted assets that expose Securitize's DS Token compliance service. It covers the contract stack, account model, transfer rules, administrative controls, liquidation flow and integration assumptions.
 
 The vault is infrastructure for an issuer-approved integration. It does not define an asset's eligibility policy, preserve every restriction attached to an investor's underlying token balance or make an asset suitable for use as collateral by itself. Issuers, deployers and market operators must evaluate the composed behavior of the underlying token, its compliance service, the vault and the surrounding lending market.
 
@@ -12,8 +12,8 @@ The deployed contract is the final layer of a reusable ERC-4626 stack:
 2. **`ERC4626EVCCollateral`** adds collateral-only behavior and EVC account status checks.
 3. **`ERC4626EVCCollateralCapped`** adds a governor-managed supply cap, EVC vault status checks, snapshots and reentrancy protection.
 4. **`ERC4626EVCCollateralFreezable`** adds a global pause and per-account-family freezes.
-5. **`ERC4626EVCCollateralSecuritize`** restricts deposits and share transfers, checks eligible recipients for liquidation and seizure, and tracks balances by EVC address prefix.
-6. **`ERC4626EVCCollateralSecuritizeFactory`** deploys vault instances and records them in the factory registry.
+5. **`ERC4626EVCCollateralSecuritizeV2`** restricts deposits, withdrawals, and share transfers, checks eligible recipients for liquidation and seizure, and tracks balances by EVC address prefix.
+6. **`ERC4626EVCCollateralSecuritizeFactoryV2`** deploys vault instances and records them in the factory registry.
 
 The underlying asset must implement `IDSToken` and expose a compliance service compatible with `IComplianceServiceRegulated.preTransferCheck`.
 
@@ -22,9 +22,10 @@ The underlying asset must implement `IDSToken` and expose a compliance service c
 The EVC groups a root account and its subaccounts into one account family. The vault uses that relationship as its ownership boundary:
 
 - `deposit` and `mint` require the share receiver to belong to the caller's EVC account family;
+- `withdraw` and `redeem` require the underlying-asset receiver to belong to the share owner's EVC account family;
 - ordinary `transfer` and `transferFrom` calls are limited to the same account family;
 - a cross-family share transfer is allowed only during an EVC `controlCollateral` operation, when the enabled controller is verified by `controllerPerspective` and the recipient passes `isTransferCompliant`;
-- `seize` is a governor-only cross-family transfer and also requires the recipient to pass `isTransferCompliant`.
+- `seize` is a governor-only cross-family transfer and also requires the recipient to pass `isTransferCompliant` and the source account to pass its EVC account status check.
 
 A root account must be registered in the EVC before `isCommonOwner` can recognize its account family.
 
@@ -40,18 +41,12 @@ The table below summarizes the principal token-moving paths. “Underlying sourc
 | `mint(shares, receiver)` | minted to `receiver` | caller to vault | same policy as `deposit` |
 | `transfer(to, amount)` | caller to `to` | none | same EVC owner, except a verified-controller liquidation; sender and receiver not frozen |
 | `transferFrom(from, to, amount)` | `from` to `to` | none | same EVC owner, except a verified-controller liquidation; allowance/authentication and freeze checks apply |
-| `withdraw(assets, receiver, owner)` | burned from `owner` | vault to `receiver` | standard ERC-4626 owner/allowance rules; receiver must not be an EVC subaccount without its own key; owner and receiver not frozen; underlying token checks apply |
+| `withdraw(assets, receiver, owner)` | burned from `owner` | vault to `receiver` | standard ERC-4626 owner/allowance rules; `receiver` must belong to `owner`'s EVC account family and must not be an EVC subaccount without its own key; owner and receiver not frozen; underlying token checks apply |
 | `redeem(shares, receiver, owner)` | burned from `owner` | vault to `receiver` | same policy as `withdraw` |
 | liquidation share transfer | borrower to liquidator | none until redemption | EVC control-collateral context; controller verified by `controllerPerspective`; `isTransferCompliant` performs a point-in-time hypothetical vault-to-liquidator-owner precheck; borrower issuance provenance and the eventual redemption receiver are not preserved |
-| `seize(from, to, amount)` | `from` to `to` | none until redemption | governor only; recipient not frozen; recipient must pass the same vault-to-recipient compliance simulation; the source account's freeze status is not checked |
+| `seize(from, to, amount)` | `from` to `to` | none until redemption | governor only; recipient not frozen; recipient must pass the same vault-to-recipient compliance simulation; the source account's freeze status is not checked; the source account status check applies and cannot be bypassed, so a controller that rejects it blocks the seizure |
 
 Every operation in the table additionally requires the vault not to be paused.
-
-### Withdraw and redeem receivers
-
-`withdraw` and `redeem` do not require the underlying receiver to share the share owner's EVC account family and do not call `isCommonOwner` or `isTransferCompliant` for that receiver. The owner, or an approved caller acting under standard ERC-4626 allowance rules, may select an unrelated receiver. The vault rejects a receiver recognized as an EVC subaccount whose owner differs from the receiver address, avoiding payouts to subaccounts without usable private keys. An unrelated unregistered address or registered root account is otherwise accepted if the underlying token permits the transfer from the vault. Because the underlying sender is the vault rather than the depositor, this path does not preserve or reapply the depositor's issuance hold-up or issuance-lot provenance.
-
-Integrators must not assume that the deposit/mint same-owner restriction also binds the receiver of an underlying withdrawal. If cross-owner payouts are not acceptable for an asset, that restriction must be provided by the underlying compliance system or by a different vault implementation.
 
 ### Liquidation and seizure compliance sender
 
@@ -73,10 +68,10 @@ When the collateral vault is registered as such a platform wallet, the following
 
 1. an investor deposits underlying tokens that are still subject to an investor-specific issuance hold-up;
 2. the underlying tokens enter pooled custody at the vault address;
-3. the investor redeems to a different eligible receiver, or the investor's shares move to an eligible liquidator that redeems them;
+3. the investor's shares move to an eligible liquidator that redeems them;
 4. the compliance service evaluates the payout using the vault as the underlying sender, rather than the original investor.
 
-For the known Securitize configuration, Securitize has confirmed that platform-wallet destination and source exemptions can, in theory, allow an investor's 72-hour issuance hold-up to be bypassed through this flow. The vault does not preserve that hold-up: both an unrelated `withdraw` or `redeem` receiver and a liquidation followed by redemption produce a vault-originated underlying transfer. Destination KYC and other checks applied by the underlying token remain in force, so this does not by itself authorize payment to an ineligible destination.
+For the known Securitize configuration, Securitize has confirmed that platform-wallet destination and source exemptions can, in theory, allow an investor's 72-hour issuance hold-up to be bypassed through this flow. The vault does not preserve that hold-up: a liquidation followed by redemption produces a vault-originated underlying transfer. Destination KYC and other checks applied by the underlying token remain in force, so this does not by itself authorize payment to an ineligible destination.
 
 Consequently, this vault does **not** preserve or enforce depositor-specific issuance lots after deposit. An issuance hold-up that applies to a direct investor-to-investor transfer may not survive routing through a platform-wallet vault. Destination eligibility checks continue to apply; this behavior does not by itself permit payout to an ineligible receiver.
 
@@ -106,13 +101,20 @@ The vault freeze is a wrapper control. It is distinct from any investor lock, sa
 
 The governor can transfer shares from an account to an eligible recipient through `seize`. Seizure requires the vault not to be paused and the recipient's family not to be frozen, but does not check the source account's freeze status, so a frozen family's shares can still be seized (supporting a freeze-then-seize sequence). The operation does not transfer underlying assets immediately. The recipient may later redeem, subject to the underlying token's vault-to-recipient transfer checks.
 
+Seizure follows the protocol's collateral rules. Like any other share transfer, it requires an EVC account status check for the source account, and the vault provides no way to bypass it. The source account's enabled controller therefore decides whether a seizure can complete:
+
+- **Legitimate lending controller.** The controller rejects a seizure that would leave the account's debt undercollateralized. The governor can seize collateral in excess of what the debt requires; the remainder becomes seizable once the debt is repaid. Frozen shares count as zero collateral during the status check. While the family is frozen, a seizure of any amount from a source account with outstanding debt therefore fails unless that account's other collateral, after LTV, exceeds the debt on its own. Accounts in the family without debt are unaffected.
+- **Any other controller.** The EVC lets an account enable any contract as its controller, so an account owner can install one that rejects every status check and blocks seizure indefinitely. Such a controller is not accepted by `controllerPerspective` and cannot liquidate the vault's shares. In this case, the governor freezes the account family, which stops all further movement of its shares, and the issuer seizes the corresponding underlying tokens directly from the vault address through the DS Token's own seizure function. The vault tracks `totalAssets` internally rather than reading its token balance, so a token-level seizure does not change the share price, and other holders can still redeem in full. The seized amount must not exceed `convertToAssets` of the family's shares (`balanceOfAddressPrefix`), because any excess would come from other holders. The family's shares remain outstanding but are no longer backed by underlying in the vault, so the family must stay frozen: unfreezing it would let those shares redeem underlying that belongs to other holders.
+
+The vault deliberately offers no override of the source account status check. Against a legitimate lending controller, an override would only let the governor remove collateral backing outstanding debt and create bad debt in the lending market. Against any other controller, the token-level path above already completes the seizure. Token-level seizure must not be used against a family that owes debt to a legitimate lending controller: it would leave that debt without collateral, and because frozen shares cannot be liquidated and still report a nonzero balance, the lending vault could not socialize the resulting bad debt.
+
 ### Controller perspective
 
 The governor configures the perspective that identifies controllers permitted to execute cross-family collateral transfers during liquidation. Changing this perspective changes a critical authorization boundary and should be subject to the deployment's governance and review process.
 
 ## Deployment
 
-`ERC4626EVCCollateralSecuritizeFactory.deploy` accepts:
+`ERC4626EVCCollateralSecuritizeFactoryV2.deploy` accepts:
 
 - `controllerPerspective`: the perspective that verifies liquidation controllers;
 - `asset`: the restricted underlying token;
@@ -130,14 +132,14 @@ Before deployment, verify at minimum:
 5. destination eligibility remains enforced for vault-originated transfers;
 6. stronger restrictions, including full-investor locks, are tested rather than inferred;
 7. `controllerPerspective` accepts only the intended production controllers;
-8. the initial supply cap, governor, pause and freeze procedures are defined;
+8. the initial supply cap, governor, pause, freeze and seizure procedures are defined, including a token-level seizure from the vault address for an account whose controller blocks `seize`;
 9. the market's liquidation path has sufficient eligible liquidator participation.
 
 Compliance-service configuration can change independently of the vault. Operators should repeat these checks when the asset, service implementation, wallet classification or transfer policy changes.
 
 ## References
 
-- [`ERC4626EVCCollateralSecuritize.sol`](../src/Vault/deployed/ERC4626EVCCollateralSecuritize.sol)
+- [`ERC4626EVCCollateralSecuritizeV2.sol`](../src/Vault/deployed/ERC4626EVCCollateralSecuritizeV2.sol)
 - [`ERC4626EVCCollateralFreezable.sol`](../src/Vault/implementation/ERC4626EVCCollateralFreezable.sol)
-- [`ERC4626EVCCollateralSecuritizeFactory.sol`](../src/VaultFactory/ERC4626EVCCollateralSecuritizeFactory.sol)
+- [`ERC4626EVCCollateralSecuritizeFactoryV2.sol`](../src/VaultFactory/ERC4626EVCCollateralSecuritizeFactoryV2.sol)
 - [Securitize vault implementation PR #380](https://github.com/euler-xyz/evk-periphery/pull/380)
