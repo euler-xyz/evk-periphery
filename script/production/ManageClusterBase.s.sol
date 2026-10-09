@@ -16,6 +16,9 @@ import {StubOracle} from "../utils/StubOracle.sol";
 import "evk/EVault/shared/Constants.sol";
 import "../../src/Lens/LensTypes.sol";
 
+// EVK rejects OP_MAX_VALUE itself; GovernorAccessControlEmergency lets HOOK_EMERGENCY_ROLE set only this value.
+uint32 constant EMERGENCY_HOOKED_OPS = OP_MAX_VALUE - 1;
+
 abstract contract ManageClusterBase is BatchBuilder {
     struct Cluster {
         string clusterAddressesPath;
@@ -478,8 +481,8 @@ abstract contract ManageClusterBase is BatchBuilder {
                 address vault = vaults[i];
                 (address hookTarget, uint32 hookedOps) = IEVault(vault).hookConfig();
 
-                if (hookTarget != address(0) || hookedOps != OP_MAX_VALUE) {
-                    setHookConfig(vault, address(0), OP_MAX_VALUE);
+                if (hookTarget != address(0) || hookedOps != EMERGENCY_HOOKED_OPS) {
+                    setHookConfig(vault, address(0), EMERGENCY_HOOKED_OPS);
                 }
             }
         }
