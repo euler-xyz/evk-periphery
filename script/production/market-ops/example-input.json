@@ -1,0 +1,96 @@
+{
+  "schema": "evk-market-ops-cluster-input-v1",
+  "requestHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "sourceCommit": "bae8aff5f35b41a9fd286aac0f2d89dc37acdb73",
+  "chainId": "1",
+  "blockNumber": "1",
+  "blockHash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+  "deployer": "0x1000000000000000000000000000000000000001",
+  "oracleRoutersGovernor": "0x2000000000000000000000000000000000000002",
+  "vaultsGovernor": "0x2000000000000000000000000000000000000002",
+  "assets": [
+    "0x3000000000000000000000000000000000000003"
+  ],
+  "vaults": [
+    "0x0000000000000000000000000000000000000000"
+  ],
+  "oracleRouters": [
+    "0x0000000000000000000000000000000000000000"
+  ],
+  "irms": [
+    "0x0000000000000000000000000000000000000000"
+  ],
+  "externalVaults": [],
+  "stubOracle": "0x0000000000000000000000000000000000000000",
+  "noStubOracle": true,
+  "unitOfAccount": "0x0000000000000000000000000000000000000348",
+  "feeReceiver": "0x0000000000000000000000000000000000000000",
+  "interestFee": "1000",
+  "maxLiquidationDiscount": "1500",
+  "liquidationCoolOffTime": "1",
+  "hookTarget": "0x0000000000000000000000000000000000000000",
+  "hookedOps": "0",
+  "configFlags": "0",
+  "forceZeroGovernors": false,
+  "rampDuration": "1209600",
+  "spreadLTV": "200",
+  "oracleProviderBases": [
+    "0x3000000000000000000000000000000000000003"
+  ],
+  "oracleProviders": [
+    "0x4000000000000000000000000000000000000004"
+  ],
+  "supplyCaps": [
+    "0"
+  ],
+  "borrowCaps": [
+    "0"
+  ],
+  "feeReceiverOverrides": [
+    "0x0000000000000000000000000000000000000000"
+  ],
+  "interestFeeOverrides": [
+    "1000"
+  ],
+  "maxLiquidationDiscountOverrides": [
+    "1500"
+  ],
+  "liquidationCoolOffTimeOverrides": [
+    "1"
+  ],
+  "hookTargetOverrides": [
+    "0x0000000000000000000000000000000000000000"
+  ],
+  "hookedOpsOverrides": [
+    "0"
+  ],
+  "configFlagsOverrides": [
+    "0"
+  ],
+  "kinkIRMParams": [
+    [
+      "0",
+      "0",
+      "0",
+      "0"
+    ]
+  ],
+  "ltvs": [
+    [
+      "0"
+    ]
+  ],
+  "borrowLTVsOverride": [
+    [
+      "65535"
+    ]
+  ],
+  "spreadLTVOverride": [
+    [
+      "65535"
+    ]
+  ],
+  "externalLTVs": [],
+  "externalBorrowLTVsOverride": [],
+  "externalSpreadLTVsOverride": []
+}

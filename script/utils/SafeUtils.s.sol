@@ -522,12 +522,12 @@ contract SafeTransaction is SafeUtil {
 
     function _dumpSafeTransaction(string memory fileName) private {
         console.log("Safe transaction payload saved to %s", fileName);
-        vm.writeJson(_getPayload(), string.concat(vm.projectRoot(), "/script/", fileName));
+        vm.writeJson(_getPayload(), getScriptOutputFilePath(fileName));
     }
 
     function _dumpBatchBuilderFile(string memory fileName) private {
         console.log("Safe Batch Builder file saved to %s", fileName);
-        vm.writeJson(_getBatchBuilderFile(), string.concat(vm.projectRoot(), "/script/", fileName));
+        vm.writeJson(_getBatchBuilderFile(), getScriptOutputFilePath(fileName));
     }
 }
 
@@ -634,7 +634,7 @@ contract SafeMultisendBuilder is SafeUtil {
 
     function _dumpMultisendBatchBuilderFile(address safe, string memory fileName) internal {
         console.log("Safe Batch Builder file saved to %s", fileName);
-        vm.writeJson(_getBatchBuilderFile(safe), string.concat(vm.projectRoot(), "/script/", fileName));
+        vm.writeJson(_getBatchBuilderFile(safe), getScriptOutputFilePath(fileName));
     }
 
     function _getBatchBuilderFile(address safe) private returns (string memory) {
