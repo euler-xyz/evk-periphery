@@ -83,8 +83,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     uint256 internal constant HUB_CHAIN_ID = 1;
     uint8 internal constant STANDARD_DECIMALS = 18;
     uint256 internal constant EVAULT_FACTORY_TIMELOCK_MIN_DELAY = 4 days;
-    address[2] internal EVAULT_FACTORY_GOVERNOR_PAUSERS =
-        [0xff217004BdD3A6A592162380dc0E6BbF143291eB, 0xcC6451385685721778E7Bd80B54F8c92b484F601];
+    address[1] internal EVAULT_FACTORY_GOVERNOR_PAUSERS = [
+        0xff217004BdD3A6A592162380dc0E6BbF143291eB /*, 0xcC6451385685721778E7Bd80B54F8c92b484F601 */
+    ];
 
     uint256 internal constant FEE_FLOW_EPOCH_PERIOD = 14 days;
     uint256 internal constant FEE_FLOW_PRICE_MULTIPLIER = 2e18;
