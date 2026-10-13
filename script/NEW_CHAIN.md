@@ -81,7 +81,7 @@ Run it once first with `--dry-run` added. It simulates without broadcasting and 
 | EulerSwap V2 | `n` |
 | Securitize Vault Factory V2 | `n` |
 
-**Fee Flow.** ProtocolConfig's fee receiver collects the protocol's share of vault fees. Fee Flow is a contract that auctions those fees for EUL; on chains other than Ethereum, it bridges the proceeds to the Ethereum DAO. No chain uses it today: every chain's fee receiver is its DAO Safe. With `0`, option 50 skips the controller and sets the fee receiver to the DAO Safe. The prompt's default (`1e18`, by pressing Enter) deploys Fee Flow and points the fee receiver at it.
+**Fee Flow.** ProtocolConfig's fee receiver collects the protocol's share of vault fees. Fee Flow is a contract that auctions those fees for EUL; on chains other than Ethereum, it bridges the proceeds to the Ethereum DAO. No chain uses it today. With `0`, option 50 skips the controller and sets the fee receiver to the DAO Safe. The prompt's default (`1e18`, by pressing Enter) deploys Fee Flow and points the fee receiver at it.
 
 Every step skips what already exists, so the option can be re-run.
 
