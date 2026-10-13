@@ -91,7 +91,6 @@ After governance transferred to GovernorAccessControl + TimelockController + Saf
 The `admin`/`wildcard` timelock aliases and the `default` risk steward resolve through the chain's
 `GovernorAddresses.json`. Option 50 no longer deploys the governor suite, so on a new chain these are empty
 until a suite is deployed (Toolbox → Tools → Governance). Pass its addresses explicitly, or add them to that file.
-See [Deploying to a New Chain](../NEW_CHAIN.md#10-governed-clusters).
 
 ### Common Options
 
