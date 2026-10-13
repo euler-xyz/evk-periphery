@@ -300,7 +300,7 @@ Deploys and configures the complete Euler V2 stack. The script prompts for:
 **Optional inputs (skipped if already deployed):**
 - Permit2 address (default: canonical deployment)
 - Uniswap V2/V3 router addresses (for Swapper)
-- Fee Flow init price (enter 0 to skip)
+- Fee Flow init price (default 0: Fee Flow is skipped and the fee receiver is the DAO Safe)
 - Deploy EUL OFT Adapter (y/n)
 - Deploy Euler Earn (y/n)
 - Deploy EulerSwap V2 (y/n) — if yes, prompts for Uniswap V4 Pool Manager
