@@ -14,7 +14,7 @@ An AI agent can do the checks and the code changes (steps 1 and 2) by following 
 | Permit2 at `0x000000000022D473030F116dDEE9F6B43aC78BA3` | Step 3 deploys it if it is missing |
 | Safe 1.3.0 or 1.4.1 with its canonical MultiSendCallOnly, in the Safe UI | The multisigs are Safes. `SafeUtils` batches through MultiSendCallOnly and only knows these two versions |
 | LayerZero V2 endpoint | The EUL bridge. Option 50 reads the endpoint and DVNs from LayerZero's metadata API |
-| Merkl Distributor | rEUL rewards (step 6) |
+| Merkl Distributor (only if rEUL will be distributed on the chain) | rEUL rewards (step 6) |
 | Block explorer with verification (Etherscan V2, Blockscout or Sourcify) | Step 9 |
 
 **Locally**
@@ -90,7 +90,7 @@ Every step skips what already exists, so the option can be re-run.
 
 ## 6. rEUL: whitelist the Merkl Distributor
 
-Before option 51, while the deployer still owns rEUL (its address is in `TokenAddresses.json`):
+Only if rEUL will be distributed on the chain; skip it otherwise. Do it before option 51, while the deployer still owns rEUL (its address is in `TokenAddresses.json`):
 
 ```sh
 cast send <rEUL> "setWhitelistStatus(address,uint256)" 0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae 2 \
@@ -154,7 +154,7 @@ For each Safe, it writes a Safe Transaction Builder file that adds the owners fr
 ## Done when
 
 - Option 51 completed with no remaining `!` lines for items the deployer should hand over.
-- The Merkl Distributor is whitelisted in rEUL.
+- The Merkl Distributor is whitelisted in rEUL, if rEUL is distributed on the chain.
 - The DAO batch on Ethereum is executed.
 - Every deployed contract is verified on the explorer.
 - The euler-interfaces PR is merged.

@@ -32,7 +32,7 @@ Run every check and report a pass/fail table. For each failure, say what is miss
 | MultiSendCallOnly | `cast code` on `0x40A2aCCbd92BCA938b02010E17A5b8929b49130D` (Safe 1.3.0) and `0x9641d764fc13c8B624c04430C7356C1C7C8102e2` (Safe 1.4.1) | at least one has code |
 | Safe hosting | `curl -s -o /dev/null -w '%{http_code}' https://safe-config.safe.global/api/v1/chains/$ID/` | `200`: Safe hosts the chain. `404`: ask the user for the chain's own Safe gateway URL |
 | LayerZero | the query below | one entry with at least one eid |
-| Merkl Distributor | `cast code 0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae --rpc-url $RPC` | has code. If not, ask the user for Merkl's address on the chain |
+| Merkl Distributor (only if rEUL will be distributed) | `cast code 0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae --rpc-url $RPC` | has code. If not, ask the user for Merkl's address on the chain |
 | WETH | `cast call $WETH "symbol()(string)"` and `"decimals()(uint8)"` | an ETH token with 18 decimals |
 
 ```sh
@@ -59,7 +59,7 @@ List the remaining runbook steps with the values found above:
 - Permit2, if it was missing
 - the Safes, owned by the deployer
 - option 50: dry run first, then for real
-- the rEUL whitelist
+- the rEUL whitelist, if rEUL will be distributed
 - option 51
 - the Ethereum DAO batch
 - verification
