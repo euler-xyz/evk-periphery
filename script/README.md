@@ -288,6 +288,8 @@ Execute scheduled timelock transactions:
 
 ## Batch Deployment
 
+For a chain with no prior Euler deployment, follow [Deploying to a New Chain](NEW_CHAIN.md).
+
 ### Full Core and Periphery Deployment (Option 50)
 
 Deploys and configures the complete Euler V2 stack. The script prompts for:

@@ -29,7 +29,8 @@ cluster.clusterAddressesPath = "/script/production/<network>/clusters/MyCluster.
 3. Configure in `configureCluster()`:
 
 ```solidity
-// Governor (typically GovernorAccessControlEmergency)
+// Governor (typically GovernorAccessControlEmergency). On chains where the governor suite is not in
+// GovernorAddresses.json, set the address of a suite deployed in Toolbox → Tools → Governance instead.
 cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
 // Unit of account
@@ -86,6 +87,11 @@ After governance transferred to GovernorAccessControl + TimelockController + Saf
   --timelock-address wildcard \
   --rpc-url base
 ```
+
+The `admin`/`wildcard` timelock aliases and the `default` risk steward resolve through the chain's
+`GovernorAddresses.json`. Option 50 no longer deploys the governor suite, so on a new chain these are empty
+until a suite is deployed (Toolbox → Tools → Governance). Pass its addresses explicitly, or add them to that file.
+See [Deploying to a New Chain](../NEW_CHAIN.md#10-governed-clusters).
 
 ### Common Options
 
