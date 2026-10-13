@@ -59,7 +59,7 @@ It uses about 2.0M gas. If the CREATE2 deployer is missing, ask the chain team t
 
 Create five Safes in the Safe UI: DAO, labs, security council, security partner A and security partner B. For now, make the deployer the only owner with threshold 1. The real owners come last (step 11): until then the deployer can correct anything alone, while afterwards every correction needs the owners' signatures or a redeployment.
 
-Write the addresses to `../euler-interfaces/addresses/<chainId>/MultisigAddresses.json` (keys `DAO`, `labs`, `securityCouncil`, `securityPartnerA`, `securityPartnerB`). Option 50 checks that each one is a deployed contract.
+Option 50 asks for their addresses and checks that each one is a deployed contract.
 
 ## 5. Deploy: option 50
 
@@ -72,6 +72,7 @@ Run it once first with `--dry-run --test-addresses` added. That simulates withou
 
 | Prompt | Answer |
 |---|---|
+| DAO, labs, security council, security partner A and B | the Safes from step 4 |
 | Permit2 | default |
 | Uniswap V2 / V3 router | the chain's routers, or empty if it has none |
 | Fee Flow init price | default |
