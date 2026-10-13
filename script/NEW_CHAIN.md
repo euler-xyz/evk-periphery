@@ -68,7 +68,7 @@ Option 50 asks for their addresses and checks that each one is a deployed contra
 # choose 50
 ```
 
-Run it once first with `--dry-run --test-addresses` added. That simulates without broadcasting and writes the simulated addresses under `../euler-interfaces/addresses/test/`. Discard what it wrote (`git status` in euler-interfaces).
+Run it once first with `--dry-run` added. It simulates without broadcasting and writes nothing to euler-interfaces; the simulated results go to `script/deployments/<name>/<chainId>/dry-run/` (git-ignored).
 
 | Prompt | Answer |
 |---|---|
