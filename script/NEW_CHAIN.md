@@ -14,7 +14,8 @@ What it takes in this repository to deploy the Euler stack on a chain with no pr
 | Safe client gateway for the chain | `getSafeBaseURL()` needs it for every `--batch-via-safe` run |
 | LayerZero V2 endpoint (only if EUL is bridged) | The EUL OFT Adapter and its peering |
 | Merkl Distributor (only if rEUL rewards are used) | Whitelisted in rEUL (step 7) |
-| Uniswap V2/V3 routers (optional) | Swapper. Uniswap V4 PoolManager for EulerSwap V2 (optional) |
+| Uniswap V2/V3 routers (optional) | Swapper |
+| Uniswap V4 PoolManager (only if EulerSwap V2 is deployed) | EulerSwap V2 is optional and off by default |
 | Block explorer with verification (Etherscan V2, Blockscout or Sourcify) | Step 8 |
 
 **Locally**
@@ -70,7 +71,7 @@ Dry-run against a local fork first (see `script/README.md` → Local Anvil Fork)
 - the Fee Flow init price (`0` skips Fee Flow)
 - whether to deploy the EUL OFT Adapter
 - whether to deploy EulerEarn
-- whether to deploy EulerSwap V2 (then: Uniswap V4 PoolManager, protocol fee config admin, registry curator)
+- whether to deploy EulerSwap V2: optional, defaults to "n". Answer "y" only if EulerSwap is wanted on the chain; it then asks for the Uniswap V4 PoolManager, protocol fee config admin and registry curator
 - whether to deploy Securitize Vault Factory V2
 
 Every step skips what already exists, so the option can be re-run safely.
