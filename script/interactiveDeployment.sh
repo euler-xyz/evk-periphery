@@ -1294,7 +1294,7 @@ while true; do
             
             if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ] || [ "$feeFlowController" == "null" ]; then
                 if [ "$non_interactive" = false ]; then
-                    read -p "Enter the init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
+                    read -p "Enter the init price for Fee Flow (default: 0 to skip, e.g. 1000000000000000000 to deploy): " init_price
                 fi
             fi
 
@@ -1340,7 +1340,7 @@ while true; do
             permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
             uniswap_router_v2=${uniswap_router_v2:-$addressZero}
             uniswap_router_v3=${uniswap_router_v3:-$addressZero}
-            init_price=${init_price:-1000000000000000000}
+            init_price=${init_price:-0}
             deploy_eul_oft=${deploy_eul_oft:-n}
             deploy_euler_earn=${deploy_euler_earn:-n}
             deploy_euler_swap=${deploy_euler_swap:-n}

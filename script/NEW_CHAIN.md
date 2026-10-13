@@ -75,13 +75,13 @@ Run it once first with `--dry-run` added. It simulates without broadcasting and 
 | DAO, labs, security council, security partner A and B | the Safes from step 4 |
 | Permit2 | default |
 | Uniswap V2 / V3 router | the chain's routers, or empty if it has none |
-| Fee Flow init price | `0` (see below) |
+| Fee Flow init price | default (`0`, see below) |
 | EUL OFT Adapter | `y` |
 | Euler Earn | `y` |
 | EulerSwap V2 | `n` |
 | Securitize Vault Factory V2 | `n` |
 
-**Fee Flow.** ProtocolConfig's fee receiver collects the protocol's share of vault fees. Fee Flow is a contract that auctions those fees for EUL; on chains other than Ethereum, it bridges the proceeds to the Ethereum DAO. No chain uses it today. With `0`, option 50 skips the controller and sets the fee receiver to the DAO Safe. The prompt's default (`1e18`, by pressing Enter) deploys Fee Flow and points the fee receiver at it.
+**Fee Flow.** ProtocolConfig's fee receiver collects the protocol's share of vault fees. Fee Flow is a contract that auctions those fees for EUL; on chains other than Ethereum, it bridges the proceeds to the Ethereum DAO. No chain uses it today, so by default option 50 skips it and sets the fee receiver to the DAO Safe. The ProtocolConfig admin (the DAO after option 51) can change the fee receiver at any time. To deploy Fee Flow, enter an init price instead, for example `1000000000000000000`.
 
 Every step skips what already exists, so the option can be re-run.
 
