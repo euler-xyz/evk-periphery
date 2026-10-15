@@ -11,9 +11,10 @@ An AI agent can do the checks and the code changes (steps 1 and 2) by following 
 | Requirement | Why |
 |---|---|
 | EVM with Cancun opcodes and a standard contract-size limit | The contracts compile for Cancun. The EulerEarn factory is close to the size limit; Linea needed a size-optimised build |
+| Legacy (type-0) transactions accepted | Every broadcast is sent with `--legacy` (`script/utils/executeForgeScript.sh`) |
 | Permit2 at `0x000000000022D473030F116dDEE9F6B43aC78BA3` | Step 3 deploys it if it is missing |
 | Safe 1.3.0 or 1.4.1 with its canonical MultiSendCallOnly, in the Safe UI | The multisigs are Safes. `SafeUtils` batches through MultiSendCallOnly and only knows these two versions |
-| LayerZero V2 endpoint | The EUL bridge. Option 50 reads the endpoint and DVNs from LayerZero's metadata API |
+| LayerZero V2 endpoint, and at least 4 of the 6 accepted DVNs (`OFT_ACCEPTED_DVNS` in `script/50_CoreAndPeriphery.s.sol`: LayerZero Labs, Google, Canary, Polyhedra, Nethermind, Horizen) | The EUL bridge. Option 50 reads the endpoint and DVNs from LayerZero's metadata API and reverts with "Failed to find enough accepted DVNs" if fewer than 4 are available. With fewer, answer `n` to the EUL OFT Adapter prompt and skip the OFT list edit and step 8 |
 | Merkl Distributor (only if rEUL will be distributed on the chain) | rEUL rewards (step 6) |
 | Block explorer with verification (Etherscan V2, Blockscout or Sourcify) | Step 9 |
 
@@ -35,7 +36,7 @@ Some per-chain values are hard-coded in Solidity, and each lookup reverts for a 
 | `src/Lens/Utils.sol` → `getWETHAddress()` | The same entry. This copy is compiled into the lenses that option 50 deploys |
 | `script/utils/SafeUtils.s.sol` → `getSafeBaseURL()` | Add the chain to the `https://safe-client.safe.global/` list if Safe hosts it, otherwise return the chain's own Safe gateway |
 | `script/50_CoreAndPeriphery.s.sol` → `OFT_CONFIG["EUL"].configOneDirectionChainIds` | Add the chain: EUL travels only from the chain to Ethereum |
-| `script/utils/verifyContracts.sh` | Only if verification fails with "Chain … not supported": route the chain to the `custom` verifier, as done for Monad (`143`) |
+| `script/utils/verifyContracts.sh` | Only if verification fails with "Chain … not supported": route the chain to the `custom` verifier as done for Monad (`143`). That takes two edits: the route and the constructor-arguments branch. The other option is a `foundry.toml` `[etherscan]` entry, as for 146, 80094 and 130 |
 
 ## 3. Permit2
 
@@ -57,7 +58,7 @@ It uses about 2.0M gas. If the CREATE2 deployer is missing, ask the chain team t
 
 ## 4. Safes
 
-Create five Safes in the Safe UI: DAO, labs, security council, security partner A and security partner B. For now, make the deployer the only owner with threshold 1. The real owners come last (step 11): until then the deployer can correct anything alone, while afterwards every correction needs the owners' signatures or a redeployment.
+Create five Safes in the Safe UI, version 1.3.0 or 1.4.1: DAO, labs, security council, security partner A and security partner B. For now, make the deployer the only owner with threshold 1. The real owners come last (step 11): until then the deployer can correct anything alone, while afterwards every correction needs the owners' signatures or a redeployment.
 
 Option 50 asks for their addresses and checks that each one is a deployed contract.
 
@@ -76,8 +77,8 @@ Run it once first with `--dry-run` added. It simulates without broadcasting and 
 | Permit2 | default |
 | Uniswap V2 / V3 router | the chain's routers, or empty if it has none |
 | Fee Flow init price | default (`0`, see below) |
-| EUL OFT Adapter | `y` |
-| Euler Earn | `y` |
+| EUL OFT Adapter | `y`, or `n` if the chain has fewer than 4 accepted DVNs |
+| Euler Earn | `y`, or `n` to deploy Earn with the euler-earn fallback (step 9) |
 | EulerSwap V2 | `n` |
 | Securitize Vault Factory V2 | `n` |
 
@@ -87,7 +88,7 @@ Every step skips what already exists, so the option can be re-run.
 
 **Results:**
 - addresses in `../euler-interfaces/addresses/<chainId>/*.json`
-- bridge state in `config/bridge/BridgeConfigCache.json`
+- bridge state in `../euler-interfaces/config/bridge/BridgeConfigCache.json`. Never edit it by hand: option 50 treats a pair already listed as configured and skips its bridge setup
 - broadcasts in `script/deployments/`
 
 ## 6. rEUL: whitelist the Merkl Distributor
@@ -128,29 +129,34 @@ Spokes only peer with Ethereum, and the Ethereum OFT Adapter's delegate is the D
 # choose 50: existing contracts are skipped; the new chain's peering becomes a DAO Safe batch
 ```
 
+Run it from the same euler-interfaces checkout as step 5: it reads the new chain's `BridgeAddresses.json` and the bridge cache. `.env` also needs the new chain's `DEPLOYMENT_RPC_URL_<chainId>`, because the run forks the new chain to read its LayerZero config. The batch is written to `script/deployments/<name>/1/output/SafeBatchBuilder_*.json`; import it into the DAO Safe.
+
 ## 9. Verify on the explorer
 
 ```sh
-./script/utils/verifyContracts.sh script/deployments/default/<chainId>/broadcast/ [--verifier etherscan|blockscout|sourcify|custom]
+./script/utils/verifyContracts.sh script/deployments/default/<chainId>/broadcast/ --rpc-url <chainId> [--verifier etherscan|blockscout|sourcify|custom]
 ```
 
-Then check that every address written to `euler-interfaces/addresses/<chainId>/` shows as verified. If the EulerEarn contracts won't verify, follow the euler-earn README (`script/deploy.sh`).
+Then check that every address written to `euler-interfaces/addresses/<chainId>/` shows as verified.
+
+**EulerEarn fallback.** euler-earn's `script/deploy.sh` exists for chains where the periphery-built Earn contracts won't verify. Choose it before step 5: answer `n` to Euler Earn, run `deploy.sh` (see the euler-earn README), then re-run option 50 to deploy the Earn perspective. If option 50 already deployed Earn and it won't verify, remove `eulerEarnFactory`, `eulerEarnPublicAllocator` and `eulerEarnFactoryPerspective` from the address files, run `deploy.sh`, then re-run option 50; the first deployment stays on chain, unused.
 
 ## 10. Publish
 
-Generate the verification manifest entries and the chain's report with [euler-verifier](https://github.com/euler-xyz/euler-verifier), checked out next to euler-interfaces:
+1. In euler-interfaces, add the chain's `chains.js` entry (`status: 'staging'`, `explorerUrl`, `verifier`, and `viemName` if viem has several chains with that id), then run `node chains.js`. This comes first: the next step reads the chain from `EulerChains.json`.
+2. Generate the verification manifest entries and the chain's report with [euler-verifier](https://github.com/euler-xyz/euler-verifier), checked out next to euler-interfaces:
 
-```sh
-cd ../euler-verifier && pnpm install
-pnpm add-entries --interfaces ../euler-interfaces --chain <chainId> --candidates-from ../evk-periphery
-```
+   ```sh
+   cd ../euler-verifier && pnpm install
+   pnpm add-entries --interfaces ../euler-interfaces --chain <chainId> --candidates-from ../evk-periphery
+   ```
 
-It proves each new address's bytecode against this repo's commit and its submodule commits (and the pins other chains use), writes the entries into `verify/manifest.json`, and renders `verify/<chainId>.md`. It needs `forge` on PATH and the deployed commits pushed to GitHub. Anything it can't prove is listed and nothing is written for it; the euler-verifier RUNBOOK covers that case.
-
-Then open one PR to euler-interfaces with:
-- the address files
-- the chain's `chains.js` entry (`status: 'staging'`, `explorerUrl`, `verifier`), then `node chains.js`
-- the manifest entries and the report from `add-entries`
+   It proves each new address's bytecode against this repo's commit and its submodule commits (and the pins other chains use), writes the entries into `verify/manifest.json`, and renders `verify/<chainId>.md`. It needs `forge` on PATH and the deployed commits pushed to GitHub. Add `--candidates-from ../euler-earn` if Earn came from the euler-earn fallback. Anything it can't prove is listed and nothing is written for it; the euler-verifier RUNBOOK covers that case.
+3. Open one PR to euler-interfaces with:
+   - the address files
+   - `config/bridge/BridgeConfigCache.json`, as option 50 wrote it (including the Ethereum run's row)
+   - `chains.js` and the regenerated `EulerChains.json`
+   - the manifest entries and the report from `add-entries`
 
 CI proves every new address before the PR can merge. euler-verifier itself needs no change: it reads the chain from `EulerChains.json`.
 

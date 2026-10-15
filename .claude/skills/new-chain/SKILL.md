@@ -28,10 +28,11 @@ Run every check and report a pass/fail table. For each failure, say what is miss
 |---|---|---|
 | Chain id | `cast chain-id --rpc-url $RPC` | equals the chain id |
 | Cancun | `cast rpc eth_call '{"data":"0x60015f5d5f5c5f5260205ff3"}' latest --rpc-url $RPC` | returns `0x…01`. An error means no Cancun |
+| Legacy transactions | ask the user or the chain's docs | accepted (every broadcast uses `--legacy`) |
 | Permit2 | `cast code 0x000000000022D473030F116dDEE9F6B43aC78BA3 --rpc-url $RPC` | has code. If not, the CREATE2 deployer `0x4e59b44847b379578588920cA78FbF26c0B4956C` must have code; a person then deploys Permit2 (runbook step 3) |
 | MultiSendCallOnly | `cast code` on `0x40A2aCCbd92BCA938b02010E17A5b8929b49130D` (Safe 1.3.0) and `0x9641d764fc13c8B624c04430C7356C1C7C8102e2` (Safe 1.4.1) | at least one has code |
 | Safe hosting | `curl -s -o /dev/null -w '%{http_code}' https://safe-config.safe.global/api/v1/chains/$ID/` | `200`: Safe hosts the chain. `404`: ask the user for the chain's own Safe gateway URL |
-| LayerZero | the query below | one entry with at least one eid |
+| LayerZero | the query below | one entry with at least one eid, and at least 4 of the 6 accepted DVNs (`OFT_ACCEPTED_DVNS` in `script/50_CoreAndPeriphery.s.sol`) among its non-deprecated v2 DVNs. With fewer, option 50 reverts unless the EUL OFT Adapter is skipped |
 | Merkl Distributor (only if rEUL will be distributed) | `cast code 0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae --rpc-url $RPC` | has code. If not, ask the user for Merkl's address on the chain |
 | WETH | `cast call $WETH "symbol()(string)"` and `"decimals()(uint8)"` | an ETH token with 18 decimals |
 
@@ -63,7 +64,7 @@ List the remaining runbook steps with the values found above:
 - option 51
 - the Ethereum DAO batch
 - verification
-- the manifest entries and report: `pnpm add-entries --interfaces ../euler-interfaces --chain <chainId> --candidates-from ../evk-periphery` in euler-verifier
+- the euler-interfaces `chains.js` entry and `node chains.js`, then the manifest entries and report: `pnpm add-entries --interfaces ../euler-interfaces --chain <chainId> --candidates-from ../evk-periphery` in euler-verifier
 - the euler-interfaces PR
 - the Safe owners
 
