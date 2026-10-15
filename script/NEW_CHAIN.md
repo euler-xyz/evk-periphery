@@ -138,12 +138,21 @@ Then check that every address written to `euler-interfaces/addresses/<chainId>/`
 
 ## 10. Publish
 
-One PR to euler-interfaces with:
-- the address files
-- the chain's `chains.js` entry, then `node chains.js`
-- the verification manifest
+Generate the verification manifest entries and the chain's report with [euler-verifier](https://github.com/euler-xyz/euler-verifier), checked out next to euler-interfaces:
 
-euler-verifier must know the chain first: a `networks.json` entry, and the verifier version used by euler-interfaces CI bumped. See the READMEs and runbooks in both repositories.
+```sh
+cd ../euler-verifier && pnpm install
+pnpm add-entries --interfaces ../euler-interfaces --chain <chainId> --candidates-from ../evk-periphery
+```
+
+It proves each new address's bytecode against this repo's commit and its submodule commits (and the pins other chains use), writes the entries into `verify/manifest.json`, and renders `verify/<chainId>.md`. It needs `forge` on PATH and the deployed commits pushed to GitHub. Anything it can't prove is listed and nothing is written for it; the euler-verifier RUNBOOK covers that case.
+
+Then open one PR to euler-interfaces with:
+- the address files
+- the chain's `chains.js` entry (`status: 'staging'`, `explorerUrl`, `verifier`), then `node chains.js`
+- the manifest entries and the report from `add-entries`
+
+CI proves every new address before the PR can merge. euler-verifier itself needs no change: it reads the chain from `EulerChains.json`.
 
 ## 11. Configure the Safes
 

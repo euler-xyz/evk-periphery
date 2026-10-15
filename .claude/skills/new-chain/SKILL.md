@@ -63,6 +63,7 @@ List the remaining runbook steps with the values found above:
 - option 51
 - the Ethereum DAO batch
 - verification
+- the manifest entries and report: `pnpm add-entries --interfaces ../euler-interfaces --chain <chainId> --candidates-from ../evk-periphery` in euler-verifier
 - the euler-interfaces PR
 - the Safe owners
 
