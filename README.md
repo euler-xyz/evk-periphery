@@ -22,6 +22,8 @@ There are two sub-directories:
 * `implementation` - Supporting contracts that may be used by multiple perspectives.
 * `deployed` - Concrete instances of perspectives to be deployed.
 
+Note: perspectives are deprecated. New chain deployments only include the `EVKFactoryPerspective`, the `EscrowedCollateralPerspective` and the `EulerEarnFactoryPerspective`; the remaining perspectives are no longer deployed automatically nor published in the address book, although their deployer scripts remain available for manual use.
+
 ### IRMFactory
 
 Directory: [src/IRMFactory](src/IRMFactory)
@@ -42,6 +44,8 @@ This is an immutable contract that can be used to deploy instances of `EulerRout
 Directory: [src/SnapshotRegistry](src/SnapshotRegistry)
 
 A governed whitelist contract for tracking trusted adapters and other components. It provides historical querying capabilities and permanent revocation of entries.
+
+Note: the registries (oracle adapter registry, external vault registry, IRM registry) are deprecated. They are no longer deployed nor published in the address book; the contract is kept for reference and for the historical deployments.
 
 * Querying uses a `snapshotTime` parameter to view historical state
 * Revoked entries cannot be re-added

@@ -259,6 +259,7 @@ contract OracleLens is Utils {
     }
 
     function getValidAdapters(address base, address quote) public view returns (address[] memory) {
+        if (address(adapterRegistry) == address(0)) return new address[](0);
         return adapterRegistry.getValidAddresses(base, quote, block.timestamp);
     }
 

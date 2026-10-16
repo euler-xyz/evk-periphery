@@ -29,7 +29,8 @@ cluster.clusterAddressesPath = "/script/production/<network>/clusters/MyCluster.
 3. Configure in `configureCluster()`:
 
 ```solidity
-// Governor (typically GovernorAccessControlEmergency)
+// Governor (typically GovernorAccessControlEmergency). On chains where the governor suite is not in
+// GovernorAddresses.json, set the address of a suite deployed in Toolbox → Tools → Governance instead.
 cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
 
 // Unit of account
@@ -87,6 +88,10 @@ After governance transferred to GovernorAccessControl + TimelockController + Saf
   --rpc-url base
 ```
 
+The `admin`/`wildcard` timelock aliases and the `default` risk steward resolve through the chain's
+`GovernorAddresses.json`. Option 50 no longer deploys the governor suite, so on a new chain these are empty
+until a suite is deployed (Toolbox → Tools → Governance). Pass its addresses explicitly, or add them to that file.
+
 ### Common Options
 
 | Option | Description |
@@ -96,7 +101,7 @@ After governance transferred to GovernorAccessControl + TimelockController + Saf
 | `--account <NAME>` / `--ledger` | Signing method |
 | `--batch-via-safe` | Route transactions through Safe multisig |
 | `--safe-address <ADDR>` | Safe address or alias (`DAO`, `labs`, etc.) |
-| `--timelock-address <ADDR>` | Schedule via timelock (`admin`, `wildcard`, `eusd`) |
+| `--timelock-address <ADDR>` | Schedule via timelock (`admin`, `wildcard`) |
 | `--risk-steward-address <ADDR>` | Bypass timelock for caps/IRM changes |
 
 ### Simulation Options

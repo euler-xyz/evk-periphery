@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {EulerRouterFactory} from "../src/EulerRouterFactory/EulerRouterFactory.sol";
-import {SnapshotRegistry} from "../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {EulerKinkIRMFactory} from "../src/IRMFactory/EulerKinkIRMFactory.sol";
 import {EulerKinkyIRMFactory} from "../src/IRMFactory/EulerKinkyIRMFactory.sol";
 import {EulerFixedCyclicalBinaryIRMFactory} from "../src/IRMFactory/EulerFixedCyclicalBinaryIRMFactory.sol";
@@ -15,13 +14,10 @@ import {CapRiskStewardFactory} from "../src/GovernorFactory/CapRiskStewardFactor
 contract PeripheryFactories is ScriptUtils {
     struct PeripheryContracts {
         address oracleRouterFactory;
-        address oracleAdapterRegistry;
-        address externalVaultRegistry;
         address kinkIRMFactory;
         address kinkyIRMFactory;
         address fixedCyclicalBinaryIRMFactory;
         address adaptiveCurveIRMFactory;
-        address irmRegistry;
         address governorAccessControlEmergencyFactory;
         address capRiskStewardFactory;
     }
@@ -36,10 +32,6 @@ contract PeripheryFactories is ScriptUtils {
 
         string memory object;
         object = vm.serializeAddress("peripheryFactories", "oracleRouterFactory", deployedContracts.oracleRouterFactory);
-        object =
-            vm.serializeAddress("peripheryFactories", "oracleAdapterRegistry", deployedContracts.oracleAdapterRegistry);
-        object =
-            vm.serializeAddress("peripheryFactories", "externalVaultRegistry", deployedContracts.externalVaultRegistry);
         object = vm.serializeAddress("peripheryFactories", "kinkIRMFactory", deployedContracts.kinkIRMFactory);
         object = vm.serializeAddress("peripheryFactories", "kinkyIRMFactory", deployedContracts.kinkyIRMFactory);
         object = vm.serializeAddress(
@@ -48,7 +40,6 @@ contract PeripheryFactories is ScriptUtils {
         object = vm.serializeAddress(
             "peripheryFactories", "adaptiveCurveIRMFactory", deployedContracts.adaptiveCurveIRMFactory
         );
-        object = vm.serializeAddress("peripheryFactories", "irmRegistry", deployedContracts.irmRegistry);
         object = vm.serializeAddress(
             "peripheryFactories",
             "governorAccessControlEmergencyFactory",
@@ -86,12 +77,6 @@ contract PeripheryFactories is ScriptUtils {
         if (deployedContracts.oracleRouterFactory == address(0)) {
             deployedContracts.oracleRouterFactory = address(new EulerRouterFactory(evc));
         }
-        if (deployedContracts.oracleAdapterRegistry == address(0)) {
-            deployedContracts.oracleAdapterRegistry = address(new SnapshotRegistry(evc, getDeployer()));
-        }
-        if (deployedContracts.externalVaultRegistry == address(0)) {
-            deployedContracts.externalVaultRegistry = address(new SnapshotRegistry(evc, getDeployer()));
-        }
         if (deployedContracts.kinkIRMFactory == address(0)) {
             deployedContracts.kinkIRMFactory = address(new EulerKinkIRMFactory());
         }
@@ -103,9 +88,6 @@ contract PeripheryFactories is ScriptUtils {
         }
         if (deployedContracts.adaptiveCurveIRMFactory == address(0)) {
             deployedContracts.adaptiveCurveIRMFactory = address(new EulerIRMAdaptiveCurveFactory());
-        }
-        if (deployedContracts.irmRegistry == address(0)) {
-            deployedContracts.irmRegistry = address(new SnapshotRegistry(evc, getDeployer()));
         }
         if (deployedContracts.governorAccessControlEmergencyFactory == address(0)) {
             deployedContracts.governorAccessControlEmergencyFactory =

@@ -19,11 +19,11 @@ interface IComplianceServiceRegulated {
     function preTransferCheck(address, address, uint256) external view returns (uint256, string memory);
 }
 
-/// @title ERC4626EVCCollateralSecuritize
+/// @title ERC4626EVCCollateralSecuritizeV2
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice EVC-compatible collateral-only ERC4626 vault implementation for Securitize RWA tokens.
-contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
+contract ERC4626EVCCollateralSecuritizeV2 is ERC4626EVCCollateralFreezable {
     /// @notice Mapping indicating the balance for a specific address prefix.
     mapping(bytes19 addressPrefix => uint256) internal _addressPrefixBalances;
 
@@ -174,6 +174,52 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
         evc.requireVaultStatusCheck();
     }
 
+    /// @notice Withdraws a certain amount of assets to a receiver.
+    /// @dev Only allows withdrawals whose underlying receiver belongs to the share owner's EVC account family.
+    /// @param assets The assets to withdraw.
+    /// @param receiver The receiver of the withdrawal.
+    /// @param owner The owner of the shares being burned.
+    /// @return shares The shares equivalent to the withdrawn assets.
+    function withdraw(uint256 assets, address receiver, address owner)
+        public
+        virtual
+        override
+        callThroughEVC
+        nonReentrant
+        whenNotPaused
+        whenNotFrozen(owner)
+        whenNotFrozen(receiver)
+        takeSnapshot
+        returns (uint256 shares)
+    {
+        if (!isCommonOwner(owner, receiver)) revert NotAuthorized();
+        shares = ERC4626EVCCollateral.withdraw(assets, receiver, owner);
+        evc.requireVaultStatusCheck();
+    }
+
+    /// @notice Redeems a certain amount of shares for a receiver.
+    /// @dev Only allows redemptions whose underlying receiver belongs to the share owner's EVC account family.
+    /// @param shares The shares to redeem.
+    /// @param receiver The receiver of the redemption.
+    /// @param owner The owner of the shares being burned.
+    /// @return assets The assets equivalent to the redeemed shares.
+    function redeem(uint256 shares, address receiver, address owner)
+        public
+        virtual
+        override
+        callThroughEVC
+        nonReentrant
+        whenNotPaused
+        whenNotFrozen(owner)
+        whenNotFrozen(receiver)
+        takeSnapshot
+        returns (uint256 assets)
+    {
+        if (!isCommonOwner(owner, receiver)) revert NotAuthorized();
+        assets = ERC4626EVCCollateral.redeem(shares, receiver, owner);
+        evc.requireVaultStatusCheck();
+    }
+
     /// @notice Sets a perspective contract to whitelist allowed controllers
     /// @param _controllerPerspective The perspective contract to set.
     /// @dev Only whitelisted controllers are allowed, otherwise users would be able to set a trivial controller
@@ -245,9 +291,13 @@ contract ERC4626EVCCollateralSecuritize is ERC4626EVCCollateralFreezable {
 
     function _requireTransferAuthorized(address from, address to, uint256 amount) internal view {
         if (!isCommonOwner(from, to)) {
-            // EVC ensures that during `controlCollateral` call there is exactly one controller enabled
+            // A cross-owner transfer is only permitted while liquidating `from` itself: the current EVC frame
+            // must be a `controlCollateral` frame authenticated for `from` (i.e. `from == _msgSender()`), not an
+            // unrelated account's frame. EVC ensures that during `controlCollateral` call there is exactly one
+            // controller enabled.
             address[] memory controllers = evc.getControllers(from);
-            if (!(evc.isControlCollateralInProgress() && IPerspective(controllerPerspective).isVerified(controllers[0])
+            if (!(evc.isControlCollateralInProgress() && from == _msgSender()
+                        && IPerspective(controllerPerspective).isVerified(controllers[0])
                         && isTransferCompliant(to, amount))) {
                 revert NotAuthorized();
             }

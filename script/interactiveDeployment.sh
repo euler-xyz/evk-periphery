@@ -82,7 +82,7 @@ while true; do
         echo "Select an option to deploy/configure:"
         echo "0. ERC20 tokens"
         echo "1. Integrations (EVC, Protocol Config, Sequence Registry, Balance Tracker, Permit2)"
-        echo "2. Periphery factories and registries"
+        echo "2. Periphery factories"
         echo "3. Oracle adapter"
         echo "4. IRM"
         echo "5. EVault implementation (modules and implementation contract)"
@@ -101,7 +101,6 @@ while true; do
         echo "---------------------------------"
         echo "50. Core and Periphery Deployment and Configuration"
         echo "51. Core Ownership Transfer"
-        echo "52. Periphery Ownership Transfer"
         echo "53. Access Control Configuration"
         read -p "Enter your choice: " menu_choice
     fi
@@ -240,10 +239,9 @@ while true; do
             echo "7. Lido Fundamental"
             echo "8. Fixed Rate"
             echo "9. Rate Provider"
-            echo "10. Pendle"
-            echo "11. Chainlink Infrequent"
-            echo "12. Idle Tranche"
-            read -p "Enter your choice (0-12): " adapter_choice
+            echo "10. Chainlink Infrequent"
+            echo "11. Idle Tranche"
+            read -p "Enter your choice (0-11): " adapter_choice
 
             baseName=03_OracleAdapters
 
@@ -511,36 +509,6 @@ while true; do
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 10)
-                    echo "Deploying Pendle Adapter..."
-                    
-                    scriptName=${baseName}.s.sol:PendleAdapter
-                    jsonName=03_PendleAdapter
-
-                    read -p "Enter Pendle Oracle address: " pendle_oracle
-                    read -p "Enter Pendle Market address: " pendle_market
-                    read -p "Enter base token address: " base
-                    read -p "Enter quote token address: " quote
-                    read -p "Enter twapWindow: " twap_window
-
-                    jq -n \
-                        --argjson addToAdapterRegistry "$(jq -n --argjson val \"$add_to_adapter_registry\" 'if $val != "n" then true else false end')" \
-                        --arg adapterRegistry "$adapter_registry" \
-                        --arg pendleOracle "$pendle_oracle" \
-                        --arg pendleMarket "$pendle_market" \
-                        --arg base "$base" \
-                        --arg quote "$quote" \
-                        --arg twapWindow "$twap_window" \
-                        '{
-                            addToAdapterRegistry: $addToAdapterRegistry,
-                            adapterRegistry: $adapterRegistry,
-                            pendleOracle: $pendleOracle,
-                            pendleMarket: $pendleMarket,
-                            base: $base,
-                            quote: $quote,
-                            twapWindow: $twapWindow
-                        }' --indent 4 > script/${jsonName}_input.json
-                    ;;
-                11)
                     echo "Deploying Chainlink Infrequent Adapter..."
                     
                     scriptName=${baseName}.s.sol:ChainlinkInfrequentAdapter
@@ -567,7 +535,7 @@ while true; do
                             maxStaleness: $maxStaleness
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
-                12)
+                11)
                     echo "Deploying Idle Tranche Adapter..."
                     
                     scriptName=${baseName}.s.sol:IdleTranchesAdapter
@@ -1291,9 +1259,8 @@ while true; do
                 swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 securitizeFactory=$(jq -r '.securitizeFactory' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+                securitizeFactoryV2=$(jq -r '.securitizeFactoryV2' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulOFTAdapter=$(jq -r '.eulOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
-                eusdOFTAdapter=$(jq -r '.eusdOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
-                seusdOFTAdapter=$(jq -r '.seusdOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 eulerEarnFactory=${eulerEarnFactory:-$addressZero}
                 eulerSwapV2Factory=$(jq -r '.eulerSwapV2Factory' "$addresses_dir_path/EulerSwapAddresses.json" 2>/dev/null)
@@ -1327,7 +1294,7 @@ while true; do
             
             if [ -z "$feeFlowController" ] || [ "$feeFlowController" == "$addressZero" ] || [ "$feeFlowController" == "null" ]; then
                 if [ "$non_interactive" = false ]; then
-                    read -p "Enter the init price for Fee Flow (default: 1e18 or enter 0 to skip): " init_price
+                    read -p "Enter the init price for Fee Flow (default: 0 to skip, e.g. 1000000000000000000 to deploy): " init_price
                 fi
             fi
 
@@ -1358,24 +1325,10 @@ while true; do
                 fi
             fi
 
-            if [ -z "$eusdOFTAdapter" ] || [ "$eusdOFTAdapter" == "$addressZero" ] || [ "$eusdOFTAdapter" == "null" ]; then
+            if [ -z "$securitizeFactoryV2" ] || [ "$securitizeFactoryV2" == "$addressZero" ] || [ "$securitizeFactoryV2" == "null" ]; then
                 if [ "$non_interactive" = false ]; then
-                    read -p "Should deploy and configure eUSD contracts system? (y/n) (default: n): " deploy_eusd
-                    deploy_eusd=$(echo "$deploy_eusd" | tr "[:upper:]" "[:lower:]")
-                fi
-            fi
-
-            if [ -z "$seusdOFTAdapter" ] || [ "$seusdOFTAdapter" == "$addressZero" ] || [ "$seusdOFTAdapter" == "null" ]; then
-                if [ "$non_interactive" = false ]; then
-                    read -p "Should deploy and configure seUSD contracts system? (y/n) (default: n): " deploy_seusd
-                    deploy_seusd=$(echo "$deploy_seusd" | tr "[:upper:]" "[:lower:]")
-                fi
-            fi
-
-            if [ -z "$securitizeFactory" ] || [ "$securitizeFactory" == "$addressZero" ] || [ "$securitizeFactory" == "null" ]; then
-                if [ "$non_interactive" = false ]; then
-                    read -p "Should deploy Securitize Vault Factory? (y/n) (default: n): " deploy_securitize_factory
-                    deploy_securitize_factory=$(echo "$deploy_securitize_factory" | tr "[:upper:]" "[:lower:]")
+                    read -p "Should deploy Securitize Vault Factory V2? (y/n) (default: n): " deploy_securitize_factory_v2
+                    deploy_securitize_factory_v2=$(echo "$deploy_securitize_factory_v2" | tr "[:upper:]" "[:lower:]")
                 fi
             fi
 
@@ -1387,13 +1340,11 @@ while true; do
             permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
             uniswap_router_v2=${uniswap_router_v2:-$addressZero}
             uniswap_router_v3=${uniswap_router_v3:-$addressZero}
-            init_price=${init_price:-1000000000000000000}
+            init_price=${init_price:-0}
             deploy_eul_oft=${deploy_eul_oft:-n}
             deploy_euler_earn=${deploy_euler_earn:-n}
             deploy_euler_swap=${deploy_euler_swap:-n}
-            deploy_eusd=${deploy_eusd:-n}
-            deploy_seusd=${deploy_seusd:-n}
-            deploy_securitize_factory=${deploy_securitize_factory:-n}
+            deploy_securitize_factory_v2=${deploy_securitize_factory_v2:-n}
             uniswap_pool_manager=${uniswap_pool_manager:-$addressZero}
             euler_swap_protocol_fee_config_admin=${euler_swap_protocol_fee_config_admin:-$multisig_dao}
             euler_swap_registry_curator=${euler_swap_registry_curator:-$multisig_labs}
@@ -1406,8 +1357,8 @@ while true; do
                 forge compile lib/euler-swap/src $eulerSwapCompilerOptions --force
             fi
 
-            if { [ -z "$securitizeFactory" ] || [ "$securitizeFactory" == "$addressZero" ] || [ "$securitizeFactory" == "null" ]; } && [ "$deploy_securitize_factory" = "y" ]; then
-                forge compile src/VaultFactory/ERC4626EVCCollateralSecuritizeFactory.sol $securitizeFactoryCompilerOptions --force
+            if { [ -z "$securitizeFactoryV2" ] || [ "$securitizeFactoryV2" == "$addressZero" ] || [ "$securitizeFactoryV2" == "null" ]; } && [ "$deploy_securitize_factory_v2" = "y" ]; then
+                forge compile src/VaultFactory/ERC4626EVCCollateralSecuritizeFactoryV2.sol $securitizeFactoryCompilerOptions --force
             fi
 
             if [[ "$@" != *"--ffi"* ]]; then
@@ -1427,9 +1378,7 @@ while true; do
                 --argjson deployEULOFT "$(jq -n --argjson val \"$deploy_eul_oft\" 'if $val == "y" then true else false end')" \
                 --argjson deployEulerEarn "$(jq -n --argjson val \"$deploy_euler_earn\" 'if $val == "y" then true else false end')" \
                 --argjson deployEulerSwap "$(jq -n --argjson val \"$deploy_euler_swap\" 'if $val == "y" then true else false end')" \
-                --argjson deployEUSD "$(jq -n --argjson val \"$deploy_eusd\" 'if $val == "y" then true else false end')" \
-                --argjson deploySEUSD "$(jq -n --argjson val \"$deploy_seusd\" 'if $val == "y" then true else false end')" \
-                --argjson deploySecuritizeFactory "$(jq -n --argjson val \"$deploy_securitize_factory\" 'if $val == "y" then true else false end')" \
+                --argjson deploySecuritizeFactoryV2 "$(jq -n --argjson val \"$deploy_securitize_factory_v2\" 'if $val == "y" then true else false end')" \
                 --arg uniswapPoolManager "$uniswap_pool_manager" \
                 --arg eulerSwapProtocolFeeConfigAdmin "$euler_swap_protocol_fee_config_admin" \
                 --arg eulerSwapRegistryCurator "$euler_swap_registry_curator" \
@@ -1446,9 +1395,7 @@ while true; do
                     deployEULOFT: $deployEULOFT,
                     deployEulerEarn: $deployEulerEarn,
                     deployEulerSwap: $deployEulerSwap,
-                    deployEUSD: $deployEUSD,
-                    deploySEUSD: $deploySEUSD,
-                    deploySecuritizeFactory: $deploySecuritizeFactory,
+                    deploySecuritizeFactoryV2: $deploySecuritizeFactoryV2,
                     uniswapPoolManager: $uniswapPoolManager,
                     eulerSwapProtocolFeeConfigAdmin: $eulerSwapProtocolFeeConfigAdmin,
                     eulerSwapRegistryCurator: $eulerSwapRegistryCurator
@@ -1458,13 +1405,6 @@ while true; do
             echo "Core Ownership Transfer..."
 
             baseName=51_OwnershipTransferCore
-            scriptName=${baseName}.s.sol
-            jsonName=$baseName
-            ;;
-        52)
-            echo "Periphery Ownership Transfer..."
-
-            baseName=52_OwnershipTransferPeriphery
             scriptName=${baseName}.s.sol
             jsonName=$baseName
             ;;

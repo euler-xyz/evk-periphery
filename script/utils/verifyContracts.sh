@@ -163,12 +163,12 @@ function verify_broadcast {
                 contractName="./src/OFT/OFTAdapterUpgradeable.sol:OFTAdapterUpgradeable"
                 constructorBytesSize=64
                 constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-            elif [[ $contractName == "ERC4626EVCCollateralSecuritizeFactory" ]]; then
+            elif [[ $contractName == "ERC4626EVCCollateralSecuritizeFactoryV2" ]]; then
                 # Special handling for Securitize factory - needs different compiler settings
-                local src="src/VaultFactory/ERC4626EVCCollateralSecuritizeFactory.sol"
+                local src="src/VaultFactory/ERC4626EVCCollateralSecuritizeFactoryV2.sol"
                 local verificationOptions="--num-of-optimizations 10000 --compiler-version 0.8.24"
                 local compilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24"
-                contractName="src/VaultFactory/ERC4626EVCCollateralSecuritizeFactory.sol:ERC4626EVCCollateralSecuritizeFactory"
+                contractName="src/VaultFactory/ERC4626EVCCollateralSecuritizeFactoryV2.sol:ERC4626EVCCollateralSecuritizeFactoryV2"
                 constructorBytesSize=64
                 constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
 

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {IDSToken} from "../../../src/Vault/deployed/ERC4626EVCCollateralSecuritize.sol";
+import {IDSToken} from "../../../src/Vault/deployed/ERC4626EVCCollateralSecuritizeV2.sol";
 import {TestERC20} from "evk-test/mocks/TestERC20.sol";
 
 contract MockSecuritizeToken is TestERC20, IDSToken {

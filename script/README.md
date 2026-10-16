@@ -216,7 +216,7 @@ Redeploy lens contracts and update addresses.
 
 | Option | Description |
 |--------|-------------|
-| `--timelock-address <ADDR>` | Schedule transactions via timelock instead of immediate execution. Aliases: `admin`, `wildcard`, `eusd` |
+| `--timelock-address <ADDR>` | Schedule transactions via timelock instead of immediate execution. Aliases: `admin`, `wildcard` |
 | `--timelock-id <ID>` | Operation ID for executing a scheduled timelock transaction (from `CallScheduled` event) |
 | `--timelock-salt <SALT>` | Salt for timelock operation (default: zero) |
 
@@ -288,6 +288,8 @@ Execute scheduled timelock transactions:
 
 ## Batch Deployment
 
+For a chain with no prior Euler deployment, follow [Deploying to a New Chain](NEW_CHAIN.md).
+
 ### Full Core and Periphery Deployment (Option 50)
 
 Deploys and configures the complete Euler V2 stack. The script prompts for:
@@ -298,23 +300,21 @@ Deploys and configures the complete Euler V2 stack. The script prompts for:
 **Optional inputs (skipped if already deployed):**
 - Permit2 address (default: canonical deployment)
 - Uniswap V2/V3 router addresses (for Swapper)
-- Fee Flow init price (enter 0 to skip)
+- Fee Flow init price (default 0: Fee Flow is skipped and the fee receiver is the DAO Safe)
 - Deploy EUL OFT Adapter (y/n)
 - Deploy Euler Earn (y/n)
 - Deploy EulerSwap V2 (y/n) — if yes, prompts for Uniswap V4 Pool Manager
-- Deploy eUSD/seUSD contracts (y/n)
 
 ```sh
 ./script/interactiveDeployment.sh --account ACC_NAME --rpc-url RPC_URL
 # Select option 50, provide inputs when prompted
 ```
 
-### Ownership Transfer (Options 51/52)
+### Ownership Transfer (Option 51)
 
 After deployment, transfer ownership from deployer to multisigs:
 
 - **Option 51**: Core contracts (EVC, EVault Factory, Protocol Config, etc.)
-- **Option 52**: Periphery contracts (Registries, Perspectives, Governors, etc.)
 
 ## Oracle Adapters
 
@@ -322,22 +322,6 @@ After deployment, transfer ownership from deployer to multisigs:
 
 ```sh
 ./script/production/DeployOracleAdapters.sh <csv_input_file_path> [existing_adapters_csv] --rpc-url <RPC_URL>
-```
-
-### Whitelist Adapters
-
-```sh
-./script/production/ConfigWhitelistOracleAdapters.sh <OracleAdaptersAddresses.csv> --rpc-url <RPC_URL>
-```
-
-### Whitelist Vaults in Governed Perspective
-
-```sh
-# For EVK vaults
-./script/production/ConfigWhitelistGovernedPerspective.sh <vaults_list.csv> --evk --rpc-url <RPC_URL>
-
-# For Euler Earn vaults
-./script/production/ConfigWhitelistGovernedPerspective.sh <vaults_list.csv> --earn --rpc-url <RPC_URL>
 ```
 
 ## Contract Verification

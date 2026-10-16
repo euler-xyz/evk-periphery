@@ -429,6 +429,31 @@ contract EulerEarnPerspectivesDeployer is ScriptUtils {
     }
 }
 
+contract EulerEarnFactoryPerspectiveDeployer is ScriptUtils {
+    function run() public broadcast returns (address eulerEarnFactoryPerspective) {
+        string memory inputScriptFileName = "09_EulerEarnFactoryPerspective_input.json";
+        string memory outputScriptFileName = "09_EulerEarnFactoryPerspective_output.json";
+        string memory json = getScriptFile(inputScriptFileName);
+        address eulerEarnFactory = vm.parseJsonAddress(json, ".eulerEarnFactory");
+
+        eulerEarnFactoryPerspective = execute(eulerEarnFactory);
+
+        string memory object;
+        object = vm.serializeAddress(
+            "eulerEarnFactoryPerspective", "eulerEarnFactoryPerspective", eulerEarnFactoryPerspective
+        );
+        vm.writeJson(object, string.concat(vm.projectRoot(), "/script/", outputScriptFileName));
+    }
+
+    function deploy(address eulerEarnFactory) public broadcast returns (address eulerEarnFactoryPerspective) {
+        eulerEarnFactoryPerspective = execute(eulerEarnFactory);
+    }
+
+    function execute(address eulerEarnFactory) public returns (address eulerEarnFactoryPerspective) {
+        eulerEarnFactoryPerspective = address(new EulerEarnFactoryPerspective(eulerEarnFactory));
+    }
+}
+
 contract EdgePerspectivesDeployer is ScriptUtils {
     function run() public broadcast returns (address[] memory perspectives) {
         string memory inputScriptFileName = "09_EdgePerspectives_input.json";
