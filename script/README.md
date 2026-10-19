@@ -325,6 +325,7 @@ A chain on neither list is bridged both ways when its pair is first configured. 
 - euler-interfaces CI rejects a bridge cache in which only one side lists the other, so commit the cache once both sides have run.
 - If LayerZero has no blocked library on a chain (BOB today), its receive library can't be blocked. The run says so; Ethereum's blocked send library still stops EUL reaching it.
 - If a run says a step must be done manually, do it, then re-run option 50 on that side so the cache follows.
+- On HyperEVM, simulating the bridge step needs more gas than its small blocks allow (3M): add `--disable-block-gas-limit`, or `--skip-oft-config-eul` to leave the bridge out of a routine run.
 
 ### Retiring a chain's EUL bridge
 
