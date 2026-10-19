@@ -25,6 +25,7 @@ An AI agent can do the checks and the code changes (steps 1 and 2) by following 
 | `euler-interfaces` checked out next to this repo | Scripts read and write `../euler-interfaces/addresses/<chainId>/` |
 | `.env` with `DEPLOYMENT_RPC_URL_<chainId>`, `VERIFIER_URL_<chainId>`, `VERIFIER_API_KEY_<chainId>`, `SAFE_API_KEY` | `./script/utils/dopplerSync.sh` writes `.env` from Doppler `evk-periphery` / `prd`. Add the new chain's values there |
 | Deployer key, funded with gas | `--account`, `--ledger` or `DEPLOYER_KEY` |
+| Foundry 1.8.5 or later | forge 1.8.1 fails every contract creation while simulating on OP-stack chains such as Base and Unichain, so nothing is broadcast |
 
 ## 2. Chain-support code
 
