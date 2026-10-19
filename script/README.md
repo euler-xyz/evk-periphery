@@ -319,13 +319,12 @@ EUL is bridged hub and spoke: each chain peers only with Ethereum. Two lists in 
 | `configOneDirectionChainIds` | EUL may only leave the chain, towards Ethereum | blocks Ethereum's send library for the chain | blocks the chain's receive library for Ethereum |
 | `configIgnoreChainIds` | the chain is not bridged | sets Ethereum's peer for the chain to zero and removes Ethereum's cache row for it | sets the chain's peer for Ethereum to zero and removes the chain's cache row |
 
-A chain on neither list is bridged both ways when its pair is first configured. Option 50 only closes: it never reopens a blocked library or a removed peer. Each side changes only when option 50 runs there: directly if the deployer is still the OFT Adapter's delegate, otherwise as a batch for the Safe that is (`--batch-via-safe --safe-address <Safe>`: the DAO, or `newDAO` on HyperEVM).
+A chain on neither list is bridged both ways when its pair is first configured. Option 50 only closes: it never reopens a blocked library or a removed peer. Each side changes only when option 50 runs there: directly if the deployer is still the OFT Adapter's delegate, otherwise as a DAO Safe batch (`--batch-via-safe --safe-address DAO`).
 
 - Option 50 only reads chains under `euler-interfaces/addresses/<chainId>/`, so a list entry has no effect on an archived chain, and both sides must be done before a chain's folder is archived.
 - euler-interfaces CI rejects a bridge cache in which only one side lists the other, so commit the cache once both sides have run.
 - If LayerZero has no blocked library on a chain (BOB today), its receive library can't be blocked. The run says so; Ethereum's blocked send library still stops EUL reaching it.
 - If a run says a step must be done manually, do it, then re-run option 50 on that side so the cache follows.
-- On HyperEVM, simulating the bridge step needs more gas than its small blocks allow (3M): add `--disable-block-gas-limit`, or `--skip-oft-config-eul` to leave the bridge out of a routine run.
 
 ### Retiring a chain's EUL bridge
 
