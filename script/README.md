@@ -310,6 +310,29 @@ Deploys and configures the complete Euler V2 stack. The script prompts for:
 # Select option 50, provide inputs when prompted
 ```
 
+### EUL bridge lists
+
+EUL is bridged hub and spoke: each chain peers only with Ethereum. Two lists in `OFT_CONFIG["EUL"]` (`script/50_CoreAndPeriphery.s.sol`) set the state of a chain's bridge, and every run of option 50 applies them on the chain it runs on:
+
+| List | Meaning | A run on Ethereum | A run on the listed chain |
+|---|---|---|---|
+| `configOneDirectionChainIds` | EUL may only leave the chain, towards Ethereum | blocks Ethereum's send library for the chain | blocks the chain's receive library for Ethereum |
+| `configIgnoreChainIds` | the chain is not bridged | sets Ethereum's peer for the chain to zero and removes Ethereum's cache row for it | sets the chain's peer for Ethereum to zero and removes the chain's cache row |
+
+A chain on neither list is bridged both ways when its pair is first configured. Option 50 only closes: it never reopens a blocked library or a removed peer. Each side changes only when option 50 runs there: directly if the deployer is still the OFT Adapter's delegate, otherwise as a batch for the Safe that is (`--batch-via-safe --safe-address <Safe>`: the DAO, or `newDAO` on HyperEVM).
+
+- Option 50 only reads chains under `euler-interfaces/addresses/<chainId>/`, so a list entry has no effect on an archived chain, and both sides must be done before a chain's folder is archived.
+- euler-interfaces CI rejects a bridge cache in which only one side lists the other, so commit the cache once both sides have run.
+- If LayerZero has no blocked library on a chain (BOB today), its receive library can't be blocked. The run says so; Ethereum's blocked send library still stops EUL reaching it.
+- If a run says a step must be done manually, do it, then re-run option 50 on that side so the cache follows.
+
+### Retiring a chain's EUL bridge
+
+A chain may keep running after Euler deprecates it. Retire its bridge in two steps:
+
+1. **When the chain is deprecated:** add it to `configOneDirectionChainIds`. Run option 50 on Ethereum and on the chain. Execute Ethereum's batch first, then wait until LayerZero Scan shows no EUL transfer from Ethereum to the chain still in flight before executing the chain's batch, so no EUL is sent towards a chain that can no longer receive it. Holders can still bring EUL back to Ethereum. Both cache rows stay, and the bridge can stay like this for as long as the chain runs.
+2. **To close the bridge,** after announcing the date to holders: move the chain from `configOneDirectionChainIds` to `configIgnoreChainIds`. Run option 50 on the chain and on Ethereum. Execute the chain's batch first: sends from the chain then revert instead of burning EUL that Ethereum would reject. Wait until LayerZero Scan shows no EUL transfer from the chain still in flight, then execute Ethereum's batch; Ethereum then accepts nothing from the chain. Both runs remove their cache rows; open one euler-interfaces PR with the resulting cache. EUL left on the chain stays there, and the EUL backing it stays locked in Ethereum's OFT Adapter.
+
 ### Ownership Transfer (Option 51)
 
 After deployment, transfer ownership from deployer to multisigs:
