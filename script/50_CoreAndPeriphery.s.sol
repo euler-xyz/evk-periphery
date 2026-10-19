@@ -114,7 +114,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             cfg.enforcedGasLimitSend = 100000;
             cfg.enforcedGasLimitCall = 100000;
             cfg.requiredDVNsCount = 4;
-            cfg.configIgnoreChainIds = [uint256(2818), 999, 1923];
+            // Ignored chains are never bridged: a run on either side removes that side's peer and its cache row.
+            cfg.configIgnoreChainIds = [uint256(999)];
+            // One-direction chains may only send EUL to Ethereum: Ethereum's send and the chain's receive are blocked.
             cfg.configOneDirectionChainIds = [uint256(130), 143, 146, 239, 9745, 43114, 59144, 60808, 80094];
         }
     }
@@ -312,12 +314,14 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             console.log("- EUL OFT Adapter already deployed. Skipping...");
         }
 
-        if (
-            bridgeAddresses.eulOFTAdapter != address(0)
-                && !containsOFTConfigIgnoreChainId(tokenAddresses.EUL, block.chainid) && !getSkipOFTConfigEUL()
-        ) {
-            console.log("+ Attempting to configure OFT Adapter on chain %s for EUL", block.chainid);
-            configureOFTAdapter(tokenAddresses.EUL, bridgeAddresses.eulOFTAdapter);
+        if (bridgeAddresses.eulOFTAdapter != address(0) && !getSkipOFTConfigEUL()) {
+            if (containsOFTConfigIgnoreChainId(tokenAddresses.EUL, block.chainid)) {
+                console.log("+ Attempting to close OFT Adapter on chain %s for EUL", block.chainid);
+                closeOFTAdapter(tokenAddresses.EUL, bridgeAddresses.eulOFTAdapter);
+            } else {
+                console.log("+ Attempting to configure OFT Adapter on chain %s for EUL", block.chainid);
+                configureOFTAdapter(tokenAddresses.EUL, bridgeAddresses.eulOFTAdapter);
+            }
         }
 
         if (
@@ -694,44 +698,17 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 continue;
             }
 
-            if (
-                bridgeConfigCacheExists(tokenKey, block.chainid, chainIdOther)
-                    && containsOFTConfigIgnoreChainId(token, chainIdOther)
-            ) {
-                LayerZeroUtil.DeploymentInfo memory infoOther = lzUtil.getDeploymentInfo(chainIdOther);
-                removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
-
-                if (delegate == getDeployer()) {
-                    vm.startBroadcast();
+            if (containsOFTConfigIgnoreChainId(token, chainIdOther)) {
+                try lzUtil.getDeploymentInfo(chainIdOther) returns (LayerZeroUtil.DeploymentInfo memory infoOther) {
+                    closeOFTAdapterPeer(adapter, delegate, tokenKey, chainIdOther, infoOther.eid);
+                } catch {
                     console.log(
-                        "    + Removing %s OFT Adapter config on chain %s for chain %s by setting peer to address zero",
+                        "    ! %s OFT Adapter config for chain %s can't be checked: no LayerZero metadata. Skipping...",
                         tokenKey,
-                        block.chainid,
-                        chainIdOther
-                    );
-                    IOAppCore(adapter).setPeer(infoOther.eid, bytes32(0));
-                    vm.stopBroadcast();
-                } else if (delegate == getSafe(false)) {
-                    console.log(
-                        "    + Adding multisend item to remove %s OFT Adapter config on chain %s for chain %s by setting peer to address zero",
-                        tokenKey,
-                        block.chainid,
-                        chainIdOther
-                    );
-                    addMultisendItem(adapter, abi.encodeCall(IOAppCore.setPeer, (infoOther.eid, bytes32(0))));
-                } else {
-                    addBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
-                    console.log(
-                        "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter config on chain %s for chain %s must be removed manually.",
-                        tokenKey,
-                        block.chainid,
                         chainIdOther
                     );
                 }
-            } else if (
-                !containsOFTConfigIgnoreChainId(token, chainIdOther)
-                    && addBridgeConfigCache(tokenKey, block.chainid, chainIdOther)
-            ) {
+            } else if (addBridgeConfigCache(tokenKey, block.chainid, chainIdOther)) {
                 bool delegateIsDeployer = delegate == getDeployer();
                 if (!delegateIsDeployer && delegate != getSafe(false)) {
                     removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
@@ -929,10 +906,147 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                         abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (getEnforcedOptions(token, infoOther.eid)))
                     );
                 }
-            } else if (!containsOFTConfigIgnoreChainId(token, chainIdOther)) {
+            } else if (!blockOneDirectionLibrary(token, adapter, delegate, chainIdOther, lzUtil, info)) {
                 console.log("    - %s OFT Adapter already configured for chain %s. Skipping...", tokenKey, chainIdOther);
             }
         }
+    }
+
+    function closeOFTAdapter(address token, address adapter) internal {
+        LayerZeroUtil lzUtil = new LayerZeroUtil(block.chainid);
+        LayerZeroUtil.DeploymentInfo memory info = lzUtil.getDeploymentInfo(block.chainid);
+        Vm.DirEntry[] memory entries = vm.readDir(getAddressesDirPath(), 1);
+        address delegate = IEndpointV2(info.endpointV2).delegates(adapter);
+        string memory tokenKey = getTokenKey(token);
+
+        for (uint256 i = 0; i < entries.length; ++i) {
+            if (!entries[i].isDir) continue;
+
+            uint256 chainIdOther = getChainIdFromAddressesDirPath(entries[i].path);
+
+            if (chainIdOther == 0 || block.chainid == chainIdOther || !isHubChainId(chainIdOther)) continue;
+
+            closeOFTAdapterPeer(adapter, delegate, tokenKey, chainIdOther, lzUtil.getDeploymentInfo(chainIdOther).eid);
+        }
+    }
+
+    function closeOFTAdapterPeer(
+        address adapter,
+        address delegate,
+        string memory tokenKey,
+        uint256 chainIdOther,
+        uint32 eidOther
+    ) internal {
+        if (IOAppCore(adapter).peers(eidOther) == bytes32(0)) {
+            console.log("    - %s OFT Adapter has no peer for chain %s. Skipping...", tokenKey, chainIdOther);
+        } else if (delegate == getDeployer()) {
+            vm.startBroadcast();
+            console.log(
+                "    + Removing %s OFT Adapter config on chain %s for chain %s by setting peer to address zero",
+                tokenKey,
+                block.chainid,
+                chainIdOther
+            );
+            IOAppCore(adapter).setPeer(eidOther, bytes32(0));
+            vm.stopBroadcast();
+        } else if (delegate == getSafe(false)) {
+            console.log(
+                "    + Adding multisend item to remove %s OFT Adapter config on chain %s for chain %s by setting peer to address zero",
+                tokenKey,
+                block.chainid,
+                chainIdOther
+            );
+            addMultisendItem(adapter, abi.encodeCall(IOAppCore.setPeer, (eidOther, bytes32(0))));
+        } else {
+            console.log(
+                "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter config on chain %s for chain %s must be removed manually.",
+                tokenKey,
+                block.chainid,
+                chainIdOther
+            );
+            return;
+        }
+
+        removeBridgeConfigCache(tokenKey, block.chainid, chainIdOther);
+    }
+
+    function blockOneDirectionLibrary(
+        address token,
+        address adapter,
+        address delegate,
+        uint256 chainIdOther,
+        LayerZeroUtil lzUtil,
+        LayerZeroUtil.DeploymentInfo memory info
+    ) internal returns (bool) {
+        bool blockSend = isHubChainId(block.chainid) && containsOFTConfigOneDirectionChainId(token, chainIdOther);
+        bool blockReceive = isHubChainId(chainIdOther) && containsOFTConfigOneDirectionChainId(token, block.chainid);
+
+        if (!blockSend && !blockReceive) return false;
+
+        string memory tokenKey = getTokenKey(token);
+        string memory library_ = string.concat(" OFT Adapter ", blockSend ? "send" : "receive", " library");
+
+        if (info.blockedMessageLib == address(0)) {
+            console.log(
+                string.concat(
+                    "    ! %s", library_, " on chain %s for chain %s can't be blocked: no LayerZero blocked library. Skipping..."
+                ),
+                tokenKey,
+                block.chainid,
+                chainIdOther
+            );
+            return true;
+        }
+
+        uint32 eidOther = lzUtil.getDeploymentInfo(chainIdOther).eid;
+        IMessageLibManager endpoint = IMessageLibManager(info.endpointV2);
+        address current;
+
+        if (blockSend) current = endpoint.getSendLibrary(adapter, eidOther);
+        else (current,) = endpoint.getReceiveLibrary(adapter, eidOther);
+
+        if (current == info.blockedMessageLib) return false;
+
+        if (delegate == getDeployer()) {
+            vm.startBroadcast();
+            console.log(
+                string.concat("    + Blocking %s", library_, " on chain %s for chain %s"),
+                tokenKey,
+                block.chainid,
+                chainIdOther
+            );
+            if (blockSend) endpoint.setSendLibrary(adapter, eidOther, info.blockedMessageLib);
+            else endpoint.setReceiveLibrary(adapter, eidOther, info.blockedMessageLib, 0);
+            vm.stopBroadcast();
+        } else if (delegate == getSafe(false)) {
+            console.log(
+                string.concat("    + Adding multisend item to block %s", library_, " on chain %s for chain %s"),
+                tokenKey,
+                block.chainid,
+                chainIdOther
+            );
+            addMultisendItem(
+                address(endpoint),
+                blockSend
+                    ? abi.encodeCall(IMessageLibManager.setSendLibrary, (adapter, eidOther, info.blockedMessageLib))
+                    : abi.encodeCall(
+                        IMessageLibManager.setReceiveLibrary, (adapter, eidOther, info.blockedMessageLib, 0)
+                    )
+            );
+        } else {
+            console.log(
+                string.concat(
+                    "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s",
+                    library_,
+                    " on chain %s for chain %s must be blocked manually."
+                ),
+                tokenKey,
+                block.chainid,
+                chainIdOther
+            );
+        }
+
+        return true;
     }
 
     function getTokenKey(address token) internal view returns (string memory) {

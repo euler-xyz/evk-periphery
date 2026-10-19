@@ -25,17 +25,18 @@ An AI agent can do the checks and the code changes (steps 1 and 2) by following 
 | `euler-interfaces` checked out next to this repo | Scripts read and write `../euler-interfaces/addresses/<chainId>/` |
 | `.env` with `DEPLOYMENT_RPC_URL_<chainId>`, `VERIFIER_URL_<chainId>`, `VERIFIER_API_KEY_<chainId>`, `SAFE_API_KEY` | `./script/utils/dopplerSync.sh` writes `.env` from Doppler `evk-periphery` / `prd`. Add the new chain's values there |
 | Deployer key, funded with gas | `--account`, `--ledger` or `DEPLOYER_KEY` |
+| Foundry 1.8.5 or later | forge 1.8.1 fails every contract creation while simulating on OP-stack chains such as Base and Unichain, so nothing is broadcast |
 
 ## 2. Chain-support code
 
-Some per-chain values are hard-coded in Solidity, and each lookup reverts for a chain it doesn't know. Add the chain in one PR and merge it before deploying, so every deployed contract is built from code on `development`. Commit `e59e1ef` (Katana) shows the WETH and Safe edits.
+Some per-chain values are hard-coded in Solidity, and each lookup reverts for a chain it doesn't know. Add the chain in one PR and merge it before deploying, so every deployed contract is built from code on `master`. Commit `e59e1ef` (Katana) shows the WETH and Safe edits.
 
 | File | Change |
 |---|---|
 | `script/utils/ScriptUtils.s.sol` → `getWETHAddress()` | The chain's WETH, or an explicit `address(0)` if it has none (as for Monad, Plasma, HyperEVM). Otherwise: `getWETHAddress: Unsupported chain` |
 | `src/Lens/Utils.sol` → `getWETHAddress()` | The same entry. This copy is compiled into the lenses that option 50 deploys |
 | `script/utils/SafeUtils.s.sol` → `getSafeBaseURL()` | Add the chain to the `https://safe-client.safe.global/` list if Safe hosts it, otherwise return the chain's own Safe gateway |
-| `script/50_CoreAndPeriphery.s.sol` → `OFT_CONFIG["EUL"].configOneDirectionChainIds` | Add the chain: EUL travels only from the chain to Ethereum |
+| `script/50_CoreAndPeriphery.s.sol` → `OFT_CONFIG["EUL"]` lists | Leave a new chain off both. A chain on `configOneDirectionChainIds` can only send EUL to Ethereum, so it could never receive any; a chain on `configIgnoreChainIds` isn't bridged. See [EUL bridge lists](README.md#eul-bridge-lists) |
 | `script/utils/verifyContracts.sh` | Only if verification fails with "Chain … not supported": route the chain to the `custom` verifier as done for Monad (`143`). That takes two edits: the route and the constructor-arguments branch. The other option is a `foundry.toml` `[etherscan]` entry, as for 146, 80094 and 130 |
 
 ## 3. Permit2

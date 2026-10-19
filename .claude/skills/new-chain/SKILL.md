@@ -45,11 +45,11 @@ curl -fsSL https://metadata.layerzero-api.com/v1/metadata | jq --argjson id $ID 
 
 ## 2. Change the code
 
-Open one PR against `development`, titled `feat: <chain name> support` and ready for review. Edit only the files in the runbook's step 2 table, and copy the style of the neighbouring entries. `git show e59e1ef` (Katana) is a worked example.
+Open one PR against `master`, titled `feat: <chain name> support` and ready for review. Edit only the files in the runbook's step 2 table, and copy the style of the neighbouring entries. `git show e59e1ef` (Katana) is a worked example.
 
 - **Both `getWETHAddress()` copies** (`script/utils/ScriptUtils.s.sol`, `src/Lens/Utils.sol`): identical entries, either the WETH address or an explicit `address(0)`.
 - **`getSafeBaseURL()`:** add the chain to the `safe-client.safe.global` list if Safe hosts it; otherwise add a branch returning the gateway URL.
-- **`OFT_CONFIG["EUL"].configOneDirectionChainIds`:** append the chain id.
+- **`OFT_CONFIG["EUL"]` lists:** leave a new chain off both `configOneDirectionChainIds` and `configIgnoreChainIds`. Chains are bridged only to Ethereum, so a one-direction chain can never receive EUL, and an ignored chain isn't bridged. `script/README.md` ("EUL bridge lists") describes both.
 - **`script/utils/verifyContracts.sh`:** leave it unless a verification later fails with "Chain … not supported".
 
 Then run `forge build`. Don't run `forge fmt` on these files: `50_CoreAndPeriphery.s.sol` is not fmt-clean, and reformatting it buries the change.
