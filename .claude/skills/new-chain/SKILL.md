@@ -45,7 +45,7 @@ curl -fsSL https://metadata.layerzero-api.com/v1/metadata | jq --argjson id $ID 
 
 ## 2. Change the code
 
-Open one PR against `development`, titled `feat: <chain name> support` and ready for review. Edit only the files in the runbook's step 2 table, and copy the style of the neighbouring entries. `git show e59e1ef` (Katana) is a worked example.
+Open one PR against `master`, titled `feat: <chain name> support` and ready for review. Edit only the files in the runbook's step 2 table, and copy the style of the neighbouring entries. `git show e59e1ef` (Katana) is a worked example.
 
 - **Both `getWETHAddress()` copies** (`script/utils/ScriptUtils.s.sol`, `src/Lens/Utils.sol`): identical entries, either the WETH address or an explicit `address(0)`.
 - **`getSafeBaseURL()`:** add the chain to the `safe-client.safe.global` list if Safe hosts it; otherwise add a branch returning the gateway URL.

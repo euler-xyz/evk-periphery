@@ -29,7 +29,7 @@ An AI agent can do the checks and the code changes (steps 1 and 2) by following 
 
 ## 2. Chain-support code
 
-Some per-chain values are hard-coded in Solidity, and each lookup reverts for a chain it doesn't know. Add the chain in one PR and merge it before deploying, so every deployed contract is built from code on `development`. Commit `e59e1ef` (Katana) shows the WETH and Safe edits.
+Some per-chain values are hard-coded in Solidity, and each lookup reverts for a chain it doesn't know. Add the chain in one PR and merge it before deploying, so every deployed contract is built from code on `master`. Commit `e59e1ef` (Katana) shows the WETH and Safe edits.
 
 | File | Change |
 |---|---|
