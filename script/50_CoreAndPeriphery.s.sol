@@ -703,9 +703,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     closeOFTAdapterPeer(adapter, delegate, tokenKey, chainIdOther, infoOther.eid);
                 } catch {
                     console.log(
-                        "    ! No LayerZero metadata for chain %s. Its %s OFT Adapter peer can't be checked. Skipping...",
-                        chainIdOther,
-                        tokenKey
+                        "    ! %s OFT Adapter config for chain %s can't be checked: no LayerZero metadata. Skipping...",
+                        tokenKey,
+                        chainIdOther
                     );
                 }
             } else if (addBridgeConfigCache(tokenKey, block.chainid, chainIdOther)) {
@@ -906,9 +906,8 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                         abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (getEnforcedOptions(token, infoOther.eid)))
                     );
                 }
-            } else {
-                console.log("    - %s OFT Adapter already configured for chain %s", tokenKey, chainIdOther);
-                blockOneDirectionLibrary(token, adapter, delegate, chainIdOther, lzUtil, info);
+            } else if (!blockOneDirectionLibrary(token, adapter, delegate, chainIdOther, lzUtil, info)) {
+                console.log("    - %s OFT Adapter already configured for chain %s. Skipping...", tokenKey, chainIdOther);
             }
         }
     }
@@ -978,22 +977,25 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         uint256 chainIdOther,
         LayerZeroUtil lzUtil,
         LayerZeroUtil.DeploymentInfo memory info
-    ) internal {
+    ) internal returns (bool) {
         bool blockSend = isHubChainId(block.chainid) && containsOFTConfigOneDirectionChainId(token, chainIdOther);
         bool blockReceive = isHubChainId(chainIdOther) && containsOFTConfigOneDirectionChainId(token, block.chainid);
 
-        if (!blockSend && !blockReceive) return;
+        if (!blockSend && !blockReceive) return false;
 
-        string memory side = blockSend ? "send" : "receive";
+        string memory tokenKey = getTokenKey(token);
+        string memory library_ = string.concat(" OFT Adapter ", blockSend ? "send" : "receive", " library");
 
         if (info.blockedMessageLib == address(0)) {
             console.log(
-                "    ! LayerZero has no blocked library on this chain. %s OFT Adapter %s library for chain %s stays open.",
-                getTokenKey(token),
-                side,
+                string.concat(
+                    "    ! %s", library_, " on chain %s for chain %s can't be blocked: no LayerZero blocked library. Skipping..."
+                ),
+                tokenKey,
+                block.chainid,
                 chainIdOther
             );
-            return;
+            return true;
         }
 
         uint32 eidOther = lzUtil.getDeploymentInfo(chainIdOther).eid;
@@ -1003,14 +1005,14 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         if (blockSend) current = endpoint.getSendLibrary(adapter, eidOther);
         else (current,) = endpoint.getReceiveLibrary(adapter, eidOther);
 
-        if (current == info.blockedMessageLib) return;
+        if (current == info.blockedMessageLib) return false;
 
         if (delegate == getDeployer()) {
             vm.startBroadcast();
             console.log(
-                "    + Blocking %s OFT Adapter %s library for one-direction chain %s",
-                getTokenKey(token),
-                side,
+                string.concat("    + Blocking %s", library_, " on chain %s for chain %s"),
+                tokenKey,
+                block.chainid,
                 chainIdOther
             );
             if (blockSend) endpoint.setSendLibrary(adapter, eidOther, info.blockedMessageLib);
@@ -1018,9 +1020,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             vm.stopBroadcast();
         } else if (delegate == getSafe(false)) {
             console.log(
-                "    + Adding multisend item to block %s OFT Adapter %s library for one-direction chain %s",
-                getTokenKey(token),
-                side,
+                string.concat("    + Adding multisend item to block %s", library_, " on chain %s for chain %s"),
+                tokenKey,
+                block.chainid,
                 chainIdOther
             );
             addMultisendItem(
@@ -1033,12 +1035,18 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             );
         } else {
             console.log(
-                "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter %s library for chain %s must be blocked manually.",
-                getTokenKey(token),
-                side,
+                string.concat(
+                    "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s",
+                    library_,
+                    " on chain %s for chain %s must be blocked manually."
+                ),
+                tokenKey,
+                block.chainid,
                 chainIdOther
             );
         }
+
+        return true;
     }
 
     function getTokenKey(address token) internal view returns (string memory) {
