@@ -312,26 +312,43 @@ Deploys and configures the complete Euler V2 stack. The script prompts for:
 
 ### EUL bridge lists
 
-EUL is bridged hub and spoke: each chain peers only with Ethereum. Two lists in `OFT_CONFIG["EUL"]` (`script/50_CoreAndPeriphery.s.sol`) set the state of a chain's bridge, and every run of option 50 applies them on the chain it runs on:
+EUL is bridged hub and spoke: every chain connects only to Ethereum. A chain's bridge is in one of three states:
 
-| List | Meaning | A run on Ethereum | A run on the listed chain |
-|---|---|---|---|
-| `configOneDirectionChainIds` | EUL may only leave the chain, towards Ethereum | blocks Ethereum's send library for the chain | blocks the chain's receive library for Ethereum |
-| `configIgnoreChainIds` | the chain is not bridged | sets Ethereum's peer for the chain to zero and removes Ethereum's cache row for it | sets the chain's peer for Ethereum to zero and removes the chain's cache row |
+```
+TWO-WAY     Ethereum ──EUL──▶ chain       EUL can go to the chain
+            Ethereum ◀──EUL── chain       and come back
 
-A chain on neither list is bridged both ways when its pair is first configured. Option 50 doesn't reopen a pair that is still in the bridge cache. A pair missing from the cache is set up from scratch, with a peer and the normal libraries, so keep a retired chain on `configIgnoreChainIds` for as long as its address folder exists. Each side changes only when option 50 runs there: directly if the deployer is still the OFT Adapter's delegate, otherwise as a DAO Safe batch (`--batch-via-safe --safe-address DAO`).
+ONE-WAY     Ethereum ───✕───  chain       nothing new goes to the chain
+            Ethereum ◀──EUL── chain       holders can still bring EUL back
 
-- Option 50 only reads chains under `euler-interfaces/addresses/<chainId>/`, so a list entry has no effect on an archived chain, and both sides must be done before a chain's folder is archived.
-- euler-interfaces CI rejects a bridge cache in which only one side lists the other, so commit the cache once both sides have run.
-- If LayerZero has no blocked library on a chain (BOB today), its receive library can't be blocked. The run says so; Ethereum's blocked send library still stops EUL reaching it.
+CLOSED      Ethereum ───✕───  chain
+            Ethereum ───✕───  chain       nothing moves either way
+```
+
+Choose the state with the two lists in `OFT_CONFIG["EUL"]` (`script/50_CoreAndPeriphery.s.sol`), then run option 50 on both chains:
+
+| The chain is on… | A run on Ethereum | A run on the chain |
+|---|---|---|
+| neither list (a new chain) | connects Ethereum to the chain | connects the chain to Ethereum |
+| `configOneDirectionChainIds` | stops Ethereum sending to the chain (blocks its send library) | stops the chain receiving from Ethereum (blocks its receive library) |
+| `configIgnoreChainIds` | disconnects Ethereum from the chain (sets its peer to zero) | disconnects the chain from Ethereum (sets its peer to zero) |
+
+Each run changes only the chain it runs on, so every change takes two runs. A run applies its change at once if the deployer still controls the chain's OFT Adapter. Otherwise it writes the change as a DAO Safe batch (`--batch-via-safe --safe-address DAO`), which applies when the batch executes.
+
+**Order.** To shut a direction, shut the sending side first. Wait until LayerZero Scan shows no EUL transfer still in transit, then shut the receiving side. Otherwise EUL in transit gets stuck. If the deployer controls an adapter, start the second run only after the wait.
+
+**The bridge cache** (`euler-interfaces/config/bridge/BridgeConfigCache.json`) is option 50's record of which pairs are connected. Connecting adds an entry and disconnecting removes it. Making a bridge one-way leaves the entry, because the chains are still connected. A pair with no entry counts as new and gets connected, so a closed chain must stay on `configIgnoreChainIds` for as long as its address folder exists. euler-interfaces CI rejects a cache in which only one side lists the other, so commit it once both runs are done.
+
+- Option 50 only reads chains under `euler-interfaces/addresses/<chainId>/`, so both runs must happen before a chain's folder is archived.
+- If LayerZero has no blocked library on a chain (BOB today), that chain can't stop receiving. The run says so; Ethereum's blocked sending still keeps EUL from reaching it.
 - If a run says a step must be done manually, do it, then re-run option 50 on that side so the cache follows.
 
 ### Retiring a chain's EUL bridge
 
-A chain may keep running after Euler deprecates it. Retire its bridge in two steps. Each step changes both sides in a set order, with a wait in between. A side's change is applied when its Safe batch executes, or during its option 50 run if the deployer is still the OFT Adapter's delegate. In that case, run option 50 on the second side only after the wait.
+A chain may keep running after Euler deprecates it. Retire its bridge in two steps:
 
-1. **When the chain is deprecated:** add it to `configOneDirectionChainIds`. Apply Ethereum's change first, which blocks its send library for the chain. Wait until LayerZero Scan shows no EUL transfer from Ethereum to the chain still in flight. Then apply the chain's change, which blocks its receive library. No EUL is sent towards a chain that can no longer receive it, and holders can still bring EUL back to Ethereum. Both cache rows stay, and the bridge can stay like this for as long as the chain runs.
-2. **To close the bridge,** after announcing the date to holders: move the chain from `configOneDirectionChainIds` to `configIgnoreChainIds`. Apply the chain's change first, which sets its Ethereum peer to zero: sends from the chain then revert instead of burning EUL that Ethereum would reject. Wait until LayerZero Scan shows no EUL transfer from the chain still in flight. Then apply Ethereum's change, which sets its peer for the chain to zero, so Ethereum accepts nothing from the chain. Both runs remove their cache rows; open one euler-interfaces PR with the resulting cache. EUL left on the chain stays there, and the EUL backing it stays locked in Ethereum's OFT Adapter. Keep the chain on `configIgnoreChainIds` afterwards.
+1. **Make it one-way when the chain is deprecated.** Add it to `configOneDirectionChainIds`. Ethereum stops sending first; after the wait, the chain stops receiving. The bridge can stay one-way for as long as the chain runs.
+2. **Close it later,** after announcing the date to holders. Move the chain to `configIgnoreChainIds`. The chain stops sending first, so a send from it fails instead of burning EUL that Ethereum would reject. After the wait, Ethereum stops receiving. Open one euler-interfaces PR with the resulting cache. EUL left on the chain stays there, and the EUL backing it stays locked in Ethereum's OFT Adapter.
 
 ### Ownership Transfer (Option 51)
 
