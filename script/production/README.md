@@ -11,14 +11,14 @@ A **cluster** is a collection of vaults that accept each other as collateral and
 ## Cluster Structure
 
 Each cluster consists of:
-- **Cluster script** (e.g., `BaseCluster.s.sol`): Defines assets, LTVs, oracles, caps, IRM parameters
-- **Cluster JSON** (e.g., `BaseCluster.json`): Deployed contract addresses cache (auto-generated)
+- **Cluster script** (e.g., `PrimeCluster.s.sol`): Defines assets, LTVs, oracles, caps, IRM parameters
+- **Cluster JSON** (e.g., `PrimeCluster.json`): Deployed contract addresses cache (auto-generated)
 - **ManageCluster.s.sol**: Network-specific address definitions
 - **ManageClusterBase.s.sol**: Core management logic
 
 ## Creating a New Cluster
 
-1. Copy an existing cluster script as a template
+1. Copy `mainnet/clusters/PrimeCluster.s.sol`, the example cluster script, as a template
 2. Define assets in `defineCluster()`:
 
 ```solidity
@@ -47,12 +47,12 @@ cluster.borrowCaps[WETH] = 8_000;
 // IRM parameters: [baseRate, slope1, slope2, kink]
 cluster.kinkIRMParams[WETH] = [uint256(0), uint256(194425692), uint256(41617711740), uint256(3865470566)];
 
-// LTV matrix (row=vault, col=collateral, value=liquidationLTV in basis points)
+// Liquidation LTV matrix in basis points: rows are collateral vaults, columns are liability vaults
 cluster.ltvs = [
     //        WETH    USDC    wstETH
-    [uint16(0.00e4), 0.87e4, 0.93e4],  // WETH vault
-    [uint16(0.83e4), 0.00e4, 0.83e4],  // USDC vault
-    [uint16(0.93e4), 0.87e4, 0.00e4],  // wstETH vault
+    [uint16(0.00e4), 0.87e4, 0.93e4],  // WETH as collateral
+    [uint16(0.83e4), 0.00e4, 0.83e4],  // USDC as collateral
+    [uint16(0.93e4), 0.87e4, 0.00e4],  // wstETH as collateral
 ];
 ```
 
@@ -70,9 +70,9 @@ First deployment when vaults don't exist yet:
 
 ```bash
 ./script/production/ExecuteSolidityScript.sh \
-  script/production/base/clusters/BaseCluster.s.sol \
+  script/production/<network>/clusters/MyCluster.s.sol \
   --account DEPLOYER \
-  --rpc-url base
+  --rpc-url <network>
 ```
 
 ### Managed Cluster Updates
@@ -81,11 +81,11 @@ After governance transferred to GovernorAccessControl + TimelockController + Saf
 
 ```bash
 ./script/production/ExecuteSolidityScript.sh \
-  script/production/base/clusters/BaseCluster.s.sol \
+  script/production/mainnet/clusters/PrimeCluster.s.sol \
   --batch-via-safe \
   --safe-address DAO \
   --timelock-address wildcard \
-  --rpc-url base
+  --rpc-url mainnet
 ```
 
 The `admin`/`wildcard` timelock aliases and the `default` risk steward resolve through the chain's
