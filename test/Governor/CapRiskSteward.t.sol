@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {CapRiskSteward} from "../../src/Governor/CapRiskSteward.sol";
-import {GovernorAccessControl} from "../../src/Governor/GovernorAccessControl.sol";
+import {GovernorAccessControlV2} from "../../src/Governor/GovernorAccessControlV2.sol";
 import {EulerKinkIRMFactory, IRMLinearKink} from "../../src/IRMFactory/EulerKinkIRMFactory.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {IGovernance} from "evk/EVault/IEVault.sol";
@@ -24,7 +24,7 @@ contract MockTarget {
 contract CapRiskStewardTest is EVaultTestBase {
     MockTarget public mockTarget;
     EulerKinkIRMFactory public irmFactory;
-    GovernorAccessControl public governorAccessControl;
+    GovernorAccessControlV2 public governorAccessControl;
     CapRiskSteward public capRiskSteward;
     address public steward;
     address public otherUser;
@@ -38,7 +38,7 @@ contract CapRiskStewardTest is EVaultTestBase {
         otherUser = makeAddr("otherUser");
         mockTarget = new MockTarget();
         irmFactory = new EulerKinkIRMFactory();
-        governorAccessControl = new GovernorAccessControl(address(evc), admin);
+        governorAccessControl = new GovernorAccessControlV2(address(evc), admin);
         capRiskSteward = new CapRiskSteward(
             address(governorAccessControl), address(irmFactory), admin, MAX_ADJUST_FACTOR, CHARGE_INTERVAL
         );

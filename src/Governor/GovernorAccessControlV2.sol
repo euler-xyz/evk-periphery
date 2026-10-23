@@ -5,11 +5,11 @@ pragma solidity ^0.8.0;
 import {SelectorAccessControl} from "../AccessControl/SelectorAccessControl.sol";
 import {RevertBytes} from "evk/EVault/shared/lib/RevertBytes.sol";
 
-/// @title GovernorAccessControl
+/// @title GovernorAccessControlV2
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A limited governor contract that allows whitelisted callers to call specific functions on target contracts.
-contract GovernorAccessControl is SelectorAccessControl {
+contract GovernorAccessControlV2 is SelectorAccessControl {
     /// @notice Error thrown when the message data is invalid.
     error MsgDataInvalid();
 
@@ -39,10 +39,10 @@ contract GovernorAccessControl is SelectorAccessControl {
         }
     }
 
-    /// @notice Returns the selector of this function to identify this contract as a GovernorAccessControl contract
+    /// @notice Returns the selector of this function to identify this contract as a GovernorAccessControlV2 contract
     /// instance
-    function isGovernorAccessControl() external pure returns (bytes4) {
-        return this.isGovernorAccessControl.selector;
+    function isGovernorAccessControlV2() external pure returns (bytes4) {
+        return this.isGovernorAccessControlV2.selector;
     }
 
     /// @notice Authenticates the caller based on their role and the function selector. In case of authentication

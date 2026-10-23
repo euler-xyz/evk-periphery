@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 
 import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {
-    GovernorAccessControl,
-    GovernorAccessControlEmergency
-} from "../../src/Governor/GovernorAccessControlEmergency.sol";
+    GovernorAccessControlV2,
+    GovernorAccessControlEmergencyV2
+} from "../../src/Governor/GovernorAccessControlEmergencyV2.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {IGovernance} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
@@ -23,7 +23,7 @@ contract MockTarget {
 
 contract GovernorAccessControlEmergencyTest is EVaultTestBase {
     MockTarget public mockTarget;
-    GovernorAccessControlEmergency public governorAccessControl;
+    GovernorAccessControlEmergencyV2 public governorAccessControl;
     address public user1;
     address public user2;
     address public user1SubAccount;
@@ -34,7 +34,7 @@ contract GovernorAccessControlEmergencyTest is EVaultTestBase {
         user2 = makeAddr("user2");
         user1SubAccount = address(uint160(user1) ^ 100);
         mockTarget = new MockTarget();
-        governorAccessControl = new GovernorAccessControlEmergency(address(evc), admin);
+        governorAccessControl = new GovernorAccessControlEmergencyV2(address(evc), admin);
     }
 
     function test_allowSelector() public {
@@ -50,7 +50,7 @@ contract GovernorAccessControlEmergencyTest is EVaultTestBase {
         vm.stopPrank();
 
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(GovernorAccessControl.MsgDataInvalid.selector));
+        vm.expectRevert(abi.encodeWithSelector(GovernorAccessControlV2.MsgDataInvalid.selector));
         evc.call(address(governorAccessControl), address(user1), 0, abi.encodePacked(data));
 
         vm.prank(user1);
@@ -98,7 +98,7 @@ contract GovernorAccessControlEmergencyTest is EVaultTestBase {
         vm.stopPrank();
 
         vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(GovernorAccessControl.MsgDataInvalid.selector));
+        vm.expectRevert(abi.encodeWithSelector(GovernorAccessControlV2.MsgDataInvalid.selector));
         evc.call(address(governorAccessControl), address(user1), 0, abi.encodePacked(data));
 
         vm.prank(user1);

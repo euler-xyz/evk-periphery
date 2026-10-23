@@ -1,14 +1,14 @@
-# Governor Access Control Emergency Factory
+# Governor Access Control Emergency Factory V2
 
 ## Overview
 
-The `GovernorAccessControlEmergencyFactory` is a specialized factory contract designed to deploy a comprehensive governance suite for Euler Vault Kit (EVK) vaults. This suite consists of a `GovernorAccessControlEmergency` contract and two vanilla OpenZeppelin timelock controllers with different permissions on the governor contract.
+The `GovernorAccessControlEmergencyFactoryV2` is a specialized factory contract designed to deploy a comprehensive governance suite for Euler Vault Kit (EVK) vaults. This suite consists of a `GovernorAccessControlEmergencyV2` contract and two vanilla OpenZeppelin timelock controllers with different permissions on the governor contract.
 
 This document describes the purpose, components, and usage of the factory contract. For more detailed information about the governor contracts themselves, please refer to the [Selector Access Control documentation](./selector-access-control.md) that the governor contracts inherit from.
 
 ## Purpose
 
-The primary purpose of the `GovernorAccessControlEmergencyFactory` is to simplify the deployment of a secure governance system for EVK vaults with:
+The primary purpose of the `GovernorAccessControlEmergencyFactoryV2` is to simplify the deployment of a secure governance system for EVK vaults with:
 
 1. **Time-delayed governance** - Critical parameter changes require passing through timelocks, giving users sufficient time to inspect proposed changes and decide whether they should stay or exit before changes take effect
 2. **Emergency response capabilities** - Designated guardians can rapidly respond to risk events
@@ -20,7 +20,7 @@ This factory is designed to support optimistic risk management workflows as desc
 
 The factory deploys three interconnected contracts:
 
-1. **GovernorAccessControlEmergency** - A specialized governor contract that provides both normal access control and emergency response functions. This contract inherits from `GovernorAccessControl` and adds emergency roles for rapid risk mitigation. See [selector-access-control.md](./selector-access-control.md) for more details.
+1. **GovernorAccessControlEmergencyV2** - A specialized governor contract that provides both normal access control and emergency response functions. This contract inherits from `GovernorAccessControlV2` and adds emergency roles for rapid risk mitigation. See [selector-access-control.md](./selector-access-control.md) for more details.
 
 2. **Admin Timelock Controller** - An OpenZeppelin `TimelockController` that holds the `DEFAULT_ADMIN_ROLE` on the governor contract. This timelock controls the administrative governance of the governor itself, including the ability to grant and revoke roles. It functions as a security backstop and is not typically used in day-to-day operations.
 
@@ -64,7 +64,7 @@ For both the admin and wildcard timelock controllers:
 
 ### Governor Emergency Guardians
 
-- `governorAccessControlEmergencyGuardians`: Addresses that will be granted three emergency roles for rapid response, as defined in the [GovernorAccessControlEmergency](../src/Governor/GovernorAccessControlEmergency.sol) contract.
+- `governorAccessControlEmergencyGuardians`: Addresses that will be granted three emergency roles for rapid response, as defined in the [GovernorAccessControlEmergencyV2](../src/Governor/GovernorAccessControlEmergencyV2.sol) contract.
 
 ## Role Setup
 
@@ -94,7 +94,7 @@ When deploying through the factory:
 2. Identify the emergency guardians
 3. Call the `deploy` function with these parameters
 4. Record the addresses of the deployed contracts
-5. Install the `GovernorAccessControlEmergency` as the governor of your vault(s) and oracle router
+5. Install the `GovernorAccessControlEmergencyV2` as the governor of your vault(s) and oracle router
 
 ## Post-Deployment Monitoring
 
@@ -126,12 +126,12 @@ This separation ensures operational efficiency while maintaining strong security
 This factory builds upon the selector-based access control system described in the [Selector Access Control documentation](./selector-access-control.md). The core functionality comes from:
 
 - `SelectorAccessControl`: Base contract providing selector-based access control
-- `GovernorAccessControl`: Framework for forwarding calls to target contracts with access control
-- `GovernorAccessControlEmergency`: Extension with specialized emergency response functions
+- `GovernorAccessControlV2`: Framework for forwarding calls to target contracts with access control
+- `GovernorAccessControlEmergencyV2`: Extension with specialized emergency response functions
 
 ## Conclusion
 
-The `GovernorAccessControlEmergencyFactory` provides a streamlined way to deploy a complete governance system with timelocks and emergency response capabilities. This approach balances the need for careful governance with the ability to respond rapidly to emergencies, making it well-suited for managing risk parameters of the EVK vaults.
+The `GovernorAccessControlEmergencyFactoryV2` provides a streamlined way to deploy a complete governance system with timelocks and emergency response capabilities. This approach balances the need for careful governance with the ability to respond rapidly to emergencies, making it well-suited for managing risk parameters of the EVK vaults.
 
 By enforcing time delays through timelocks, the system prioritizes user protection, giving vault users the transparency and time needed to assess and respond to governance changes. At the same time, the dual timelock architecture provides both operational flexibility and security guarantees, while the standardized factory deployment makes it easier to implement consistent monitoring across all governance instances, enhancing the security of the entire ecosystem.
 

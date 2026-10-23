@@ -8,7 +8,8 @@ import {EulerKinkIRMFactory} from "../src/IRMFactory/EulerKinkIRMFactory.sol";
 import {EulerKinkyIRMFactory} from "../src/IRMFactory/EulerKinkyIRMFactory.sol";
 import {EulerFixedCyclicalBinaryIRMFactory} from "../src/IRMFactory/EulerFixedCyclicalBinaryIRMFactory.sol";
 import {EulerIRMAdaptiveCurveFactory} from "../src/IRMFactory/EulerIRMAdaptiveCurveFactory.sol";
-import {GovernorAccessControlEmergencyFactory} from "../src/GovernorFactory/GovernorAccessControlEmergencyFactory.sol";
+import {GovernorAccessControlEmergencyFactoryV2} from
+    "../src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol";
 import {CapRiskStewardFactory} from "../src/GovernorFactory/CapRiskStewardFactory.sol";
 
 contract PeripheryFactories is ScriptUtils {
@@ -18,7 +19,7 @@ contract PeripheryFactories is ScriptUtils {
         address kinkyIRMFactory;
         address fixedCyclicalBinaryIRMFactory;
         address adaptiveCurveIRMFactory;
-        address governorAccessControlEmergencyFactory;
+        address governorAccessControlEmergencyFactoryV2;
         address capRiskStewardFactory;
     }
 
@@ -42,8 +43,8 @@ contract PeripheryFactories is ScriptUtils {
         );
         object = vm.serializeAddress(
             "peripheryFactories",
-            "governorAccessControlEmergencyFactory",
-            deployedContracts.governorAccessControlEmergencyFactory
+            "governorAccessControlEmergencyFactoryV2",
+            deployedContracts.governorAccessControlEmergencyFactoryV2
         );
         object =
             vm.serializeAddress("peripheryFactories", "capRiskStewardFactory", deployedContracts.capRiskStewardFactory);
@@ -67,7 +68,8 @@ contract PeripheryFactories is ScriptUtils {
     }
 
     /// @dev Deploys only the contracts left unset in `existingContracts`. Members are independent except for
-    /// capRiskStewardFactory, which is deployed last so it can reference the resolved governor and kink IRM factories.
+    /// capRiskStewardFactory, which is deployed last so it can reference the resolved governor and kink IRM factories,
+    /// and is also redeployed when it accepts governors from a different governor factory.
     function execute(address evc, PeripheryContracts memory existingContracts)
         public
         returns (PeripheryContracts memory deployedContracts)
@@ -89,16 +91,29 @@ contract PeripheryFactories is ScriptUtils {
         if (deployedContracts.adaptiveCurveIRMFactory == address(0)) {
             deployedContracts.adaptiveCurveIRMFactory = address(new EulerIRMAdaptiveCurveFactory());
         }
-        if (deployedContracts.governorAccessControlEmergencyFactory == address(0)) {
-            deployedContracts.governorAccessControlEmergencyFactory =
-                address(new GovernorAccessControlEmergencyFactory(evc));
+        if (deployedContracts.governorAccessControlEmergencyFactoryV2 == address(0)) {
+            deployedContracts.governorAccessControlEmergencyFactoryV2 =
+                address(new GovernorAccessControlEmergencyFactoryV2(evc));
         }
-        if (deployedContracts.capRiskStewardFactory == address(0)) {
+        if (
+            !isCapRiskStewardFactoryBoundTo(
+                deployedContracts.capRiskStewardFactory, deployedContracts.governorAccessControlEmergencyFactoryV2
+            )
+        ) {
             deployedContracts.capRiskStewardFactory = address(
                 new CapRiskStewardFactory(
-                    deployedContracts.governorAccessControlEmergencyFactory, deployedContracts.kinkIRMFactory
+                    deployedContracts.governorAccessControlEmergencyFactoryV2, deployedContracts.kinkIRMFactory
                 )
             );
         }
     }
+}
+
+/// @notice Whether `capRiskStewardFactory` deploys risk stewards for governors of `governorFactory`.
+/// @dev Early CapRiskStewardFactory versions have no `governorAccessControlFactory()` getter.
+function isCapRiskStewardFactoryBoundTo(address capRiskStewardFactory, address governorFactory) view returns (bool) {
+    (bool success, bytes memory result) =
+        capRiskStewardFactory.staticcall(abi.encodeWithSignature("governorAccessControlFactory()"));
+
+    return success && result.length == 32 && abi.decode(result, (address)) == governorFactory;
 }

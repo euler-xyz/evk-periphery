@@ -1124,8 +1124,8 @@ while true; do
             echo "Deploying governor..."
             echo "Select the type of governor to deploy:"
             echo "0. EVault Factory Governor"
-            echo "1. Governor Access Control"
-            echo "2. Governor Access Control Emergency"
+            echo "1. Governor Access Control V2"
+            echo "2. Governor Access Control Emergency V2"
             read -p "Enter your choice (0-2): " governor_choice
 
             baseName=12_Governor
@@ -1138,7 +1138,7 @@ while true; do
                     jsonName=12_EVaultFactoryGovernor
                     ;;
                 1)
-                    echo "Deploying Governor Access Control..."
+                    echo "Deploying Governor Access Control V2..."
                     
                     scriptName=${baseName}.s.sol:GovernorAccessControlDeployer
                     jsonName=12_GovernorAccessControl
@@ -1152,7 +1152,7 @@ while true; do
                         }' --indent 4 > script/${jsonName}_input.json
                     ;;
                 2)
-                    echo "Deploying Governor Access Control Emergency..."
+                    echo "Deploying Governor Access Control Emergency V2..."
                     
                     scriptName=${baseName}.s.sol:GovernorAccessControlEmergencyDeployer
                     jsonName=12_GovernorAccessControlEmergency

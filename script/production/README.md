@@ -29,7 +29,7 @@ cluster.clusterAddressesPath = "/script/production/<network>/clusters/MyCluster.
 3. Configure in `configureCluster()`:
 
 ```solidity
-// Governor: a Safe from MultisigAddresses.json, or a GovernorAccessControlEmergency suite.
+// Governor: a Safe from MultisigAddresses.json, or a GovernorAccessControlEmergencyV2 suite.
 cluster.oracleRoutersGovernor = cluster.vaultsGovernor = multisigAddresses.DAO;
 
 // Unit of account
@@ -86,7 +86,7 @@ After governance transferred to the cluster's Safe:
   --rpc-url mainnet
 ```
 
-For a cluster governed by a GovernorAccessControlEmergency suite, add `--timelock-address` with the suite's
+For a cluster governed by a GovernorAccessControlEmergencyV2 suite, add `--timelock-address` with the suite's
 wildcard timelock, and `--risk-steward-address` with its risk steward if it has one.
 
 ### Common Options
@@ -122,7 +122,7 @@ Pending Safe/timelock transactions are automatically simulated before script exe
 
 # Emergency Operations
 
-For rapid response to security incidents. Requires `GovernorAccessControlEmergency` with appropriate emergency roles granted to a Safe multisig.
+For rapid response to security incidents. Requires a `GovernorAccessControlEmergencyV2` governor, or a V1 suite still on-chain, with appropriate emergency roles granted to a Safe multisig.
 
 ## Emergency Options
 

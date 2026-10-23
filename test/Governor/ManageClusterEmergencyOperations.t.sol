@@ -6,17 +6,17 @@ import {EVaultTestBase} from "evk-test/unit/evault/EVaultTestBase.t.sol";
 import {IEVC} from "ethereum-vault-connector/interfaces/IEthereumVaultConnector.sol";
 import {IGovernance} from "evk/EVault/IEVault.sol";
 import {Errors} from "evk/EVault/shared/Errors.sol";
-import {GovernorAccessControlEmergency} from "../../src/Governor/GovernorAccessControlEmergency.sol";
+import {GovernorAccessControlEmergencyV2} from "../../src/Governor/GovernorAccessControlEmergencyV2.sol";
 import {EMERGENCY_HOOKED_OPS} from "../../script/production/ManageClusterBase.s.sol";
 
 contract ManageClusterEmergencyOperationsTest is EVaultTestBase {
-    GovernorAccessControlEmergency internal governor;
+    GovernorAccessControlEmergencyV2 internal governor;
     address internal guardian;
 
     function setUp() public override {
         super.setUp();
         guardian = makeAddr("guardian");
-        governor = new GovernorAccessControlEmergency(address(evc), admin);
+        governor = new GovernorAccessControlEmergencyV2(address(evc), admin);
         bytes32 hookEmergencyRole = governor.HOOK_EMERGENCY_ROLE();
 
         vm.prank(admin);
