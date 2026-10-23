@@ -79,7 +79,6 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address escrowedCollateralPerspective;
         address eulerEarnFactoryPerspective;
         address termsOfUseSigner;
-        address governorAccessControlEmergencyFactory;
         address capRiskStewardFactory;
         address eulerEarnPublicAllocator;
         address securitizeFactory;
@@ -107,11 +106,6 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             "peripheryAddresses", "eulerEarnFactoryPerspective", Addresses.eulerEarnFactoryPerspective
         );
         result = vm.serializeAddress("peripheryAddresses", "termsOfUseSigner", Addresses.termsOfUseSigner);
-        result = vm.serializeAddress(
-            "peripheryAddresses",
-            "governorAccessControlEmergencyFactory",
-            Addresses.governorAccessControlEmergencyFactory
-        );
         result = vm.serializeAddress("peripheryAddresses", "capRiskStewardFactory", Addresses.capRiskStewardFactory);
         result =
             vm.serializeAddress("peripheryAddresses", "eulerEarnPublicAllocator", Addresses.eulerEarnPublicAllocator);
@@ -139,7 +133,6 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             escrowedCollateralPerspective: getAddressFromJson(json, ".escrowedCollateralPerspective"),
             eulerEarnFactoryPerspective: getAddressFromJson(json, ".eulerEarnFactoryPerspective"),
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner"),
-            governorAccessControlEmergencyFactory: getAddressFromJson(json, ".governorAccessControlEmergencyFactory"),
             capRiskStewardFactory: getAddressFromJson(json, ".capRiskStewardFactory"),
             eulerEarnPublicAllocator: getAddressFromJson(json, ".eulerEarnPublicAllocator"),
             securitizeFactory: getAddressFromJson(json, ".securitizeFactory"),
