@@ -177,10 +177,6 @@ abstract contract GovernorAddressesLib is ScriptExtended {
     struct GovernorAddresses {
         address eVaultFactoryGovernor;
         address eVaultFactoryTimelockController;
-        address accessControlEmergencyGovernor;
-        address accessControlEmergencyGovernorAdminTimelockController;
-        address accessControlEmergencyGovernorWildcardTimelockController;
-        address capRiskSteward;
     }
 
     function serializeGovernorAddresses(GovernorAddresses memory Addresses) internal returns (string memory result) {
@@ -188,34 +184,12 @@ abstract contract GovernorAddressesLib is ScriptExtended {
         result = vm.serializeAddress(
             "governorAddresses", "eVaultFactoryTimelockController", Addresses.eVaultFactoryTimelockController
         );
-        result = vm.serializeAddress(
-            "governorAddresses", "accessControlEmergencyGovernor", Addresses.accessControlEmergencyGovernor
-        );
-        result = vm.serializeAddress(
-            "governorAddresses",
-            "accessControlEmergencyGovernorAdminTimelockController",
-            Addresses.accessControlEmergencyGovernorAdminTimelockController
-        );
-        result = vm.serializeAddress(
-            "governorAddresses",
-            "accessControlEmergencyGovernorWildcardTimelockController",
-            Addresses.accessControlEmergencyGovernorWildcardTimelockController
-        );
-        result = vm.serializeAddress("governorAddresses", "capRiskSteward", Addresses.capRiskSteward);
     }
 
     function deserializeGovernorAddresses(string memory json) internal pure returns (GovernorAddresses memory) {
         return GovernorAddresses({
             eVaultFactoryGovernor: getAddressFromJson(json, ".eVaultFactoryGovernor"),
-            eVaultFactoryTimelockController: getAddressFromJson(json, ".eVaultFactoryTimelockController"),
-            accessControlEmergencyGovernor: getAddressFromJson(json, ".accessControlEmergencyGovernor"),
-            accessControlEmergencyGovernorAdminTimelockController: getAddressFromJson(
-                json, ".accessControlEmergencyGovernorAdminTimelockController"
-            ),
-            accessControlEmergencyGovernorWildcardTimelockController: getAddressFromJson(
-                json, ".accessControlEmergencyGovernorWildcardTimelockController"
-            ),
-            capRiskSteward: getAddressFromJson(json, ".capRiskSteward")
+            eVaultFactoryTimelockController: getAddressFromJson(json, ".eVaultFactoryTimelockController")
         });
     }
 }

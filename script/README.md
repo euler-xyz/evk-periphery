@@ -216,7 +216,7 @@ Redeploy lens contracts and update addresses.
 
 | Option | Description |
 |--------|-------------|
-| `--timelock-address <ADDR>` | Schedule transactions via timelock instead of immediate execution. Aliases: `admin`, `wildcard` |
+| `--timelock-address <ADDR>` | Schedule transactions via timelock instead of immediate execution. Address, or a key of the chain's `GovernorAddresses.json` |
 | `--timelock-id <ID>` | Operation ID for executing a scheduled timelock transaction (from `CallScheduled` event) |
 | `--timelock-salt <SALT>` | Salt for timelock operation (default: zero) |
 
@@ -224,7 +224,7 @@ Redeploy lens contracts and update addresses.
 
 | Option | Description |
 |--------|-------------|
-| `--risk-steward-address <ADDR>` | Route governance operations through risk steward to bypass timelocks. Use `default` for `capRiskSteward` |
+| `--risk-steward-address <ADDR>` | Route governance operations through risk steward to bypass timelocks |
 
 ### Simulation Options
 
@@ -281,7 +281,7 @@ Execute scheduled timelock transactions:
 ./script/production/ExecuteSolidityScript.sh \
   ./script/utils/ExecuteTimelockTx.s.sol \
   --account <ACCOUNT> \
-  --timelock-address wildcard \
+  --timelock-address <TIMELOCK_ADDRESS> \
   --timelock-id <OPERATION_ID> \
   --rpc-url <RPC_URL>
 ```

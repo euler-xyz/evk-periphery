@@ -115,12 +115,6 @@ abstract contract ScriptExtended is Script {
         string memory timelockAddress = vm.envOr(key, string(""));
 
         if (bytes(timelockAddress).length > 0 && bytes(timelockAddress).length < 42) {
-            if (_strEq(timelockAddress, "admin") || _strEq(timelockAddress, "Admin")) {
-                timelockAddress = "accessControlEmergencyGovernorAdminTimelockController";
-            } else if (_strEq(timelockAddress, "wildcard") || _strEq(timelockAddress, "Wildcard")) {
-                timelockAddress = "accessControlEmergencyGovernorWildcardTimelockController";
-            }
-
             timelock =
                 getAddressFromJson(getAddressesJson("GovernorAddresses.json"), string.concat(".", timelockAddress));
         }
@@ -128,6 +122,11 @@ abstract contract ScriptExtended is Script {
         if (timelock == address(0) && bytes(timelockAddress).length == 42) {
             timelock = _toAddress(timelockAddress);
         }
+
+        require(
+            bytes(timelockAddress).length == 0 || timelock != address(0),
+            string.concat(key, ": not an address or a GovernorAddresses.json key")
+        );
     }
 
     function getTimelockId() internal view returns (bytes32 id) {
@@ -144,17 +143,10 @@ abstract contract ScriptExtended is Script {
 
     function _getRiskSteward(string memory key) internal view returns (address riskSteward) {
         string memory riskStewardAddress = vm.envOr(key, string(""));
+        if (bytes(riskStewardAddress).length == 0) return address(0);
 
-        if (bytes(riskStewardAddress).length > 0 && bytes(riskStewardAddress).length < 42) {
-            if (_strEq(riskStewardAddress, "default")) riskStewardAddress = "capRiskSteward";
-
-            riskSteward =
-                getAddressFromJson(getAddressesJson("GovernorAddresses.json"), string.concat(".", riskStewardAddress));
-        }
-
-        if (riskSteward == address(0) && bytes(riskStewardAddress).length == 42) {
-            riskSteward = _toAddress(riskStewardAddress);
-        }
+        require(bytes(riskStewardAddress).length == 42, string.concat(key, ": not an address"));
+        riskSteward = _toAddress(riskStewardAddress);
     }
 
     function getDeploymentRpcUrl() internal view returns (string memory) {
