@@ -4,11 +4,11 @@ pragma solidity >=0.8.0;
 
 import {IFactory} from "../../BaseFactory/interfaces/IFactory.sol";
 
-/// @title IGovernorAccessControlEmergencyFactory
+/// @title IGovernorAccessControlEmergencyFactoryV2
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A factory for governor access control emergency contract configured with timelock controllers.
-interface IGovernorAccessControlEmergencyFactory is IFactory {
+interface IGovernorAccessControlEmergencyFactoryV2 is IFactory {
     /// @notice Parameters for deploying a TimelockController
     /// @param minDelay The minimum delay before a proposal can be executed
     /// @param proposers Addresses that can propose operations

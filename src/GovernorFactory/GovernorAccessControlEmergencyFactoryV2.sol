@@ -4,14 +4,14 @@ pragma solidity ^0.8.0;
 
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {BaseFactory} from "../BaseFactory/BaseFactory.sol";
-import {GovernorAccessControlEmergency} from "../Governor/GovernorAccessControlEmergency.sol";
-import {IGovernorAccessControlEmergencyFactory} from "./interfaces/IGovernorAccessControlEmergencyFactory.sol";
+import {GovernorAccessControlEmergencyV2} from "../Governor/GovernorAccessControlEmergencyV2.sol";
+import {IGovernorAccessControlEmergencyFactoryV2} from "./interfaces/IGovernorAccessControlEmergencyFactoryV2.sol";
 
-/// @title GovernorAccessControlEmergencyFactory
+/// @title GovernorAccessControlEmergencyFactoryV2
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A factory for governor access control emergency contract configured with timelock controllers.
-contract GovernorAccessControlEmergencyFactory is BaseFactory, IGovernorAccessControlEmergencyFactory {
+contract GovernorAccessControlEmergencyFactoryV2 is BaseFactory, IGovernorAccessControlEmergencyFactoryV2 {
     /// @notice The minimum delay that can be set for a timelock controller
     uint256 public constant MIN_MIN_DELAY = 1 days;
 
@@ -80,8 +80,8 @@ contract GovernorAccessControlEmergencyFactory is BaseFactory, IGovernorAccessCo
             wildcardTimelockControllerParams.minDelay, new address[](0), new address[](0), address(this)
         );
 
-        GovernorAccessControlEmergency governorAccessControlEmergency =
-            new GovernorAccessControlEmergency(evc, address(this));
+        GovernorAccessControlEmergencyV2 governorAccessControlEmergency =
+            new GovernorAccessControlEmergencyV2(evc, address(this));
 
         {
             bytes32 proposerRole = adminTimelockController.PROPOSER_ROLE();

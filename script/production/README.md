@@ -29,9 +29,8 @@ cluster.clusterAddressesPath = "/script/production/<network>/clusters/MyCluster.
 3. Configure in `configureCluster()`:
 
 ```solidity
-// Governor (typically GovernorAccessControlEmergency). On chains where the governor suite is not in
-// GovernorAddresses.json, set the address of a suite deployed in Toolbox → Tools → Governance instead.
-cluster.oracleRoutersGovernor = cluster.vaultsGovernor = governorAddresses.accessControlEmergencyGovernor;
+// Governor: a Safe from MultisigAddresses.json, or a GovernorAccessControlEmergencyV2 suite.
+cluster.oracleRoutersGovernor = cluster.vaultsGovernor = multisigAddresses.DAO;
 
 // Unit of account
 cluster.unitOfAccount = USD;
@@ -77,20 +76,18 @@ First deployment when vaults don't exist yet:
 
 ### Managed Cluster Updates
 
-After governance transferred to GovernorAccessControl + TimelockController + Safe:
+After governance transferred to the cluster's Safe:
 
 ```bash
 ./script/production/ExecuteSolidityScript.sh \
   script/production/mainnet/clusters/PrimeCluster.s.sol \
   --batch-via-safe \
   --safe-address DAO \
-  --timelock-address wildcard \
   --rpc-url mainnet
 ```
 
-The `admin`/`wildcard` timelock aliases and the `default` risk steward resolve through the chain's
-`GovernorAddresses.json`. Option 50 no longer deploys the governor suite, so on a new chain these are empty
-until a suite is deployed (Toolbox → Tools → Governance). Pass its addresses explicitly, or add them to that file.
+For a cluster governed by a GovernorAccessControlEmergencyV2 suite, add `--timelock-address` with the suite's
+wildcard timelock, and `--risk-steward-address` with its risk steward if it has one.
 
 ### Common Options
 
@@ -101,7 +98,7 @@ until a suite is deployed (Toolbox → Tools → Governance). Pass its addresses
 | `--account <NAME>` / `--ledger` | Signing method |
 | `--batch-via-safe` | Route transactions through Safe multisig |
 | `--safe-address <ADDR>` | Safe address or alias (`DAO`, `labs`, etc.) |
-| `--timelock-address <ADDR>` | Schedule via timelock (`admin`, `wildcard`) |
+| `--timelock-address <ADDR>` | Schedule via the timelock at this address |
 | `--risk-steward-address <ADDR>` | Bypass timelock for caps/IRM changes |
 
 ### Simulation Options
@@ -125,7 +122,7 @@ Pending Safe/timelock transactions are automatically simulated before script exe
 
 # Emergency Operations
 
-For rapid response to security incidents. Requires `GovernorAccessControlEmergency` with appropriate emergency roles granted to a Safe multisig.
+For rapid response to security incidents. Requires a `GovernorAccessControlEmergencyV2` governor, or a V1 suite still on-chain, with appropriate emergency roles granted to a Safe multisig.
 
 ## Emergency Options
 
