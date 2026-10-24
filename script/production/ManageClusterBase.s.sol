@@ -16,7 +16,7 @@ import {StubOracle} from "../utils/StubOracle.sol";
 import "evk/EVault/shared/Constants.sol";
 import "../../src/Lens/LensTypes.sol";
 
-// EVK rejects OP_MAX_VALUE itself; GovernorAccessControlEmergency lets HOOK_EMERGENCY_ROLE set only this value.
+// EVK rejects OP_MAX_VALUE itself; GovernorAccessControlEmergencyV2 lets HOOK_EMERGENCY_ROLE set only this value.
 uint32 constant EMERGENCY_HOOKED_OPS = OP_MAX_VALUE - 1;
 
 abstract contract ManageClusterBase is BatchBuilder {

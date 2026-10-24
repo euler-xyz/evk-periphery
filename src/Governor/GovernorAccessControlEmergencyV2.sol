@@ -2,17 +2,17 @@
 
 pragma solidity ^0.8.0;
 
-import {GovernorAccessControl} from "./GovernorAccessControl.sol";
+import {GovernorAccessControlV2} from "./GovernorAccessControlV2.sol";
 import {AmountCap, AmountCapLib} from "evk/EVault/shared/types/AmountCap.sol";
 import {IGovernance} from "evk/EVault/IEVault.sol";
 import "evk/EVault/shared/Constants.sol";
 
-/// @title GovernorAccessControlEmergency
+/// @title GovernorAccessControlEmergencyV2
 /// @custom:security-contact security@euler.xyz
 /// @author Euler Labs (https://www.eulerlabs.com/)
 /// @notice A limited governor contract that allows whitelisted callers to call specific functions on target contracts.
 /// It special cases setting LTVs, setting hook config and setting caps to enable custom emergency flows.
-contract GovernorAccessControlEmergency is GovernorAccessControl {
+contract GovernorAccessControlEmergencyV2 is GovernorAccessControlV2 {
     using AmountCapLib for AmountCap;
 
     /// @notice Role identifier for emergency borrow LTV adjustments
@@ -27,7 +27,7 @@ contract GovernorAccessControlEmergency is GovernorAccessControl {
     /// @notice Constructor
     /// @param evc The address of the EVC.
     /// @param admin The address to be granted the DEFAULT_ADMIN_ROLE.
-    constructor(address evc, address admin) GovernorAccessControl(evc, admin) {}
+    constructor(address evc, address admin) GovernorAccessControlV2(evc, admin) {}
 
     /// @dev Emergency process allows authorized users to lower borrow LTV without changing liquidation LTV. As with all
     /// changes to borrow LTV, this takes effect immediately. The current ramp state for liquidation LTV (if any) is

@@ -7,7 +7,7 @@ import {SafeMultisendBuilder, SafeTransaction} from "./utils/SafeUtils.s.sol";
 import {LayerZeroUtil} from "./utils/LayerZeroUtils.s.sol";
 import {ERC20BurnableMintableDeployer, RewardTokenDeployer} from "./00_ERC20.s.sol";
 import {Integrations, ProtocolConfig} from "./01_Integrations.s.sol";
-import {PeripheryFactories} from "./02_PeripheryFactories.s.sol";
+import {PeripheryFactories, isCapRiskStewardFactoryBoundTo} from "./02_PeripheryFactories.s.sol";
 import {EVaultImplementation} from "./05_EVaultImplementation.s.sol";
 import {EVaultFactory} from "./06_EVaultFactory.s.sol";
 import {
@@ -329,8 +329,10 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                 || peripheryAddresses.kinkyIRMFactory == address(0)
                 || peripheryAddresses.fixedCyclicalBinaryIRMFactory == address(0)
                 || peripheryAddresses.adaptiveCurveIRMFactory == address(0)
-                || peripheryAddresses.governorAccessControlEmergencyFactory == address(0)
-                || peripheryAddresses.capRiskStewardFactory == address(0)
+                || peripheryAddresses.governorAccessControlEmergencyFactoryV2 == address(0)
+                || !isCapRiskStewardFactoryBoundTo(
+                    peripheryAddresses.capRiskStewardFactory, peripheryAddresses.governorAccessControlEmergencyFactoryV2
+                )
         ) {
             console.log("+ Deploying missing Periphery factories...");
             PeripheryFactories deployer = new PeripheryFactories();
@@ -342,7 +344,7 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     kinkyIRMFactory: peripheryAddresses.kinkyIRMFactory,
                     fixedCyclicalBinaryIRMFactory: peripheryAddresses.fixedCyclicalBinaryIRMFactory,
                     adaptiveCurveIRMFactory: peripheryAddresses.adaptiveCurveIRMFactory,
-                    governorAccessControlEmergencyFactory: peripheryAddresses.governorAccessControlEmergencyFactory,
+                    governorAccessControlEmergencyFactoryV2: peripheryAddresses.governorAccessControlEmergencyFactoryV2,
                     capRiskStewardFactory: peripheryAddresses.capRiskStewardFactory
                 })
             );
@@ -352,8 +354,8 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             peripheryAddresses.kinkyIRMFactory = peripheryContracts.kinkyIRMFactory;
             peripheryAddresses.fixedCyclicalBinaryIRMFactory = peripheryContracts.fixedCyclicalBinaryIRMFactory;
             peripheryAddresses.adaptiveCurveIRMFactory = peripheryContracts.adaptiveCurveIRMFactory;
-            peripheryAddresses.governorAccessControlEmergencyFactory =
-            peripheryContracts.governorAccessControlEmergencyFactory;
+            peripheryAddresses.governorAccessControlEmergencyFactoryV2 =
+            peripheryContracts.governorAccessControlEmergencyFactoryV2;
             peripheryAddresses.capRiskStewardFactory = peripheryContracts.capRiskStewardFactory;
         } else {
             console.log("- All Periphery factories already deployed. Skipping...");

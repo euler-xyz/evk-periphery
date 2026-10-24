@@ -23,7 +23,7 @@ import {BaseFactory} from "../../src/BaseFactory/BaseFactory.sol";
 import {SnapshotRegistry} from "../../src/SnapshotRegistry/SnapshotRegistry.sol";
 import {BasePerspective} from "../../src/Perspectives/implementation/BasePerspective.sol";
 import {OracleLens} from "../../src/Lens/OracleLens.sol";
-import {GovernorAccessControl} from "../../src/Governor/GovernorAccessControl.sol";
+import {GovernorAccessControlV2} from "../../src/Governor/GovernorAccessControlV2.sol";
 import {CapRiskSteward} from "../../src/Governor/CapRiskSteward.sol";
 import "../../src/Lens/LensTypes.sol";
 
@@ -79,11 +79,11 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
         address escrowedCollateralPerspective;
         address eulerEarnFactoryPerspective;
         address termsOfUseSigner;
-        address governorAccessControlEmergencyFactory;
         address capRiskStewardFactory;
         address eulerEarnPublicAllocator;
         address securitizeFactory;
         address securitizeFactoryV2;
+        address governorAccessControlEmergencyFactoryV2;
     }
 
     function serializePeripheryAddresses(PeripheryAddresses memory Addresses) internal returns (string memory result) {
@@ -106,16 +106,16 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             "peripheryAddresses", "eulerEarnFactoryPerspective", Addresses.eulerEarnFactoryPerspective
         );
         result = vm.serializeAddress("peripheryAddresses", "termsOfUseSigner", Addresses.termsOfUseSigner);
-        result = vm.serializeAddress(
-            "peripheryAddresses",
-            "governorAccessControlEmergencyFactory",
-            Addresses.governorAccessControlEmergencyFactory
-        );
         result = vm.serializeAddress("peripheryAddresses", "capRiskStewardFactory", Addresses.capRiskStewardFactory);
         result =
             vm.serializeAddress("peripheryAddresses", "eulerEarnPublicAllocator", Addresses.eulerEarnPublicAllocator);
         result = vm.serializeAddress("peripheryAddresses", "securitizeFactory", Addresses.securitizeFactory);
         result = vm.serializeAddress("peripheryAddresses", "securitizeFactoryV2", Addresses.securitizeFactoryV2);
+        result = vm.serializeAddress(
+            "peripheryAddresses",
+            "governorAccessControlEmergencyFactoryV2",
+            Addresses.governorAccessControlEmergencyFactoryV2
+        );
     }
 
     function deserializePeripheryAddresses(string memory json) internal pure returns (PeripheryAddresses memory) {
@@ -133,11 +133,13 @@ abstract contract PeripheryAddressesLib is ScriptExtended {
             escrowedCollateralPerspective: getAddressFromJson(json, ".escrowedCollateralPerspective"),
             eulerEarnFactoryPerspective: getAddressFromJson(json, ".eulerEarnFactoryPerspective"),
             termsOfUseSigner: getAddressFromJson(json, ".termsOfUseSigner"),
-            governorAccessControlEmergencyFactory: getAddressFromJson(json, ".governorAccessControlEmergencyFactory"),
             capRiskStewardFactory: getAddressFromJson(json, ".capRiskStewardFactory"),
             eulerEarnPublicAllocator: getAddressFromJson(json, ".eulerEarnPublicAllocator"),
             securitizeFactory: getAddressFromJson(json, ".securitizeFactory"),
-            securitizeFactoryV2: getAddressFromJson(json, ".securitizeFactoryV2")
+            securitizeFactoryV2: getAddressFromJson(json, ".securitizeFactoryV2"),
+            governorAccessControlEmergencyFactoryV2: getAddressFromJson(
+                json, ".governorAccessControlEmergencyFactoryV2"
+            )
         });
     }
 }
@@ -418,6 +420,9 @@ abstract contract ScriptUtils is
     GovernorAddresses internal governorAddresses;
     EulerSwapAddresses internal eulerSwapAddresses;
     uint256 internal safeNonce;
+
+    // Identity marker of the V1 governors deployed on-chain.
+    bytes4 internal constant GOVERNOR_ACCESS_CONTROL_V1_MARKER = bytes4(keccak256("isGovernorAccessControl()"));
 
     constructor() {
         multisigAddresses = deserializeMultisigAddresses(getAddressesJson("MultisigAddresses.json"));
@@ -743,11 +748,14 @@ abstract contract ScriptUtils is
     }
 
     function isGovernorAccessControlInstance(address target) internal view returns (bool) {
-        (bool success, bytes memory result) =
-            target.staticcall(abi.encodeCall(GovernorAccessControl.isGovernorAccessControl, ()));
+        return isGovernorAccessControlInstance(target, GovernorAccessControlV2.isGovernorAccessControlV2.selector)
+            || isGovernorAccessControlInstance(target, GOVERNOR_ACCESS_CONTROL_V1_MARKER);
+    }
 
-        return success && result.length >= 32
-            && abi.decode(result, (bytes4)) == GovernorAccessControl.isGovernorAccessControl.selector;
+    function isGovernorAccessControlInstance(address target, bytes4 marker) internal view returns (bool) {
+        (bool success, bytes memory result) = target.staticcall(abi.encodeWithSelector(marker));
+
+        return success && result.length >= 32 && abi.decode(result, (bytes4)) == marker;
     }
 
     function isRiskStewardInstance(address target) internal view returns (bool) {

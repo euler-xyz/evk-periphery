@@ -224,7 +224,7 @@ function verify_broadcast {
                     contractName=EulerRouter
                     constructorBytesSize=64
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-                elif [[ $contractName == "GovernorAccessControlEmergencyFactory" || $function == "deploy((uint256,address[],address[],address[]),(uint256,address[],address[],address[]),address[])" ]]; then
+                elif [[ $contractName == "GovernorAccessControlEmergencyFactoryV2" || $function == "deploy((uint256,address[],address[],address[]),(uint256,address[],address[],address[]),address[])" ]]; then
                     if [[ $index -eq 0 ]]; then
                         contractName=TimelockController
                         constructorBytesSize=192
@@ -234,7 +234,7 @@ function verify_broadcast {
                         constructorBytesSize=192
                         constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                     elif [[ $index -eq 2 ]]; then
-                        contractName=GovernorAccessControlEmergency
+                        contractName=GovernorAccessControlEmergencyV2
                         constructorBytesSize=64
                         constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                     fi
