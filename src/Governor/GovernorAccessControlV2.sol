@@ -21,6 +21,8 @@ contract GovernorAccessControlV2 is SelectorAccessControl {
     /// @notice Fallback function to forward calls to target contracts.
     /// @dev This function authenticates the caller, extracts the target contract address from the calldata, and
     /// forwards the call to the target contract.
+    /// @dev An `isValidSignature` call from the EVC reverts in `_authenticateCaller`, so the governor never answers an
+    /// ERC-1271 check for an EVC permit.
     fallback() external {
         _authenticateCaller();
 

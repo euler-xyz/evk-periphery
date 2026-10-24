@@ -66,6 +66,8 @@ abstract contract SelectorAccessControl is EVCUtil, AccessControlEnumerableUpgra
     /// @notice Authenticates the caller based on their role and the function selector called
     /// @dev Checks if the caller has either the wildcard role or the specific role for the current function selector
     /// @dev If the caller doesn't have the required role, it reverts with a NotAuthorized error
+    /// @dev It also reverts when the EVC calls `isValidSignature`: the EVC makes that call during `permit` before it
+    /// sets the permit's execution context, so the account it reports then may not have been authenticated
     function _authenticateCaller() internal view virtual {
         address msgSender = _msgSender();
 
@@ -75,7 +77,8 @@ abstract contract SelectorAccessControl is EVCUtil, AccessControlEnumerableUpgra
 
     /// @notice Retrieves the message sender in the context of the EVC.
     /// @dev This function returns the account on behalf of which the current operation is being performed, which is
-    /// either msg.sender or the account authenticated by the EVC.
+    /// either msg.sender or the account authenticated by the EVC. It reverts if the EVC is calling `isValidSignature`.
+    /// @dev An override must keep that revert: an ERC-1271 answer must not depend on the account the EVC reports.
     /// @return The address of the message sender.
     function _msgSender() internal view virtual override (EVCUtil, ContextUpgradeable) returns (address) {
         return EVCUtil._msgSender();
