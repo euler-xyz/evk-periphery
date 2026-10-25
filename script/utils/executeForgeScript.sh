@@ -98,7 +98,8 @@ if [[ "$@" == *"--risk-steward-address"* ]]; then
     risk_steward_address=$(echo "$@" | grep -o '\--risk-steward-address [^ ]*' | cut -d ' ' -f 2)
 
     if [[ "$risk_steward_address" == "" ]]; then
-        risk_steward_address="default"
+        echo "Error: --risk-steward-address requires an address"
+        exit 1
     fi
 
     set -- $(echo "$@" | sed "s/--risk-steward-address $risk_steward_address//")

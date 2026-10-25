@@ -3,15 +3,18 @@
 pragma solidity ^0.8.23;
 
 import {Test} from "forge-std/Test.sol";
-import {GovernorAccessControlEmergencyFactory} from
-    "../../src/GovernorFactory/GovernorAccessControlEmergencyFactory.sol";
-import {IGovernorAccessControlEmergencyFactory} from
-    "../../src/GovernorFactory/interfaces/IGovernorAccessControlEmergencyFactory.sol";
-import {GovernorAccessControlEmergency} from "../../src/Governor/GovernorAccessControlEmergency.sol";
+import {GovernorAccessControlEmergencyFactoryV2} from
+    "../../src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol";
+import {IGovernorAccessControlEmergencyFactoryV2} from
+    "../../src/GovernorFactory/interfaces/IGovernorAccessControlEmergencyFactoryV2.sol";
+import {
+    GovernorAccessControlV2,
+    GovernorAccessControlEmergencyV2
+} from "../../src/Governor/GovernorAccessControlEmergencyV2.sol";
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 
 contract GovernorAccessControlEmergencyFactoryTests is Test {
-    GovernorAccessControlEmergencyFactory governorAccessControlEmergencyFactory;
+    GovernorAccessControlEmergencyFactoryV2 governorAccessControlEmergencyFactory;
     address evc;
     address user1;
     address user2;
@@ -19,7 +22,7 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
 
     function setUp() public {
         evc = makeAddr("evc");
-        governorAccessControlEmergencyFactory = new GovernorAccessControlEmergencyFactory(evc);
+        governorAccessControlEmergencyFactory = new GovernorAccessControlEmergencyFactoryV2(evc);
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
         user3 = makeAddr("user3");
@@ -27,8 +30,8 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
 
     // Test function to verify that the factory reverts when a zero address is passed for EVC
     function test_revert_zeroEVCAddress() external {
-        vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidAddress.selector);
-        new GovernorAccessControlEmergencyFactory(address(0));
+        vm.expectRevert(GovernorAccessControlEmergencyFactoryV2.InvalidAddress.selector);
+        new GovernorAccessControlEmergencyFactoryV2(address(0));
     }
 
     // Test admin minDelay too low
@@ -42,23 +45,23 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         address[] memory guardians = new address[](1);
         guardians[0] = user3;
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory adminTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: adminMinDelay,
             proposers: proposers,
             cancellers: emptyArray,
             executors: emptyArray
         });
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory wildcardTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: proposers,
             cancellers: emptyArray,
             executors: emptyArray
         });
 
-        vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidMinDelay.selector);
+        vm.expectRevert(GovernorAccessControlEmergencyFactoryV2.InvalidMinDelay.selector);
         governorAccessControlEmergencyFactory.deploy(
             adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
@@ -75,23 +78,23 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         address[] memory guardians = new address[](1);
         guardians[0] = user3;
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory adminTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: proposers,
             cancellers: emptyArray,
             executors: emptyArray
         });
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory wildcardTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: wildcardMinDelay,
             proposers: proposers,
             cancellers: emptyArray,
             executors: emptyArray
         });
 
-        vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidMinDelay.selector);
+        vm.expectRevert(GovernorAccessControlEmergencyFactoryV2.InvalidMinDelay.selector);
         governorAccessControlEmergencyFactory.deploy(
             adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
@@ -108,23 +111,23 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         address[] memory guardians = new address[](1);
         guardians[0] = user3;
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory adminTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: adminMinDelay,
             proposers: proposers,
             cancellers: emptyArray,
             executors: emptyArray
         });
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory wildcardTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: wildcardMinDelay,
             proposers: proposers,
             cancellers: emptyArray,
             executors: emptyArray
         });
 
-        vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidMinDelay.selector);
+        vm.expectRevert(GovernorAccessControlEmergencyFactoryV2.InvalidMinDelay.selector);
         governorAccessControlEmergencyFactory.deploy(
             adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
@@ -138,23 +141,23 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         address[] memory guardians = new address[](1);
         guardians[0] = user3;
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory adminTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: emptyArray,
             cancellers: emptyArray,
             executors: emptyArray
         });
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory wildcardTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: proposers,
             cancellers: emptyArray,
             executors: emptyArray
         });
 
-        vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidProposers.selector);
+        vm.expectRevert(GovernorAccessControlEmergencyFactoryV2.InvalidProposers.selector);
         governorAccessControlEmergencyFactory.deploy(
             adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
@@ -168,23 +171,23 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         address[] memory guardians = new address[](1);
         guardians[0] = user3;
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory adminTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: proposers,
             cancellers: emptyArray,
             executors: emptyArray
         });
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory wildcardTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: emptyArray,
             cancellers: emptyArray,
             executors: emptyArray
         });
 
-        vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidProposers.selector);
+        vm.expectRevert(GovernorAccessControlEmergencyFactoryV2.InvalidProposers.selector);
         governorAccessControlEmergencyFactory.deploy(
             adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
@@ -200,23 +203,23 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         address[] memory guardians = new address[](1);
         guardians[0] = user3;
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory adminTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: proposers,
             cancellers: emptyArray,
             executors: emptyArray // Empty executors array
         });
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory wildcardTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: proposers,
             cancellers: emptyArray,
             executors: executors
         });
 
-        vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidExecutors.selector);
+        vm.expectRevert(GovernorAccessControlEmergencyFactoryV2.InvalidExecutors.selector);
         governorAccessControlEmergencyFactory.deploy(
             adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
@@ -232,23 +235,23 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         address[] memory guardians = new address[](1);
         guardians[0] = user3;
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory adminTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: proposers,
             cancellers: emptyArray,
             executors: executors
         });
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory wildcardTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: proposers,
             cancellers: emptyArray,
             executors: emptyArray // Empty executors array
         });
 
-        vm.expectRevert(GovernorAccessControlEmergencyFactory.InvalidExecutors.selector);
+        vm.expectRevert(GovernorAccessControlEmergencyFactoryV2.InvalidExecutors.selector);
         governorAccessControlEmergencyFactory.deploy(
             adminTimelockControllerParams, wildcardTimelockControllerParams, guardians
         );
@@ -267,16 +270,16 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         address[] memory guardians = new address[](1);
         guardians[0] = user3;
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory adminTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: proposers,
             cancellers: cancellers,
             executors: executors
         });
 
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams =
-        IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory wildcardTimelockControllerParams =
+        IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
             minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
             proposers: proposers,
             cancellers: cancellers,
@@ -295,6 +298,11 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         assertTrue(adminTimelockAddr != address(0), "Admin timelock not deployed");
         assertTrue(wildcardTimelockAddr != address(0), "Wildcard timelock not deployed");
         assertTrue(governorAddr != address(0), "Governor not deployed");
+        assertEq(
+            GovernorAccessControlEmergencyV2(governorAddr).isGovernorAccessControlV2(),
+            GovernorAccessControlV2.isGovernorAccessControlV2.selector,
+            "Governor is not V2"
+        );
 
         // BaseFactory checks
         assertTrue(
@@ -316,7 +324,7 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         // Get contract instances
         TimelockController adminTimelock = TimelockController(payable(adminTimelockAddr));
         TimelockController wildcardTimelock = TimelockController(payable(wildcardTimelockAddr));
-        GovernorAccessControlEmergency governor = GovernorAccessControlEmergency(governorAddr);
+        GovernorAccessControlEmergencyV2 governor = GovernorAccessControlEmergencyV2(governorAddr);
 
         // Verify roles in admin timelock
         assertTrue(adminTimelock.hasRole(adminTimelock.PROPOSER_ROLE(), user1), "Admin timelock proposer role not set");
@@ -396,16 +404,16 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
             guardians[1] = makeAddr("guardian2");
             guardians[2] = makeAddr("guardian3");
 
-            IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory adminTimelockControllerParams =
-            IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+            IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory adminTimelockControllerParams =
+            IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
                 minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
                 proposers: proposers,
                 cancellers: cancellers,
                 executors: executors
             });
 
-            IGovernorAccessControlEmergencyFactory.TimelockControllerParams memory wildcardTimelockControllerParams =
-            IGovernorAccessControlEmergencyFactory.TimelockControllerParams({
+            IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams memory wildcardTimelockControllerParams =
+            IGovernorAccessControlEmergencyFactoryV2.TimelockControllerParams({
                 minDelay: governorAccessControlEmergencyFactory.MIN_MIN_DELAY(),
                 proposers: proposers,
                 cancellers: cancellers,
@@ -437,7 +445,7 @@ contract GovernorAccessControlEmergencyFactoryTests is Test {
         // Get contract instances
         TimelockController adminTimelock = TimelockController(payable(adminTimelockAddr));
         TimelockController wildcardTimelock = TimelockController(payable(wildcardTimelockAddr));
-        GovernorAccessControlEmergency governor = GovernorAccessControlEmergency(governorAddr);
+        GovernorAccessControlEmergencyV2 governor = GovernorAccessControlEmergencyV2(governorAddr);
 
         // Check all roles were properly assigned in admin timelock
         for (uint256 i = 0; i < proposers.length; i++) {

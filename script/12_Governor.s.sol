@@ -5,8 +5,8 @@ pragma solidity ^0.8.0;
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
 import {FactoryGovernor} from "../src/Governor/FactoryGovernor.sol";
-import {GovernorAccessControl} from "../src/Governor/GovernorAccessControl.sol";
-import {GovernorAccessControlEmergency} from "../src/Governor/GovernorAccessControlEmergency.sol";
+import {GovernorAccessControlV2} from "../src/Governor/GovernorAccessControlV2.sol";
+import {GovernorAccessControlEmergencyV2} from "../src/Governor/GovernorAccessControlEmergencyV2.sol";
 
 contract EVaultFactoryGovernorDeployer is ScriptUtils {
     function run() public broadcast returns (address factoryGovernor) {
@@ -47,7 +47,7 @@ contract GovernorAccessControlDeployer is ScriptUtils {
     }
 
     function execute(address evc) public returns (address governorAccessControl) {
-        governorAccessControl = address(new GovernorAccessControl(evc, getDeployer()));
+        governorAccessControl = address(new GovernorAccessControlV2(evc, getDeployer()));
     }
 }
 
@@ -72,7 +72,7 @@ contract GovernorAccessControlEmergencyDeployer is ScriptUtils {
     }
 
     function execute(address evc) public returns (address governorAccessControlEmergency) {
-        governorAccessControlEmergency = address(new GovernorAccessControlEmergency(evc, getDeployer()));
+        governorAccessControlEmergency = address(new GovernorAccessControlEmergencyV2(evc, getDeployer()));
     }
 }
 

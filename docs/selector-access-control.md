@@ -1,6 +1,6 @@
 # Selector Access Control
 
-The EVK periphery includes two access control implementations that leverage the `SelectorAccessControl` contract to provide fine-grained control over function calls in the following contracts: `GovernorAccessControl` and `HookTargetAccessControl`. These contracts allow for selective permissioning of specific functions to authorized callers depending on the use case.
+The EVK periphery includes two access control implementations that leverage the `SelectorAccessControl` contract to provide fine-grained control over function calls in the following contracts: `GovernorAccessControlV2` and `HookTargetAccessControl`. These contracts allow for selective permissioning of specific functions to authorized callers depending on the use case.
 
 ## Access Control Framework Overview
 
@@ -38,15 +38,19 @@ When used as a vault governor:
 
 This indirection allows function-level access control to be managed separately from the vault implementation.
 
-### `GovernorAccessControl`
+### `GovernorAccessControlV2`
 
 This contract is designed to be used as a governor for EVK vaults. It extends `SelectorAccessControl` and adds functionality to forward calls to target contracts.
 
 This contract can be installed as the governor of one or more EVK vaults and allows whitelisted callers to invoke specific functions on target contracts. It uses a fallback function to authenticate the caller and forward the call to the target contract. The address of the target contract is expected to be appended by the caller as trailing calldata and is extracted from it accordingly.
 
-### `GovernorAccessControlEmergency`
+The contract identifies itself through `isGovernorAccessControlV2()`, which returns that function's selector.
 
-The `GovernorAccessControlEmergency` inherits from `GovernorAccessControl` and includes emergency functionality for certain critical operations. This allows authorized users to perform emergency actions without needing the full selector role:
+The governor never validates signatures. The EVC queries an ERC-1271 signer during `permit` before it sets the permit's execution context, so the EVC-authenticated caller cannot be relied on in that call (see the EVC [security notes](https://github.com/euler-xyz/ethereum-vault-connector/blob/master/docs/security-notes.md)). When the EVC calls `isValidSignature` on the governor, the call reaches the fallback, whose authentication through `EVCUtil` reverts, so the governor cannot authorize an EVC permit.
+
+### `GovernorAccessControlEmergencyV2`
+
+The `GovernorAccessControlEmergencyV2` inherits from `GovernorAccessControlV2` and includes emergency functionality for certain critical operations. This allows authorized users to perform emergency actions without needing the full selector role:
 
 1. Emergency LTV Adjustment: Users with the `LTV_EMERGENCY_ROLE` can lower the borrow LTV without changing the liquidation LTV. As with all changes to borrow LTV, this takes effect immediately. The current ramp state for liquidation LTV (if any) is preserved.
 2. Emergency Vault Pausing: Users with the `HOOK_EMERGENCY_ROLE` can disable all operations on the vault.
@@ -56,7 +60,7 @@ These emergency roles provide a way to quickly respond to critical situations wi
 
 ### Integration with Timelocks
 
-In the complete governance framework (as deployed by the `GovernorAccessControlEmergencyFactory`), the governor contract integrates with two timelocks:
+In the complete governance framework (as deployed by the `GovernorAccessControlEmergencyFactoryV2`), the governor contract integrates with two timelocks:
 
 1. An admin timelock that holds the `DEFAULT_ADMIN_ROLE` and controls the governance of the governor itself
 2. A wildcard timelock that holds the `WILD_CARD` role and controls day-to-day governance operations
@@ -65,7 +69,7 @@ This separation creates a security model where routine governance actions are ti
 
 ### Usage with Factory Deployment
 
-The recommended way to deploy the governance-based access control system is through the `GovernorAccessControlEmergencyFactory`, which sets up the complete governance framework:
+The recommended way to deploy the governance-based access control system is through the `GovernorAccessControlEmergencyFactoryV2`, which sets up the complete governance framework:
 
 1. Deploy the governance suite using the factory
 2. Install the governor as the governor of your vault(s)
@@ -78,14 +82,14 @@ For detailed instructions on factory deployment, see the [Governor Access Contro
 
 If you prefer to deploy the components individually:
 
-1. Deploy an instance of `GovernorAccessControl` or `GovernorAccessControlEmergency`, specifying the EVC address and the default admin
+1. Deploy an instance of `GovernorAccessControlV2` or `GovernorAccessControlEmergencyV2`, specifying the EVC address and the default admin
 2. Grant roles to addresses for specific function selectors or the `WILD_CARD`
 3. Install the deployed governor access control instance as the governor of the desired vault(s)
 4. Authorized callers can now invoke permitted functions on the vault through the governor contract
 
 ## `CapRiskSteward`
 
-This contract is a specialized risk management contract that combines `SelectorAccessControl` with controlled parameter adjustment capabilities for EVK vaults. It is compatible with the `GovernorAccessControl` and `GovernorAccessControlEmergency` contracts and enables authorized users to modify vault parameters (caps and interest rate models) while enforcing safety limits.
+This contract is a specialized risk management contract that combines `SelectorAccessControl` with controlled parameter adjustment capabilities for EVK vaults. It is compatible with the `GovernorAccessControlV2` and `GovernorAccessControlEmergencyV2` contracts and enables authorized users to modify vault parameters (caps and interest rate models) while enforcing safety limits.
 
 `CapRiskSteward` allows authorized users to increase/decrease supply and borrow caps by up to 50% over 3 days. The maximum readjustment factor recharges over time. 
 
@@ -93,7 +97,7 @@ This contract is a specialized risk management contract that combines `SelectorA
 
 ### Usage
 
-1. Deploy the `CapRiskSteward` contract, specifying the address of the `GovernorAccessControl` or `GovernorAccessControlEmergency` contract installed on the vault and and the default admin
+1. Deploy the `CapRiskSteward` contract, specifying the address of the `GovernorAccessControlV2` or `GovernorAccessControlEmergencyV2` contract installed on the vault and and the default admin
 2. Grant appropriate roles to addresses that should be able to adjust parameters
 3. Grant `setCaps.selector` and `setInterestRateModel.selector` roles to the `CapRiskSteward` contract
 
