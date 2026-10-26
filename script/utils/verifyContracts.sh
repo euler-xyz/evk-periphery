@@ -180,6 +180,23 @@ function verify_broadcast {
                     createVerified=true
                 fi
                 continue
+            elif [[ $contractName == "GovernorAccessControlEmergencyFactoryV2" ]]; then
+                # Deployed from a 10,000-run build to fit the code size limit, see 02_PeripheryFactories.s.sol
+                local src="src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol"
+                local verificationOptions="--num-of-optimizations 10000 --compiler-version 0.8.24"
+                local compilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24"
+                contractName="src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol:GovernorAccessControlEmergencyFactoryV2"
+                constructorBytesSize=32
+                constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
+
+                forge clean && forge compile $src $compilerOptions
+                verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
+
+                if [ $? -eq 0 ]; then
+                    verificationSuccessful=true
+                    createVerified=true
+                fi
+                continue
             fi
 
             verify_contract $contractAddress $contractName "$constructorArgs" "$@"

@@ -67,6 +67,7 @@ fi
 eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26 --out out-euler-earn"
 eulerSwapCompilerOptions="--optimize --optimizer-runs 2500 --use 0.8.27 --out out-euler-swap"
 securitizeFactoryCompilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24 --out out-securitize-factory"
+governorFactoryCompilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24 --out out-governor-factory"
 
 while true; do
     # If --choice was provided, use it and exit after one iteration
@@ -219,6 +220,8 @@ while true; do
             jsonName=$baseName
 
             read -p "Enter the EVC address: " evc
+
+            forge compile src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol $governorFactoryCompilerOptions --force
 
             jq -n \
                 --arg evc "$evc" \
@@ -1260,6 +1263,7 @@ while true; do
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 securitizeFactory=$(jq -r '.securitizeFactory' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 securitizeFactoryV2=$(jq -r '.securitizeFactoryV2' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
+                governorAccessControlEmergencyFactoryV2=$(jq -r '.governorAccessControlEmergencyFactoryV2' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 eulOFTAdapter=$(jq -r '.eulOFTAdapter' "$addresses_dir_path/BridgeAddresses.json" 2>/dev/null)
                 eulerEarnFactory=$(jq -r '.eulerEarnFactory' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 eulerEarnFactory=${eulerEarnFactory:-$addressZero}
@@ -1359,6 +1363,10 @@ while true; do
 
             if { [ -z "$securitizeFactoryV2" ] || [ "$securitizeFactoryV2" == "$addressZero" ] || [ "$securitizeFactoryV2" == "null" ]; } && [ "$deploy_securitize_factory_v2" = "y" ]; then
                 forge compile src/VaultFactory/ERC4626EVCCollateralSecuritizeFactoryV2.sol $securitizeFactoryCompilerOptions --force
+            fi
+
+            if [ -z "$governorAccessControlEmergencyFactoryV2" ] || [ "$governorAccessControlEmergencyFactoryV2" == "$addressZero" ] || [ "$governorAccessControlEmergencyFactoryV2" == "null" ]; then
+                forge compile src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol $governorFactoryCompilerOptions --force
             fi
 
             if [[ "$@" != *"--ffi"* ]]; then
