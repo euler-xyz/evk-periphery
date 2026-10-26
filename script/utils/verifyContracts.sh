@@ -248,7 +248,7 @@ function verify_contract {
     local verifierArgs="--verifier-url $verifier_url"
 
     if [[ $verifier == "blockscout" ]]; then
-        verifierArgs="$verifierArgs --verifier-api-key \"\" --verifier=blockscout"
+        verifierArgs="$verifierArgs --verifier-api-key ${verifier_api_key:-\"\"} --verifier=blockscout"
 
         if [[ $constructorArgs == "--guess-constructor-args" ]]; then
             constructorArgs=""
