@@ -93,7 +93,7 @@ contract PeripheryFactories is ScriptUtils {
         }
         if (deployedContracts.governorAccessControlEmergencyFactoryV2 == address(0)) {
             deployedContracts.governorAccessControlEmergencyFactoryV2 =
-                address(new GovernorAccessControlEmergencyFactoryV2(evc));
+                deployGovernorAccessControlEmergencyFactoryV2(evc);
         }
         if (
             !isCapRiskStewardFactoryBoundTo(
@@ -106,6 +106,23 @@ contract PeripheryFactories is ScriptUtils {
                 )
             );
         }
+    }
+
+    /// @dev At the default 20,000 optimizer runs the factory exceeds the 24,576-byte code size limit, so deployments
+    /// use the 10,000-run build that interactiveDeployment.sh compiles into out-governor-factory. Without that build,
+    /// the default one is deployed, which only works where the code size limit is not enforced.
+    function deployGovernorAccessControlEmergencyFactoryV2(address evc) internal returns (address factory) {
+        string memory artifact =
+            "out-governor-factory/GovernorAccessControlEmergencyFactoryV2.sol/GovernorAccessControlEmergencyFactoryV2.json";
+        bytes memory bytecode = abi.encodePacked(
+            vm.isFile(artifact) ? vm.getCode(artifact) : type(GovernorAccessControlEmergencyFactoryV2).creationCode,
+            abi.encode(evc)
+        );
+
+        assembly {
+            factory := create(0, add(bytecode, 0x20), mload(bytecode))
+        }
+        require(factory != address(0), "GovernorAccessControlEmergencyFactoryV2 deployment failed");
     }
 }
 
