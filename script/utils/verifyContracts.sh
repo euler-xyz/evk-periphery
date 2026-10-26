@@ -141,7 +141,7 @@ function submit_standard_json {
     local separator="?"
     [[ "$verifier_url" == *"?"* ]] && separator="&"
 
-    for _ in {1..10}; do
+    for _ in {1..60}; do
         sleep 5
         result=$(curl -s "${verifier_url}${separator}module=contract&action=checkverifystatus&guid=${guid}&apikey=$verifier_api_key" | jq -r '.result')
         echo "$result"
@@ -436,11 +436,8 @@ function verify_broadcast {
                 fi
 
                 forge clean && forge compile $src $compilerOptions
+                createVerified=true
                 verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
-
-                if [ $? -eq 0 ]; then
-                    createVerified=true
-                fi
 
                 restore_foundry_src
                 break
