@@ -392,3 +392,5 @@ Verify contracts after deployment:
 | `--verifier blockscout` | No API key required |
 | `--verifier sourcify` | Sourcify verification |
 | `--verifier custom` | Custom verifier (i.e. snowtrace) |
+
+Builds made with forge 1.8 or later keep absolute-path remappings in their metadata, which `forge verify-contract` does not submit. For such contracts the script submits the standard JSON input with the remappings of the local artifact that matches the on-chain code, so run it from the checkout and forge version that deployed.

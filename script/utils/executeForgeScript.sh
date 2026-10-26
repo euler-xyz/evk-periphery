@@ -193,6 +193,12 @@ if [[ -n "$safe_address" ]] || [[ -n "$simulate_safe_address" ]] || [[ -n "$path
     fi
 fi
 
+# The scripts select a fork of the chain in their constructor, which brings back the chain's own block gas limit and
+# overrides --block-gas-limit, so the helper contracts they create in simulation run out of gas where it is low (HyperEVM)
+if [[ "$@" != *"--disable-block-gas-limit"* && "$@" != *"--no-block-gas-limit"* && "$@" != *"--no-gas-limit"* ]]; then
+    set -- "$@" --disable-block-gas-limit
+fi
+
 # forge script runs the whole script in simulation before broadcasting anything, and saveAddresses() writes the address
 # books during that phase. A broadcast that then fails (out of gas money, RPC rejection, interrupt) would otherwise
 # leave euler-interfaces recording addresses for contracts that were never deployed, and those addresses are the
