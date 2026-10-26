@@ -180,23 +180,6 @@ function verify_broadcast {
                     createVerified=true
                 fi
                 continue
-            elif [[ $contractName == "GovernorAccessControlEmergencyFactoryV2" ]]; then
-                # Deployed from a 10,000-run build to fit the code size limit, see 02_PeripheryFactories.s.sol
-                local src="src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol"
-                local verificationOptions="--num-of-optimizations 10000 --compiler-version 0.8.24"
-                local compilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24"
-                contractName="src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol:GovernorAccessControlEmergencyFactoryV2"
-                constructorBytesSize=32
-                constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-
-                forge clean && forge compile $src $compilerOptions
-                verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
-
-                if [ $? -eq 0 ]; then
-                    verificationSuccessful=true
-                    createVerified=true
-                fi
-                continue
             fi
 
             verify_contract $contractAddress $contractName "$constructorArgs" "$@"
@@ -290,6 +273,31 @@ function verify_broadcast {
             done
         elif [[ $transactionType == "CREATE" && $verificationSuccessful != true ]]; then
             local initCode=$(echo $tx | jq -r '.transaction.input')
+
+            # The V2 governor factory is deployed from a separate 10,000-run build (see 02_PeripheryFactories.s.sol), so
+            # the broadcast has no name for it. It is recognised by its creation code.
+            local governorFactorySrc="src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol"
+            local governorFactoryCompilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24"
+            local governorFactoryArtifact="out-governor-factory/GovernorAccessControlEmergencyFactoryV2.sol/GovernorAccessControlEmergencyFactoryV2.json"
+
+            if [ ! -f "$governorFactoryArtifact" ]; then
+                forge compile $governorFactorySrc $governorFactoryCompilerOptions --out out-governor-factory > /dev/null
+            fi
+
+            local governorFactoryBytecode=$(jq -r '.bytecode.object' "$governorFactoryArtifact" 2>/dev/null)
+
+            if [[ -n "$governorFactoryBytecode" && "${initCode#0x}" == "${governorFactoryBytecode#0x}"* ]]; then
+                contractName="$governorFactorySrc:GovernorAccessControlEmergencyFactoryV2"
+                constructorArgs="--constructor-args ${initCode: -64}"
+
+                forge clean && forge compile $governorFactorySrc $governorFactoryCompilerOptions
+                verify_contract $contractAddress $contractName "$constructorArgs" "$@" --num-of-optimizations 10000 --compiler-version 0.8.24
+
+                if [ $? -eq 0 ]; then
+                    createVerified=true
+                fi
+                continue
+            fi
 
             if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 2 ]; then
                 # try to verify as EulerEarn contracts
