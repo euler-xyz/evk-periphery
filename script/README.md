@@ -393,10 +393,4 @@ Verify contracts after deployment:
 | `--verifier sourcify` | Sourcify verification |
 | `--verifier custom` | Custom verifier (i.e. snowtrace) |
 
-To verify on a Blockscout explorer for a chain whose `VERIFIER_URL_<CHAIN_ID>` is another explorer, override both variables:
-
-```sh
-VERIFIER_URL=https://eth.blockscout.com/api VERIFIER_API_KEY=<blockscout key> ./script/utils/verifyContracts.sh script/deployments/default/1/broadcast/ --rpc-url 1 --verifier blockscout
-```
-
 Builds made with forge 1.8 or later keep absolute-path remappings in their metadata, which `forge verify-contract` does not submit. For such contracts the script submits the standard JSON input with the remappings of the local artifact that matches the on-chain code, so run it from the checkout and forge version that deployed.
