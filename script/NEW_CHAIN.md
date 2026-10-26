@@ -152,7 +152,7 @@ Then check that every address written to `euler-interfaces/addresses/<chainId>/`
    It proves each new address's bytecode against this repo's commit and its submodule commits (and the pins other chains use), writes the entries into `verify/manifest.json`, and renders `verify/<chainId>.md`. It needs `forge` on PATH and the deployed commits pushed to GitHub. Anything it can't prove is listed and nothing is written for it; the euler-verifier RUNBOOK covers that case.
 3. Open one PR to euler-interfaces with:
    - the address files
-   - `config/bridge/BridgeConfigCache.json`, as option 50 wrote it (including the Ethereum run's row)
+   - `config/bridge/BridgeConfigCache.json`, as option 50 wrote it (including the Ethereum run's row, if EUL is bridged)
    - `chains.js` and the regenerated `EulerChains.json`
    - the manifest entries and the report from `add-entries`
 
@@ -170,7 +170,7 @@ For each Safe, it writes a Safe Transaction Builder file that adds the owners fr
 
 - Option 51 completed with no remaining `!` lines for items the deployer should hand over.
 - The Merkl Distributor is whitelisted in rEUL, if rEUL is distributed on the chain.
-- The DAO batch on Ethereum is executed.
+- The DAO batch on Ethereum is executed, if EUL is bridged.
 - Every deployed contract is verified on the explorer.
 - The euler-interfaces PR is merged.
 - Every Safe has its configured owners and threshold, and the deployer is no longer an owner.
