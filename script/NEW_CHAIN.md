@@ -78,7 +78,7 @@ Run it once first with `--dry-run` added. It simulates without broadcasting and 
 | Uniswap V2 / V3 router | the chain's routers, or empty if it has none |
 | Fee Flow init price | default (`0`, see below) |
 | EUL OFT Adapter | `y`. `n` leaves EUL unbridged, as it must be with fewer than 4 accepted DVNs; then skip step 8 |
-| Euler Earn | `y`, or `n` to deploy Earn with the euler-earn fallback (step 9) |
+| Euler Earn | `y` |
 | EulerSwap V2 | `n` |
 | Securitize Vault Factory V2 | `n` |
 
@@ -139,8 +139,6 @@ Run it from the same euler-interfaces checkout as step 5: it reads the new chain
 
 Then check that every address written to `euler-interfaces/addresses/<chainId>/` shows as verified.
 
-**EulerEarn fallback.** euler-earn's `script/deploy.sh` exists for chains where the periphery-built Earn contracts won't verify. Choose it before step 5: answer `n` to Euler Earn, run `deploy.sh` (see the euler-earn README), then re-run option 50 to deploy the Earn perspective. If option 50 already deployed Earn and it won't verify, remove `eulerEarnFactory`, `eulerEarnPublicAllocator` and `eulerEarnFactoryPerspective` from the address files, run `deploy.sh`, then re-run option 50; the first deployment stays on chain, unused.
-
 ## 10. Publish
 
 1. In euler-interfaces, add the chain's `chains.js` entry (`status: 'staging'`, `explorerUrl`, `verifier`, and `viemName` if viem has several chains with that id), then run `node chains.js`. This comes first: the next step reads the chain from `EulerChains.json`.
@@ -151,7 +149,7 @@ Then check that every address written to `euler-interfaces/addresses/<chainId>/`
    pnpm add-entries --interfaces ../euler-interfaces --chain <chainId> --candidates-from ../evk-periphery
    ```
 
-   It proves each new address's bytecode against this repo's commit and its submodule commits (and the pins other chains use), writes the entries into `verify/manifest.json`, and renders `verify/<chainId>.md`. It needs `forge` on PATH and the deployed commits pushed to GitHub. Add `--candidates-from ../euler-earn` if Earn came from the euler-earn fallback. Anything it can't prove is listed and nothing is written for it; the euler-verifier RUNBOOK covers that case.
+   It proves each new address's bytecode against this repo's commit and its submodule commits (and the pins other chains use), writes the entries into `verify/manifest.json`, and renders `verify/<chainId>.md`. It needs `forge` on PATH and the deployed commits pushed to GitHub. Anything it can't prove is listed and nothing is written for it; the euler-verifier RUNBOOK covers that case.
 3. Open one PR to euler-interfaces with:
    - the address files
    - `config/bridge/BridgeConfigCache.json`, as option 50 wrote it (including the Ethereum run's row)
