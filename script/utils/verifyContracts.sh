@@ -117,40 +117,78 @@ function submit_standard_json {
 
     echo "Submitting $target with the remappings of $artifact"
 
-    local response=$(curl -s -X POST "$verifier_url" \
-        --data-urlencode "apikey=$verifier_api_key" \
-        --data-urlencode "module=contract" \
-        --data-urlencode "action=verifysourcecode" \
-        --data-urlencode "contractaddress=$contractAddress" \
-        --data-urlencode "sourceCode@$inputFile" \
-        --data-urlencode "codeformat=solidity-standard-json-input" \
-        --data-urlencode "contractname=$target" \
-        --data-urlencode "compilerversion=$compilerVersion" \
-        --data-urlencode "constructorArguements=${encodedArgs#0x}")
+    local separator="?"
+    [[ "$verifier_url" == *"?"* ]] && separator="&"
+    local response result
+
+    for _ in {1..12}; do
+        response=$(curl -s -X POST "$verifier_url" \
+            --data-urlencode "apikey=$verifier_api_key" \
+            --data-urlencode "module=contract" \
+            --data-urlencode "action=verifysourcecode" \
+            --data-urlencode "contractaddress=$contractAddress" \
+            --data-urlencode "sourceCode@$inputFile" \
+            --data-urlencode "codeformat=solidity-standard-json-input" \
+            --data-urlencode "contractname=$target" \
+            --data-urlencode "compilerversion=$compilerVersion" \
+            --data-urlencode "constructorArguements=${encodedArgs#0x}")
+        result=$(echo "$response" | jq -r '(.result | strings) // .message // empty' 2>/dev/null)
+        is_rate_limited "$result" || break
+        sleep 5
+    done
     rm -f "$inputFile"
 
-    local result=$(echo "$response" | jq -r '.result')
-
-    if [[ $(echo "$response" | jq -r '.status') != "1" ]]; then
-        echo "$result"
+    if [[ $(echo "$response" | jq -r '.status' 2>/dev/null) != "1" ]]; then
+        echo "${result:-${response:0:200}}"
         [[ $result == *"lready verified"* ]] && return 0
         return 1
     fi
 
     local guid=$result
-    local separator="?"
-    [[ "$verifier_url" == *"?"* ]] && separator="&"
 
     for _ in {1..60}; do
         sleep 5
-        result=$(curl -s "${verifier_url}${separator}module=contract&action=checkverifystatus&guid=${guid}&apikey=$verifier_api_key" | jq -r '.result')
+        result=$(curl -s "${verifier_url}${separator}module=contract&action=checkverifystatus&guid=${guid}&apikey=$verifier_api_key" \
+            | jq -r '(.result | strings) // .message // empty' 2>/dev/null)
         echo "$result"
 
+        if [[ -z $result || $result == *"Pending"* ]] || is_rate_limited "$result"; then
+            continue
+        fi
+
         case $result in
-            *"Pending"*) ;;
             "Pass - Verified" | *"lready verified"*) return 0 ;;
+            # Blockscout drops a finished job, so its outcome is only visible on the contract
+            "Unknown UID") is_verified_on_explorer $contractAddress "$verifier_url" "$verifier_api_key"; return $? ;;
             *) return 1 ;;
         esac
+    done
+
+    return 1
+}
+
+function is_rate_limited {
+    [[ $1 == *"oo many requests"* || $1 == *"ate limit"* ]]
+}
+
+function is_verified_on_explorer {
+    local contractAddress=$1
+    local verifier_url=$2
+    local verifier_api_key=$3
+    local separator="?"
+    [[ "$verifier_url" == *"?"* ]] && separator="&"
+    local response
+
+    for _ in {1..12}; do
+        response=$(curl -s "${verifier_url}${separator}module=contract&action=getsourcecode&address=${contractAddress}&apikey=$verifier_api_key")
+
+        if [[ -n $(echo "$response" | jq -r '.result[0].SourceCode // empty' 2>/dev/null) ]]; then
+            echo "Verified"
+            return 0
+        fi
+
+        is_rate_limited "$(echo "$response" | jq -r '(.result | strings) // .message // empty' 2>/dev/null)" || return 1
+        sleep 5
     done
 
     return 1
