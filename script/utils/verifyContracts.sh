@@ -16,6 +16,23 @@ function restore_foundry_src {
 # Ensure foundry.toml is restored on exit/interrupt
 trap restore_foundry_src EXIT
 
+# Contracts that the deployment scripts deploy from separate builds (vm.getCode) have no name in the broadcast. They
+# are recognised by their creation code, compared with a build made the way interactiveDeployment.sh makes it, so the
+# compiler options below must stay in sync with that script.
+# Fields: contract | source | compiler options | verification options | build directory
+SEPARATELY_BUILT_CONTRACTS=(
+    "GovernorAccessControlEmergencyFactoryV2|src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol|--optimize --optimizer-runs 10000 --use 0.8.24|--num-of-optimizations 10000 --compiler-version 0.8.24|out-governor-factory"
+    "ERC4626EVCCollateralSecuritizeFactoryV2|src/VaultFactory/ERC4626EVCCollateralSecuritizeFactoryV2.sol|--optimize --optimizer-runs 10000 --use 0.8.24|--num-of-optimizations 10000 --compiler-version 0.8.24|out-securitize-factory"
+    "EulerEarnFactory|lib/euler-earn/src|--via-ir --optimize --optimizer-runs 200 --use 0.8.26|--via-ir --num-of-optimizations 200 --compiler-version 0.8.26|out-euler-earn"
+    "PublicAllocator|lib/euler-earn/src|--via-ir --optimize --optimizer-runs 200 --use 0.8.26|--via-ir --num-of-optimizations 200 --compiler-version 0.8.26|out-euler-earn"
+    "EulerSwapProtocolFeeConfig|lib/euler-swap/src|--optimize --optimizer-runs 2500 --use 0.8.27|--num-of-optimizations 2500 --compiler-version 0.8.27|out-euler-swap"
+    "EulerSwapManagement|lib/euler-swap/src|--optimize --optimizer-runs 2500 --use 0.8.27|--num-of-optimizations 2500 --compiler-version 0.8.27|out-euler-swap"
+    "EulerSwap|lib/euler-swap/src|--optimize --optimizer-runs 2500 --use 0.8.27|--num-of-optimizations 2500 --compiler-version 0.8.27|out-euler-swap"
+    "EulerSwapFactory|lib/euler-swap/src|--optimize --optimizer-runs 2500 --use 0.8.27|--num-of-optimizations 2500 --compiler-version 0.8.27|out-euler-swap"
+    "EulerSwapPeriphery|lib/euler-swap/src|--optimize --optimizer-runs 2500 --use 0.8.27|--num-of-optimizations 2500 --compiler-version 0.8.27|out-euler-swap"
+    "EulerSwapRegistry|lib/euler-swap/src|--optimize --optimizer-runs 2500 --use 0.8.27|--num-of-optimizations 2500 --compiler-version 0.8.27|out-euler-swap"
+)
+
 function verify_contract {
     local chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
     local contractAddress=$1
@@ -122,8 +139,6 @@ function verify_broadcast {
     fi
 
     local createVerified=false
-    local eulerEarnIndex=0
-    local eulerSwapIndex=0
     for tx in $transactions; do
         local transactionType=$(echo $tx | jq -r '.transactionType')
         local contractAddress=$(echo $tx | jq -r '.contractAddress')
@@ -163,23 +178,6 @@ function verify_broadcast {
                 contractName="./src/OFT/OFTAdapterUpgradeable.sol:OFTAdapterUpgradeable"
                 constructorBytesSize=64
                 constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-            elif [[ $contractName == "ERC4626EVCCollateralSecuritizeFactoryV2" ]]; then
-                # Special handling for Securitize factory - needs different compiler settings
-                local src="src/VaultFactory/ERC4626EVCCollateralSecuritizeFactoryV2.sol"
-                local verificationOptions="--num-of-optimizations 10000 --compiler-version 0.8.24"
-                local compilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24"
-                contractName="src/VaultFactory/ERC4626EVCCollateralSecuritizeFactoryV2.sol:ERC4626EVCCollateralSecuritizeFactoryV2"
-                constructorBytesSize=64
-                constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-
-                forge clean && forge compile $src $compilerOptions
-                verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
-
-                if [ $? -eq 0 ]; then
-                    verificationSuccessful=true
-                    createVerified=true
-                fi
-                continue
             fi
 
             verify_contract $contractAddress $contractName "$constructorArgs" "$@"
@@ -204,6 +202,7 @@ function verify_broadcast {
 
             index=0
             for contract in $additionalContracts; do
+                local verificationOptions=""
                 local transactionType=$(echo $contract | jq -r '.transactionType')
                 local contractAddress=$(echo $contract | jq -r '.address')
                 local initCode=$(echo $contract | jq -r '.initCode')
@@ -225,7 +224,12 @@ function verify_broadcast {
                     constructorBytesSize=64
                     constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
                 elif [[ $contractName == "GovernorAccessControlEmergencyFactoryV2" || $function == "deploy((uint256,address[],address[],address[]),(uint256,address[],address[],address[]),address[])" ]]; then
+                    # The V2 governor factory is built with 10,000 optimizer runs, and so is the code it deploys
+                    verificationOptions="--num-of-optimizations 10000 --compiler-version 0.8.24"
+
                     if [[ $index -eq 0 ]]; then
+                        forge clean && forge compile src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol --optimize --optimizer-runs 10000 --use 0.8.24
+                        createVerified=true
                         contractName=TimelockController
                         constructorBytesSize=192
                         constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
@@ -269,156 +273,58 @@ function verify_broadcast {
 
                 index=$((index + 1))
 
-                verify_contract $contractAddress $contractName "$constructorArgs" "$@"
+                verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
             done
         elif [[ $transactionType == "CREATE" && $verificationSuccessful != true ]]; then
             local initCode=$(echo $tx | jq -r '.transaction.input')
+            local identified=false
 
-            # The V2 governor factory is deployed from a separate 10,000-run build (see 02_PeripheryFactories.s.sol), so
-            # the broadcast has no name for it. It is recognised by its creation code.
-            local governorFactorySrc="src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol"
-            local governorFactoryCompilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24"
-            local governorFactoryArtifact="out-governor-factory/GovernorAccessControlEmergencyFactoryV2.sol/GovernorAccessControlEmergencyFactoryV2.json"
+            for entry in "${SEPARATELY_BUILT_CONTRACTS[@]}"; do
+                local name src compilerOptions verificationOptions buildDir
+                IFS='|' read -r name src compilerOptions verificationOptions buildDir <<< "$entry"
+                local artifact="$buildDir/$name.sol/$name.json"
 
-            if [ ! -f "$governorFactoryArtifact" ]; then
-                forge compile $governorFactorySrc $governorFactoryCompilerOptions --out out-governor-factory > /dev/null
-            fi
+                if [ ! -f "$artifact" ]; then
+                    forge compile $src $compilerOptions --out $buildDir --force > /dev/null
+                fi
 
-            local governorFactoryBytecode=$(jq -r '.bytecode.object' "$governorFactoryArtifact" 2>/dev/null)
+                local bytecode=$(jq -r '.bytecode.object' "$artifact" 2>/dev/null)
+                bytecode=${bytecode#0x}
 
-            if [[ -n "$governorFactoryBytecode" && "${initCode#0x}" == "${governorFactoryBytecode#0x}"* ]]; then
-                contractName="$governorFactorySrc:GovernorAccessControlEmergencyFactoryV2"
-                constructorArgs="--constructor-args ${initCode: -64}"
+                if [[ -z "$bytecode" || "${initCode#0x}" != "$bytecode"* ]]; then
+                    continue
+                fi
 
-                forge clean && forge compile $governorFactorySrc $governorFactoryCompilerOptions
-                verify_contract $contractAddress $contractName "$constructorArgs" "$@" --num-of-optimizations 10000 --compiler-version 0.8.24
+                identified=true
+                local encodedArgs=${initCode#0x}
+                encodedArgs=${encodedArgs:${#bytecode}}
+
+                if [ -z "$encodedArgs" ]; then
+                    constructorArgs=""
+                else
+                    constructorArgs="--constructor-args $encodedArgs"
+                fi
+
+                if [ -d "$src" ]; then
+                    set_foundry_src "$src"
+                    contractName=$name
+                else
+                    contractName="$src:$name"
+                fi
+
+                forge clean && forge compile $src $compilerOptions
+                verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
 
                 if [ $? -eq 0 ]; then
                     createVerified=true
                 fi
-                continue
-            fi
 
-            if [ -d "out-euler-earn" ] && [ $eulerEarnIndex -le 2 ]; then
-                # try to verify as EulerEarn contracts
-                local src="lib/euler-earn/src"
-                local verificationOptions="--via-ir --num-of-optimizations 200 --compiler-version 0.8.26"
-                local compilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26"
-
-                # Modify foundry.toml to use euler-earn src path
-                set_foundry_src "$src"
-
-                while true; do
-                    case $eulerEarnIndex in
-                        0)
-                            # try to verify as EulerEarnFactory
-                            contractName=EulerEarnFactory
-                            constructorBytesSize=128
-                            ;;
-                        1)
-                            # try to verify as PublicAllocator
-                            contractName=PublicAllocator
-                            constructorBytesSize=32
-                            ;;
-                        *)
-                            break
-                            ;;
-                    esac
-
-                    if [ $constructorBytesSize -eq 0 ]; then
-                        constructorArgs=""
-                    else
-                        constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-                    fi
-
-                    if [ "$createVerified" = false ]; then
-                        forge clean && forge compile $src $compilerOptions
-                    fi
-
-                    verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
-
-                    if [ $? -eq 0 ]; then
-                        createVerified=true
-                        eulerEarnIndex=$((eulerEarnIndex + 1))
-                        break
-                    fi
-
-                    eulerEarnIndex=$((eulerEarnIndex + 1))
-                done
-
-                # Restore foundry.toml src path
                 restore_foundry_src
-            fi
+                break
+            done
 
-            if [ -d "out-euler-swap" ] && ([ ! -d "out-euler-earn" ] || [ $eulerEarnIndex -gt 1 ]); then
-                # try to verify as EulerSwap contracts
-                local src="lib/euler-swap/src"
-                local verificationOptions="--num-of-optimizations 2500 --compiler-version 0.8.27"
-                local compilerOptions="--optimize --optimizer-runs 2500 --use 0.8.27"
-
-                # Modify foundry.toml to use euler-swap src path
-                set_foundry_src "$src"
-
-                while true; do
-                    case $eulerSwapIndex in
-                        0)
-                            # try to verify as EulerSwapProtocolFeeConfig
-                            contractName=EulerSwapProtocolFeeConfig
-                            constructorBytesSize=64
-                            ;;
-                        1)
-                            # try to verify as EulerSwapManagement
-                            contractName=EulerSwapManagement
-                            constructorBytesSize=32
-                            ;;
-                        2)
-                            # try to verify as EulerSwap
-                            contractName=EulerSwap
-                            constructorBytesSize=128
-                            ;;
-                        3)
-                            # try to verify as EulerSwapFactory
-                            contractName=EulerSwapFactory
-                            constructorBytesSize=64
-                            ;;
-                        4)
-                            # try to verify as EulerSwapPeriphery
-                            contractName=EulerSwapPeriphery
-                            constructorBytesSize=0
-                            ;;
-                        5)
-                            # try to verify as EulerSwapRegistry
-                            contractName=EulerSwapRegistry
-                            constructorBytesSize=128
-                            ;;
-                        *)
-                            break
-                            ;;
-                    esac
-
-                    if [ $constructorBytesSize -eq 0 ]; then
-                        constructorArgs=""
-                    else
-                        constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-                    fi
-
-                    if [ "$createVerified" = false ]; then
-                        forge clean && forge compile $src $compilerOptions
-                    fi
-
-                    verify_contract $contractAddress $contractName "$constructorArgs" "$@" $verificationOptions
-
-                    if [ $? -eq 0 ]; then
-                        createVerified=true
-                        eulerSwapIndex=$((eulerSwapIndex + 1))
-                        break
-                    fi
-
-                    eulerSwapIndex=$((eulerSwapIndex + 1))
-                done
-
-                # Restore foundry.toml src path
-                restore_foundry_src
+            if [ "$identified" = false ]; then
+                echo "! Could not identify the contract created at $contractAddress. Verify it manually."
             fi
         fi
     done
