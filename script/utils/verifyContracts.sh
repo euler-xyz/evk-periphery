@@ -55,6 +55,47 @@ function find_deployed_artifact {
     return 1
 }
 
+function constructor_args_from_init_code {
+    local fileName=$1
+    local contractAddress=$2
+    local contractName=$3
+    local initCode=$4
+    local arguments=$(jq -c --arg address "$contractAddress" \
+        'first(.transactions[] | select(.contractAddress == $address)) | .arguments // []' "$fileName")
+    local values=()
+    local value artifact localBytecode types encoded
+
+    while IFS= read -r value; do
+        values+=("$value")
+    done < <(echo "$arguments" | jq -r '.[]')
+
+    for artifact in $(find out -path "*.sol/${contractName}.json" 2>/dev/null); do
+        localBytecode=$(jq -r '.bytecode.object' "$artifact")
+
+        if [[ ${#localBytecode} -gt 2 && "$initCode" == "$localBytecode"* ]]; then
+            echo "${initCode:${#localBytecode}}"
+            return 0
+        fi
+
+        types=$(jq -r 'def type: if (.type | startswith("tuple"))
+            then "(\([.components[] | type] | join(",")))\(.type | ltrimstr("tuple"))" else .type end;
+            [.abi[] | select(.type == "constructor") | .inputs[] | type] | join(",")' "$artifact")
+
+        if [[ (-z $types && ${#values[@]} -gt 0) || (-n $types && ${#values[@]} -eq 0) ]]; then
+            continue
+        fi
+
+        encoded=$(cast abi-encode "constructor($types)" "${values[@]}" 2>/dev/null) || continue
+
+        if [[ "$initCode" == *"${encoded#0x}" ]]; then
+            echo "${encoded#0x}"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
 function submit_standard_json {
     local contractAddress=$1
     local encodedArgs=$2
@@ -250,31 +291,16 @@ function verify_broadcast {
                 forge clean && forge compile
             fi
 
-            # Guessing the constructor args needs an explorer API call that Etherscan's free plan refuses on some chains,
-            # and it cannot match the on-chain bytecode on Monad.
+            # --guess-constructor-args relies on an explorer lookup of the creation transaction, which fails on some chains
             constructorArgs="--guess-constructor-args"
-            local artifactPath
-            for artifactPath in $(find out -path "*.sol/${contractName}.json" 2>/dev/null); do
-                local localBytecode=$(jq -r '.bytecode.object' "$artifactPath")
+            local encodedArgs
 
-                if [[ -n $localBytecode && "$initCode" == "$localBytecode"* ]]; then
-                    local encodedArgs=${initCode:${#localBytecode}}
-                    constructorArgs=${encodedArgs:+--constructor-args 0x$encodedArgs}
-                    break
-                elif [[ "$chainId" == "143" ]]; then
-                    constructorArgs="--constructor-args 0x${initCode:${#localBytecode}}"
-                fi
-            done
+            if encodedArgs=$(constructor_args_from_init_code $fileName $contractAddress $contractName $initCode); then
+                constructorArgs=${encodedArgs:+--constructor-args 0x$encodedArgs}
+            fi
 
-            if [[ $contractName == "ERC1967Proxy" ]]; then
-                constructorBytesSize=64
-                constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
-            elif [[ $contractName == "TransparentUpgradeableProxy" ]]; then
-                constructorArgs="--constructor-args $(echo $initCode | sed 's/.*8180033//' | cut -c65-)"
-            elif [[ $contractName == "OFTAdapterUpgradeable" ]]; then
+            if [[ $contractName == "OFTAdapterUpgradeable" ]]; then
                 contractName="./src/OFT/OFTAdapterUpgradeable.sol:OFTAdapterUpgradeable"
-                constructorBytesSize=64
-                constructorArgs="--constructor-args ${initCode: -$((2*constructorBytesSize))}"
             fi
 
             verify_contract $contractAddress $contractName "$constructorArgs" "$@"
