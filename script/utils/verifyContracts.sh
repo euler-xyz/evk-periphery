@@ -33,6 +33,88 @@ SEPARATELY_BUILT_CONTRACTS=(
     "EulerSwapRegistry|lib/euler-swap/src|--optimize --optimizer-runs 2500 --use 0.8.27|--num-of-optimizations 2500 --compiler-version 0.8.27|out-euler-swap"
 )
 
+# Since forge 1.8 the metadata of a build holds absolute-path remappings that forge verify-contract does not submit, so
+# the input is submitted with the remappings of the local artifact whose metadata hash matches the on-chain code.
+function find_deployed_artifact {
+    local contractAddress=$1
+    local name=${2##*:}
+    local onchainCode=$(cast code $contractAddress --rpc-url $DEPLOYMENT_RPC_URL 2>/dev/null)
+
+    [[ ${#onchainCode} -lt 6 ]] && return 1
+
+    local metadataTrailer=${onchainCode: -$((2 * 16#${onchainCode: -4} + 4))}
+    local artifact
+
+    for artifact in $(find out -path "*.sol/${name}.json" 2>/dev/null); do
+        if [[ "$(jq -r '.deployedBytecode.object' "$artifact")" == *"$metadataTrailer" ]]; then
+            echo "$artifact"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+function submit_standard_json {
+    local contractAddress=$1
+    local encodedArgs=$2
+    local artifact=$3
+    local verifier_url=$4
+    local verifier_api_key=$5
+    shift 5
+
+    local metadata=$(jq -c '.rawMetadata | fromjson' "$artifact")
+    local target=$(echo "$metadata" | jq -r '.settings.compilationTarget | to_entries[0] | "\(.key):\(.value)"')
+    local compilerVersion="v$(echo "$metadata" | jq -r '.compiler.version')"
+    local inputFile=$(mktemp)
+
+    forge verify-contract $contractAddress $target --show-standard-json-input --chain $chainId $@ 2>/dev/null \
+        | jq --argjson metadata "$metadata" \
+            '.settings.remappings = $metadata.settings.remappings | .settings.metadata = $metadata.settings.metadata
+            | .settings.optimizer = $metadata.settings.optimizer | .settings.evmVersion = $metadata.settings.evmVersion' \
+            > "$inputFile"
+
+    echo "Submitting $target with the remappings of $artifact"
+
+    local response=$(curl -s -X POST "$verifier_url" \
+        --data-urlencode "apikey=$verifier_api_key" \
+        --data-urlencode "module=contract" \
+        --data-urlencode "action=verifysourcecode" \
+        --data-urlencode "contractaddress=$contractAddress" \
+        --data-urlencode "sourceCode@$inputFile" \
+        --data-urlencode "codeformat=solidity-standard-json-input" \
+        --data-urlencode "contractname=$target" \
+        --data-urlencode "compilerversion=$compilerVersion" \
+        --data-urlencode "constructorArguements=${encodedArgs#0x}")
+    rm -f "$inputFile"
+
+    local result=$(echo "$response" | jq -r '.result')
+
+    if [[ $(echo "$response" | jq -r '.status') != "1" ]]; then
+        echo "$result"
+        [[ $result == *"lready verified"* ]] && return 0
+        return 1
+    fi
+
+    local guid=$result
+    local separator="?"
+    [[ "$verifier_url" == *"?"* ]] && separator="&"
+
+    for _ in {1..10}; do
+        sleep 5
+        result=$(curl -s "${verifier_url}${separator}module=contract&action=checkverifystatus&guid=${guid}&apikey=$verifier_api_key" | jq -r '.result')
+        echo "$result"
+
+        case $result in
+            *"Pending"*) ;;
+            "Pass - Verified" | *"lready verified"*) return 0 ;;
+            *) return 1 ;;
+        esac
+    done
+
+    return 1
+}
+
 function verify_contract {
     local chainId=$(cast chain-id --rpc-url $DEPLOYMENT_RPC_URL)
     local contractAddress=$1
@@ -67,6 +149,23 @@ function verify_contract {
         verifier_api_key=$VERIFIER_API_KEY
     fi
 
+    echo "Verifying $contractName: $contractAddress"
+
+    local artifact
+
+    if [[ $verifier != "sourcify" && $constructorArgs != "--guess-constructor-args" ]] \
+        && artifact=$(find_deployed_artifact $contractAddress $contractName) \
+        && jq -e '.rawMetadata | fromjson | .settings.remappings | any(startswith("/"))' "$artifact" > /dev/null; then
+        submit_standard_json $contractAddress "${constructorArgs#--constructor-args }" "$artifact" "$verifier_url" "$verifier_api_key" $@
+        result=$?
+
+        if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan*/api* ]]; then
+            curl -d "address=$contractAddress" "$verifier_url&module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
+        fi
+
+        return $result
+    fi
+
     local verifierArgs="--verifier-url $verifier_url"
 
     if [[ $verifier == "blockscout" ]]; then
@@ -99,8 +198,6 @@ function verify_contract {
     else
         verifierArgs="$verifierArgs --verifier-api-key $verifier_api_key --verifier=$verifier"
     fi
-
-    echo "Verifying $contractName: $contractAddress"
 
     # forge's status is recorded out of band: $? after the pipeline reports tee's status, not forge's, so every
     # verification failure would otherwise be read as success. Not using pipefail because tee itself fails without a tty.
@@ -153,21 +250,21 @@ function verify_broadcast {
                 forge clean && forge compile
             fi
 
-            if [[ "$chainId" == "143" ]]; then
-                # foundry's --guess-constructor-args cannot match on-chain bytecode on
-                # Monad, so derive the constructor args from the deployment initcode
-                # minus the locally compiled creation bytecode.
-                local artifactPath="out/${contractName}.sol/${contractName}.json"
-                if [ -f "$artifactPath" ]; then
-                    local localBytecode=$(jq -r '.bytecode.object' "$artifactPath")
-                    local localLen=${#localBytecode}
-                    constructorArgs="--constructor-args 0x${initCode:$localLen}"
-                else
-                    constructorArgs="--guess-constructor-args"
+            # Guessing the constructor args needs an explorer API call that Etherscan's free plan refuses on some chains,
+            # and it cannot match the on-chain bytecode on Monad.
+            constructorArgs="--guess-constructor-args"
+            local artifactPath
+            for artifactPath in $(find out -path "*.sol/${contractName}.json" 2>/dev/null); do
+                local localBytecode=$(jq -r '.bytecode.object' "$artifactPath")
+
+                if [[ -n $localBytecode && "$initCode" == "$localBytecode"* ]]; then
+                    local encodedArgs=${initCode:${#localBytecode}}
+                    constructorArgs=${encodedArgs:+--constructor-args 0x$encodedArgs}
+                    break
+                elif [[ "$chainId" == "143" ]]; then
+                    constructorArgs="--constructor-args 0x${initCode:${#localBytecode}}"
                 fi
-            else
-                constructorArgs="--guess-constructor-args"
-            fi
+            done
 
             if [[ $contractName == "ERC1967Proxy" ]]; then
                 constructorBytesSize=64
@@ -323,7 +420,7 @@ function verify_broadcast {
                 break
             done
 
-            if [ "$identified" = false ]; then
+            if [[ "$identified" = false && $contractName == null ]]; then
                 echo "! Could not identify the contract created at $contractAddress. Verify it manually."
             fi
         fi
