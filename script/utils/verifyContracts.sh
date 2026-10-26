@@ -495,9 +495,6 @@ source .env
 eval "$(./script/utils/determineArgs.sh "$@")"
 eval 'set -- $SCRIPT_ARGS'
 
-# Resolved once here so verify_broadcast can branch on it (e.g. Monad/143 handling).
-chainId=$(cast chain-id --rpc-url "$DEPLOYMENT_RPC_URL" 2>/dev/null)
-
 if [ -d "$input" ]; then
     for fileName in "$input"/*.json; do
         if [ -f "$fileName" ]; then

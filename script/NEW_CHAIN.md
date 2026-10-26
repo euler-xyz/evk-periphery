@@ -37,7 +37,7 @@ Some per-chain values are hard-coded in Solidity, and each lookup reverts for a 
 | `src/Lens/Utils.sol` → `getWETHAddress()` | The same entry. This copy is compiled into the lenses that option 50 deploys |
 | `script/utils/SafeUtils.s.sol` → `getSafeBaseURL()` | Add the chain to the `https://safe-client.safe.global/` list if Safe hosts it, otherwise return the chain's own Safe gateway |
 | `script/50_CoreAndPeriphery.s.sol` → `OFT_CONFIG["EUL"]` lists | Leave a new chain off both. A chain on `configOneDirectionChainIds` can only send EUL to Ethereum, so it could never receive any; a chain on `configIgnoreChainIds` isn't bridged. See [EUL bridge lists](README.md#eul-bridge-lists) |
-| `script/utils/verifyContracts.sh` | Only if verification fails with "Chain … not supported": route the chain to the `custom` verifier as done for Monad (`143`). That takes two edits: the route and the constructor-arguments branch. The other option is a `foundry.toml` `[etherscan]` entry, as for 146, 80094 and 130 |
+| `script/utils/verifyContracts.sh` | Only if verification fails with "Chain … not supported": route the chain to the `custom` verifier next to Monad's (`143`). That is the only edit: the script works out constructor arguments from the deployment. The other option is a `foundry.toml` `[etherscan]` entry, as for 146, 80094 and 130 |
 
 ## 3. Permit2
 
