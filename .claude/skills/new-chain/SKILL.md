@@ -49,10 +49,9 @@ Open one PR against `master`, titled `feat: <chain name> support` and ready for 
 
 - **Both `getWETHAddress()` copies** (`script/utils/ScriptUtils.s.sol`, `src/Lens/Utils.sol`): identical entries, either the WETH address or an explicit `address(0)`.
 - **`getSafeBaseURL()`:** add the chain to the `safe-client.safe.global` list if Safe hosts it; otherwise add a branch returning the gateway URL.
-- **`OFT_CONFIG["EUL"]` lists:** leave a new chain off both `configOneDirectionChainIds` and `configIgnoreChainIds`. Chains are bridged only to Ethereum, so a one-direction chain can never receive EUL, and an ignored chain isn't bridged. `script/README.md` ("EUL bridge lists") describes both.
 - **`script/utils/verifyContracts.sh`:** leave it unless a verification later fails with "Chain … not supported".
 
-Then run `forge build`. Don't run `forge fmt` on these files: `50_CoreAndPeriphery.s.sol` is not fmt-clean, and reformatting it buries the change.
+Then run `forge build`. Don't run `forge fmt` on the edited files: reformatting buries the change.
 
 ## 3. Hand over to a person
 
@@ -62,7 +61,7 @@ List the remaining runbook steps with the values found above:
 - option 50: dry run first, then for real
 - the rEUL whitelist, if rEUL will be distributed
 - option 51
-- the Ethereum DAO batch
+- the Ethereum DAO batch, if EUL is bridged
 - verification
 - the euler-interfaces `chains.js` entry and `node chains.js`, then the manifest entries and report: `pnpm add-entries --interfaces ../euler-interfaces --chain <chainId> --candidates-from ../evk-periphery` in euler-verifier
 - the euler-interfaces PR
