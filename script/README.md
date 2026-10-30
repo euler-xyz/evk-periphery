@@ -16,6 +16,8 @@ Pull in the submodules and compile (the submodules are large, expect a ~1 GB che
 forge install && forge build
 ```
 
+`forge install` checks out the revisions pinned in `foundry.lock`. When you bump a submodule, run `script/utils/checkFoundryLock.sh --fix` and commit `foundry.lock` with it; CI fails while the two disagree.
+
 Create the `.env` file from the example:
 
 ```sh
