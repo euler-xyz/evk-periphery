@@ -16,7 +16,7 @@ Pull in the submodules and compile (the submodules are large, expect a ~1 GB che
 forge install && forge build
 ```
 
-`forge install` checks out the revisions pinned in `foundry.lock`. When you bump a submodule, run `script/utils/checkFoundryLock.sh --fix` and commit `foundry.lock` with it; CI fails while the two disagree.
+`forge install` checks out the revisions pinned in `foundry.lock`. When you bump a submodule, check out the new commit in it, run `script/utils/checkFoundryLock.sh --fix` and commit the submodule and `foundry.lock` together; CI fails while the two disagree. The check reports a submodule checked out at an older commit than the recorded one (what `forge install` does with a stale lock) instead of taking it as a bump.
 
 Create the `.env` file from the example:
 

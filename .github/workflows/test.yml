@@ -27,6 +27,9 @@ jobs:
       - name: Check foundry.lock matches the submodules
         run: script/utils/checkFoundryLock.sh
 
+      - name: Test the foundry.lock check
+        run: script/utils/checkFoundryLock.test.sh
+
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@82dee4ba654bd2146511f85f0d013af94670c4de # v1.4.0
         with:
