@@ -1,21 +1,21 @@
 {
   "lib/ethereum-vault-connector": {
-    "rev": "b9d557a8ebcd3db1fbeef4aa60282aa4059a7bbf"
+    "rev": "4e5b8c56a13809165b8b4b3f01ac2f93f7c0ecb5"
   },
   "lib/euler-earn": {
-    "rev": "b2fd6e699ee20bcfe7459f375b3cee5d2fa53345"
+    "rev": "246bcbacaee9062cf2ac0c7480368fe8e1a636a1"
   },
   "lib/euler-price-oracle": {
-    "rev": "e70739b1781ad373a9b4c1b3321c3843ffef0373"
+    "rev": "63f20a44d2b2c15d186101850ed62d5a6215e4a9"
   },
   "lib/euler-swap": {
-    "rev": "81cf6dc988468fd56f690e6bc0e338a5be02d034"
+    "rev": "a8493f89764ce69a05915559d9061781b9a96f24"
   },
   "lib/euler-vault-kit": {
-    "rev": "422bf2447047d32aa9f4e5bab4be16ab3ea67ec2"
+    "rev": "a86e7302839ecf3e1608a3cc2eed4ee04a25f114"
   },
   "lib/fee-flow": {
-    "rev": "4a419c94e9cd68f65e11f07da9a69f726177cb9c"
+    "rev": "fd6ddbb5f8ca8890f088a0470b375216bfb716de"
   },
   "lib/forge-std": {
     "rev": "b93cf4bc34ff214c099dc970b153f85ade8c9f66"
@@ -33,7 +33,7 @@
     "rev": "fa525310e45f91eb20a6d3baa2644be8e0adba31"
   },
   "lib/reward-streams": {
-    "rev": "9eb7b8a7fa31c275d688063c4abd07165b50b89f"
+    "rev": "b1b55bf824b48f1ea844a1d4b5942231b111f0b2"
   },
   "lib/solidity-bytes-utils": {
     "rev": "e0115c4d231910df47ce3b60625ce562fe4af985"
