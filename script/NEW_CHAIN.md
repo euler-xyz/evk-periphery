@@ -13,7 +13,7 @@ An AI agent can do the checks and the code changes (steps 1 and 2) by following 
 | EVM with Cancun opcodes and a standard contract-size limit | The contracts compile for Cancun. The EulerEarn factory is close to the size limit; Linea needed a size-optimised build |
 | Legacy (type-0) transactions accepted | Every broadcast is sent with `--legacy` (`script/utils/executeForgeScript.sh`) |
 | Permit2 at `0x000000000022D473030F116dDEE9F6B43aC78BA3` | Step 3 deploys it if it is missing |
-| Safe 1.3.0 or 1.4.1 with its canonical MultiSendCallOnly, in the Safe UI | The multisigs are Safes. `SafeUtils` batches through MultiSendCallOnly and only knows these two versions |
+| Safe 1.3.0, 1.4.1 or 1.5.0 with its canonical MultiSendCallOnly, in the Safe UI | The multisigs are Safes. `SafeUtils` batches through MultiSendCallOnly and only knows these three versions |
 | LayerZero V2 endpoint, and at least 4 of the 6 accepted DVNs (`OFT_ACCEPTED_DVNS` in `script/50_CoreAndPeriphery.s.sol`: LayerZero Labs, Google, Canary, Polyhedra, Nethermind, Horizen) | The EUL bridge. Option 50 reads the endpoint and DVNs from LayerZero's metadata API and reverts with "Failed to find enough accepted DVNs" if fewer than 4 are available. With fewer, leave EUL unbridged: answer `n` to the EUL OFT Adapter prompt and skip step 8 |
 | Merkl Distributor (only if rEUL will be distributed on the chain) | rEUL rewards (step 6) |
 | Block explorer with verification (Etherscan V2, Blockscout or Sourcify) | Step 9 |
@@ -58,7 +58,7 @@ It uses about 2.0M gas. If the CREATE2 deployer is missing, ask the chain team t
 
 ## 4. Safes
 
-Create five Safes in the Safe UI, version 1.3.0 or 1.4.1: DAO, labs, security council, security partner A and security partner B. For now, make the deployer the only owner with threshold 1. The real owners come last (step 11): until then the deployer can correct anything alone, while afterwards every correction needs the owners' signatures or a redeployment.
+Create five Safes in the Safe UI, version 1.3.0, 1.4.1 or 1.5.0: DAO, labs, security council, security partner A and security partner B. For now, make the deployer the only owner with threshold 1. The real owners come last (step 11): until then the deployer can correct anything alone, while afterwards every correction needs the owners' signatures or a redeployment.
 
 Option 50 asks for their addresses and checks that each one is a deployed contract.
 
