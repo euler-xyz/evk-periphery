@@ -614,6 +614,8 @@ contract SafeMultisendBuilder is SafeUtil {
             return 0x40A2aCCbd92BCA938b02010E17A5b8929b49130D;
         } else if (versionHash == keccak256("1.4.1")) {
             return 0x9641d764fc13c8B624c04430C7356C1C7C8102e2;
+        } else if (versionHash == keccak256("1.5.0")) {
+            return 0xA83c336B20401Af773B6219BA5027174338D1836;
         } else {
             revert(string.concat("getMultisendAddress: Unsupported Safe version: ", version));
         }
