@@ -96,7 +96,8 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     uint32 internal constant OFT_EXECUTOR_CONFIG_TYPE = 1;
     uint32 internal constant OFT_ULN_CONFIG_TYPE = 2;
     uint32 internal constant OFT_MAX_MESSAGE_SIZE = 10000;
-    string[6] internal OFT_ACCEPTED_DVNS = ["LayerZero Labs", "Google", "Canary", "Polyhedra", "Nethermind", "Horizen"];
+    string[6] internal OFT_ACCEPTED_DVNS =
+        ["LayerZero Labs", "Google", "Canary", "Deutsche Telekom", "Twinstake", "Horizen"];
 
     struct OFTTokenConfig {
         uint128 enforcedGasLimitSend;
