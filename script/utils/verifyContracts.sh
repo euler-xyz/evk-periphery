@@ -33,6 +33,12 @@ SEPARATELY_BUILT_CONTRACTS=(
     "EulerSwapRegistry|lib/euler-swap/src|--optimize --optimizer-runs 2500 --use 0.8.27|--num-of-optimizations 2500 --compiler-version 0.8.27|out-euler-swap"
 )
 
+# The metadata hashes of a build differ between machines (since forge 1.8 they cover absolute-path remappings), so a
+# deployment built elsewhere is recognised with them left out. The explorer still compares the full code.
+function mask_metadata_hashes {
+    echo "$1" | tr 'A-F' 'a-f' | sed -E 's/a2646970667358221220[0-9a-f]{64}/<metadata hash>/g'
+}
+
 # Since forge 1.8 the metadata of a build holds absolute-path remappings that forge verify-contract does not submit, so
 # the input is submitted with the remappings of the local artifact whose metadata hash matches the on-chain code.
 function find_deployed_artifact {
@@ -586,8 +592,10 @@ function verify_broadcast {
 
                 local bytecode=$(jq -r '.bytecode.object' "$artifact" 2>/dev/null)
                 bytecode=${bytecode#0x}
+                local deployedPrefix=${initCode#0x}
+                deployedPrefix=${deployedPrefix:0:${#bytecode}}
 
-                if [[ -z "$bytecode" || "${initCode#0x}" != "$bytecode"* ]]; then
+                if [[ -z "$bytecode" || "$(mask_metadata_hashes "$deployedPrefix")" != "$(mask_metadata_hashes "$bytecode")" ]]; then
                     continue
                 fi
 
