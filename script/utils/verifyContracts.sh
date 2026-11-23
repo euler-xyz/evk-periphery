@@ -23,8 +23,8 @@ trap restore_foundry_src EXIT
 SEPARATELY_BUILT_CONTRACTS=(
     "GovernorAccessControlEmergencyFactoryV2|src/GovernorFactory/GovernorAccessControlEmergencyFactoryV2.sol|--optimize --optimizer-runs 10000 --use 0.8.24|--num-of-optimizations 10000 --compiler-version 0.8.24|out-governor-factory"
     "ERC4626EVCCollateralSecuritizeFactoryV2|src/VaultFactory/ERC4626EVCCollateralSecuritizeFactoryV2.sol|--optimize --optimizer-runs 10000 --use 0.8.24|--num-of-optimizations 10000 --compiler-version 0.8.24|out-securitize-factory"
-    "EulerEarnFactory|lib/euler-earn/src|--via-ir --optimize --optimizer-runs 200 --use 0.8.26|--via-ir --num-of-optimizations 200 --compiler-version 0.8.26|out-euler-earn"
-    "PublicAllocator|lib/euler-earn/src|--via-ir --optimize --optimizer-runs 200 --use 0.8.26|--via-ir --num-of-optimizations 200 --compiler-version 0.8.26|out-euler-earn"
+    "EulerEarnFactory|lib/euler-earn/src|--via-ir --optimize --optimizer-runs 100 --use 0.8.26|--via-ir --num-of-optimizations 100 --compiler-version 0.8.26|out-euler-earn"
+    "PublicAllocator|lib/euler-earn/src|--via-ir --optimize --optimizer-runs 100 --use 0.8.26|--via-ir --num-of-optimizations 100 --compiler-version 0.8.26|out-euler-earn"
     "EulerSwapProtocolFeeConfig|lib/euler-swap/src|--optimize --optimizer-runs 2500 --use 0.8.27|--num-of-optimizations 2500 --compiler-version 0.8.27|out-euler-swap"
     "EulerSwapManagement|lib/euler-swap/src|--optimize --optimizer-runs 2500 --use 0.8.27|--num-of-optimizations 2500 --compiler-version 0.8.27|out-euler-swap"
     "EulerSwap|lib/euler-swap/src|--optimize --optimizer-runs 2500 --use 0.8.27|--num-of-optimizations 2500 --compiler-version 0.8.27|out-euler-swap"

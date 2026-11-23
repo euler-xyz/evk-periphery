@@ -5,6 +5,8 @@ pragma solidity ^0.8.0;
 import {ScriptUtils} from "./utils/ScriptUtils.s.sol";
 
 contract EulerEarnFactoryDeployer is ScriptUtils {
+    uint256 internal constant EIP170_CODE_SIZE_LIMIT = 24576;
+
     function run() public broadcast returns (address eulerEarnfactory, address eulerEarnPublicAllocator) {
         string memory inputScriptFileName = "21_EulerEarnFactory_input.json";
         string memory outputScriptFileName = "21_EulerEarnFactory_output.json";
@@ -34,6 +36,13 @@ contract EulerEarnFactoryDeployer is ScriptUtils {
         public
         returns (address factory, address publicAllocator)
     {
+        // forge's simulation only warns about EIP-170, and an interactive broadcast can still go ahead past it
+        require(
+            vm.getDeployedCode("out-euler-earn/EulerEarnFactory.sol/EulerEarnFactory.json").length
+                <= EIP170_CODE_SIZE_LIMIT,
+            "EulerEarnFactory exceeds the contract size limit"
+        );
+
         bytes memory bytecode = abi.encodePacked(
             vm.getCode("out-euler-earn/EulerEarnFactory.sol/EulerEarnFactory.json"),
             abi.encode(getDeployer(), evc, permit2, perspective)

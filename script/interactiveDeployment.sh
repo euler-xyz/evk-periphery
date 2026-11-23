@@ -64,7 +64,7 @@ if ! script/utils/checkEnvironment.sh "$@"; then
     exit 1
 fi
 
-eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 200 --use 0.8.26 --out out-euler-earn"
+eulerEarnCompilerOptions="--via-ir --optimize --optimizer-runs 100 --use 0.8.26 --out out-euler-earn"
 eulerSwapCompilerOptions="--optimize --optimizer-runs 2500 --use 0.8.27 --out out-euler-swap"
 securitizeFactoryCompilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24 --out out-securitize-factory"
 governorFactoryCompilerOptions="--optimize --optimizer-runs 10000 --use 0.8.24 --out out-governor-factory"
