@@ -117,8 +117,6 @@ function submit_standard_json {
 
     echo "Submitting $target with the remappings of $artifact"
 
-    local separator="?"
-    [[ "$verifier_url" == *"?"* ]] && separator="&"
     local response result
 
     for _ in {1..12}; do
@@ -140,35 +138,172 @@ function submit_standard_json {
 
     if [[ $(echo "$response" | jq -r '.status' 2>/dev/null) != "1" ]]; then
         echo "${result:-${response:0:200}}"
-        [[ $result == *"lready verified"* ]] && return 0
+        is_already_verified "$result" && return 0
         return 1
     fi
 
-    local guid=$result
+    wait_for_verification $contractAddress ${target##*:} $result "$verifier_url" "$verifier_api_key"
+}
 
-    for _ in {1..60}; do
-        sleep 5
-        result=$(curl -s "${verifier_url}${separator}module=contract&action=checkverifystatus&guid=${guid}&apikey=$verifier_api_key" \
-            | jq -r '(.result | strings) // .message // empty' 2>/dev/null)
-        echo "$result"
+# Explorers such as Routescan, and Etherscan on some chains (Arc), keep a submission queued for many minutes. A
+# submission still queued after a short wait is checked again once every contract is submitted, so a slow queue neither
+# holds up the remaining contracts nor reads as a failure.
+PENDING_ADDRESSES=()
+PENDING_NAMES=()
+PENDING_GUIDS=()
+PENDING_URLS=()
+PENDING_KEYS=()
 
-        if [[ -z $result || $result == *"Pending"* ]] || is_rate_limited "$result"; then
-            continue
-        fi
+function queue_pending_verification {
+    PENDING_ADDRESSES+=("$1")
+    PENDING_NAMES+=("$2")
+    PENDING_GUIDS+=("$3")
+    PENDING_URLS+=("$4")
+    PENDING_KEYS+=("$5")
+    echo "Still queued on the explorer (GUID $3); checked again once every contract is submitted"
+}
 
-        case $result in
-            "Pass - Verified" | *"lready verified"*) return 0 ;;
-            # Blockscout drops a finished job, so its outcome is only visible on the contract
-            "Unknown UID") is_verified_on_explorer $contractAddress "$verifier_url" "$verifier_api_key"; return $? ;;
-            *) return 1 ;;
-        esac
-    done
+# Returns 0 when verified, 1 when failed and 2 while queued; the explorer's answer is left in $verification_result
+function check_verification {
+    local contractAddress=$1
+    local guid=$2
+    local verifier_url=$3
+    local verifier_api_key=$4
+    local separator="?"
+    [[ "$verifier_url" == *"?"* ]] && separator="&"
+
+    verification_result=$(curl -s "${verifier_url}${separator}module=contract&action=checkverifystatus&guid=${guid}&apikey=$verifier_api_key" \
+        | jq -r '(.result | strings) // .message // empty' 2>/dev/null)
+
+    # forge also keeps waiting on "contract does not exist": the explorer has not indexed the contract yet
+    if [[ -z $verification_result || $verification_result == *"Pending"* \
+        || $verification_result == "Error: contract does not exist"* ]] || is_rate_limited "$verification_result"; then
+        return 2
+    fi
+
+    if [[ $verification_result == "Pass - Verified" ]] || is_already_verified "$verification_result"; then
+        return 0
+    fi
+
+    # Blockscout drops a finished job, so its outcome is only visible on the contract
+    if [[ $verification_result == "Unknown UID" ]] \
+        && is_verified_on_explorer $contractAddress "$verifier_url" "$verifier_api_key" > /dev/null; then
+        verification_result="Verified"
+        return 0
+    fi
 
     return 1
 }
 
+# Returns 0 when verified, 1 when failed and 2 when still queued after about 30 seconds
+function wait_for_verification {
+    local contractAddress=$1
+    local contractName=$2
+    local guid=$3
+    local verifier_url=$4
+    local verifier_api_key=$5
+    local status
+
+    for _ in {1..6}; do
+        sleep 5
+        check_verification $contractAddress $guid "$verifier_url" "$verifier_api_key"
+        status=$?
+        echo "$verification_result"
+        [[ $status -ne 2 ]] && return $status
+    done
+
+    queue_pending_verification $contractAddress $contractName $guid "$verifier_url" "$verifier_api_key"
+    return 2
+}
+
+function verify_proxy_on_explorer {
+    local contractAddress=$1
+    local contractName=$2
+    local verifier_url=$3
+    local verifier_api_key=$4
+
+    if [[ $contractName == *Proxy* && $verifier_url == *scan*/api* ]]; then
+        local separator="?"
+        [[ "$verifier_url" == *"?"* ]] && separator="&"
+        curl -s -d "address=$contractAddress" "${verifier_url}${separator}module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
+        echo ""
+    fi
+}
+
+function await_pending_verifications {
+    local count=${#PENDING_GUIDS[@]}
+    [[ $count -eq 0 ]] && return 0
+
+    local timeout=${VERIFICATION_TIMEOUT:-1800}
+
+    if ! [[ $timeout =~ ^[0-9]+$ ]]; then
+        echo "! VERIFICATION_TIMEOUT must be a number of seconds, not '$timeout'; using 1800"
+        timeout=1800
+    fi
+
+    local deadline=$((SECONDS + timeout))
+    local remaining=$count
+    local interrupted=false
+    local states=()
+    local i status
+
+    for ((i = 0; i < count; i++)); do
+        states[i]=pending
+    done
+
+    echo ""
+    echo "Checking $count queued verifications again for up to $(((timeout + 59) / 60)) min (VERIFICATION_TIMEOUT=$timeout). Ctrl-C stops waiting."
+
+    # Handling Ctrl-C here, rather than dying of it, lets a calling deployment script carry on and save its records
+    trap 'interrupted=true' INT
+
+    while [[ $remaining -gt 0 && $SECONDS -lt $deadline && $interrupted == false ]]; do
+        sleep 15
+
+        for ((i = 0; i < count; i++)); do
+            [[ $interrupted == true ]] && break
+            [[ ${states[i]} == pending ]] || continue
+            check_verification ${PENDING_ADDRESSES[i]} ${PENDING_GUIDS[i]} "${PENDING_URLS[i]}" "${PENDING_KEYS[i]}"
+            status=$?
+            sleep 1
+            [[ $status -eq 2 ]] && continue
+
+            remaining=$((remaining - 1))
+
+            if [[ $status -eq 0 ]]; then
+                states[i]=verified
+                echo "Verified ${PENDING_NAMES[i]}: ${PENDING_ADDRESSES[i]}"
+                verify_proxy_on_explorer ${PENDING_ADDRESSES[i]} ${PENDING_NAMES[i]} "${PENDING_URLS[i]}" "${PENDING_KEYS[i]}"
+            else
+                states[i]=failed
+                echo "! Verification of ${PENDING_NAMES[i]} at ${PENDING_ADDRESSES[i]} failed: $verification_result"
+            fi
+        done
+    done
+
+    trap - INT
+    [[ $remaining -eq 0 ]] && ! [[ " ${states[*]} " == *" failed "* ]] && return 0
+
+    echo ""
+    echo "Not verified:"
+
+    for ((i = 0; i < count; i++)); do
+        case ${states[i]} in
+            failed) echo "  ${PENDING_NAMES[i]} ${PENDING_ADDRESSES[i]}: failed" ;;
+            pending) echo "  ${PENDING_NAMES[i]} ${PENDING_ADDRESSES[i]}: still queued (GUID ${PENDING_GUIDS[i]})" ;;
+        esac
+    done
+
+    [[ $remaining -gt 0 ]] && echo "Queued submissions may still pass. Run this script again later: contracts verified by then are reported as already verified."
+    return 1
+}
+
 function is_rate_limited {
-    [[ $1 == *"oo many requests"* || $1 == *"ate limit"* ]]
+    [[ $1 == *[Tt]"oo "[Mm]"any "[Rr]"equests"* || $1 == *[Rr]"ate "[Ll]"imit"* ]]
+}
+
+function is_already_verified {
+    [[ $1 == *[Aa]"lready "[Vv]"erified"* ]]
 }
 
 function is_verified_on_explorer {
@@ -237,11 +372,7 @@ function verify_contract {
         && jq -e '.rawMetadata | fromjson | .settings.remappings | any(startswith("/"))' "$artifact" > /dev/null; then
         submit_standard_json $contractAddress "${constructorArgs#--constructor-args }" "$artifact" "$verifier_url" "$verifier_api_key" $@
         result=$?
-
-        if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan*/api* ]]; then
-            curl -d "address=$contractAddress" "$verifier_url&module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
-        fi
-
+        [[ $result -eq 0 ]] && verify_proxy_on_explorer $contractAddress $contractName "$verifier_url" "$verifier_api_key"
         return $result
     fi
 
@@ -288,18 +419,22 @@ function verify_contract {
 
     result=$(cat "$statusFile" 2>/dev/null)
     rm -f "$statusFile"
-    [[ -z $result ]] && result=1
+    # forge exits 2 on argument errors; 2 is kept for a submission still queued
+    [[ $result != 0 ]] && result=1
 
     if [[ $verifier == "sourcify" ]] && echo "$output" | grep -q "is already partially verified"; then
         echo "Contract already partially verified, continuing..."
         result=0
     fi
 
-    if [[ $result -eq 0 && $contractName == *Proxy* && $verifier_url == *scan*/api* ]]; then
-        curl -d "address=$contractAddress" "$verifier_url&module=contract&action=verifyproxycontract&apikey=$verifier_api_key"
+    local guid=$(echo "$output" | sed -n 's/.*GUID: `\([^`]*\)`.*/\1/p' | tail -1)
+
+    if [[ $result -ne 0 && $output == *"still pending"* && -n $guid && -n $verifier_url ]]; then
+        queue_pending_verification $contractAddress ${contractName##*:} $guid "$verifier_url" "$verifier_api_key"
+        result=2
     fi
 
-    #sleep 5
+    [[ $result -eq 0 ]] && verify_proxy_on_explorer $contractAddress $contractName "$verifier_url" "$verifier_api_key"
     return $result
 }
 
@@ -504,3 +639,9 @@ if [ -d "$input" ]; then
 else
     verify_broadcast $input "$@"
 fi
+
+status=$?
+# a contract still queued is accounted for by await_pending_verifications
+[[ $status -eq 2 ]] && status=0
+await_pending_verifications || status=1
+exit $status
