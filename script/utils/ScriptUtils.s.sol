@@ -568,6 +568,11 @@ abstract contract ScriptUtils is
                 return address(0);
             }
 
+            // Arc
+            if (block.chainid == 5042) {
+                return address(0);
+            }
+
             // Hashkey
             if (block.chainid == 177) {
                 return address(0);

@@ -249,7 +249,7 @@ contract SafeUtil is ScriptExtended {
                 || block.chainid == 137 || block.chainid == 143 || block.chainid == 146 || block.chainid == 42161
                 || block.chainid == 43114 || block.chainid == 480 || block.chainid == 56 || block.chainid == 5000
                 || block.chainid == 57073 || block.chainid == 59144 || block.chainid == 747474 || block.chainid == 8453
-                || block.chainid == 9745 || block.chainid == 999
+                || block.chainid == 9745 || block.chainid == 999 || block.chainid == 5042
         ) {
             return "https://safe-client.safe.global/";
         } else if (block.chainid == 1923) {
