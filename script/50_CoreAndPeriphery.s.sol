@@ -57,6 +57,10 @@ interface IEndpointV2 {
     function delegates(address oapp) external view returns (address);
 }
 
+interface IOAppEnforcedOptions {
+    function enforcedOptions(uint32 eid, uint16 msgType) external view returns (bytes memory);
+}
+
 contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     using OptionsBuilder for bytes;
 
@@ -112,13 +116,14 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     constructor() {
         {
             OFTTokenConfig storage cfg = OFT_CONFIG["EUL"];
-            cfg.enforcedGasLimitSend = 100000;
-            cfg.enforcedGasLimitCall = 100000;
+            // Glamsterdam (EIP-8037/8038) prices a first-time recipient's balance write at ~110k gas on its own.
+            cfg.enforcedGasLimitSend = 250000;
+            cfg.enforcedGasLimitCall = 250000;
             cfg.requiredDVNsCount = 4;
             // Ignored chains are never bridged: a run on either side removes that side's peer and its cache row.
-            cfg.configIgnoreChainIds = [uint256(999)];
+            cfg.configIgnoreChainIds = [uint256(999), 60808];
             // One-direction chains may only send EUL to Ethereum: Ethereum's send and the chain's receive are blocked.
-            cfg.configOneDirectionChainIds = [uint256(130), 143, 146, 239, 9745, 43114, 59144, 60808, 80094];
+            cfg.configOneDirectionChainIds = [uint256(130), 143, 146, 239, 9745, 43114, 59144, 80094];
         }
     }
 
@@ -909,8 +914,15 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                         abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (getEnforcedOptions(token, infoOther.eid)))
                     );
                 }
-            } else if (!blockOneDirectionLibrary(token, adapter, delegate, chainIdOther, lzUtil, info)) {
-                console.log("    - %s OFT Adapter already configured for chain %s. Skipping...", tokenKey, chainIdOther);
+            } else {
+                bool libraryChanged = blockOneDirectionLibrary(token, adapter, delegate, chainIdOther, lzUtil, info);
+                bool optionsChanged = updateEnforcedOptions(token, adapter, delegate, chainIdOther, lzUtil);
+
+                if (!libraryChanged && !optionsChanged) {
+                    console.log(
+                        "    - %s OFT Adapter already configured for chain %s. Skipping...", tokenKey, chainIdOther
+                    );
+                }
             }
         }
     }
@@ -1043,6 +1055,59 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
                     library_,
                     " on chain %s for chain %s must be blocked manually."
                 ),
+                tokenKey,
+                block.chainid,
+                chainIdOther
+            );
+        }
+
+        return true;
+    }
+
+    function updateEnforcedOptions(
+        address token,
+        address adapter,
+        address delegate,
+        uint256 chainIdOther,
+        LayerZeroUtil lzUtil
+    ) internal returns (bool) {
+        // Enforced options only shape this adapter's sends, and Ethereum's send to a one-direction chain is blocked.
+        if (isHubChainId(block.chainid) && containsOFTConfigOneDirectionChainId(token, chainIdOther)) return false;
+
+        uint32 eidOther = lzUtil.getDeploymentInfo(chainIdOther).eid;
+        EnforcedOptionParam[] memory desired = getEnforcedOptions(token, eidOther);
+        bool upToDate = true;
+
+        for (uint256 i = 0; i < desired.length; ++i) {
+            bytes memory current = IOAppEnforcedOptions(adapter).enforcedOptions(eidOther, desired[i].msgType);
+            if (keccak256(current) != keccak256(desired[i].options)) upToDate = false;
+        }
+
+        if (upToDate) return false;
+
+        string memory tokenKey = getTokenKey(token);
+
+        if (delegate == getDeployer()) {
+            vm.startBroadcast();
+            console.log(
+                "    + Updating %s OFT Adapter enforced options on chain %s for chain %s",
+                tokenKey,
+                block.chainid,
+                chainIdOther
+            );
+            IOAppOptionsType3(adapter).setEnforcedOptions(desired);
+            vm.stopBroadcast();
+        } else if (delegate == getSafe(false)) {
+            console.log(
+                "    + Adding multisend item to update %s OFT Adapter enforced options on chain %s for chain %s",
+                tokenKey,
+                block.chainid,
+                chainIdOther
+            );
+            addMultisendItem(adapter, abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (desired)));
+        } else {
+            console.log(
+                "    ! The caller of this script or designated Safe is not the OFT Adapter delegate. %s OFT Adapter enforced options on chain %s for chain %s must be updated manually.",
                 tokenKey,
                 block.chainid,
                 chainIdOther

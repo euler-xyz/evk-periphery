@@ -344,6 +344,7 @@ Each run changes only the chain it runs on, so every change takes two runs. A ru
 - Option 50 only reads chains under `euler-interfaces/addresses/<chainId>/`, so both runs must happen before a chain's folder is archived.
 - If LayerZero has no blocked library on a chain (BOB today), that chain can't stop receiving. The run says so; Ethereum's blocked sending still keeps EUL from reaching it.
 - If a run says a step must be done manually, do it, then re-run option 50 on that side so the cache follows.
+- **Enforced gas.** `enforcedGasLimitSend` is the gas the destination's `lzReceive` gets; `enforcedGasLimitCall` is the gas its `lzCompose` gets. Both live on the sending adapter, so the gas for a delivery into Ethereum is set on each other chain. A run also updates already-connected pairs whose enforced options differ from these values, except Ethereum's sends to one-direction chains, which are blocked.
 
 ### Retiring a chain's EUL bridge
 
