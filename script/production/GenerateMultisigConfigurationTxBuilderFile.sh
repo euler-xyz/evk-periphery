@@ -377,19 +377,25 @@ for key in "${keys[@]}"; do
     json='{"chainId":"'$chain_id'","createdAt":'$(date +%s)',"meta":{"name":"'"$batch_name"'","createdFromSafeAddress":"'"$multisig_address"'"},"transactions":[]}'
 
     echo "Processing $key multisig at address: $multisig_address"
-    current_threshold=$(cast call $multisig_address "getThreshold()(uint256)" --rpc-url $DEPLOYMENT_RPC_URL)
-    current_signers=$(cast call $multisig_address "getOwners()(address[])" --rpc-url $DEPLOYMENT_RPC_URL)
-    if ! [[ "$desired_threshold" =~ ^[0-9]+$ && "$current_threshold" =~ ^[0-9]+$ ]]; then
-        echo "Error: could not read the thresholds for $key (desired: '$desired_threshold', current: '$current_threshold')"
+    if ! [[ "$desired_threshold" =~ ^[0-9]+$ ]]; then
+        echo "Error: config/multisig/${key}.json has no valid threshold ('$desired_threshold')"
         echo "Skipping $key"
         echo ""
         continue
     fi
-    
-    # Parse current signers into array
+
+    # A failed read must stop the run: an empty owner list turns a rotation into an add-only batch that keeps the
+    # outgoing owners, and skipping would delete this Safe's previous batch.
+    current_threshold=$(cast call "$multisig_address" "getThreshold()(uint256)" --rpc-url $DEPLOYMENT_RPC_URL | awk '{print $1}')
+    current_signers=$(cast call "$multisig_address" "getOwners()(address[])" --rpc-url $DEPLOYMENT_RPC_URL)
     IFS=$'\n' read -d '' -r -a current_signers_array < <(echo "$current_signers" | grep -o "0x[a-fA-F0-9]\{40\}")
     current_signers_count=${#current_signers_array[@]}
-    
+    if ! [[ "$current_threshold" =~ ^[0-9]+$ ]] || [ "$current_signers_count" -eq 0 ] \
+        || [ "$current_threshold" -gt "$current_signers_count" ]; then
+        echo "Error: could not read the owners and threshold of $key ($multisig_address). Stopping, no batch written."
+        exit 1
+    fi
+
     echo "Current state: $current_signers_count owners, threshold: $current_threshold"
     echo "Desired state: ${#desired_signers[@]} owners, threshold: $desired_threshold"
     
