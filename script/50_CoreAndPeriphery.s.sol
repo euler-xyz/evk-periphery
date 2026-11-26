@@ -67,9 +67,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     struct Input {
         address multisigDAO;
         address multisigLabs;
+        address multisigTechTeam;
         address multisigSecurityCouncil;
-        address multisigSecurityPartnerA;
-        address multisigSecurityPartnerB;
+        address multisigSecurityPartner;
         address permit2;
         address uniswapV2Router;
         address uniswapV3Router;
@@ -87,8 +87,16 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
     uint256 internal constant HUB_CHAIN_ID = 1;
     uint8 internal constant STANDARD_DECIMALS = 18;
     uint256 internal constant EVAULT_FACTORY_TIMELOCK_MIN_DELAY = 4 days;
-    address[1] internal EVAULT_FACTORY_GOVERNOR_PAUSERS = [
-        0xff217004BdD3A6A592162380dc0E6BbF143291eB /*, 0xcC6451385685721778E7Bd80B54F8c92b484F601 */
+    address[9] internal EVAULT_FACTORY_GOVERNOR_PAUSERS = [
+        0xff217004BdD3A6A592162380dc0E6BbF143291eB,
+        0xBf8D6762123228f40015dF03911EA3024117CFAF,
+        0x14f340927e23BB97d5cA48Dccf80f145f9EbA4Be,
+        0xCf6F6b243F8d56cE187D43c7DE6b89b313C28497,
+        0xCa4a58bd899b7F702b678e26a38FE93D55cF5D0a,
+        0xc5C6985ea1825523dadec6B017AEBC0D8D85250A,
+        0x329bf3a7e7201edAB67E93a35F9382C634a50A23,
+        0x70759C643C4e60d87A50F96A9813a18EE4b2672b,
+        0x1416063eb15EDf4978dc964A06A640364C12CBCC
     ];
 
     uint256 internal constant FEE_FLOW_EPOCH_PERIOD = 14 days;
@@ -141,9 +149,9 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
         Input memory input = Input({
             multisigDAO: vm.parseJsonAddress(json, ".multisigDAO"),
             multisigLabs: vm.parseJsonAddress(json, ".multisigLabs"),
+            multisigTechTeam: vm.parseJsonAddress(json, ".multisigTechTeam"),
             multisigSecurityCouncil: vm.parseJsonAddress(json, ".multisigSecurityCouncil"),
-            multisigSecurityPartnerA: vm.parseJsonAddress(json, ".multisigSecurityPartnerA"),
-            multisigSecurityPartnerB: vm.parseJsonAddress(json, ".multisigSecurityPartnerB"),
+            multisigSecurityPartner: vm.parseJsonAddress(json, ".multisigSecurityPartner"),
             permit2: vm.parseJsonAddress(json, ".permit2"),
             uniswapV2Router: vm.parseJsonAddress(json, ".uniswapV2Router"),
             uniswapV3Router: vm.parseJsonAddress(json, ".uniswapV3Router"),
@@ -159,15 +167,15 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
 
         if (
             multisigAddresses.DAO == address(0) && multisigAddresses.labs == address(0)
-                && multisigAddresses.securityCouncil == address(0) && multisigAddresses.securityPartnerA == address(0)
-                && multisigAddresses.securityPartnerB == address(0)
+                && multisigAddresses.techTeam == address(0) && multisigAddresses.securityCouncil == address(0)
+                && multisigAddresses.securityPartner == address(0)
         ) {
             console.log("+ Assigning multisig addresses...");
             multisigAddresses.DAO = input.multisigDAO;
             multisigAddresses.labs = input.multisigLabs;
+            multisigAddresses.techTeam = input.multisigTechTeam;
             multisigAddresses.securityCouncil = input.multisigSecurityCouncil;
-            multisigAddresses.securityPartnerA = input.multisigSecurityPartnerA;
-            multisigAddresses.securityPartnerB = input.multisigSecurityPartnerB;
+            multisigAddresses.securityPartner = input.multisigSecurityPartner;
         } else {
             console.log("- At least one of the multisig addresses already assigned. Skipping...");
         }
@@ -241,14 +249,15 @@ contract CoreAndPeriphery is BatchBuilder, SafeMultisendBuilder {
             bytes32 unpauseAdminRole = FactoryGovernor(governorAddresses.eVaultFactoryGovernor).UNPAUSE_ADMIN_ROLE();
 
             startBroadcast();
-            console.log("    Granting pause guardian role to address %s", multisigAddresses.labs);
-            AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(pauseGuardianRole, multisigAddresses.labs);
-
             for (uint256 i = 0; i < EVAULT_FACTORY_GOVERNOR_PAUSERS.length; ++i) {
                 console.log("    Granting pause guardian role to address %s", EVAULT_FACTORY_GOVERNOR_PAUSERS[i]);
                 AccessControl(governorAddresses.eVaultFactoryGovernor)
                     .grantRole(pauseGuardianRole, EVAULT_FACTORY_GOVERNOR_PAUSERS[i]);
             }
+
+            console.log("    Granting pause guardian role to address %s", multisigAddresses.securityPartner);
+            AccessControl(governorAddresses.eVaultFactoryGovernor)
+                .grantRole(pauseGuardianRole, multisigAddresses.securityPartner);
 
             console.log("    Granting unpause admin role to address %s", multisigAddresses.labs);
             AccessControl(governorAddresses.eVaultFactoryGovernor).grantRole(unpauseAdminRole, multisigAddresses.labs);

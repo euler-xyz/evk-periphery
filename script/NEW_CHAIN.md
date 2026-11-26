@@ -58,7 +58,7 @@ It uses about 2.0M gas. If the CREATE2 deployer is missing, ask the chain team t
 
 ## 4. Safes
 
-Create five Safes in the Safe UI, version 1.3.0, 1.4.1 or 1.5.0: DAO, labs, security council, security partner A and security partner B. For now, make the deployer the only owner with threshold 1. The real owners come last (step 11): until then the deployer can correct anything alone, while afterwards every correction needs the owners' signatures or a redeployment.
+Create five Safes in the Safe UI, version 1.3.0, 1.4.1 or 1.5.0: DAO, labs, tech team, security council and security partner. For now, make the deployer the only owner with threshold 1. The real owners come last (step 11): until then the deployer can correct anything alone, while afterwards every correction needs the owners' signatures or a redeployment.
 
 Option 50 asks for their addresses and checks that each one is a deployed contract.
 
@@ -73,7 +73,7 @@ Run it once first with `--dry-run` added. It simulates without broadcasting and 
 
 | Prompt | Answer |
 |---|---|
-| DAO, labs, security council, security partner A and B | the Safes from step 4 |
+| DAO, labs, tech team, security council, security partner | the Safes from step 4 |
 | Permit2 | default |
 | Uniswap V2 / V3 router | the chain's routers, or empty if it has none |
 | Fee Flow init price | default (`0`, see below) |

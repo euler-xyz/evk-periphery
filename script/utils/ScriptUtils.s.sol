@@ -216,26 +216,26 @@ abstract contract MultisigAddressesLib is ScriptExtended {
     struct MultisigAddresses {
         address DAO;
         address labs;
+        address techTeam;
         address securityCouncil;
-        address securityPartnerA;
-        address securityPartnerB;
+        address securityPartner;
     }
 
     function serializeMultisigAddresses(MultisigAddresses memory Addresses) internal returns (string memory result) {
         result = vm.serializeAddress("multisigAddresses", "DAO", Addresses.DAO);
         result = vm.serializeAddress("multisigAddresses", "labs", Addresses.labs);
+        result = vm.serializeAddress("multisigAddresses", "techTeam", Addresses.techTeam);
         result = vm.serializeAddress("multisigAddresses", "securityCouncil", Addresses.securityCouncil);
-        result = vm.serializeAddress("multisigAddresses", "securityPartnerA", Addresses.securityPartnerA);
-        result = vm.serializeAddress("multisigAddresses", "securityPartnerB", Addresses.securityPartnerB);
+        result = vm.serializeAddress("multisigAddresses", "securityPartner", Addresses.securityPartner);
     }
 
     function deserializeMultisigAddresses(string memory json) internal pure returns (MultisigAddresses memory) {
         return MultisigAddresses({
             DAO: getAddressFromJson(json, ".DAO"),
             labs: getAddressFromJson(json, ".labs"),
+            techTeam: getAddressFromJson(json, ".techTeam"),
             securityCouncil: getAddressFromJson(json, ".securityCouncil"),
-            securityPartnerA: getAddressFromJson(json, ".securityPartnerA"),
-            securityPartnerB: getAddressFromJson(json, ".securityPartnerB")
+            securityPartner: getAddressFromJson(json, ".securityPartner")
         });
     }
 
@@ -244,15 +244,15 @@ abstract contract MultisigAddressesLib is ScriptExtended {
 
         require(Addresses.DAO != address(0), "DAO multisig is required");
         require(Addresses.labs != address(0), "Labs multisig is required");
+        require(Addresses.techTeam != address(0), "Tech Team multisig is required");
         require(Addresses.securityCouncil != address(0), "Security Council multisig is required");
-        require(Addresses.securityPartnerA != address(0), "Security Partner A is required");
-        require(Addresses.securityPartnerB != address(0), "Security Partner B is required");
+        require(Addresses.securityPartner != address(0), "Security Partner multisig is required");
 
         require(Addresses.DAO.code.length != 0, "DAO multisig is not a contract");
         require(Addresses.labs.code.length != 0, "Labs multisig is not a contract");
+        require(Addresses.techTeam.code.length != 0, "Tech Team multisig is not a contract");
         require(Addresses.securityCouncil.code.length != 0, "Security Council multisig is not a contract");
-        require(Addresses.securityPartnerA.code.length != 0, "Security Partner A is not a contract");
-        require(Addresses.securityPartnerB.code.length != 0, "Security Partner B is not a contract");
+        require(Addresses.securityPartner.code.length != 0, "Security Partner multisig is not a contract");
     }
 }
 
