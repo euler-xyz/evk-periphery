@@ -297,7 +297,7 @@ For a chain with no prior Euler deployment, follow [Deploying to a New Chain](NE
 Deploys and configures the complete Euler V2 stack. The script prompts for:
 
 **Required inputs:**
-- DAO, Labs, Security Council, Security Partner A/B multisig addresses
+- DAO, Labs, Tech Team, Security Council, Security Partner multisig addresses
 
 **Optional inputs (skipped if already deployed):**
 - Permit2 address (default: canonical deployment)

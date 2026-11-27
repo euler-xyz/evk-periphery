@@ -15,9 +15,16 @@ show_usage() {
     echo "                        VALUE can be either:"
     echo "                        - A multisig key (e.g., DAO, labs, securityCouncil, riskSteward, etc.)"
     echo "                        - An actual address (0x...)"
+    echo "  --safe-nonce VALUE    Safe nonce to name the file with (requires exactly one --safe-address)"
+    echo "                        Default: the Safe's current on-chain nonce. Batches from the forge scripts use the"
+    echo "                        Safe service's next nonce, which is later when transactions are queued; pass that"
+    echo "                        nonce here so the batches merge"
     echo "  --help, -h            Show this help message"
     echo ""
     echo "If no specific multisig is provided, all multisigs will be processed."
+    echo ""
+    echo "Each file is saved as SafeBatchBuilder_<nonce>_<safe>_<i>.json, so MergeSafeBatchBuilderFiles can merge it"
+    echo "with other batches for the same Safe and nonce. A re-run replaces its own previous file."
     echo ""
     echo "Available multisig keys are read from MultisigAddresses.json files in:"
     echo "  - addresses/[chain_id]/MultisigAddresses.json"
@@ -43,6 +50,7 @@ normalize_address() {
 selected_keys=()
 selected_addresses=()
 all_multisigs=true
+safe_nonce=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -58,6 +66,14 @@ while [[ $# -gt 0 ]]; do
                 selected_keys+=("$2")
             fi
             all_multisigs=false
+            shift 2
+            ;;
+        --safe-nonce)
+            if [[ $# -lt 2 || ! "$2" =~ ^(0|[1-9][0-9]*)$ ]]; then
+                echo "Error: --safe-nonce requires a number without leading zeros"
+                exit 1
+            fi
+            safe_nonce="$2"
             shift 2
             ;;
         --help|-h)
@@ -225,38 +241,21 @@ else
     echo "Processing selected multisigs: ${keys[*]}"
 fi
 
-contract_method_addOwnerWithThreshold=$(jq -n '{
-  contractMethod: {
-    inputs: [
-      {internalType: "address", name: "owner", type: "address"},
-      {internalType: "uint256", name: "_threshold", type: "uint256"}
-    ],
-    name: "addOwnerWithThreshold",
-    payable: false
-  }
-}' | jq -c '.contractMethod')
+if [ -n "$safe_nonce" ] && [ ${#keys[@]} -ne 1 ]; then
+    echo "Error: --safe-nonce applies to a single Safe; select exactly one with --safe-address"
+    exit 1
+fi
 
-contract_method_removeOwner=$(jq -n '{
-  contractMethod: {
-    inputs: [
-      {internalType: "address", name: "prevOwner", type: "address"},
-      {internalType: "address", name: "owner", type: "address"}, 
-      {internalType: "uint256", name: "_threshold", type: "uint256"}
-    ],
-    name: "removeOwner",
-    payable: false
-  }
-}' | jq -c '.contractMethod')
-
-contract_method_changeThreshold=$(jq -n '{
-  contractMethod: {
-    inputs: [
-      {internalType: "uint256", name: "_threshold", type: "uint256"}
-    ],
-    name: "changeThreshold",
-    payable: false
-  }
-}' | jq -c '.contractMethod')
+# Appends a raw-calldata call on the Safe itself, the format MergeSafeBatchBuilderFiles reads
+append_safe_call() {
+    local data
+    if ! data=$(cast calldata "$@"); then
+        echo "Error: could not encode $1 for $key"
+        exit 1
+    fi
+    json=$(echo "$json" | jq --arg to "$multisig_address" --arg data "$data" \
+        '.transactions += [{"to": $to, "value": "0", "data": $data}]')
+}
 
 # Helper function to check if an address is in an array
 is_address_in_array() {
@@ -296,7 +295,36 @@ directory_name=${directory_name:-default}
 directory_path="script/deployments/$directory_name/$chain_id/output"
 mkdir -p "$directory_path"
 
+stale_batch=""
+processed_safes=()
+
+# A previous batch for a Safe that this run skipped or found already configured would otherwise still get merged
+drop_stale_batch() {
+    [ -n "$stale_batch" ] || return 0
+    local prefix=${stale_batch%_*}
+    local removed_index=${stale_batch##*_}
+    removed_index=${removed_index%.json}
+    rm "$stale_batch"
+    echo "Removed the outdated $(basename "$stale_batch")"
+    local later_file index warned=false
+    for later_file in "$prefix"_*.json; do
+        index=${later_file#"${prefix}_"}
+        index=${index%.json}
+        if [[ "$index" =~ ^[0-9]+$ ]] && [ "$index" -gt "$removed_index" ]; then
+            if [ "$warned" = false ]; then
+                echo "Warning: MergeSafeBatchBuilderFiles stops at the missing index $removed_index. Renumber these later"
+                echo "files to close the gap, leaving out earlier merge outputs:"
+                warned=true
+            fi
+            echo "    $(basename "$later_file"): $(jq -r '"\(.meta.name // "?") (\(.transactions | length) calls)"' "$later_file" 2>/dev/null)"
+        fi
+    done
+    echo ""
+    stale_batch=""
+}
+
 for key in "${keys[@]}"; do
+    drop_stale_batch
     multisig_address=$(get_multisig_address "$key")
     if [ -z "$multisig_address" ]; then
         echo "Error: Could not find address for multisig key '$key' in either MultisigAddresses.json file"
@@ -304,32 +332,91 @@ for key in "${keys[@]}"; do
         echo ""
         continue
     fi
+    if [ ! -f "$config_dir_path/${key}.json" ]; then
+        echo "No config/multisig/${key}.json, skipping $key"
+        echo ""
+        continue
+    fi
+    multisig_address=$(cast to-check-sum-address "$multisig_address")
+    if is_address_in_array "$multisig_address" "${processed_safes[@]}"; then
+        echo "Error: $key is $multisig_address, which this run already processed under another key"
+        echo "Skipping $key"
+        echo ""
+        continue
+    fi
+    processed_safes+=("$multisig_address")
+    nonce=${safe_nonce:-$(cast call "$multisig_address" "nonce()(uint256)" --rpc-url $DEPLOYMENT_RPC_URL 2>/dev/null | awk '{print $1}')}
+    if ! [[ "$nonce" =~ ^(0|[1-9][0-9]*)$ ]]; then
+        echo "Error: could not read the nonce of $key ($multisig_address)"
+        echo "Skipping $key"
+        echo ""
+        continue
+    fi
+
+    # File names must match MergeSafeBatchBuilderFiles: SafeBatchBuilder_<nonce>_<checksummed safe>_<i>.json
+    batch_name="$key multisig configuration batch"
+    batch_prefix="$directory_path/SafeBatchBuilder_${nonce}_${multisig_address}"
+    previous_batches=()
+    for existing_file in "${batch_prefix}"_*.json; do
+        index_part=${existing_file#"${batch_prefix}_"}
+        [[ "$index_part" =~ ^[0-9]+\.json$ ]] || continue
+        if [ "$(jq -r '.meta.name' "$existing_file" 2>/dev/null)" == "$batch_name" ]; then
+            previous_batches+=("$existing_file")
+        fi
+    done
+    if [ ${#previous_batches[@]} -gt 1 ]; then
+        echo "Error: several batches for $key at nonce $nonce (${previous_batches[*]}); remove the outdated ones"
+        echo "Skipping $key"
+        echo ""
+        continue
+    fi
+    stale_batch=${previous_batches[0]:-}
+
     desired_threshold=$(jq -r ".threshold" "$config_dir_path/${key}.json")
     IFS=$'\n' read -d '' -r -a desired_signers < <(jq -r '.signers[]' "$config_dir_path/${key}.json")
-    json='{"chainId":"'$chain_id'","createdAt":'$(date +%s)',"meta":{"name":"'"$key"' multisig configuration batch","createdFromSafeAddress":"'"$multisig_address"'"},"transactions":[]}'
+    json='{"chainId":"'$chain_id'","createdAt":'$(date +%s)',"meta":{"name":"'"$batch_name"'","createdFromSafeAddress":"'"$multisig_address"'"},"transactions":[]}'
 
     echo "Processing $key multisig at address: $multisig_address"
-    current_threshold=$(cast call $multisig_address "getThreshold()(uint256)" --rpc-url $DEPLOYMENT_RPC_URL)
-    current_signers=$(cast call $multisig_address "getOwners()(address[])" --rpc-url $DEPLOYMENT_RPC_URL)
-    
-    # Parse current signers into array
+    if ! [[ "$desired_threshold" =~ ^[0-9]+$ ]]; then
+        echo "Error: config/multisig/${key}.json has no valid threshold ('$desired_threshold')"
+        echo "Skipping $key"
+        echo ""
+        continue
+    fi
+
+    # A failed read must stop the run: an empty owner list turns a rotation into an add-only batch that keeps the
+    # outgoing owners, and skipping would delete this Safe's previous batch.
+    current_threshold=$(cast call "$multisig_address" "getThreshold()(uint256)" --rpc-url $DEPLOYMENT_RPC_URL | awk '{print $1}')
+    current_signers=$(cast call "$multisig_address" "getOwners()(address[])" --rpc-url $DEPLOYMENT_RPC_URL)
     IFS=$'\n' read -d '' -r -a current_signers_array < <(echo "$current_signers" | grep -o "0x[a-fA-F0-9]\{40\}")
     current_signers_count=${#current_signers_array[@]}
-    
+    if ! [[ "$current_threshold" =~ ^[0-9]+$ ]] || [ "$current_signers_count" -eq 0 ] \
+        || [ "$current_threshold" -gt "$current_signers_count" ]; then
+        echo "Error: could not read the owners and threshold of $key ($multisig_address). Stopping, no batch written."
+        exit 1
+    fi
+
     echo "Current state: $current_signers_count owners, threshold: $current_threshold"
     echo "Desired state: ${#desired_signers[@]} owners, threshold: $desired_threshold"
     
     # Resolve any non-address signers (multisig keys) to actual addresses
+    unresolved_signers=()
     for i in "${!desired_signers[@]}"; do
         signer="${desired_signers[$i]}"
-        if [[ ! "$signer" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
+        if ! is_address "$signer"; then
             resolved_signer=$(get_multisig_address "$signer")
-            if [ -z "$resolved_signer" ]; then
-                resolved_signer="$signer"
+            if ! is_address "$resolved_signer"; then
+                unresolved_signers+=("$signer")
             fi
             desired_signers[$i]=$resolved_signer
         fi
     done
+    if [ ${#unresolved_signers[@]} -gt 0 ]; then
+        echo "Error: signer(s) ${unresolved_signers[*]} are neither addresses nor multisig keys on this chain"
+        echo "Skipping $key"
+        echo ""
+        continue
+    fi
     
     # Set the createdFromOwnerAddress to address zero (for transaction signing)
     json=$(echo "$json" | jq --arg to "$multisig_address" --arg createdFromOwnerAddress "0x0000000000000000000000000000000000000000" \
@@ -346,9 +433,7 @@ for key in "${keys[@]}"; do
     for desired_signer in "${desired_signers[@]}"; do
         if ! is_address_in_array "$desired_signer" "${current_signers_array[@]}"; then
             echo "Adding owner: $desired_signer"
-            json=$(echo $json | jq --arg to "$multisig_address" --argjson contractMethod "$contract_method_addOwnerWithThreshold" \
-                --arg owner "$desired_signer" --arg _threshold "$current_threshold" \
-                '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"owner": $owner, "_threshold": $_threshold}}]' )
+            append_safe_call "addOwnerWithThreshold(address,uint256)" "$desired_signer" "$current_threshold"
         fi
     done
     
@@ -399,9 +484,7 @@ for key in "${keys[@]}"; do
             fi
             # Reduce threshold before removing owners
             echo "Reducing threshold to $desired_threshold before removing owners"
-            json=$(echo $json | jq --arg to "$multisig_address" --argjson contractMethod "$contract_method_changeThreshold" \
-                --arg _threshold "$desired_threshold" \
-                '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"_threshold": $_threshold}}]' )
+            append_safe_call "changeThreshold(uint256)" "$desired_threshold"
             removal_threshold=$desired_threshold
             threshold_already_changed=true
         else
@@ -437,9 +520,7 @@ for key in "${keys[@]}"; do
             fi
             
             echo "Removing owner: $owner_to_remove"
-            json=$(echo $json | jq --arg to "$multisig_address" --argjson contractMethod "$contract_method_removeOwner" \
-                --arg owner "$owner_to_remove" --arg _threshold "$removal_threshold" --arg prev_owner "$prev_owner" \
-                '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"prevOwner": $prev_owner, "owner": $owner, "_threshold": $_threshold}}]' )
+            append_safe_call "removeOwner(address,address,uint256)" "$prev_owner" "$owner_to_remove" "$removal_threshold"
             
             # Simulate the linked list change: owners[prevOwner] = owners[owner]
             # This means prevOwner now points to whatever owner was pointing to
@@ -463,18 +544,31 @@ for key in "${keys[@]}"; do
     # Phase 3: Adjust threshold if needed (skip if already changed in Phase 2)
     if [ "$current_threshold" -ne "$desired_threshold" ] && [ "$threshold_already_changed" != "true" ]; then
         echo "Setting threshold to $desired_threshold"
-        json=$(echo $json | jq --arg to "$multisig_address" --argjson contractMethod "$contract_method_changeThreshold" \
-            --arg _threshold "$desired_threshold" \
-            '.transactions += [{"to": $to, "value": "0", "data": null, "contractMethod": $contractMethod, "contractInputsValues": {"_threshold": $_threshold}}]' )
+        append_safe_call "changeThreshold(uint256)" "$desired_threshold"
     fi
     
     # Save the transaction batch if there are any transactions
     transaction_count=$(echo $json | jq '.transactions | length')
     if [ "$transaction_count" -gt 0 ]; then
         echo "Generated $transaction_count operations for $key multisig"
-        echo $json | jq '.' > "${directory_path}/${key}.json"
+        if [ -n "$stale_batch" ]; then
+            output_file=$stale_batch
+            stale_batch=""
+        else
+            output_file="${batch_prefix}_$(script/utils/getFileNameCounter.sh "${batch_prefix}.json").json"
+        fi
+        echo "$json" | jq '.' > "$output_file"
+        echo "Saved to $output_file"
+        if [ "$nonce" == "0" ]; then
+            echo "MergeSafeBatchBuilderFiles cannot target nonce 0: load this file in the Safe UI directly"
+        elif [ -z "$safe_nonce" ]; then
+            echo "Named with the on-chain nonce. If $key has queued transactions, re-run with --safe-address $key"
+            echo "--safe-nonce <the nonce of the other batches> so MergeSafeBatchBuilderFiles picks it up"
+        fi
     else
         echo "No operations needed for $key multisig (already in desired state)"
     fi
     echo ""
 done
+
+drop_stale_batch

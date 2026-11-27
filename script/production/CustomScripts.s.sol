@@ -242,14 +242,17 @@ contract MigratePosition is BatchBuilder {
 }
 
 contract MergeSafeBatchBuilderFiles is ScriptUtils, SafeMultisendBuilder {
+    uint256 internal constant GAP_LOOKAHEAD = 100;
+
     function run() public {
         address safe = getSafe();
         string memory basePath = string.concat(
             vm.projectRoot(), "/", getPath(), "/SafeBatchBuilder_", vm.toString(safeNonce), "_", vm.toString(safe), "_"
         );
 
-        for (uint256 i = 0; vm.exists(string.concat(basePath, vm.toString(i), ".json")); ++i) {
-            string memory json = vm.readFile(string.concat(basePath, vm.toString(i), ".json"));
+        uint256 count;
+        for (; vm.exists(batchFile(basePath, count)); ++count) {
+            string memory json = vm.readFile(batchFile(basePath, count));
 
             uint256 j;
             while (vm.keyExists(json, string.concat(".transactions[", vm.toString(j), "].to"))) {
@@ -263,7 +266,25 @@ contract MergeSafeBatchBuilderFiles is ScriptUtils, SafeMultisendBuilder {
             }
         }
 
+        require(count > 0, string.concat("MergeSafeBatchBuilderFiles: ", batchFile(basePath, 0), " not found"));
+        for (uint256 i = count + 1; i <= count + GAP_LOOKAHEAD; ++i) {
+            require(
+                !vm.exists(batchFile(basePath, i)),
+                string.concat(
+                    "MergeSafeBatchBuilderFiles: ",
+                    batchFile(basePath, i),
+                    " exists but ",
+                    batchFile(basePath, count),
+                    " is missing"
+                )
+            );
+        }
+
         executeMultisend(safe, safeNonce++);
+    }
+
+    function batchFile(string memory basePath, uint256 index) internal pure returns (string memory) {
+        return string.concat(basePath, vm.toString(index), ".json");
     }
 }
 

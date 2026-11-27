@@ -1255,9 +1255,9 @@ while true; do
             if [ "$(ls -A "$addresses_dir_path")" ]; then
                 multisig_dao=$(jq -r '.DAO' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
                 multisig_labs=$(jq -r '.labs' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                multisig_tech_team=$(jq -r '.techTeam' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
                 multisig_security_council=$(jq -r '.securityCouncil' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
-                multisig_security_partner_A=$(jq -r '.securityPartnerA' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
-                multisig_security_partner_B=$(jq -r '.securityPartnerB' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
+                multisig_security_partner=$(jq -r '.securityPartner' "$addresses_dir_path/MultisigAddresses.json" 2>/dev/null)
                 evc=$(jq -r '.evc' "$addresses_dir_path/CoreAddresses.json" 2>/dev/null)
                 swapper=$(jq -r '.swapper' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
                 feeFlowController=$(jq -r '.feeFlowController' "$addresses_dir_path/PeripheryAddresses.json" 2>/dev/null)
@@ -1278,9 +1278,9 @@ while true; do
                 fi
                 read -p "Enter the DAO multisig address: " multisig_dao
                 read -p "Enter the Labs multisig address: " multisig_labs
+                read -p "Enter the Tech Team multisig address: " multisig_tech_team
                 read -p "Enter the Security Council multisig address: " multisig_security_council
-                read -p "Enter the Security Partner A address: " multisig_security_partner_A
-                read -p "Enter the Security Partner B address: " multisig_security_partner_B
+                read -p "Enter the Security Partner multisig address: " multisig_security_partner
             fi
 
             if [ -z "$evc" ] || [ "$evc" == "$addressZero" ] || [ "$evc" == "null" ]; then
@@ -1338,9 +1338,9 @@ while true; do
 
             multisig_dao=${multisig_dao:-$addressZero}
             multisig_labs=${multisig_labs:-$addressZero}
+            multisig_tech_team=${multisig_tech_team:-$addressZero}
             multisig_security_council=${multisig_security_council:-$addressZero}
-            multisig_security_partner_A=${multisig_security_partner_A:-$addressZero}
-            multisig_security_partner_B=${multisig_security_partner_B:-$addressZero}
+            multisig_security_partner=${multisig_security_partner:-$addressZero}
             permit2=${permit2:-0x000000000022D473030F116dDEE9F6B43aC78BA3}
             uniswap_router_v2=${uniswap_router_v2:-$addressZero}
             uniswap_router_v3=${uniswap_router_v3:-$addressZero}
@@ -1376,9 +1376,9 @@ while true; do
             jq -n \
                 --arg multisigDAO "$multisig_dao" \
                 --arg multisigLabs "$multisig_labs" \
+                --arg multisigTechTeam "$multisig_tech_team" \
                 --arg multisigSecurityCouncil "$multisig_security_council" \
-                --arg multisigSecurityPartnerA "$multisig_security_partner_A" \
-                --arg multisigSecurityPartnerB "$multisig_security_partner_B" \
+                --arg multisigSecurityPartner "$multisig_security_partner" \
                 --arg permit2 "$permit2" \
                 --arg uniswapRouterV2 "$uniswap_router_v2" \
                 --arg uniswapRouterV3 "$uniswap_router_v3" \
@@ -1393,9 +1393,9 @@ while true; do
                 '{
                     multisigDAO: $multisigDAO,
                     multisigLabs: $multisigLabs,
+                    multisigTechTeam: $multisigTechTeam,
                     multisigSecurityCouncil: $multisigSecurityCouncil,
-                    multisigSecurityPartnerA: $multisigSecurityPartnerA,
-                    multisigSecurityPartnerB: $multisigSecurityPartnerB,
+                    multisigSecurityPartner: $multisigSecurityPartner,
                     permit2: $permit2,
                     uniswapV2Router: $uniswapRouterV2,
                     uniswapV3Router: $uniswapRouterV3,
